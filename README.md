@@ -42,25 +42,24 @@
 ---
 
 ## ⚙️ Git Path
-    ```text
-    feature/[feature_name]
-        |
-        |
-    develop
-        |
-        |
-    main
-    ```
----
-## ⚙️ Git Path
-    ```text
-    feature/[feature_name] -> develop -> main
-    ```
-    ```sh
-    git checkout -b [next_branch_name]
-    git merge [previous_branch_name]
-    ```
----
+```text
+feature/[feature_name]
+    |
+    |
+develop
+    |
+    |
+main
+```
+
+## ⚙️ Merging
+```text
+feature/[feature_name] -> develop -> main
+```
+```sh
+git checkout -b [next_branch_name]
+git merge [previous_branch_name]
+```
 
 ## 📂 Struttura del Progetto
 
