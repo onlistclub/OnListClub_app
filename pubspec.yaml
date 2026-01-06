@@ -18,6 +18,7 @@ dependencies:
   universal_html: ^2.2.4
   supabase_flutter: ^2.6.0
   intl_phone_field: ^3.2.0
+  intl_phone_number_input: ^0.7.4
   phone_numbers_parser: ^8.2.0
 dev_dependencies:
   flutter_test:    # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE

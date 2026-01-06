@@ -1,8 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'age_calculator.dart';
-import 'phone_utils.dart';
-import '../services/register_service.dart';
 
 class UserProfileManager {
   static final UserProfileManager _instance = UserProfileManager._internal();
@@ -49,8 +47,8 @@ class UserProfileManager {
       final nome = metadata['nome'] as String?;
       final cognome = metadata['cognome'] as String?;
       final dobString = metadata['data_nascita'] as String?;
-      final telefono = metadata['telefono'] as String?;
-      final phoneIso = metadata['phone_country_iso'] as String?;
+      final _telefono = metadata['telefono'] as String?;
+      final _phoneIso = metadata['phone_country_iso'] as String?;
       
       DateTime? dob;
       if (dobString != null) {
@@ -62,20 +60,15 @@ class UserProfileManager {
         isAdult = AgeCalculator.isAdult(dob);
       }
 
-      // Atomic insert into users and users_phones via RPC
-      final normalizedPhone = PhoneUtils.normalize(
-        countryIso: phoneIso,
-        completeNumber: telefono,
-      );
-      await RegisterService().registerAtomic(
-        userId: user.id,
-        email: user.email ?? '',
-        nome: nome ?? '',
-        cognome: cognome ?? '',
-        dataNascita: dob ?? DateTime(1970, 1, 1),
-        telefono: normalizedPhone,
-        countryIso: phoneIso,
-      );
+      // Upsert solo su public.users; non inseriamo telefono qui
+      await Supabase.instance.client.from('users').upsert({
+        'id': user.id,
+        'nome': nome,
+        'cognome': cognome,
+        'email': user.email,
+        'data_nascita': dob?.toIso8601String(),
+        'maggiorenne': isAdult,
+      });
 
       debugPrint('[UserProfileManager] Profile created successfully.');
 

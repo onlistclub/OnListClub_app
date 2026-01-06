@@ -11,6 +11,7 @@ class SignUpModel extends Equatable {
     this.dob,
     this.phone = "",
     this.phoneCountryIso,
+    this.nationalNumber = "",
   });
 
   final String firstName;
@@ -21,6 +22,7 @@ class SignUpModel extends Equatable {
   final DateTime? dob;
   final String phone;
   final String? phoneCountryIso;
+  final String nationalNumber;
 
   SignUpModel copyWith({
     String? firstName,
@@ -31,6 +33,7 @@ class SignUpModel extends Equatable {
     DateTime? dob,
     String? phone,
     String? phoneCountryIso,
+    String? nationalNumber,
   }) {
     return SignUpModel(
       firstName: firstName ?? this.firstName,
@@ -41,6 +44,7 @@ class SignUpModel extends Equatable {
       dob: dob ?? this.dob,
       phone: phone ?? this.phone,
       phoneCountryIso: phoneCountryIso ?? this.phoneCountryIso,
+      nationalNumber: nationalNumber ?? this.nationalNumber,
     );
   }
 
@@ -54,5 +58,6 @@ class SignUpModel extends Equatable {
         dob,
         phone,
         phoneCountryIso,
+        nationalNumber,
       ];
 }

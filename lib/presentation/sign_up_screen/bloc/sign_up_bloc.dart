@@ -6,6 +6,7 @@ import '../models/sign_up_model.dart';
 import 'package:intl/intl.dart';
 import '../../../core/utils/phone_utils.dart';
 import '../../../core/services/register_service.dart';
+import '../../../core/utils/age_calculator.dart';
 // phone_numbers_parser non usato nel flusso ripristinato
 
 part 'sign_up_event.dart';
@@ -39,7 +40,7 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       formKey: GlobalKey<FormState>(),
       isLoading: false,
       isSuccess: false,
-      signUpModel: SignUpModel(),
+      signUpModel: SignUpModel(phoneCountryIso: 'IT'),
     ));
   }
 
@@ -108,10 +109,12 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       nationalNumber: event.nationalNumber,
       completeNumber: event.phone,
     );
+    final nnDigits = (event.nationalNumber ?? '').replaceAll(RegExp(r'\D'), '');
     emit(state.copyWith(
       signUpModel: state.signUpModel?.copyWith(
         phone: normalized,
-        phoneCountryIso: event.countryIso,
+        phoneCountryIso: event.countryIso ?? state.signUpModel?.phoneCountryIso,
+        nationalNumber: nnDigits,
       ),
     ));
   }
@@ -145,17 +148,44 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       );
       
       if (response.user != null) {
-        // Persistenza su tabelle pubbliche avverrà post-verifica al primo login (ripristino modello precedente)
-        // Qui navighiamo alla schermata di verifica
-        // Check if session is null, which usually implies email confirmation is required
-        if (response.session == null) {
-             emit(state.copyWith(
-               isLoading: false, 
-               isSuccess: true // Trigger navigation
-             ));
-        } else {
-             emit(state.copyWith(isLoading: false, isSuccess: true));
+        final user = response.user!;
+        final iso = model.phoneCountryIso ?? 'IT';
+        final nn = model.nationalNumber;
+        final dob = model.dob;
+        if (nn.isEmpty || dob == null) {
+          emit(state.copyWith(isLoading: false, errorMessage: 'Dati telefono/paese mancanti'));
+          return;
         }
+        final isAdult = AgeCalculator.isAdult(dob);
+        try {
+          debugPrint('[SignUpBloc] iso=$iso nn_raw=${model.nationalNumber}');
+          final cleaned = nn.replaceAll(RegExp(r'\D'), '');
+          final countryId = await RegisterService().resolveCountryIdFromIso(iso);
+          debugPrint('[SignUpBloc] country_id=$countryId nn_clean=$cleaned');
+          await Supabase.instance.client.from('users').upsert({
+            'id': user.id,
+            'nome': model.firstName,
+            'cognome': model.lastName,
+            'email': model.email,
+            'data_nascita': dob.toIso8601String(),
+            'maggiorenne': isAdult,
+          });
+          await Supabase.instance.client.from('users_phones').upsert({
+            'user_id': user.id,
+            'country_id': countryId,
+            'telefono': cleaned,
+            'is_primary': true,
+            'is_verified': false,
+          }, onConflict: 'user_id,telefono');
+          debugPrint('[SignUpBloc] users_phones upserted payload: {user_id:${user.id}, country_id:$countryId, telefono:$cleaned}');
+          emit(state.copyWith(isLoading: false, isSuccess: true));
+        } catch (e) {
+          debugPrint('[SignUpBloc] Insert error: $e');
+          emit(state.copyWith(isLoading: false, errorMessage: 'Errore salvataggio telefono: $e'));
+          return;
+        }
+        // Check if session is null, which usually implies email confirmation is required
+        // La navigazione è gestita da isSuccess
       } else {
          // Should throw error if failed usually, but just in case
          emit(state.copyWith(isLoading: false, errorMessage: "Registration failed"));

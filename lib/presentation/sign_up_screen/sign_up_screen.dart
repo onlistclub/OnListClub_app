@@ -6,7 +6,7 @@ import './bloc/sign_up_bloc.dart';
 import './models/sign_up_model.dart';
 // No custom country model
 import '../../core/utils/age_calculator.dart';
-import 'package:intl_phone_field/intl_phone_field.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 class SignUpScreen extends StatelessWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -179,39 +179,39 @@ class SignUpScreen extends StatelessWidget {
                           },
                         ),
                         SizedBox(height: 16.h),
-                        // Numero di telefono
                         _buildLabel('Telefono'),
-                        IntlPhoneField(
-                          controller: state.phoneController, // Usiamo lo stesso controller del tuo BLoC
-                          decoration: InputDecoration(
-    hintText: 'Telefono',
-    hintStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(color: Colors.white54),
-    fillColor: Colors.white.withValues(alpha: 0.1), // Sfondo leggermente visibile come i tuoi input
-    filled: true,
-    contentPadding: EdgeInsets.all(12.h),
-    border: OutlineInputBorder(
-      borderRadius: BorderRadius.circular(10.h),
-      borderSide: BorderSide(),
-    ),
-    errorStyle: TextStyle(color: Colors.redAccent),
-  ),
-  style: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(color: Colors.white),
-  dropdownTextStyle: TextStyle(color: Colors.white, fontSize: 16.fSize), // Colore prefisso (+39)
-  initialCountryCode: 'IT',
-  languageCode: "it",
-  cursorColor: Colors.white,
-  dropdownIcon: Icon(Icons.arrow_drop_down, color: Colors.white),
-  onChanged: (phone) {
-    // Inviamo sia il numero completo che il codice ISO al BLoC
-    // Nota: devi assicurarti che il tuo Event accetti questi parametri
-    context.read<SignUpBloc>().add(PhoneChangedEvent(
-      phone: phone.completeNumber, // Es: +393331234567
-      countryIso: phone.countryISOCode, // Es: IT
-      nationalNumber: phone.number,
-    ));
-  },
-  invalidNumberMessage: 'Numero non valido',
-),
+                        InternationalPhoneNumberInput(
+                          textFieldController: state.phoneController,
+                          initialValue: PhoneNumber(isoCode: 'IT'),
+                          countries: const ['IT', 'CH', 'FR', 'DE', 'ES'],
+                          inputDecoration: InputDecoration(
+                            hintText: 'Telefono',
+                            hintStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(color: Colors.white54),
+                            fillColor: Colors.white.withValues(alpha: 0.1),
+                            filled: true,
+                            contentPadding: EdgeInsets.all(12.h),
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(10.h),
+                              borderSide: BorderSide(),
+                            ),
+                            errorStyle: TextStyle(color: Colors.redAccent),
+                          ),
+                          onInputChanged: (phone) {
+                            final iso = phone.isoCode;
+                            final dial = phone.dialCode ?? '';
+                            final full = (phone.phoneNumber ?? '').replaceAll(' ', '');
+                            final cleaned = full.replaceAll(RegExp(r'\D'), '');
+                            final dialClean = dial.replaceAll('+', '');
+                            final nn = cleaned.startsWith(dialClean)
+                                ? cleaned.substring(dialClean.length)
+                                : cleaned;
+                            context.read<SignUpBloc>().add(PhoneChangedEvent(
+                              phone: full,
+                              countryIso: iso,
+                              nationalNumber: nn,
+                            ));
+                          },
+                        ),
                         SizedBox(height: 16.h),
                         // Data di nascita
                         _buildLabel('Data di nascita'),

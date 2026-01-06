@@ -47,4 +47,53 @@ class RegisterService {
       rethrow;
     }
   }
+Future<String> resolveCountryIdFromIso(String isoCode) async {
+  final iso = isoCode.trim().toUpperCase();
+
+  final row = await _client
+      .from('countries')
+      .select('id, iso_code')
+      .eq('iso_code', iso)
+      .maybeSingle();
+
+  // Debug
+  // ignore: avoid_print
+  print('[resolveCountryIdFromIso] iso=$iso row=$row');
+
+  final id = row?['id'];
+  if (id == null) throw StateError('Paese non trovato per ISO $iso');
+  return id as String;
+}
+
+
+  Future<void> insertImmediate({
+    required String userId,
+    required String email,
+    required String nome,
+    required String cognome,
+    required DateTime dataNascita,
+    required bool maggiorenne,
+    required String isoCode,
+    required String nationalNumber,
+  }) async {
+    if (nationalNumber.isEmpty || nationalNumber.length < 6) {
+      throw ArgumentError('Numero di telefono troppo corto');
+    }
+    final countryId = await resolveCountryIdFromIso(isoCode);
+    await _client.from('users').upsert({
+      'id': userId,
+      'nome': nome,
+      'cognome': cognome,
+      'email': email,
+      'data_nascita': dataNascita.toIso8601String(),
+      'maggiorenne': maggiorenne,
+    });
+    await _client.from('users_phones').upsert({
+      'user_id': userId,
+      'country_id': countryId,
+      'telefono': nationalNumber,
+      'is_primary': true,
+      'is_verified': false,
+    }, onConflict: 'user_id,telefono');
+  }
 }
