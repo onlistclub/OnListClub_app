@@ -44,7 +44,7 @@ class AuthenticationScreen extends StatelessWidget {
             }
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Errore di autenticazione')),
+                SnackBar(content: Text(state.errorMessage!)),
               );
             }
           },
@@ -158,7 +158,7 @@ class AuthenticationScreen extends StatelessWidget {
                       margin: EdgeInsets.only(top: 10.h),
                       alignment: Alignment.center,
                       child: CustomButton(
-                        text: 'Registratt',
+                        text: 'Registrati',
                         onPressed: () {
                           _onTapRegistrati(context);
                         },
@@ -194,7 +194,6 @@ class AuthenticationScreen extends StatelessWidget {
   }
 
   void _onTapRegistrati(BuildContext context) {
-    final bloc = context.read<AuthenticationBloc>();
-    bloc.add(RegisterButtonPressedEvent());
+    NavigatorService.pushNamed(AppRoutes.signUpScreen);
   }
 }

@@ -53,6 +53,7 @@ class LightCodeColors {
   Color get deep_purple_900 => Color(0xFF1600BC);
   Color get indigo_900 => Color(0xFF090050);
   Color get black_900_01 => Color(0xFF04002A);
+  Color get red_900 => Color(0xFFB71C1C);
 
   // Additional Colors
   Color get transparentCustom => Colors.transparent;

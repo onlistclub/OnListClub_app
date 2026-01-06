@@ -17,6 +17,8 @@ dependencies:
   equatable: ^2.0.5
   universal_html: ^2.2.4
   supabase_flutter: ^2.6.0
+  intl_phone_field: ^3.2.0
+  phone_numbers_parser: ^8.2.0
 dev_dependencies:
   flutter_test:    # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
     sdk: flutter   # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE

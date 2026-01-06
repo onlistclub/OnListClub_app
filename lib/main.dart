@@ -17,20 +17,39 @@ void main() {
   runApp(MyApp());
 }
 
-class MyApp extends StatelessWidget {
-  
-  // Questa funzione gestisce TUTTE le operazioni asincrone e lunghe all'avvio.
-  Future<void> _initializeApp() async {
-    // 🚨 CRITICAL: Device orientation lock (Ora è asincrono e atteso qui)
-    await SystemChrome.setPreferredOrientations([
-      DeviceOrientation.portraitUp,
-    ]);
+class MyApp extends StatefulWidget {
+  @override
+  _MyAppState createState() => _MyAppState();
+}
 
-    final env = await _loadEnvSafe();
-    await Supabase.initialize(
-      url: env['SUPABASE_URL'] ?? '',
-      anonKey: env['SUPABASE_ANON_KEY'] ?? '',
-    );
+class _MyAppState extends State<MyApp> {
+
+  @override
+  void initState() {
+    super.initState();
+    debugPrint('[Startup] Starting app initialization...');
+    _initializeApp();
+  }
+
+  Future<void> _initializeApp() async {
+    try {
+      debugPrint('[Startup] Initializing orientation...');
+      await SystemChrome.setPreferredOrientations([
+        DeviceOrientation.portraitUp,
+      ]);
+
+      debugPrint('[Startup] Loading env...');
+      final env = await _loadEnvSafe();
+      
+      debugPrint('[Startup] Initializing Supabase...');
+      await Supabase.initialize(
+        url: env['SUPABASE_URL'] ?? '',
+        anonKey: env['SUPABASE_ANON_KEY'] ?? '',
+      );
+      debugPrint('[Startup] Initialization complete.');
+    } catch (e) {
+      debugPrint('[Startup] Initialization error: $e');
+    }
   }
 
   Future<Map<String, dynamic>> _loadEnvSafe() async {
@@ -51,46 +70,36 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return Sizer(
       builder: (context, orientation, deviceType) {
-        // Usa FutureBuilder per gestire il caricamento asincrono.
-        return FutureBuilder(
-          future: _initializeApp(), // Lancia la funzione di inizializzazione asincrona
-          builder: (context, snapshot) {
-            // Se lo stato è in attesa, mostriamo una schermata di caricamento.
-            if (snapshot.connectionState == ConnectionState.waiting) {
-              return MaterialApp(
-                debugShowCheckedModeBanner: false,
-                home: Scaffold(
-                  // Puoi sostituire il CircularProgressIndicator con il tuo Splash Screen
-                  body: Center(child: CircularProgressIndicator()), 
-                ),
-              );
-            }
-
-            // Una volta completato il Future, carica l'interfaccia principale dell'app.
-            return MaterialApp(
-              title: 'OnList',
-              // 🚨 CRITICAL: NEVER REMOVE OR MODIFY
-              builder: (context, child) {
-                return MediaQuery(
-                  data: MediaQuery.of(context).copyWith(
-                    textScaler: TextScaler.linear(1.0),
-                  ),
-                  child: child!,
-                );
-              },
-              // 🚨 END CRITICAL SECTION
-              navigatorKey: NavigatorService.navigatorKey,
-              debugShowCheckedModeBanner: false,
-              localizationsDelegates: [
-                GlobalMaterialLocalizations.delegate,
-                GlobalWidgetsLocalizations.delegate,
-                GlobalCupertinoLocalizations.delegate
-              ],
-              supportedLocales: [Locale('en', 'US')],
-              initialRoute: AppRoutes.initialRoute,
-              routes: AppRoutes.routes,
+        // We do NOT wait for the future to complete before showing the app.
+        // We launch the MaterialApp immediately.
+        // The AuthenticationScreen will be shown immediately.
+        // If the user interacts before Supabase is ready, we rely on Supabase
+        // being fast or handling the error/waiting state in the Bloc.
+        // Given Supabase.initialize is needed for client access, we assume it finishes
+        // before the user can type credentials and hit login.
+        
+        return MaterialApp(
+          title: 'OnList',
+          // 🚨 CRITICAL: NEVER REMOVE OR MODIFY
+          builder: (context, child) {
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(1.0),
+              ),
+              child: child!,
             );
           },
+          // 🚨 END CRITICAL SECTION
+          navigatorKey: NavigatorService.navigatorKey,
+          debugShowCheckedModeBanner: false,
+          localizationsDelegates: [
+            GlobalMaterialLocalizations.delegate,
+            GlobalWidgetsLocalizations.delegate,
+            GlobalCupertinoLocalizations.delegate
+          ],
+          supportedLocales: [Locale('en', 'US')],
+          initialRoute: AppRoutes.initialRoute,
+          routes: AppRoutes.routes,
         );
       },
     );

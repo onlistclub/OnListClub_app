@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../models/authentication_model.dart';
 import '../../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../../core/utils/user_profile_manager.dart';
 
 part 'authentication_event.dart';
 part 'authentication_state.dart';
@@ -63,6 +64,9 @@ class AuthenticationBloc
 
       await client.auth.signInWithPassword(email: email, password: password);
 
+      // Ensure profile exists in public.users table (post-verification check)
+      await UserProfileManager().ensureProfileExists();
+
       emit(state.copyWith(isLoading: false, isLoginSuccess: true));
 
       state.emailController?.clear();
@@ -70,7 +74,7 @@ class AuthenticationBloc
     } catch (e) {
       emit(state.copyWith(
         isLoading: false,
-        errorMessage: e is AuthException ? e.message : 'Login failed. Please try again.',
+        errorMessage: e is AuthException ? e.message : 'Login fallito! Riprova di nuovo.',
       ));
     }
   }

@@ -26,25 +26,22 @@ extension ImageTypeExtension on String {
 enum ImageType { svg, png, network, networkSvg, file, unknown }
 
 class CustomImageView extends StatelessWidget {
-  CustomImageView(
-      {this.imagePath,
-      this.height,
-      this.width,
-      this.color,
-      this.fit,
-      this.alignment,
-      this.onTap,
-      this.radius,
-      this.margin,
-      this.border,
-      this.placeHolder}) {
-    if (imagePath == null || imagePath!.isEmpty) {
-      imagePath = ImageConstant.imgImageNotFound;
-    }
-  }
+  const CustomImageView({
+    this.imagePath,
+    this.height,
+    this.width,
+    this.color,
+    this.fit,
+    this.alignment,
+    this.onTap,
+    this.radius,
+    this.margin,
+    this.border,
+    this.placeHolder,
+  });
 
   ///[imagePath] is required parameter for showing image
-  late String? imagePath;
+  final String? imagePath;
 
   final double? height;
 
@@ -111,13 +108,17 @@ class CustomImageView extends StatelessWidget {
   }
 
   Widget _buildImageView() {
-    switch (imagePath!.imageType) {
+    String imagePathSafe = (imagePath == null || imagePath!.isEmpty)
+        ? ImageConstant.imgImageNotFound
+        : imagePath!;
+
+    switch (imagePathSafe.imageType) {
       case ImageType.svg:
         return Container(
           height: height,
           width: width,
           child: SvgPicture.asset(
-            imagePath!,
+            imagePathSafe,
             height: height,
             width: width,
             fit: fit ?? BoxFit.contain,
@@ -129,7 +130,7 @@ class CustomImageView extends StatelessWidget {
         );
       case ImageType.file:
         return Image.file(
-          File(imagePath!),
+          File(imagePathSafe),
           height: height,
           width: width,
           fit: fit ?? BoxFit.cover,
@@ -137,7 +138,7 @@ class CustomImageView extends StatelessWidget {
         );
       case ImageType.networkSvg:
         return SvgPicture.network(
-          imagePath!,
+          imagePathSafe,
           height: height,
           width: width,
           fit: fit ?? BoxFit.contain,
@@ -151,7 +152,7 @@ class CustomImageView extends StatelessWidget {
           height: height,
           width: width,
           fit: fit,
-          imageUrl: imagePath!,
+          imageUrl: imagePathSafe,
           color: color,
           placeholder: (context, url) => Container(
             height: 30,
@@ -171,7 +172,7 @@ class CustomImageView extends StatelessWidget {
       case ImageType.png:
       default:
         return Image.asset(
-          imagePath!,
+          imagePathSafe,
           height: height,
           width: width,
           fit: fit ?? BoxFit.cover,
