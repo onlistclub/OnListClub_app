@@ -1,6 +1,10 @@
 class PhoneUtils {
   static const Map<String, String> _dialByIso = {
     'IT': '+39',
+    'CH': '+41',
+    'FR': '+33',
+    'DE': '+49',
+    'ES': '+34',
   };
 
   static String normalize({String? countryIso, String? nationalNumber, String? completeNumber}) {

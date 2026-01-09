@@ -1,0 +1,745 @@
+================================================================================
+SPIEGAZIONE DETTAGLIATA: LINKAGGIO NUMERO DI TELEFONO CON SUPABASE
+================================================================================
+
+INDICE:
+1. Architettura Generale
+2. Tabelle Database Coinvolte
+3. Flusso di Registrazione
+4. Normalizzazione del Numero di Telefono
+5. Persistenza nel Database
+6. Codice Dettagliato per Fase
+7. Risoluzione Country ID
+8. Gestione Errori
+9. Query di Esempio
+
+================================================================================
+1. ARCHITETTURA GENERALE
+================================================================================
+
+Il sistema di gestione dei numeri di telefono è costruito su 3 tabelle principali:
+
+    ┌─────────┐
+    │  users  │ (public.users)
+    └────┬────┘
+         │ 1
+         │
+         │ N
+    ┌────▼────────────┐
+    │  users_phones   │ (public.users_phones)
+    └────┬────────────┘
+         │ N
+         │
+         │ 1
+    ┌────▼──────┐
+    │ countries │ (public.countries)
+    └───────────┘
+
+Il numero di telefono NON è memorizzato direttamente nella tabella `users`, ma in
+una tabella separata `users_phones` che permette:
+- Gestire più numeri per utente
+- Normalizzazione internazionale (E.164)
+- Marcatura del numero principale (is_primary)
+- Stato di verifica (is_verified)
+
+================================================================================
+2. TABELLE DATABASE COINVOLTE
+================================================================================
+
+A) public.users
+---------------
+Campo            | Tipo      | Descrizione
+-----------------|-----------|-----------------------------------------------
+id               | uuid      | PK, identico a auth.users.id
+nome             | text      | Nome utente
+cognome          | text      | Cognome utente
+email            | text      | Email (sincronizzata con auth.users)
+data_nascita     | date      | Data di nascita
+maggiorenne      | boolean   | Calcolato automaticamente (>= 18 anni)
+
+B) public.users_phones
+----------------------
+Campo            | Tipo      | Descrizione
+-----------------|-----------|-----------------------------------------------
+id               | uuid      | PK autogenerato
+user_id          | uuid      | FK → users.id
+country_id       | uuid      | FK → countries.id
+telefono         | text      | Numero nazionale (solo cifre, no prefisso)
+is_primary       | boolean   | Numero principale (default: true)
+is_verified      | boolean   | Stato verifica SMS (default: false)
+created_at       | timestamp | Data creazione
+
+VINCOLO UNICO: (user_id, telefono) - Impedisce duplicati
+
+C) public.countries
+-------------------
+Campo            | Tipo      | Descrizione
+-----------------|-----------|-----------------------------------------------
+id               | uuid      | PK
+iso_code         | text      | Codice ISO (es: IT, CH, FR)
+name             | text      | Nome paese (es: Italy)
+dial_code        | text      | Prefisso internazionale (es: 39, 41)
+
+================================================================================
+3. FLUSSO DI REGISTRAZIONE
+================================================================================
+
+Il processo di registrazione segue questi passaggi:
+
+FASE 1: RACCOLTA DATI UI (SignUpScreen)
+----------------------------------------
+File: lib/presentation/sign_up_screen/sign_up_screen.dart (linee 183-214)
+
+Utilizzo del widget InternationalPhoneNumberInput:
+- Widget specializzato per input telefono con selezione paese
+- Paesi supportati: IT, CH, FR, DE, ES
+- Default: Italia (IT)
+
+Callback onInputChanged (linee 199-213):
+┌──────────────────────────────────────────────────────────────────┐
+│ onInputChanged: (phone) {                                        │
+│   final iso = phone.isoCode;          // Esempio: "IT"          │
+│   final dial = phone.dialCode ?? '';  // Esempio: "+39"         │
+│   final full = (phone.phoneNumber ?? '').replaceAll(' ', '');   │
+│                                         // Esempio: "+393401234567"│
+│   final cleaned = full.replaceAll(RegExp(r'\D'), '');           │
+│                                         // Esempio: "393401234567"│
+│   final dialClean = dial.replaceAll('+', ''); // "39"           │
+│   final nn = cleaned.startsWith(dialClean)                       │
+│       ? cleaned.substring(dialClean.length)                      │
+│       : cleaned;                       // Esempio: "3401234567"  │
+│                                                                   │
+│   context.read<SignUpBloc>().add(PhoneChangedEvent(             │
+│     phone: full,                // +393401234567                │
+│     countryIso: iso,            // IT                            │
+│     nationalNumber: nn,         // 3401234567                    │
+│   ));                                                             │
+│ }                                                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+FASE 2: GESTIONE NEL BLOC (SignUpBloc)
+---------------------------------------
+File: lib/presentation/sign_up_screen/bloc/sign_up_bloc.dart (linee 103-120)
+
+Il metodo _onPhoneChanged normalizza ulteriormente il numero:
+
+┌──────────────────────────────────────────────────────────────────┐
+│ _onPhoneChanged(PhoneChangedEvent event, Emitter emit) {        │
+│   // Normalizzazione tramite PhoneUtils                          │
+│   final normalized = PhoneUtils.normalize(                       │
+│     countryIso: event.countryIso,        // "IT"                │
+│     nationalNumber: event.nationalNumber, // "3401234567"       │
+│     completeNumber: event.phone,         // "+393401234567"     │
+│   );                                                              │
+│   // Risultato: "+393401234567"                                  │
+│                                                                   │
+│   // Pulizia cifre nazionali (rimuove caratteri non numerici)   │
+│   final nnDigits = (event.nationalNumber ?? '')                  │
+│       .replaceAll(RegExp(r'\D'), '');   // "3401234567"         │
+│                                                                   │
+│   emit(state.copyWith(                                           │
+│     signUpModel: state.signUpModel?.copyWith(                    │
+│       phone: normalized,           // "+393401234567"            │
+│       phoneCountryIso: event.countryIso ?? 'IT',                │
+│       nationalNumber: nnDigits,    // "3401234567"              │
+│     ),                                                            │
+│   ));                                                             │
+│ }                                                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+FASE 3: REGISTRAZIONE SUPABASE AUTH (SubmitSignUpEvent)
+--------------------------------------------------------
+File: lib/presentation/sign_up_screen/bloc/sign_up_bloc.dart (linee 136-148)
+
+Registrazione utente in auth.users con metadati temporanei:
+
+┌──────────────────────────────────────────────────────────────────┐
+│ final response = await client.auth.signUp(                       │
+│   email: model.email,                                            │
+│   password: model.password,                                      │
+│   data: {                              // Metadati temporanei    │
+│     'nome': model.firstName,                                     │
+│     'cognome': model.lastName,                                   │
+│     'data_nascita': model.dob?.toIso8601String(),               │
+│     'telefono': model.phone,           // "+393401234567"       │
+│     'phone_country_iso': model.phoneCountryIso, // "IT"         │
+│   },                                                              │
+│ );                                                                │
+└──────────────────────────────────────────────────────────────────┘
+
+IMPORTANTE: In questa fase i dati sono salvati SOLO in auth.users.user_metadata,
+NON nelle tabelle pubbliche. La persistenza definitiva avviene DOPO la verifica
+email.
+
+FASE 4: PERSISTENZA DEFINITIVA (Dopo Verifica Email)
+-----------------------------------------------------
+File: lib/presentation/sign_up_screen/bloc/sign_up_bloc.dart (linee 150-186)
+
+Dopo il signUp, se response.user != null, procediamo con l'inserimento:
+
+┌──────────────────────────────────────────────────────────────────┐
+│ // 1. Risolvi country_id da ISO code                             │
+│ final countryId = await RegisterService()                        │
+│     .resolveCountryIdFromIso(iso);  // "IT" → uuid              │
+│                                                                   │
+│ // 2. Inserisci record in public.users                           │
+│ await Supabase.instance.client.from('users').upsert({           │
+│   'id': user.id,                     // UUID da auth.users      │
+│   'nome': model.firstName,                                       │
+│   'cognome': model.lastName,                                     │
+│   'email': model.email,                                          │
+│   'data_nascita': dob.toIso8601String(),                        │
+│   'maggiorenne': isAdult,            // Calcolato con AgeCalculator │
+│ });                                                               │
+│                                                                   │
+│ // 3. Inserisci telefono in public.users_phones                  │
+│ await Supabase.instance.client.from('users_phones').upsert({    │
+│   'user_id': user.id,                // UUID utente             │
+│   'country_id': countryId,           // UUID da countries       │
+│   'telefono': cleaned,               // "3401234567" (solo cifre) │
+│   'is_primary': true,                // Telefono principale     │
+│   'is_verified': false,              // Da verificare con SMS   │
+│ }, onConflict: 'user_id,telefono');  // Evita duplicati        │
+└──────────────────────────────────────────────────────────────────┘
+
+================================================================================
+4. NORMALIZZAZIONE DEL NUMERO DI TELEFONO
+================================================================================
+
+File: lib/core/utils/phone_utils.dart
+
+La classe PhoneUtils fornisce il metodo normalize() per convertire numeri in
+formato E.164 (standard internazionale: +[prefisso][numero nazionale]).
+
+Metodo PhoneUtils.normalize():
+------------------------------
+
+┌──────────────────────────────────────────────────────────────────┐
+│ static String normalize({                                        │
+│   String? countryIso,        // "IT"                            │
+│   String? nationalNumber,    // "3401234567"                    │
+│   String? completeNumber     // "+393401234567"                 │
+│ }) {                                                              │
+│   // 1. Ottieni prefisso dal mapping ISO → dial_code            │
+│   final expectedDial = _dialByIso[countryIso?.toUpperCase()];   │
+│   // Per IT: "+39"                                               │
+│                                                                   │
+│   // 2. Se esiste nationalNumber, costruisci E.164              │
+│   if (nationalNumber != null && nationalNumber.isNotEmpty) {    │
+│     final nn = nationalNumber.replaceAll(RegExp(r'\D'), '');    │
+│     return '$expectedDial$nn';  // "+393401234567"              │
+│   }                                                               │
+│                                                                   │
+│   // 3. Altrimenti usa completeNumber e normalizza              │
+│   final cn = (completeNumber ?? '').replaceAll(RegExp(r'\s'), ''); │
+│   if (cn.startsWith('+')) {                                      │
+│     return cn;  // Già in formato E.164                          │
+│   }                                                               │
+│   return expectedDial + cn;                                      │
+│ }                                                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+MAPPING PREFISSI (5 paesi supportati):
+---------------------------------------
+_dialByIso = {
+  'IT': '+39',  // Italia
+  'CH': '+41',  // Svizzera
+  'FR': '+33',  // Francia
+  'DE': '+49',  // Germania
+  'ES': '+34',  // Spagna
+}
+
+ESEMPI DI NORMALIZZAZIONE:
+--------------------------
+Input                          | Output (E.164)
+-------------------------------|------------------
+ISO: IT, NN: "3401234567"     | "+393401234567"
+ISO: IT, Full: "340 123 4567" | "+393401234567"
+ISO: CH, NN: "791234567"      | "+41791234567"
+ISO: FR, NN: "612345678"      | "+33612345678"
+ISO: DE, NN: "1701234567"     | "+491701234567"
+ISO: ES, NN: "612345678"      | "+34612345678"
+
+================================================================================
+5. RISOLUZIONE COUNTRY ID DA ISO CODE
+================================================================================
+
+File: lib/core/services/register_service.dart (linee 50-66)
+
+Per inserire in users_phones, serve country_id (UUID), non iso_code (text).
+
+Metodo resolveCountryIdFromIso():
+---------------------------------
+
+┌──────────────────────────────────────────────────────────────────┐
+│ Future<String> resolveCountryIdFromIso(String isoCode) async {  │
+│   final iso = isoCode.trim().toUpperCase();  // "IT"            │
+│                                                                   │
+│   // Query su Supabase                                           │
+│   final row = await _client                                      │
+│       .from('countries')                                         │
+│       .select('id, iso_code')                                    │
+│       .eq('iso_code', iso)  // WHERE iso_code = 'IT'            │
+│       .maybeSingle();       // Restituisce 1 record o null      │
+│                                                                   │
+│   final id = row?['id'];                                         │
+│   if (id == null) {                                              │
+│     throw StateError('Paese non trovato per ISO $iso');          │
+│   }                                                               │
+│   return id as String;  // UUID del paese                        │
+│ }                                                                 │
+└──────────────────────────────────────────────────────────────────┘
+
+Query SQL equivalente:
+----------------------
+SELECT id, iso_code
+FROM public.countries
+WHERE iso_code = 'IT'
+LIMIT 1;
+
+Risultato esempio:
+-----------------
+id: "123e4567-e89b-12d3-a456-426614174000"
+iso_code: "IT"
+
+================================================================================
+6. PERSISTENZA NEL DATABASE
+================================================================================
+
+STEP 1: Inserimento in public.users
+------------------------------------
+
+┌──────────────────────────────────────────────────────────────────┐
+│ await Supabase.instance.client.from('users').upsert({           │
+│   'id': user.id,                  // UUID da auth.users         │
+│   'nome': model.firstName,        // "Mario"                    │
+│   'cognome': model.lastName,      // "Rossi"                    │
+│   'email': model.email,           // "mario.rossi@email.com"    │
+│   'data_nascita': dob.toIso8601String(),  // "2000-01-15"      │
+│   'maggiorenne': isAdult,         // true (calcolato)           │
+│ });                                                               │
+└──────────────────────────────────────────────────────────────────┘
+
+SQL equivalente:
+---------------
+INSERT INTO public.users (id, nome, cognome, email, data_nascita, maggiorenne)
+VALUES (
+  '123e4567-e89b-12d3-a456-426614174000',
+  'Mario',
+  'Rossi',
+  'mario.rossi@email.com',
+  '2000-01-15',
+  true
+)
+ON CONFLICT (id) DO UPDATE SET
+  nome = EXCLUDED.nome,
+  cognome = EXCLUDED.cognome,
+  email = EXCLUDED.email,
+  data_nascita = EXCLUDED.data_nascita,
+  maggiorenne = EXCLUDED.maggiorenne;
+
+
+STEP 2: Inserimento in public.users_phones
+-------------------------------------------
+
+┌──────────────────────────────────────────────────────────────────┐
+│ await Supabase.instance.client.from('users_phones').upsert({    │
+│   'user_id': user.id,             // UUID utente                │
+│   'country_id': countryId,        // UUID da countries          │
+│   'telefono': cleaned,            // "3401234567" (solo cifre)  │
+│   'is_primary': true,             // Telefono principale        │
+│   'is_verified': false,           // Da verificare              │
+│ }, onConflict: 'user_id,telefono'); // Vincolo unico            │
+└──────────────────────────────────────────────────────────────────┘
+
+SQL equivalente:
+---------------
+INSERT INTO public.users_phones (user_id, country_id, telefono, is_primary, is_verified)
+VALUES (
+  '123e4567-e89b-12d3-a456-426614174000',  -- user_id
+  '789e4567-e89b-12d3-a456-426614174111',  -- country_id (IT)
+  '3401234567',                             -- telefono
+  true,                                     -- is_primary
+  false                                     -- is_verified
+)
+ON CONFLICT (user_id, telefono) DO UPDATE SET
+  country_id = EXCLUDED.country_id,
+  is_primary = EXCLUDED.is_primary,
+  is_verified = EXCLUDED.is_verified;
+
+NOTA: onConflict previene l'errore se lo stesso numero viene reinserito.
+
+================================================================================
+7. CODICE DETTAGLIATO PER FASE
+================================================================================
+
+A) FASE UI - Cattura Input Telefono
+------------------------------------
+File: lib/presentation/sign_up_screen/sign_up_screen.dart:183-214
+
+Widget:
+-------
+InternationalPhoneNumberInput(
+  textFieldController: state.phoneController,
+  initialValue: PhoneNumber(isoCode: 'IT'),  // Default Italia
+  countries: const ['IT', 'CH', 'FR', 'DE', 'ES'],  // Paesi supportati
+  inputDecoration: InputDecoration(...),
+  onInputChanged: (phone) {
+    // Estrazione dati
+    final iso = phone.isoCode;              // "IT"
+    final dial = phone.dialCode ?? '';      // "+39"
+    final full = (phone.phoneNumber ?? '').replaceAll(' ', '');
+    final cleaned = full.replaceAll(RegExp(r'\D'), '');
+    final dialClean = dial.replaceAll('+', '');
+    final nn = cleaned.startsWith(dialClean)
+        ? cleaned.substring(dialClean.length)
+        : cleaned;
+
+    // Invio evento al BLoC
+    context.read<SignUpBloc>().add(PhoneChangedEvent(
+      phone: full,              // "+393401234567"
+      countryIso: iso,          // "IT"
+      nationalNumber: nn,       // "3401234567"
+    ));
+  },
+)
+
+B) FASE BLOC - Normalizzazione e Update State
+----------------------------------------------
+File: lib/presentation/sign_up_screen/bloc/sign_up_bloc.dart:103-120
+
+Handler:
+--------
+_onPhoneChanged(PhoneChangedEvent event, Emitter<SignUpState> emit) {
+  // Normalizza numero completo in E.164
+  final normalized = PhoneUtils.normalize(
+    countryIso: event.countryIso,
+    nationalNumber: event.nationalNumber,
+    completeNumber: event.phone,
+  );
+
+  // Pulisci national number (solo cifre)
+  final nnDigits = (event.nationalNumber ?? '').replaceAll(RegExp(r'\D'), '');
+
+  // Aggiorna state
+  emit(state.copyWith(
+    signUpModel: state.signUpModel?.copyWith(
+      phone: normalized,                        // "+393401234567"
+      phoneCountryIso: event.countryIso ?? 'IT',
+      nationalNumber: nnDigits,                 // "3401234567"
+    ),
+  ));
+}
+
+C) FASE SUBMIT - Registrazione Completa
+----------------------------------------
+File: lib/presentation/sign_up_screen/bloc/sign_up_bloc.dart:122-201
+
+Handler SubmitSignUpEvent:
+--------------------------
+_onSubmitSignUp(SubmitSignUpEvent event, Emitter<SignUpState> emit) async {
+  // 1. Validazione form
+  if (state.formKey?.currentState?.validate() != true) {
+    return;
+  }
+  emit(state.copyWith(isLoading: true, errorMessage: null));
+
+  try {
+    final model = state.signUpModel;
+    if (model == null) return;
+
+    final client = Supabase.instance.client;
+
+    // 2. Registrazione auth.users con metadati
+    final response = await client.auth.signUp(
+      email: model.email,
+      password: model.password,
+      data: {
+        'nome': model.firstName,
+        'cognome': model.lastName,
+        'data_nascita': model.dob?.toIso8601String(),
+        'telefono': model.phone,                  // "+393401234567"
+        'phone_country_iso': model.phoneCountryIso, // "IT"
+      },
+    );
+
+    if (response.user != null) {
+      final user = response.user!;
+      final iso = model.phoneCountryIso ?? 'IT';
+      final nn = model.nationalNumber;          // "3401234567"
+      final dob = model.dob;
+
+      // 3. Validazione dati telefono
+      if (nn.isEmpty || dob == null) {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: 'Dati telefono/paese mancanti'
+        ));
+        return;
+      }
+
+      // 4. Calcola maggiorenne
+      final isAdult = AgeCalculator.isAdult(dob);
+
+      try {
+        // 5. Risolvi country_id da ISO
+        final cleaned = nn.replaceAll(RegExp(r'\D'), '');
+        final countryId = await RegisterService().resolveCountryIdFromIso(iso);
+
+        debugPrint('[SignUpBloc] country_id=$countryId nn_clean=$cleaned');
+
+        // 6. Inserisci in public.users
+        await Supabase.instance.client.from('users').upsert({
+          'id': user.id,
+          'nome': model.firstName,
+          'cognome': model.lastName,
+          'email': model.email,
+          'data_nascita': dob.toIso8601String(),
+          'maggiorenne': isAdult,
+        });
+
+        // 7. Inserisci in public.users_phones
+        await Supabase.instance.client.from('users_phones').upsert({
+          'user_id': user.id,
+          'country_id': countryId,
+          'telefono': cleaned,
+          'is_primary': true,
+          'is_verified': false,
+        }, onConflict: 'user_id,telefono');
+
+        debugPrint('[SignUpBloc] users_phones upserted: '
+                   '{user_id:${user.id}, country_id:$countryId, telefono:$cleaned}');
+
+        emit(state.copyWith(isLoading: false, isSuccess: true));
+      } catch (e) {
+        debugPrint('[SignUpBloc] Insert error: $e');
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: 'Errore salvataggio telefono: $e'
+        ));
+        return;
+      }
+    } else {
+      emit(state.copyWith(isLoading: false, errorMessage: "Registration failed"));
+    }
+  } catch (e) {
+    emit(state.copyWith(
+      isLoading: false,
+      errorMessage: e is AuthException ? e.message : 'Registration failed: $e',
+    ));
+  }
+}
+
+================================================================================
+8. GESTIONE ERRORI
+================================================================================
+
+ERRORI COMUNI E SOLUZIONI:
+---------------------------
+
+1) "Paese non trovato per ISO XX"
+   Causa: iso_code non esiste in countries
+   Soluzione: Verificare che il paese sia presente in countries table
+
+2) "Telefono non valido"
+   Causa: Numero troppo corto (< 7 cifre)
+   Soluzione: Validazione lato client prima del submit
+
+3) "Duplicate key violation"
+   Causa: Stesso (user_id, telefono) già esistente
+   Soluzione: Usa onConflict in upsert per aggiornare
+
+4) "Foreign key violation"
+   Causa: user_id non esiste in users, o country_id non esiste in countries
+   Soluzione: Assicurarsi di inserire prima in users, poi in users_phones
+
+5) "Errore salvataggio telefono"
+   Causa: Errore generico (permessi, network, etc.)
+   Soluzione: Log dettagliato con debugPrint, retry logic
+
+LOGGING:
+--------
+File: lib/presentation/sign_up_screen/bloc/sign_up_bloc.dart:161-180
+
+Esempio di log dettagliato:
+debugPrint('[SignUpBloc] iso=$iso nn_raw=${model.nationalNumber}');
+debugPrint('[SignUpBloc] country_id=$countryId nn_clean=$cleaned');
+debugPrint('[SignUpBloc] users_phones upserted payload: '
+           '{user_id:${user.id}, country_id:$countryId, telefono:$cleaned}');
+
+Questi log aiutano a debuggare problemi di normalizzazione o inserimento.
+
+================================================================================
+9. QUERY DI ESEMPIO
+================================================================================
+
+A) Recuperare il telefono principale di un utente con prefisso
+---------------------------------------------------------------
+SELECT
+    u.nome,
+    u.cognome,
+    c.dial_code,
+    up.telefono,
+    CONCAT('+', c.dial_code, up.telefono) AS telefono_completo
+FROM public.users u
+LEFT JOIN public.users_phones up ON u.id = up.user_id
+LEFT JOIN public.countries c ON c.id = up.country_id
+WHERE u.id = '123e4567-e89b-12d3-a456-426614174000'
+  AND up.is_primary = true;
+
+Risultato:
+nome    | cognome | dial_code | telefono   | telefono_completo
+--------|---------|-----------|------------|------------------
+Mario   | Rossi   | 39        | 3401234567 | +393401234567
+
+
+B) Verificare se un telefono esiste già nel sistema
+----------------------------------------------------
+SELECT
+    up.user_id,
+    u.email,
+    up.telefono,
+    c.iso_code
+FROM public.users_phones up
+LEFT JOIN public.users u ON u.id = up.user_id
+LEFT JOIN public.countries c ON c.id = up.country_id
+WHERE up.telefono = '3401234567'
+  AND c.iso_code = 'IT';
+
+
+C) Ottenere tutti i telefoni di un utente
+------------------------------------------
+SELECT
+    up.telefono,
+    c.name AS paese,
+    c.dial_code AS prefisso,
+    up.is_primary AS principale,
+    up.is_verified AS verificato,
+    up.created_at AS aggiunto_il
+FROM public.users_phones up
+LEFT JOIN public.countries c ON c.id = up.country_id
+WHERE up.user_id = '123e4567-e89b-12d3-a456-426614174000'
+ORDER BY up.is_primary DESC, up.created_at DESC;
+
+
+D) Contare utenti per paese (telefono)
+---------------------------------------
+SELECT
+    c.name AS paese,
+    c.iso_code AS codice,
+    COUNT(DISTINCT up.user_id) AS num_utenti
+FROM public.users_phones up
+LEFT JOIN public.countries c ON c.id = up.country_id
+GROUP BY c.id, c.name, c.iso_code
+ORDER BY num_utenti DESC;
+
+
+E) Utenti con telefono non verificato
+--------------------------------------
+SELECT
+    u.id,
+    u.nome,
+    u.cognome,
+    u.email,
+    CONCAT('+', c.dial_code, up.telefono) AS telefono
+FROM public.users u
+JOIN public.users_phones up ON u.id = up.user_id
+JOIN public.countries c ON c.id = up.country_id
+WHERE up.is_verified = false
+  AND up.is_primary = true
+ORDER BY u.created_at DESC;
+
+================================================================================
+10. FLUSSO ALTERNATIVO: Metodo RPC (registerAtomic)
+================================================================================
+
+NOTA: Il codice contiene anche un metodo alternativo NON attualmente in uso:
+
+File: lib/core/services/register_service.dart:9-49
+
+Metodo registerAtomic() utilizza una stored procedure SQL per transazione atomica:
+
+await _client.rpc('register_user_transaction', params: {
+  'p_user_id': userId,
+  'p_nome': nome,
+  'p_cognome': cognome,
+  'p_email': email,
+  'p_data_nascita': dataNascita.toIso8601String().substring(0, 10),
+  'p_telefono': normalizedPhone,
+  'p_country_iso': countryIso,
+});
+
+VANTAGGI:
+- Atomicità garantita (tutto o niente)
+- Logica server-side (più sicura)
+- Meno round-trips al database
+
+SVANTAGGI:
+- Richiede definizione function SQL su Supabase
+- Meno flessibile per modifiche rapide
+
+Attualmente il progetto usa l'approccio diretto (upsert multipli) per semplicità.
+
+================================================================================
+RIEPILOGO FINALE
+================================================================================
+
+Il sistema di linkaggio numero di telefono segue questi principi:
+
+1. SEPARAZIONE DATI
+   - Numero NON in users, ma in users_phones
+   - Permette gestione multipli numeri per utente
+
+2. NORMALIZZAZIONE
+   - Formato E.164 per compatibilità internazionale
+   - Storage solo cifre nazionali in users_phones
+   - Ricostruzione con country.dial_code quando necessario
+
+3. RELAZIONI
+   - users (1) → (N) users_phones (N) → (1) countries
+   - Foreign keys garantiscono integrità referenziale
+
+4. FLUSSO REGISTRAZIONE
+   UI Input → BLoC Normalize → Auth SignUp → Resolve Country → Insert Users → Insert Users_Phones
+
+5. GESTIONE ERRORI
+   - Validazione lato client (lunghezza, formato)
+   - Logging dettagliato per debug
+   - Gestione conflitti con onConflict
+
+6. ESTENDIBILITÀ
+   - Facile aggiunta nuovi paesi in countries
+   - Supporto verifiche SMS future (is_verified)
+   - Possibilità multipli numeri per utente
+
+================================================================================
+FILE COINVOLTI (RIFERIMENTI RAPIDI)
+================================================================================
+
+UI Layer:
+- lib/presentation/sign_up_screen/sign_up_screen.dart (linee 183-214)
+
+BLoC Layer:
+- lib/presentation/sign_up_screen/bloc/sign_up_bloc.dart (linee 103-201)
+- lib/presentation/sign_up_screen/bloc/sign_up_event.dart (evento PhoneChanged)
+- lib/presentation/sign_up_screen/bloc/sign_up_state.dart (state model)
+
+Service Layer:
+- lib/core/services/register_service.dart (linee 50-98)
+- lib/core/services/phone_service.dart (utility opzionali)
+
+Utility Layer:
+- lib/core/utils/phone_utils.dart (normalizzazione)
+- lib/core/utils/age_calculator.dart (calcolo maggiorenne)
+- lib/core/utils/user_profile_manager.dart (gestione profilo post-login)
+
+Database:
+- Tabelle: public.users, public.users_phones, public.countries
+- Schema: docs/schema_database.md
+
+Documentazione:
+- README.md (sezione Login e Registrazione)
+
+================================================================================
+FINE DOCUMENTO
+================================================================================

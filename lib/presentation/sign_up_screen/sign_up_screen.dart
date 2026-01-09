@@ -229,8 +229,8 @@ class SignUpScreen extends StatelessWidget {
                                   return 'Inserisci la data di nascita';
                                 }
                                 final age = DateTime.now().year - state.signUpModel!.dob!.year;
-                                if (age < 13) {
-                                  return 'Devi avere almeno 13 anni';
+                                if (age < 14) {
+                                  return 'Devi avere almeno 14 anni';
                                 }
                                 return null;
                               },
@@ -321,7 +321,7 @@ class SignUpScreen extends StatelessWidget {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(Duration(days: 365 * 13)),
+      initialDate: DateTime.now().subtract(Duration(days: 365 * 14)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
       builder: (context, child) {
