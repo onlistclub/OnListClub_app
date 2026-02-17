@@ -184,6 +184,20 @@ class SignUpScreen extends StatelessWidget {
                           textFieldController: state.phoneController,
                           initialValue: PhoneNumber(isoCode: 'IT'),
                           countries: const ['IT', 'CH', 'FR', 'DE', 'ES'],
+                          locale: 'it_IT',
+                          selectorConfig: const SelectorConfig(
+                            selectorType: PhoneInputSelectorType.DIALOG,
+                            showFlags: true,
+                            useEmoji: false,
+                            setSelectorButtonAsPrefixIcon: false,
+                            leadingPadding: 12,
+                            trailingSpace: true,
+                          ),
+                          ignoreBlank: false,
+                          autoValidateMode: AutovalidateMode.disabled,
+                          selectorTextStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(color: Colors.white),
+                          formatInput: false,
+                          keyboardType: TextInputType.phone,
                           inputDecoration: InputDecoration(
                             hintText: 'Telefono',
                             hintStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(color: Colors.white54),
@@ -192,9 +206,9 @@ class SignUpScreen extends StatelessWidget {
                             contentPadding: EdgeInsets.all(12.h),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(10.h),
-                              borderSide: BorderSide(),
+                              borderSide: const BorderSide(),
                             ),
-                            errorStyle: TextStyle(color: Colors.redAccent),
+                            errorStyle: const TextStyle(color: Colors.redAccent),
                           ),
                           onInputChanged: (phone) {
                             final iso = phone.isoCode;

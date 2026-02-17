@@ -9,6 +9,9 @@ class ImageConstant {
   // Custom Image View Screen
   static String imgImageNotFound = '${_basePath}image_not_found.png';
 
+  // Logo
+  static String imgLogoOnlist = '${_basePath}logo_onlist.png';
+
   // Event Detail Screen
   static String imgHome = '${_basePath}img_home.svg';
   static String imgShoppingCart = '${_basePath}img_shopping_cart.svg';

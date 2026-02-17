@@ -1,8 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_edit_text.dart';
 import './bloc/authentication_bloc.dart';
 import './models/authentication_model.dart';
 
@@ -23,14 +22,16 @@ class AuthenticationScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: BoxDecoration(
           gradient: LinearGradient(
             begin: Alignment.topCenter,
             end: Alignment.bottomCenter,
             colors: [
               Color(0xFF1600BC),
-              appTheme.indigo_900,
-              appTheme.black_900_01,
+              Color(0xFF0E0066),
+              Color(0xFF050024),
             ],
             stops: [0.0, 0.5, 1.0],
           ),
@@ -49,45 +50,33 @@ class AuthenticationScreen extends StatelessWidget {
             }
           },
           builder: (context, state) {
-            return Container(
-              width: double.infinity,
-              height: double.infinity,
-              padding: EdgeInsets.only(
-                top: 92.h,
-                right: 28.h,
-                left: 28.h,
-              ),
-              child: Form(
-                key: state.formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      margin: EdgeInsets.only(left: 20.h),
-                      child: Text(
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                child: Form(
+                  key: state.formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      SizedBox(height: 80),
+                      Text(
                         'Accedi',
-                        style: TextStyleHelper
-                            .instance.headline32ExtraBoldSFCompact
-                            .copyWith(height: 1.22),
-                      ),
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(
-                        top: 36.h,
-                        left: 20.h,
-                      ),
-                      child: CustomEditText(
-                        controller: state.emailController,
-                        placeholder: 'Email',
-                        inputType: 'EMAIL',
-                        textStyle:
-                            TextStyleHelper.instance.title16ExtraBoldSFCompact,
-                        contentPadding: EdgeInsets.only(
-                          top: 12.h,
-                          right: 12.h,
-                          bottom: 8.h,
-                          left: 12.h,
+                        style: GoogleFonts.inter(
+                          fontSize: 32,
+                          fontWeight: FontWeight.w800,
+                          color: Colors.white,
                         ),
+                      ),
+                      SizedBox(height: 36),
+                      TextFormField(
+                        controller: state.emailController,
+                        keyboardType: TextInputType.emailAddress,
+                        style: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w600,
+                          color: Colors.white,
+                        ),
+                        decoration: _inputDecoration('Email'),
                         validator: (value) {
                           if (value == null || value.isEmpty) {
                             return 'Please enter your email';
@@ -104,82 +93,102 @@ class AuthenticationScreen extends StatelessWidget {
                               );
                         },
                       ),
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(
-                        top: 52.h,
-                        left: 20.h,
-                      ),
-                      child: CustomEditText(
+                      SizedBox(height: 20),
+                      _PasswordField(
                         controller: state.passwordController,
-                        placeholder: 'Password',
-                        inputType: 'Password',
-                        passwordField: true,
-                        textStyle:
-                            TextStyleHelper.instance.title16ExtraBoldSFCompact,
-                        contentPadding: EdgeInsets.all(12.h),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your password';
-                          }
-                          if (value.length < 6) {
-                            return 'Password must be at least 6 characters';
-                          }
-                          return null;
-                        },
                         onChanged: (value) {
                           context.read<AuthenticationBloc>().add(
                                 PasswordChangedEvent(password: value),
                               );
                         },
                       ),
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(top: 24.h),
-                      alignment: Alignment.center,
-                      child: CustomButton(
-                        text: 'Accedi',
-                        onPressed: () {
-                          _onTapAccedi(context);
-                        },
-                        backgroundColor: appTheme.white_A700,
-                        textColor: appTheme.black_900,
-                        borderRadius: 10.h,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 30.h,
-                          vertical: 2.h,
+                      SizedBox(height: 28),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: ElevatedButton(
+                          onPressed: () => _onTapAccedi(context),
+                          style: ElevatedButton.styleFrom(
+                            backgroundColor: Colors.white,
+                            foregroundColor: Colors.black,
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            elevation: 0,
+                          ),
+                          child: Text(
+                            'Accedi',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.black,
+                            ),
+                          ),
                         ),
-                        fontSize: 16.fSize,
-                        fontFamily: 'SF Compact',
-                        fontWeight: FontWeight.w800,
                       ),
-                    ),
-                    Container(
-                      margin: EdgeInsets.only(top: 10.h),
-                      alignment: Alignment.center,
-                      child: CustomButton(
-                        text: 'Registrati',
-                        onPressed: () {
-                          _onTapRegistrati(context);
-                        },
-                        backgroundColor: appTheme.white_A700,
-                        textColor: appTheme.black_900,
-                        borderRadius: 10.h,
-                        padding: EdgeInsets.symmetric(
-                          horizontal: 30.h,
-                          vertical: 2.h,
+                      SizedBox(height: 12),
+                      SizedBox(
+                        width: double.infinity,
+                        height: 48,
+                        child: OutlinedButton(
+                          onPressed: () => _onTapRegistrati(context),
+                          style: OutlinedButton.styleFrom(
+                            side: BorderSide(color: Colors.white, width: 1),
+                            shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                          ),
+                          child: Text(
+                            'Registrati',
+                            style: GoogleFonts.inter(
+                              fontSize: 16,
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                            ),
+                          ),
                         ),
-                        fontSize: 16.fSize,
-                        fontFamily: 'SF Compact',
-                        fontWeight: FontWeight.w800,
                       ),
-                    ),
-                  ],
+                    ],
+                  ),
                 ),
               ),
             );
           },
         ),
+      ),
+    );
+  }
+
+  InputDecoration _inputDecoration(String hint) {
+    return InputDecoration(
+      hintText: hint,
+      hintStyle: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Colors.white.withValues(alpha: 0.5),
+      ),
+      filled: true,
+      fillColor: Colors.transparent,
+      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Color(0xFF666666)),
+      ),
+      enabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Color(0xFF666666)),
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Colors.white, width: 1.5),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Color(0xFFFF4444)),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(12),
+        borderSide: BorderSide(color: Color(0xFFFF4444)),
       ),
     );
   }
@@ -195,5 +204,81 @@ class AuthenticationScreen extends StatelessWidget {
 
   void _onTapRegistrati(BuildContext context) {
     NavigatorService.pushNamed(AppRoutes.signUpScreen);
+  }
+}
+
+class _PasswordField extends StatefulWidget {
+  const _PasswordField({required this.controller, required this.onChanged});
+
+  final TextEditingController? controller;
+  final ValueChanged<String> onChanged;
+
+  @override
+  State<_PasswordField> createState() => _PasswordFieldState();
+}
+
+class _PasswordFieldState extends State<_PasswordField> {
+  bool _obscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: widget.controller,
+      obscureText: _obscure,
+      style: GoogleFonts.inter(
+        fontSize: 16,
+        fontWeight: FontWeight.w600,
+        color: Colors.white,
+      ),
+      decoration: InputDecoration(
+        hintText: 'Password',
+        hintStyle: GoogleFonts.inter(
+          fontSize: 16,
+          fontWeight: FontWeight.w600,
+          color: Colors.white.withValues(alpha: 0.5),
+        ),
+        filled: true,
+        fillColor: Colors.transparent,
+        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        border: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Color(0xFF666666)),
+        ),
+        enabledBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Color(0xFF666666)),
+        ),
+        focusedBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Colors.white, width: 1.5),
+        ),
+        errorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Color(0xFFFF4444)),
+        ),
+        focusedErrorBorder: OutlineInputBorder(
+          borderRadius: BorderRadius.circular(12),
+          borderSide: BorderSide(color: Color(0xFFFF4444)),
+        ),
+        suffixIcon: IconButton(
+          icon: Icon(
+            _obscure ? Icons.visibility_off : Icons.visibility,
+            color: Colors.white.withValues(alpha: 0.5),
+            size: 20,
+          ),
+          onPressed: () => setState(() => _obscure = !_obscure),
+        ),
+      ),
+      validator: (value) {
+        if (value == null || value.isEmpty) {
+          return 'Please enter your password';
+        }
+        if (value.length < 6) {
+          return 'Password must be at least 6 characters';
+        }
+        return null;
+      },
+      onChanged: widget.onChanged,
+    );
   }
 }

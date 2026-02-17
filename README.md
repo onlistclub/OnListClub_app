@@ -7,14 +7,16 @@
 
 ## 📋 Indice
 
-- [Caratteristiche Principali](#-caratteristiche-principali)
-- [Stack Tecnologico](#-stack-tecnologico)
-- [Struttura del Progetto](#-struttura-del-progetto)
-- [Prerequisiti](#-prerequisiti)
-- [Configurazione e Installazione](#-configurazione-e-installazione)
-- [Regole Critiche di Sviluppo](#-regole-critiche-di-sviluppo)
-- [Gestione Assets e Font](#-gestione-assets-e-font)
-- [Documentazione Aggiuntiva](#-documentazione-aggiuntiva)
+- [OnListClub App](#onlistclub-app)
+  - [📋 Indice](#-indice)
+  - [🚀 Caratteristiche Principali](#-caratteristiche-principali)
+    - [Flusso Logico Principale](#flusso-logico-principale)
+    - [Dipendenze e Requisiti Tecnici](#dipendenze-e-requisiti-tecnici)
+    - [Avvio e test](#avvio-e-test)
+    - [Relazioni tra Tabelle (concettuale)](#relazioni-tra-tabelle-concettuale)
+    - [Processo di Login (dettagli)](#processo-di-login-dettagli)
+      - [Esempi di Codice](#esempi-di-codice)
+  - [Licenza](#licenza)
 
 ---
 
@@ -29,37 +31,6 @@
 
 ---
 
-## 🛠 Stack Tecnologico
-
-* **Framework:** [Flutter](https://flutter.dev/) (SDK: `^3.6.0`)
-* **Linguaggio:** Dart
-* **Backend & Auth:** [Supabase Flutter](https://pub.dev/packages/supabase_flutter) (`^2.6.0`)
-* **State Management:** [Flutter Bloc](https://pub.dev/packages/flutter_bloc) (`^9.1.1`)
-* **Confronto Oggetti:** [Equatable](https://pub.dev/packages/equatable)
-* **Networking/Immagini:** `cached_network_image`, `connectivity_plus`
-* **Storage Locale:** `shared_preferences`
-* **UI/SVG:** `flutter_svg`, `gradient_borders`
-
----
-
-## ⚙️ Git Path
-```text
-feature/[feature_name]
-    |
-    |
-develop
-    |
-    |
-main
-```
-
-## ⚙️ Merging
-```text
-feature/[feature_name] -> develop -> main
-```
-```sh
-git checkout -b [next_branch_name]
-git merge [previous_branch_name]
 ```
 
 ## 📂 Struttura del Progetto
@@ -85,14 +56,7 @@ lib/
 =======
 # OnListClub - For Developper
 
-## Ambiente di sviluppo
-- Configura `env.json` con le chiavi:
-```json
-{
-  "DATABASE_URL": "https://<project>....",
-  "DATABASE_ANON_KEY": "<anon-key>"
-}
-```
+
 
 ## Configurazioni
 - Inizializzazione: [main.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/main.dart#L36-L55)

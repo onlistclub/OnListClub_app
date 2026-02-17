@@ -13,7 +13,7 @@ void main() {
   // 1. Assicura che l'ambiente Flutter sia inizializzato prima di qualsiasi altra cosa.
   WidgetsFlutterBinding.ensureInitialized();
   
-  // 2. Avvia l'app immediatamente. Tutta la logica di inizializzazione va nel FutureBuilder.
+  // Avvia l'app immediatamente. Tutta la logica di inizializzazione va nel FutureBuilder.
   runApp(MyApp());
 }
 
@@ -70,13 +70,6 @@ class _MyAppState extends State<MyApp> {
   Widget build(BuildContext context) {
     return Sizer(
       builder: (context, orientation, deviceType) {
-        // We do NOT wait for the future to complete before showing the app.
-        // We launch the MaterialApp immediately.
-        // The AuthenticationScreen will be shown immediately.
-        // If the user interacts before Supabase is ready, we rely on Supabase
-        // being fast or handling the error/waiting state in the Bloc.
-        // Given Supabase.initialize is needed for client access, we assume it finishes
-        // before the user can type credentials and hit login.
         
         return MaterialApp(
           title: 'OnList',

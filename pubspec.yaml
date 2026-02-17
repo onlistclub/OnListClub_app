@@ -20,6 +20,7 @@ dependencies:
   intl_phone_field: ^3.2.0
   intl_phone_number_input: ^0.7.4
   phone_numbers_parser: ^8.2.0
+  google_fonts: ^8.0.1
 dev_dependencies:
   flutter_test:    # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
     sdk: flutter   # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
