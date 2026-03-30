@@ -1,258 +1,79 @@
-<<<<<<< HEAD
-# OnListClub App
+# OnListClub — Documentazione per sviluppatori
 
-**OnListClub** è un'applicazione mobile sviluppata in **Flutter** progettata per la gestione di eventi e liste (club). Il progetto utilizza un'architettura basata su **BLoC** per la gestione dello stato e **Supabase** come backend per l'autenticazione e il database in tempo reale.
-
----
-
-## 📋 Indice
-
-- [OnListClub App](#onlistclub-app)
-  - [📋 Indice](#-indice)
-  - [🚀 Caratteristiche Principali](#-caratteristiche-principali)
-    - [Flusso Logico Principale](#flusso-logico-principale)
-    - [Dipendenze e Requisiti Tecnici](#dipendenze-e-requisiti-tecnici)
-    - [Avvio e test](#avvio-e-test)
-    - [Relazioni tra Tabelle (concettuale)](#relazioni-tra-tabelle-concettuale)
-    - [Processo di Login (dettagli)](#processo-di-login-dettagli)
-      - [Esempi di Codice](#esempi-di-codice)
-  - [Licenza](#licenza)
+**OnListClub** è un'app mobile Flutter per la gestione di eventi e liste nei club.
+Backend: Supabase. Gestione dello stato: BLoC.
 
 ---
 
-## 🚀 Caratteristiche Principali
+## Indice generale
 
-* **Autenticazione Sicura:** Login e Registrazione tramite Email/Password gestiti con Supabase Auth.
-* **Social Login (In Sviluppo):** Predisposizione per autenticazione tramite Google e Apple ID.
-* **Gestione Eventi:** Visualizzazione dettagliata degli eventi (`EventDetailScreen`).
-* **Navigazione Fluida:** Gestione centralizzata delle rotte tramite `NavigatorService`.
-* **UI Responsiva:** Adattamento alle dimensioni dello schermo con `Sizer` e blocco orientamento in Portrait.
-* **Design Personalizzato:** Utilizzo di font custom ("Tilt Warp") e gradienti specifici.
+### Setup e installazione
+- [INSTALL.md](INSTALL.md) — Installazione Flutter, Android SDK, iOS, avvio dell'app
 
----
+### Architettura e configurazione
+- [Configurazione app](lib/main.dart) — Inizializzazione Supabase, orientamento, routing
+- [Rotte](lib/routes/app_routes.dart) — Tutte le rotte e la schermata iniziale
+- [Dipendenze](pubspec.yaml) — Tutti i pacchetti usati nel progetto
 
-```
+### Schermate (Presentation Layer)
 
-## 📂 Struttura del Progetto
+Ogni schermata ha il suo README con la spiegazione del codice e della logica.
 
-Il codice sorgente si trova nella cartella `lib/` ed è organizzato secondo pattern architetturali scalabili (Feature-first / Clean Architecture semplificata):
+| Schermata | Descrizione | README |
+|---|---|---|
+| **Login** | Accesso con email/password, Google, Apple | [authentication_screen](lib/presentation/authentication_screen/README.md) |
+| **Registrazione** | Creazione account con dati personali | [sign_up_screen](lib/presentation/sign_up_screen/README.md) |
+| **Verifica email** | Attesa e controllo conferma email | [verification_screen](lib/presentation/verification_screen/README.md) |
+| **Completa profilo** | Dati aggiuntivi post-login OAuth | [complete_profile_screen](lib/presentation/complete_profile_screen/README.md) |
+| **Permesso posizione** | Richiesta accesso GPS | [location_permission_screen](lib/presentation/location_permission_screen/README.md) |
+| **Posizione manuale** | Selezione città manuale | [location_manual_screen](lib/presentation/location_manual_screen/README.md) |
+| **Home / Evento** | Schermata principale con club e evento | [event_detail_screen](lib/presentation/event_detail_screen/README.md) |
+| **Dettaglio club** | Informazioni complete su un club | [club_detail_screen](lib/presentation/club_detail_screen/README.md) |
+| **Prenotazione** | Schermata prenotazione (in sviluppo) | [booking_screen](lib/presentation/booking_screen/README.md) |
 
-```text
-lib/
-├── core/                   # Componenti core condivisi
-│   ├── app_export.dart     # Export centralizzato delle dipendenze comuni
-│   └── utils/              # Utility (NavigatorService, ImageConstant, SizeUtils)
-├── presentation/           # UI e Logica (BLoC) divisi per feature
-│   ├── authentication_screen/
-│   │   ├── bloc/           # AuthenticationBloc, Events, States
-│   │   ├── models/         # Modelli dati specifici della UI
-│   │   └── authentication_screen.dart
-│   ├── event_detail_screen/# Schermata dettagli evento
-│   └── app_navigation_screen/
-├── routes/                 # Definizione delle rotte (AppRoutes)
-├── theme/                  # Stili, Temi e Helper per il testo
-├── widgets/                # Widget riutilizzabili (CustomButton, CustomEditText)
-└── main.dart               # Entry point e inizializzazione
-=======
-# OnListClub - For Developper
+### Servizi e logica core
 
-
-
-## Configurazioni
-- Inizializzazione: [main.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/main.dart#L36-L55)
-- Rotte: login come schermata iniziale: [app_routes.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/routes/app_routes.dart#L10-L27)
-- Normalizzazione telefono (E.164): [phone_utils.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/core/utils/phone_utils.dart)
-- Persistenza atomica post-verifica: [user_profile_manager.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/core/utils/user_profile_manager.dart#L65-L89), [register_service.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/core/services/register_service.dart)
+| File | Scopo |
+|---|---|
+| [register_service.dart](lib/core/services/register_service.dart) | Registrazione utente su Supabase |
+| [phone_service.dart](lib/core/services/phone_service.dart) | Gestione e normalizzazione numeri di telefono |
+| [club_service.dart](lib/core/services/club_service.dart) | Fetch dei club dal database |
+| [location_service.dart](lib/core/services/location_service.dart) | Rilevamento posizione GPS |
+| [user_profile_manager.dart](lib/core/utils/user_profile_manager.dart) | Creazione profilo post-verifica email |
+| [age_calculator.dart](lib/core/utils/age_calculator.dart) | Calcolo maggiore età |
+| [navigator_service.dart](lib/core/utils/navigator_service.dart) | Navigazione centralizzata tra schermate |
 
 ---
 
-## Login e Registrazione + Verifica
-### Architettura Generale
-- Flutter + BLoC per gestione stato e UI.
-- Supabase Auth per autenticazione/registrazione.
-- Persistenza post-verifica via RPC SQL atomica.
+## Flusso principale dell'app
 
-```mermaid
-flowchart TD
-  UI[SignUpScreen] -->|Eventi BLoC| BLOC[SignUpBloc]
-  BLOC -->|auth.signUp + metadati| Auth[Supabase Auth]
-  Confirm[Conferma Email] --> Login[Login]
-  Login --> Manager[UserProfileManager.ensureProfileExists]
-  Manager --> RPC[register_user_transaction (SQL)]
-  RPC --> DB[(users, users_phones, countries)]
 ```
-
-### Flusso Logico Principale
-1. Registrazione: salvataggio metadati in `auth.users` (temporaneo, niente scrittura diretta su tabelle pubbliche).
-2. Verifica email e login.
-3. Post-verifica: chiamata RPC transazionale che inserisce/aggiorna:
-   - `users`: `nome`, `cognome`, `data_nascita`, `maggiorenne`.
-   - `users_phones`: `user_id`, `country_id`, `telefono`, `is_primary`, `is_verified`.
-
-### Dipendenze e Requisiti Tecnici
-- Flutter 3.6+
-- Pacchetti: `supabase_flutter`, `flutter_bloc`, `equatable`, `intl_phone_field`.
-- Supabase:
-  - Funzione RPC: [register_user_transaction.sql](file:///c:/Users/lucaa/git/work/OnListClub_app/supabase/sql/register_user_transaction.sql)
-  - Grant esecuzione:
-    ```sql
-    grant execute on function public.register_user_transaction(
-      uuid, text, text, text, date, text, text
-    ) to authenticated;
-    ```
-  - Indice consigliato:
-    ```sql
-    create unique index if not exists users_phones_user_id_tel_uq
-      on public.users_phones(user_id, telefono);
-    ```
-### Avvio e test
-
-- Avvio:
-```bash
-flutter run
-```
-- Test unitari (es. calcolo maggiore età):
-```bash
-flutter test test/core/utils/age_calculator_test.dart
-```
-
-### Relazioni tra Tabelle (concettuale)
-- `users (1) ────< (N) users_phones (N) >──── (1) countries`
-  - PK/FK: `users.id` (uuid), `users_phones.user_id` (uuid FK), `users_phones.country_id` (uuid FK).
-
-**Esempi Query**:
-```sql
--- Telefono principale
-select up.telefono, c.name, c.dial_code
-from public.users_phones up
-left join public.countries c on c.id = up.country_id
-where up.user_id = 'UUID_UTENTE' and up.is_primary = true;
-
--- Utenti maggiorenni
-select id, nome, cognome, email
-from public.users
-where maggiorenne = true;
-```
-
-### Processo di Login (dettagli)
-1. UI raccoglie credenziali: [authentication_screen.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/presentation/authentication_screen/authentication_screen.dart).
-2. BLoC esegue login: [authentication_bloc.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/presentation/authentication_screen/bloc/authentication_bloc.dart#L65-L73).
-3. Verifica email dalla schermata dedicata: [welcome_bloc.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/presentation/welcome_screen/bloc/welcome_bloc.dart#L120-L135).
-4. Persistenza definitiva: [user_profile_manager.dart](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/core/utils/user_profile_manager.dart#L65-L89).
-
-#### Esempi di Codice
-
-UI: Tasto "Accedi" per login [authentication_screen.dart:L187-L194](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/presentation/authentication_screen/authentication_screen.dart#L187-L194)
-
-```dart
-  void _onTapAccedi(BuildContext context) {
-    final bloc = context.read<AuthenticationBloc>();
-    final state = bloc.state;
-
-    if (state.formKey?.currentState?.validate() ?? false) {
-      bloc.add(LoginButtonPressedEvent());
-    }
-  }
-```
----
-
-BLoC: autenticazione con Supabase [authentication_bloc.dart:L58-L79](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/presentation/authentication_screen/bloc/authentication_bloc.dart#L58-L79)
-
-```dart
-emit(state.copyWith(isLoading: true));
-
-  _onLoginButtonPressed(
-    LoginButtonPressedEvent event,
-    Emitter<AuthenticationState> emit,
-  ) async {
-    emit(state.copyWith(isLoading: true));
-
-    try {
-      final email = state.authenticationModel?.email ?? '';
-      final password = state.authenticationModel?.password ?? '';
-      final client = Supabase.instance.client;
-
-      await client.auth.signInWithPassword(email: email, password: password);
-
-      // Ensure profile exists in public.users table (post-verification check)
-      await UserProfileManager().ensureProfileExists();
-
-      emit(state.copyWith(isLoading: false, isLoginSuccess: true));
-
-      state.emailController?.clear();
-      state.passwordController?.clear();
-    } catch (e) {
-      emit(state.copyWith(
-        isLoading: false,
-        errorMessage: e is AuthException ? e.message : 'Login fallito! Riprova di nuovo.',
-      ));
-    }
+App avviata
+    |
+    v
+[Login Screen]
+    |-- credenziali ok --> verifica posizione GPS
+    |                           |-- prima volta --> [Location Permission]
+    |                           |-- già impostata --> [Home / Evento]
+    |-- nuovo utente --> [Sign Up] --> [Verifica Email] --> [Home / Evento]
+    |-- OAuth (Google/Apple) --> [Completa Profilo se mancano dati] --> [Home]
 ```
 
 ---
 
-Verifica email: login dalla VerificationScreen [verification_bloc.dart:L109-L134](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/presentation/welcome_screen/bloc/welcome_bloc.dart#L109-L134)
+## Struttura del database (Supabase)
 
-```dart
- Future<void> _onCheckVerification(
-    CheckVerificationEvent event,
-    Emitter<verificationState> emit,
-  ) async {
-    if (state.isExpired) {
-       debugPrint('[verificationBloc] Attempted login after expiration.');
-       return; 
-    }
+- `users` — dati anagrafici (nome, cognome, data_nascita, maggiorenne)
+- `users_phones` — numeri di telefono dell'utente con prefisso paese
+- `countries` — paesi con codice ISO e prefisso telefonico
+- `locali` — club/locali con nome, indirizzo, foto, generi musicali
+- `serate` — eventi/serate collegate ai locali
 
-    emit(state.copyWith(isLoading: true, errorMessage: null));
-
-    try {
-      final client = Supabase.instance.client;
-      final email = state.email;
-      final password = state.password;
-
-      debugPrint('[verificationBloc] Verifying email for: $email');
-
-      if (email == null || password == null) {
-        emit(state.copyWith(
-            isLoading: false, errorMessage: "Credenziali mancanti."));
-        return;
-      }
-
-      // Attempt login to check verification status
-      final response = await client.auth.signInWithPassword(
-        email: email,
-        password: password,
-      );
-
-      if (response.user != null && response.session != null) {
-        debugPrint('[verificationBloc] Verification successful. User logged in.');
-        
-        // Ensure profile exists in public.users table (post-verification check)
-        await UserProfileManager().ensureProfileExists();
-
-        emit(state.copyWith(isLoading: false, isVerified: true));
-      } else {
-        // This block might not be reached if signIn throws on unverified email
-        // depending on Supabase config.
-         debugPrint('[verificationBloc] Login success but no session.');
-         emit(state.copyWith(isLoading: false, isVerified: true));
-      }
-```
----
-
-Pagina profilo: ancora da modificare [user_profile_manager.dart:L66-L78](file:///c:/Users/lucaa/git/work/OnListClub_app/lib/core/utils/user_profile_manager.dart#L66-L78)
-
-Gestione errori:
-- Messaggi utente con SnackBar e log in caso di problemi di login/verifica.
-
-Sicurezza:
-- Password/Hash gestiti server-side da Supabase Auth.
-- Token/Sessions sicuri tramite SDK.
-- Persistenza su tabelle pubbliche solo post-verifica, limitando cirschi
+La persistenza avviene tramite una funzione RPC transazionale:
+`register_user_transaction` — inserisce atomicamente utente + telefono dopo la verifica email.
 
 ---
 
 ## Licenza
-- Progetto interno OnListClub. Vedere la [licenza](file:///c:/Users/lucaa/git/work/OnListClub_app/LICENSE) per i dettagli.
 
->>>>>>> b4a5980 (inserito:)
+Progetto interno OnListClub. Vedere [LICENSE](LICENSE) per i dettagli.

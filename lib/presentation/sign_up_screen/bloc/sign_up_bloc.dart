@@ -162,7 +162,7 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
           final cleaned = nn.replaceAll(RegExp(r'\D'), '');
           final countryId = await RegisterService().resolveCountryIdFromIso(iso);
           debugPrint('[SignUpBloc] country_id=$countryId nn_clean=$cleaned');
-          await Supabase.instance.client.from('users').upsert({
+          await Supabase.instance.client.from('utenti').upsert({
             'id': user.id,
             'nome': model.firstName,
             'cognome': model.lastName,
@@ -170,14 +170,14 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
             'data_nascita': dob.toIso8601String(),
             'maggiorenne': isAdult,
           });
-          await Supabase.instance.client.from('users_phones').upsert({
+          await Supabase.instance.client.from('utenti_numeri_telefono').upsert({
             'user_id': user.id,
             'country_id': countryId,
             'telefono': cleaned,
             'is_primary': true,
             'is_verified': false,
           }, onConflict: 'user_id,telefono');
-          debugPrint('[SignUpBloc] users_phones upserted payload: {user_id:${user.id}, country_id:$countryId, telefono:$cleaned}');
+          debugPrint('[SignUpBloc] utenti_numeri_telefono upserted payload: {user_id:${user.id}, country_id:$countryId, telefono:$cleaned}');
           emit(state.copyWith(isLoading: false, isSuccess: true));
         } catch (e) {
           debugPrint('[SignUpBloc] Insert error: $e');

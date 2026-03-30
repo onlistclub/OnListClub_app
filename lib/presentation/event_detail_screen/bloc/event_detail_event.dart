@@ -9,8 +9,6 @@ abstract class EventDetailEvent extends Equatable {
 
 class EventDetailInitialEvent extends EventDetailEvent {}
 
-class ReserveButtonPressedEvent extends EventDetailEvent {}
-
 class BottomNavItemSelectedEvent extends EventDetailEvent {
   final int index;
 

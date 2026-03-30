@@ -7,6 +7,9 @@ class AuthenticationState extends Equatable {
   final bool isLoading;
   final bool isLoginSuccess;
   final bool isRegisterSuccess;
+  final bool needsProfileCompletion;
+  final String? oauthNome;
+  final String? oauthCognome;
   final String? errorMessage;
   final AuthenticationModel? authenticationModel;
 
@@ -17,6 +20,9 @@ class AuthenticationState extends Equatable {
     this.isLoading = false,
     this.isLoginSuccess = false,
     this.isRegisterSuccess = false,
+    this.needsProfileCompletion = false,
+    this.oauthNome,
+    this.oauthCognome,
     this.errorMessage,
     this.authenticationModel,
   });
@@ -29,6 +35,9 @@ class AuthenticationState extends Equatable {
         isLoading,
         isLoginSuccess,
         isRegisterSuccess,
+        needsProfileCompletion,
+        oauthNome,
+        oauthCognome,
         errorMessage,
         authenticationModel,
       ];
@@ -40,6 +49,9 @@ class AuthenticationState extends Equatable {
     bool? isLoading,
     bool? isLoginSuccess,
     bool? isRegisterSuccess,
+    bool? needsProfileCompletion,
+    String? oauthNome,
+    String? oauthCognome,
     String? errorMessage,
     AuthenticationModel? authenticationModel,
   }) {
@@ -50,6 +62,9 @@ class AuthenticationState extends Equatable {
       isLoading: isLoading ?? this.isLoading,
       isLoginSuccess: isLoginSuccess ?? this.isLoginSuccess,
       isRegisterSuccess: isRegisterSuccess ?? this.isRegisterSuccess,
+      needsProfileCompletion: needsProfileCompletion ?? this.needsProfileCompletion,
+      oauthNome: oauthNome ?? this.oauthNome,
+      oauthCognome: oauthCognome ?? this.oauthCognome,
       errorMessage: errorMessage ?? this.errorMessage,
       authenticationModel: authenticationModel ?? this.authenticationModel,
     );

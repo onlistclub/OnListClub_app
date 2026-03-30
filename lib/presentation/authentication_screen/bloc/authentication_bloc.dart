@@ -1,4 +1,9 @@
+import 'dart:math';
+import 'dart:convert';
+import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
+import 'package:google_sign_in/google_sign_in.dart';
+import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/authentication_model.dart';
 import '../../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -15,6 +20,51 @@ class AuthenticationBloc
     on<PasswordChangedEvent>(_onPasswordChanged);
     on<LoginButtonPressedEvent>(_onLoginButtonPressed);
     on<RegisterButtonPressedEvent>(_onRegisterButtonPressed);
+    on<GoogleSignInEvent>(_onGoogleSignIn);
+    on<AppleSignInEvent>(_onAppleSignIn);
+  }
+
+  String _generateNonce([int length = 32]) {
+    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
+    final random = Random.secure();
+    return List.generate(length, (_) => chars[random.nextInt(chars.length)]).join();
+  }
+
+  String _sha256ofString(String input) {
+    final bytes = utf8.encode(input);
+    final digest = sha256.convert(bytes);
+    return digest.toString();
+  }
+
+  Future<void> _handlePostOAuthLogin(Emitter<AuthenticationState> emit) async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) {
+      emit(state.copyWith(isLoading: false, errorMessage: 'Login fallito'));
+      return;
+    }
+    final profileExists = await UserProfileManager().isProfileComplete();
+    if (profileExists) {
+      emit(state.copyWith(isLoading: false, isLoginSuccess: true));
+    } else {
+      final metadata = user.userMetadata ?? {};
+      final fullName = metadata['full_name'] as String? ?? metadata['name'] as String?;
+      String? nome;
+      String? cognome;
+      if (fullName != null && fullName.contains(' ')) {
+        final parts = fullName.split(' ');
+        nome = parts.first;
+        cognome = parts.sublist(1).join(' ');
+      } else {
+        nome = fullName;
+      }
+      emit(state.copyWith(
+        isLoading: false,
+        needsProfileCompletion: true,
+        oauthNome: nome,
+        oauthCognome: cognome,
+      ));
+    }
   }
 
   _onInitialize(
@@ -100,6 +150,71 @@ class AuthenticationBloc
       emit(state.copyWith(
         isLoading: false,
         errorMessage: e is AuthException ? e.message : 'Registration failed. Please try again.',
+      ));
+    }
+  }
+
+  _onGoogleSignIn(
+    GoogleSignInEvent event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    try {
+      final googleUser = await GoogleSignIn().signIn();
+      if (googleUser == null) {
+        emit(state.copyWith(isLoading: false));
+        return;
+      }
+      final auth = await googleUser.authentication;
+      final idToken = auth.idToken;
+      if (idToken == null) {
+        emit(state.copyWith(isLoading: false, errorMessage: 'Google login fallito'));
+        return;
+      }
+      await Supabase.instance.client.auth.signInWithIdToken(
+        provider: OAuthProvider.google,
+        idToken: idToken,
+        accessToken: auth.accessToken,
+      );
+      await _handlePostOAuthLogin(emit);
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: e is AuthException ? e.message : 'Google login fallito',
+      ));
+    }
+  }
+
+  _onAppleSignIn(
+    AppleSignInEvent event,
+    Emitter<AuthenticationState> emit,
+  ) async {
+    emit(state.copyWith(isLoading: true, errorMessage: null));
+    try {
+      final rawNonce = _generateNonce();
+      final hashedNonce = _sha256ofString(rawNonce);
+      final credential = await SignInWithApple.getAppleIDCredential(
+        scopes: [
+          AppleIDAuthorizationScopes.email,
+          AppleIDAuthorizationScopes.fullName,
+        ],
+        nonce: hashedNonce,
+      );
+      final idToken = credential.identityToken;
+      if (idToken == null) {
+        emit(state.copyWith(isLoading: false, errorMessage: 'Apple login fallito'));
+        return;
+      }
+      await Supabase.instance.client.auth.signInWithIdToken(
+        provider: OAuthProvider.apple,
+        idToken: idToken,
+        nonce: rawNonce,
+      );
+      await _handlePostOAuthLogin(emit);
+    } catch (e) {
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: e is AuthException ? e.message : 'Apple login fallito',
       ));
     }
   }

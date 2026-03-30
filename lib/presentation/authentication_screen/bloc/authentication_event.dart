@@ -30,3 +30,7 @@ class PasswordChangedEvent extends AuthenticationEvent {
 class LoginButtonPressedEvent extends AuthenticationEvent {}
 
 class RegisterButtonPressedEvent extends AuthenticationEvent {}
+
+class GoogleSignInEvent extends AuthenticationEvent {}
+
+class AppleSignInEvent extends AuthenticationEvent {}

@@ -7,9 +7,48 @@ class UserProfileManager {
   factory UserProfileManager() => _instance;
   UserProfileManager._internal();
 
-  /// Ensures that the user profile exists in the `public.users` table.
+  /// Returns true if a row exists in `public.utenti` for the current user.
+  Future<bool> isProfileComplete() async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) return false;
+    final data = await client
+        .from('utenti')
+        .select('id')
+        .eq('id', user.id)
+        .maybeSingle();
+    return data != null;
+  }
+
+  /// Legge il raggio di ricerca in km salvato nel profilo utente.
+  /// Restituisce 20 come default se non impostato o se la colonna non esiste ancora.
+  Future<int> getRaggioKm() async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) return 20;
+    try {
+      final data = await client
+          .from('utenti')
+          .select('raggio_km')
+          .eq('id', user.id)
+          .maybeSingle();
+      return (data?['raggio_km'] as int?) ?? 20;
+    } catch (_) {
+      return 20;
+    }
+  }
+
+  /// Salva il raggio di ricerca in km nel profilo utente.
+  Future<void> saveRaggioKm(int km) async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) return;
+    await client.from('utenti').update({'raggio_km': km}).eq('id', user.id);
+  }
+
+  /// Ensures that the user profile exists in the `public.utenti` table.
   /// Should be called after a successful login.
-  /// 
+  ///
   /// If the profile does not exist, it is created using the metadata
   /// stored in [auth.users] (which was populated during registration).
   Future<void> ensureProfileExists() async {
@@ -26,7 +65,7 @@ class UserProfileManager {
       
       // Check if row exists
       final data = await client
-          .from('users')
+          .from('utenti')
           .select('id')
           .eq('id', user.id)
           .maybeSingle();
@@ -60,8 +99,8 @@ class UserProfileManager {
         isAdult = AgeCalculator.isAdult(dob);
       }
 
-      // Upsert solo su public.users; non inseriamo telefono qui
-      await Supabase.instance.client.from('users').upsert({
+      // Upsert solo su public.utenti; non inseriamo telefono qui
+      await Supabase.instance.client.from('utenti').upsert({
         'id': user.id,
         'nome': nome,
         'cognome': cognome,

@@ -5,9 +5,9 @@ class PhoneService {
 
   Future<String?> resolveCountryIdByIso(String iso) async {
     final row = await _client
-        .from('countries')
+        .from('paesi')
         .select('id')
-        .or('iso.eq.${iso.toUpperCase()},code.eq.${iso.toUpperCase()}')
+        .eq('iso_code', iso.toUpperCase())
         .maybeSingle();
     return row?['id'] as String?;
   }
@@ -17,12 +17,12 @@ class PhoneService {
     required String nationalNumberDigits,
   }) async {
     final row = await _client
-        .from('countries')
-        .select('dial_code')
+        .from('paesi')
+        .select('numero_prefisso')
         .eq('id', countryId)
         .maybeSingle();
     if (row == null) return null;
-    final dial = row['dial_code'].toString();
+    final dial = row['numero_prefisso'].toString();
     return '+$dial$nationalNumberDigits';
   }
 
@@ -31,12 +31,12 @@ class PhoneService {
     required String nationalNumberDigits,
   }) async {
     final row = await _client
-        .from('countries')
-        .select('dial_code')
-        .or('iso.eq.${countryIso.toUpperCase()},code.eq.${countryIso.toUpperCase()}')
+        .from('paesi')
+        .select('numero_prefisso')
+        .eq('iso_code', countryIso.toUpperCase())
         .maybeSingle();
     if (row == null) return null;
-    final dial = row['dial_code'].toString();
+    final dial = row['numero_prefisso'].toString();
     return '+$dial$nationalNumberDigits';
   }
 }

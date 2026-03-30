@@ -1,3 +1,5 @@
+import 'package:flutter/foundation.dart'
+    show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
@@ -75,12 +77,28 @@ class _MyAppState extends State<MyApp> {
           title: 'OnList',
           // 🚨 CRITICAL: NEVER REMOVE OR MODIFY
           builder: (context, child) {
-            return MediaQuery(
+            final isDesktop = kIsWeb ||
+                defaultTargetPlatform == TargetPlatform.windows ||
+                defaultTargetPlatform == TargetPlatform.macOS ||
+                defaultTargetPlatform == TargetPlatform.linux;
+            Widget content = MediaQuery(
               data: MediaQuery.of(context).copyWith(
                 textScaler: TextScaler.linear(1.0),
               ),
               child: child!,
             );
+            if (isDesktop) {
+              content = Container(
+                color: Colors.black,
+                child: Center(
+                  child: ConstrainedBox(
+                    constraints: const BoxConstraints(maxWidth: 430),
+                    child: content,
+                  ),
+                ),
+              );
+            }
+            return content;
           },
           // 🚨 END CRITICAL SECTION
           navigatorKey: NavigatorService.navigatorKey,

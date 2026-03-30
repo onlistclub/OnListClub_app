@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
+import '../../core/services/location_service.dart';
 import '../../widgets/custom_button.dart';
 import './bloc/verification_bloc.dart';
 
@@ -31,7 +32,13 @@ class VerificationScreen extends StatelessWidget {
       body: BlocConsumer<verificationBloc, verificationState>(
         listener: (context, state) {
           if (state.isVerified) {
-            NavigatorService.pushNamedAndRemoveUntil(AppRoutes.eventDetailScreen);
+            LocationService.shouldShowLocationPrompt().then((show) {
+              NavigatorService.pushNamedAndRemoveUntil(
+                show
+                    ? AppRoutes.locationPermissionScreen
+                    : AppRoutes.eventDetailScreen,
+              );
+            });
           }
           if (state.isExpired) {
              NavigatorService.pushNamedAndRemoveUntil(AppRoutes.verificationFailureScreen);

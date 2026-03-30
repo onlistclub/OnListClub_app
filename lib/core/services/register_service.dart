@@ -51,7 +51,7 @@ Future<String> resolveCountryIdFromIso(String isoCode) async {
   final iso = isoCode.trim().toUpperCase();
 
   final row = await _client
-      .from('countries')
+      .from('paesi')
       .select('id, iso_code')
       .eq('iso_code', iso)
       .maybeSingle();
@@ -80,7 +80,7 @@ Future<String> resolveCountryIdFromIso(String isoCode) async {
       throw ArgumentError('Numero di telefono troppo corto');
     }
     final countryId = await resolveCountryIdFromIso(isoCode);
-    await _client.from('users').upsert({
+    await _client.from('utenti').upsert({
       'id': userId,
       'nome': nome,
       'cognome': cognome,
@@ -88,7 +88,7 @@ Future<String> resolveCountryIdFromIso(String isoCode) async {
       'data_nascita': dataNascita.toIso8601String(),
       'maggiorenne': maggiorenne,
     });
-    await _client.from('users_phones').upsert({
+    await _client.from('utenti_numeri_telefono').upsert({
       'user_id': userId,
       'country_id': countryId,
       'telefono': nationalNumber,

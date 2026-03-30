@@ -1,7 +1,9 @@
+import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
+import '../../core/services/location_service.dart';
 import './bloc/authentication_bloc.dart';
 import './models/authentication_model.dart';
 
@@ -39,8 +41,21 @@ class AuthenticationScreen extends StatelessWidget {
         child: BlocConsumer<AuthenticationBloc, AuthenticationState>(
           listener: (context, state) {
             if (state.isLoginSuccess) {
-              NavigatorService.pushNamedAndRemoveUntil(
-                AppRoutes.eventDetailScreen,
+              LocationService.shouldShowLocationPrompt().then((show) {
+                NavigatorService.pushNamedAndRemoveUntil(
+                  show
+                      ? AppRoutes.locationPermissionScreen
+                      : AppRoutes.eventDetailScreen,
+                );
+              });
+            }
+            if (state.needsProfileCompletion) {
+              NavigatorService.pushNamed(
+                AppRoutes.completeProfileScreen,
+                arguments: {
+                  'nome': state.oauthNome,
+                  'cognome': state.oauthCognome,
+                },
               );
             }
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
@@ -148,6 +163,47 @@ class AuthenticationScreen extends StatelessWidget {
                           ),
                         ),
                       ),
+                      SizedBox(height: 28),
+                      Row(
+                        children: [
+                          Expanded(child: Divider(color: Colors.white38)),
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: 12),
+                            child: Text(
+                              'oppure',
+                              style: GoogleFonts.inter(
+                                fontSize: 13,
+                                color: Colors.white54,
+                              ),
+                            ),
+                          ),
+                          Expanded(child: Divider(color: Colors.white38)),
+                        ],
+                      ),
+                      SizedBox(height: 20),
+                      if (state.isLoading)
+                        Center(
+                          child: CircularProgressIndicator(color: Colors.white),
+                        )
+                      else ...[
+                        _OAuthButton(
+                          label: 'Accedi con Google',
+                          icon: _GoogleIcon(),
+                          onTap: () => context
+                              .read<AuthenticationBloc>()
+                              .add(GoogleSignInEvent()),
+                        ),
+                        if (defaultTargetPlatform == TargetPlatform.iOS) ...[
+                          SizedBox(height: 12),
+                          _OAuthButton(
+                            label: 'Accedi con Apple',
+                            icon: Icon(Icons.apple, color: Colors.white, size: 22),
+                            onTap: () => context
+                                .read<AuthenticationBloc>()
+                                .add(AppleSignInEvent()),
+                          ),
+                        ],
+                      ],
                     ],
                   ),
                 ),
@@ -281,4 +337,114 @@ class _PasswordFieldState extends State<_PasswordField> {
       onChanged: widget.onChanged,
     );
   }
+}
+
+class _OAuthButton extends StatelessWidget {
+  const _OAuthButton({
+    required this.label,
+    required this.icon,
+    required this.onTap,
+  });
+
+  final String label;
+  final Widget icon;
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 48,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: icon,
+        label: Text(
+          label,
+          style: GoogleFonts.inter(
+            fontSize: 15,
+            fontWeight: FontWeight.w600,
+            color: Colors.white,
+          ),
+        ),
+        style: OutlinedButton.styleFrom(
+          side: const BorderSide(color: Colors.white38),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(12),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+class _GoogleIcon extends StatelessWidget {
+  const _GoogleIcon();
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: 20,
+      height: 20,
+      child: CustomPaint(painter: _GoogleLogoPainter()),
+    );
+  }
+}
+
+class _GoogleLogoPainter extends CustomPainter {
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..style = PaintingStyle.fill;
+    final cx = size.width / 2;
+    final cy = size.height / 2;
+    final r = size.width / 2;
+
+    // Blue arc (top-right)
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r),
+      -1.4, 1.9, true, paint,
+    );
+    // Red arc (top-left)
+    paint.color = const Color(0xFFEA4335);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r),
+      -3.3, 1.9, true, paint,
+    );
+    // Yellow arc (bottom-left)
+    paint.color = const Color(0xFFFBBC05);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r),
+      2.5, 1.0, true, paint,
+    );
+    // Green arc (bottom-right)
+    paint.color = const Color(0xFF34A853);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r),
+      3.5, 0.9, true, paint,
+    );
+    // White inner circle
+    paint.color = Colors.white;
+    canvas.drawCircle(Offset(cx, cy), r * 0.62, paint);
+    // Blue right rectangle (the "G" bar)
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawRect(
+      Rect.fromLTWH(cx, cy - r * 0.22, r, r * 0.44),
+      paint,
+    );
+    // Re-cover inner circle white
+    canvas.drawCircle(Offset(cx, cy), r * 0.62, Paint()..color = Colors.white);
+    // Blue inner arc
+    paint.color = const Color(0xFF4285F4);
+    canvas.drawArc(
+      Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.62),
+      -0.3, 0.6, true, paint,
+    );
+    // Re-white center
+    canvas.drawCircle(
+      Offset(cx, cy), r * 0.38, Paint()..color = Colors.white,
+    );
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
