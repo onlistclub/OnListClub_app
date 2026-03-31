@@ -8,6 +8,7 @@ class LocationManualState extends Equatable {
   final bool             isLoading;
   final bool             isSuccess;
   final String?          errorMessage;
+  final int              raggioKm;
 
   const LocationManualState({
     this.query           = '',
@@ -17,6 +18,7 @@ class LocationManualState extends Equatable {
     this.isLoading       = false,
     this.isSuccess       = false,
     this.errorMessage,
+    this.raggioKm        = 10,
   });
 
   LocationManualState copyWith({
@@ -28,6 +30,7 @@ class LocationManualState extends Equatable {
     bool?             isSuccess,
     String?           errorMessage,
     bool              clearSelected = false,
+    int?              raggioKm,
   }) {
     return LocationManualState(
       query:           query           ?? this.query,
@@ -37,10 +40,11 @@ class LocationManualState extends Equatable {
       isLoading:       isLoading       ?? this.isLoading,
       isSuccess:       isSuccess       ?? this.isSuccess,
       errorMessage:    errorMessage,
+      raggioKm:        raggioKm        ?? this.raggioKm,
     );
   }
 
   @override
   List<Object?> get props =>
-      [query, cities, selectedCitta, isLoadingCities, isLoading, isSuccess, errorMessage];
+      [query, cities, selectedCitta, isLoadingCities, isLoading, isSuccess, errorMessage, raggioKm];
 }

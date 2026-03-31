@@ -15,6 +15,7 @@ Questa guida ti accompagna passo per passo: dall'installazione di Flutter fino a
 7. [Avvia l'app su iPhone / Simulatore iOS](#7-avvia-lapp-su-iphone--simulatore-ios)
 8. [Verifica tutto funzioni](#8-verifica-tutto-funzioni)
 9. [Problemi comuni](#9-problemi-comuni)
+10. [Workflow Git](#10-workflow-git)
 
 ---
 
@@ -191,6 +192,8 @@ Questo scarica tutti i pacchetti elencati in `pubspec.yaml`.
 
 ## 6. Avvia l'app su Android
 
+> **Prerequisito:** Prima di eseguire l'app assicurati di aver configurato il file `env.json` nella root del progetto con le credenziali corrette (chiavi Supabase, ecc.). Trovi tutti i valori necessari nello **zip con i dati sensibili** condiviso dal responsabile del progetto. Senza questo file l'app non si avvia. Vedi la [sezione 5, Passo 2](#5-clona-il-progetto-e-configura-lambiente) per il formato del file.
+
 ### Opzione A — Emulatore (senza dispositivo fisico)
 
 1. Apri Android Studio
@@ -223,6 +226,8 @@ flutter run
 ---
 
 ## 7. Avvia l'app su iPhone / Simulatore iOS
+
+> **Prerequisito:** Stessa cosa della sezione 6 — il file `env.json` deve essere presente e configurato con i dati dello **zip con i dati sensibili** prima di eseguire `flutter run`.
 
 > Solo su macOS con Xcode installato.
 
@@ -295,24 +300,126 @@ flutter test test/core/utils/age_calculator_test.dart
 
 ---
 
-## Workflow Git
+## 10. Workflow Git
+
+### Struttura dei branch
+
+Il progetto usa tre livelli di branch:
 
 ```
-feature/[nome_feature]
+feature/[nome_feature]    <-- sviluppo di una singola funzionalità
         |
-      develop
+        v
+     develop               <-- branch di integrazione e test
         |
-       main
+        v
+       main                <-- codice stabile, pronto per produzione
 ```
 
-Per creare un nuovo branch da sviluppare:
+**Regola base:** non si fa mai commit direttamente su `main` o `develop`. Si lavora sempre su un branch `feature/`.
+
+---
+
+### Flusso di lavoro giornaliero
+
+#### 1. Prima di iniziare a lavorare — aggiorna il tuo develop locale
+
 ```bash
 git checkout develop
-git checkout -b feature/nome-feature
+git pull origin develop
 ```
 
-Per unire il lavoro:
+Farlo sempre prima di creare un nuovo branch, per partire dall'ultimo codice.
+
+#### 2. Crea un branch per la tua feature
+
+```bash
+git checkout -b feature/nome-della-feature
+```
+
+Usa nomi chiari e in minuscolo, con trattini:
+- `feature/home-screen-animation`
+- `feature/booking-form`
+- `feature/fix-phone-validation`
+
+#### 3. Lavora e fai commit regolari
+
+```bash
+git add lib/presentation/home_screen/home_screen.dart
+git commit -m "aggiungi animazione entrata home screen"
+```
+
+Commit piccoli e frequenti sono preferibili a un unico commit enorme.
+
+#### 4. Tieni il branch aggiornato con develop
+
+Se nel frattempo qualcun altro ha fatto merge su `develop`, aggiorna il tuo branch:
+
+```bash
+git checkout feature/nome-della-feature
+git merge develop
+```
+
+Se ci sono conflitti, risolvili manualmente, poi:
+
+```bash
+git add .
+git commit -m "risolvi conflitti con develop"
+```
+
+#### 5. Fai merge su develop quando hai finito
+
 ```bash
 git checkout develop
-git merge feature/nome-feature
+git merge feature/nome-della-feature
+git push origin develop
+```
+
+#### 6. Elimina il branch feature (opzionale ma consigliato)
+
+```bash
+git branch -d feature/nome-della-feature
+```
+
+---
+
+### Merge da develop a main
+
+Il merge su `main` avviene solo quando `develop` è stabile e testato, tipicamente prima di una release:
+
+```bash
+git checkout main
+git pull origin main
+git merge develop
+git push origin main
+git tag v1.0.0   # aggiungi un tag di versione
+git push origin v1.0.0
+```
+
+---
+
+### Comandi Git utili
+
+| Comando | Cosa fa |
+|---|---|
+| `git status` | Mostra i file modificati |
+| `git log --oneline` | Cronologia dei commit in formato compatto |
+| `git diff` | Mostra le differenze non ancora messe in stage |
+| `git stash` | Mette da parte le modifiche temporaneamente |
+| `git stash pop` | Riprende le modifiche messe da parte |
+| `git branch -a` | Lista tutti i branch (locali e remoti) |
+| `git checkout -` | Torna al branch precedente |
+
+---
+
+### Convenzioni per i messaggi di commit
+
+Usa verbi in italiano o inglese all'imperativo, brevi e descrittivi:
+
+```
+aggiungi: schermata home con animazioni
+correggi: validazione numero di telefono
+aggiorna: query SQL locali vicini
+rimuovi: dipendenza inutilizzata
+refactor: sposta logica nel BLoC
 ```

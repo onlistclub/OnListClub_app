@@ -26,16 +26,19 @@ class ClubDetailBloc extends Bloc<ClubDetailEvent, ClubDetailState> {
 
     final results = await Future.wait([
       ClubService.getEventoOggi(clubId),
+      ClubService.getUpcomingEventi(clubId),
       if (userId != null) ClubService.isPreferito(userId, clubId),
     ]);
 
     final evento = results[0] as SerataModel?;
-    final isPreferito = (userId != null && results.length > 1)
-        ? results[1] as bool
+    final serate = results[1] as List<SerataModel>;
+    final isPreferito = (userId != null && results.length > 2)
+        ? results[2] as bool
         : false;
 
     emit(state.copyWith(
       eventoOggi: evento,
+      serate: serate,
       isPreferito: isPreferito,
       isLoading: false,
     ));

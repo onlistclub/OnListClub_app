@@ -23,3 +23,14 @@ class SelectCittaEvent extends LocationManualEvent {
 class SubmitLocationEvent extends LocationManualEvent {
   const SubmitLocationEvent();
 }
+
+class ChangeRaggioEvent extends LocationManualEvent {
+  final int km;
+  const ChangeRaggioEvent(this.km);
+  @override
+  List<Object?> get props => [km];
+}
+
+class LoadInitialRadiusEvent extends LocationManualEvent {
+  const LoadInitialRadiusEvent();
+}

@@ -1,12 +1,28 @@
+import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
+import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:latlong2/latlong.dart';
 
+import '../../core/models/citta_model.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/services/club_service.dart';
+import '../../core/services/location_service.dart';
+import '../../core/utils/image_constant.dart';
 import '../../core/utils/navigator_service.dart';
 import '../../core/utils/user_profile_manager.dart';
 import '../../routes/app_routes.dart';
+
+enum _SortMode { distanza, popolarita }
+
+// Stock images fallback (placed in assets/images/)
+const List<String> _kStockImages = [
+  'assets/images/stock_club_1.jpg',
+  'assets/images/stock_club_2.jpg',
+  'assets/images/stock_club_3.jpg',
+  'assets/images/stock_club_4.jpg',
+];
 
 class NearbyClubsScreen extends StatefulWidget {
   const NearbyClubsScreen({Key? key}) : super(key: key);
@@ -19,6 +35,12 @@ class NearbyClubsScreen extends StatefulWidget {
 
 class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
   late Future<_NearbyData> _future;
+  String _searchQuery = '';
+  _SortMode _sortMode = _SortMode.distanza;
+  final Set<String> _selectedGeneri = {};
+  final Set<String> _selectedCitta = {};
+  int? _selectedPrezzo; // null = tutti, 1/2/3 = €/€€/€€€
+  CittaModel? _customCity; // città cercata manualmente: ha priorità su GPS/saved
 
   @override
   void initState() {
@@ -26,30 +48,433 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
     _future = _load();
   }
 
+  // ── Load ───────────────────────────────────────────────────────────────────
+
   Future<_NearbyData> _load() async {
     final raggio = await UserProfileManager().getRaggioKm();
 
     double? lat;
     double? lng;
-    try {
-      final permission = await Geolocator.checkPermission();
-      if (permission == LocationPermission.whileInUse ||
-          permission == LocationPermission.always) {
-        final pos = await Geolocator.getCurrentPosition(
-          locationSettings: const LocationSettings(
-            accuracy: LocationAccuracy.low,
-            timeLimit: Duration(seconds: 5),
-          ),
-        );
-        lat = pos.latitude;
-        lng = pos.longitude;
-      }
-    } catch (_) {}
+    String? locationLabel;
 
-    final clubs =
-        await ClubService.getLocaliVicini(lat, lng, raggioKm: raggio.toDouble());
-    return _NearbyData(clubs: clubs, raggio: raggio, lat: lat, lng: lng);
+    if (_customCity != null && _customCity!.lat != null) {
+      // Priorità 1: città cercata manualmente nell'app
+      lat = _customCity!.lat;
+      lng = _customCity!.lng;
+      locationLabel = _customCity!.nomeCitta;
+    } else {
+      // Priorità 2: GPS
+      try {
+        var permission = await Geolocator.checkPermission();
+        // On web, never request permission proactively — the browser dialog
+        // can hang the Future if there's no prior user interaction.
+        if (!kIsWeb && permission == LocationPermission.denied) {
+          permission = await Geolocator.requestPermission();
+        }
+        if (permission == LocationPermission.whileInUse ||
+            permission == LocationPermission.always) {
+          final pos = await Geolocator.getCurrentPosition(
+            locationSettings: const LocationSettings(
+              accuracy: LocationAccuracy.low,
+              timeLimit: Duration(seconds: 5),
+            ),
+          );
+          lat = pos.latitude;
+          lng = pos.longitude;
+          locationLabel = 'GPS';
+        }
+      } catch (_) {}
+
+      // Priorità 3: città salvata manualmente nelle impostazioni
+      if (lat == null) {
+        final savedCity = await LocationService.getSavedLocation();
+        if (savedCity?.lat != null) {
+          lat = savedCity!.lat;
+          lng = savedCity.lng;
+          locationLabel = savedCity.nomeCitta;
+        }
+      }
+    }
+
+    List<LocaleModel> clubs = [];
+    try {
+      clubs =
+          await ClubService.getLocaliVicini(lat, lng, raggioKm: raggio.toDouble());
+    } catch (_) {}
+    return _NearbyData(
+      clubs: clubs,
+      raggio: raggio,
+      lat: lat,
+      lng: lng,
+      locationLabel: locationLabel,
+    );
   }
+
+  // ── Filtering ──────────────────────────────────────────────────────────────
+
+  List<LocaleModel> _filtered(List<LocaleModel> clubs) {
+    var list = clubs.where((c) {
+      // Testo
+      if (_searchQuery.isNotEmpty) {
+        final q = _searchQuery.toLowerCase();
+        if (!c.nome.toLowerCase().contains(q) &&
+            !(c.nomeCitta?.toLowerCase().contains(q) ?? false)) {
+          return false;
+        }
+      }
+      // Genere
+      if (_selectedGeneri.isNotEmpty &&
+          !c.generiMusicali.any(_selectedGeneri.contains)) {
+        return false;
+      }
+      // Città
+      if (_selectedCitta.isNotEmpty && !_selectedCitta.contains(c.nomeCitta)) {
+        return false;
+      }
+      // Prezzo
+      if (_selectedPrezzo != null && c.prezzoIndicativo != _selectedPrezzo) {
+        return false;
+      }
+      return true;
+    }).toList();
+
+    if (_sortMode == _SortMode.popolarita) {
+      list = List.from(list)
+        ..sort((a, b) => b.famosita.compareTo(a.famosita));
+    }
+    return list;
+  }
+
+  bool get _hasActiveFilters =>
+      _selectedGeneri.isNotEmpty ||
+      _selectedCitta.isNotEmpty ||
+      _selectedPrezzo != null;
+
+  void _clearFilters() => setState(() {
+        _selectedGeneri.clear();
+        _selectedCitta.clear();
+        _selectedPrezzo = null;
+      });
+
+  // ── Radius dialog ──────────────────────────────────────────────────────────
+
+  double _zoomForRadius(int km) {
+    if (km <= 3) return 13;
+    if (km <= 8) return 11;
+    if (km <= 15) return 10;
+    return 9;
+  }
+
+  Future<void> _showRadiusDialog(
+    int currentRaggio, {
+    double? lat,
+    double? lng,
+  }) async {
+    int tempRaggio = currentRaggio;
+    final mapCtrl =
+        (lat != null && lng != null) ? MapController() : null;
+
+    final confirmed = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Dialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          // Dialog + ConstrainedBox avoids AlertDialog's IntrinsicWidth,
+          // which crashes when FlutterMap is inside (no intrinsic width impl).
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Cambia raggio',
+                    style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 18),
+                  ),
+                  const SizedBox(height: 16),
+                  // Mappa con cerchio raggio
+                  if (lat != null && lng != null) ...[
+                    ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: SizedBox(
+                        height: 160,
+                        width: double.infinity,
+                        child: FlutterMap(
+                          mapController: mapCtrl,
+                          options: MapOptions(
+                            initialCenter: LatLng(lat, lng),
+                            initialZoom: _zoomForRadius(tempRaggio),
+                            interactionOptions: const InteractionOptions(
+                              flags: InteractiveFlag.none,
+                            ),
+                          ),
+                          children: [
+                            TileLayer(
+                              urlTemplate:
+                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                              userAgentPackageName: 'com.onlist.app',
+                            ),
+                            CircleLayer(
+                              circles: [
+                                CircleMarker(
+                                  point: LatLng(lat, lng),
+                                  radius: tempRaggio * 1000.0,
+                                  useRadiusInMeter: true,
+                                  color: const Color(0xFF0009FF)
+                                      .withValues(alpha: 0.18),
+                                  borderColor: const Color(0xFF0009FF)
+                                      .withValues(alpha: 0.7),
+                                  borderStrokeWidth: 2,
+                                ),
+                              ],
+                            ),
+                            MarkerLayer(
+                              markers: [
+                                Marker(
+                                  point: LatLng(lat, lng),
+                                  width: 24,
+                                  height: 24,
+                                  child: const Icon(
+                                    Icons.location_on,
+                                    color: Color(0xFF0009FF),
+                                    size: 24,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 12),
+                  ],
+                  Center(
+                    child: Text(
+                      '$tempRaggio km',
+                      style: GoogleFonts.inter(
+                        fontSize: 22,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                  ),
+                  SliderTheme(
+                    data: SliderTheme.of(ctx).copyWith(
+                      activeTrackColor: const Color(0xFF0009FF),
+                      inactiveTrackColor: const Color(0xFF333333),
+                      thumbColor: const Color(0xFF0009FF),
+                      overlayColor:
+                          const Color(0xFF0009FF).withValues(alpha: 0.1),
+                      trackHeight: 3,
+                    ),
+                    child: Slider(
+                      min: 2,
+                      max: 50,
+                      divisions: 48,
+                      value: tempRaggio.toDouble(),
+                      onChanged: (v) {
+                        setS(() => tempRaggio = v.round());
+                        if (lat != null && lng != null) {
+                          WidgetsBinding.instance.addPostFrameCallback((_) {
+                            try {
+                              mapCtrl!.move(
+                                LatLng(lat, lng),
+                                _zoomForRadius(tempRaggio),
+                              );
+                            } catch (_) {}
+                          });
+                        }
+                      },
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('2 km',
+                          style: GoogleFonts.inter(
+                              fontSize: 11, color: Colors.white38)),
+                      Text('50 km',
+                          style: GoogleFonts.inter(
+                              fontSize: 11, color: Colors.white38)),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.end,
+                    children: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(ctx, false),
+                        child: Text('Annulla',
+                            style: GoogleFonts.inter(color: Colors.white54)),
+                      ),
+                      const SizedBox(width: 8),
+                      ElevatedButton(
+                        onPressed: () => Navigator.pop(ctx, true),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: const Color(0xFF0009FF),
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(8)),
+                        ),
+                        child: Text('Applica',
+                            style: GoogleFonts.inter(
+                                color: Colors.white,
+                                fontWeight: FontWeight.w600)),
+                      ),
+                    ],
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (confirmed == true) {
+      await UserProfileManager().saveRaggioKm(tempRaggio);
+      final newFuture = _load();
+      setState(() { _future = newFuture; });
+    }
+  }
+
+  // ── City picker ────────────────────────────────────────────────────────────
+
+  Future<void> _showCityPicker() async {
+    final TextEditingController ctrl = TextEditingController();
+    List<CittaModel> results = [];
+
+    final picked = await showDialog<CittaModel>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setS) => Dialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          child: ConstrainedBox(
+            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 440),
+            child: Padding(
+              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Cerca per città',
+                    style: GoogleFonts.inter(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 17),
+                  ),
+                  const SizedBox(height: 14),
+                  TextField(
+                    controller: ctrl,
+                    autofocus: true,
+                    style: GoogleFonts.inter(
+                        color: Colors.white, fontSize: 14),
+                    decoration: InputDecoration(
+                      hintText: 'Nome città…',
+                      hintStyle:
+                          GoogleFonts.inter(color: Colors.white38, fontSize: 14),
+                      prefixIcon: const Icon(Icons.search,
+                          color: Colors.white38, size: 20),
+                      filled: true,
+                      fillColor: const Color(0xFF2A2A2A),
+                      border: OutlineInputBorder(
+                        borderRadius: BorderRadius.circular(10),
+                        borderSide: BorderSide.none,
+                      ),
+                      contentPadding:
+                          const EdgeInsets.symmetric(vertical: 12),
+                    ),
+                    onChanged: (v) async {
+                      if (v.trim().length >= 2) {
+                        try {
+                          final r =
+                              await LocationService.searchCitta(v.trim());
+                          setS(() => results = r);
+                        } catch (_) {
+                          setS(() => results = []);
+                        }
+                      } else {
+                        setS(() => results = []);
+                      }
+                    },
+                  ),
+                  if (results.isNotEmpty) ...[
+                    const SizedBox(height: 8),
+                    Flexible(
+                      child: ListView.builder(
+                        shrinkWrap: true,
+                        itemCount: results.length,
+                        itemBuilder: (_, i) {
+                          final c = results[i];
+                          return InkWell(
+                            onTap: () => Navigator.pop(ctx, c),
+                            borderRadius: BorderRadius.circular(8),
+                            child: Padding(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 4, vertical: 10),
+                              child: Row(
+                                children: [
+                                  const Icon(Icons.location_city,
+                                      color: Color(0xFF6680FF), size: 18),
+                                  const SizedBox(width: 10),
+                                  Expanded(
+                                    child: Text(
+                                      c.nomeCitta,
+                                      style: GoogleFonts.inter(
+                                          color: Colors.white, fontSize: 14),
+                                    ),
+                                  ),
+                                ],
+                              ),
+                            ),
+                          );
+                        },
+                      ),
+                    ),
+                  ] else if (ctrl.text.trim().length >= 2) ...[
+                    const SizedBox(height: 20),
+                    Center(
+                      child: Text(
+                        'Nessuna città trovata',
+                        style: GoogleFonts.inter(
+                            color: Colors.white38, fontSize: 13),
+                      ),
+                    ),
+                  ],
+                  const SizedBox(height: 8),
+                  Align(
+                    alignment: Alignment.centerRight,
+                    child: TextButton(
+                      onPressed: () => Navigator.pop(ctx),
+                      child: Text('Annulla',
+                          style: GoogleFonts.inter(color: Colors.white54)),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+
+    if (picked != null) {
+      setState(() => _customCity = picked);
+      final newFuture = _load();
+      setState(() { _future = newFuture; });
+    }
+  }
+
+  // ── Build ──────────────────────────────────────────────────────────────────
 
   @override
   Widget build(BuildContext context) {
@@ -59,10 +484,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // AppBar
+            // ── AppBar ──────────────────────────────────────────────────────
             Padding(
               padding:
-                  const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
                   GestureDetector(
@@ -70,26 +495,275 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                     child: const Icon(Icons.arrow_back_ios_new,
                         color: Colors.white, size: 22),
                   ),
-                  const SizedBox(width: 12),
-                  FutureBuilder<_NearbyData>(
-                    future: _future,
-                    builder: (_, snap) {
-                      final raggio = snap.data?.raggio ?? 20;
-                      return Text(
-                        'Locali a raggio di: $raggio km',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Row(
+                      children: [
+                        Text(
+                          'Ricerca locali',
+                          style: GoogleFonts.inter(
+                            fontSize: 17,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white,
+                          ),
                         ),
-                      );
-                    },
+                        const SizedBox(width: 10),
+                        FutureBuilder<_NearbyData>(
+                          future: _future,
+                          builder: (_, snap) {
+                            final raggio = snap.data?.raggio ?? 20;
+                            final locLabel = snap.data?.locationLabel;
+                            return Row(
+                              mainAxisSize: MainAxisSize.min,
+                              children: [
+                                // Chip raggio
+                                GestureDetector(
+                                  onTap: () => _showRadiusDialog(
+                                    raggio,
+                                    lat: snap.data?.lat,
+                                    lng: snap.data?.lng,
+                                  ),
+                                  child: Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 10, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF0009FF)
+                                          .withValues(alpha: 0.15),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                        color: const Color(0xFF0009FF)
+                                            .withValues(alpha: 0.5),
+                                        width: 1,
+                                      ),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        const Icon(Icons.location_on_outlined,
+                                            color: Color(0xFF6680FF), size: 13),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          '$raggio km',
+                                          style: GoogleFonts.inter(
+                                            fontSize: 12,
+                                            fontWeight: FontWeight.w600,
+                                            color: const Color(0xFF6680FF),
+                                          ),
+                                        ),
+                                        const SizedBox(width: 4),
+                                        const Icon(Icons.tune,
+                                            color: Color(0xFF6680FF), size: 12),
+                                      ],
+                                    ),
+                                  ),
+                                ),
+                                // Chip sorgente posizione
+                                if (locLabel != null) ...[
+                                  const SizedBox(width: 6),
+                                  Container(
+                                    padding: const EdgeInsets.symmetric(
+                                        horizontal: 8, vertical: 5),
+                                    decoration: BoxDecoration(
+                                      color: const Color(0xFF1A1A1A),
+                                      borderRadius: BorderRadius.circular(20),
+                                      border: Border.all(
+                                          color: const Color(0xFF2A2A2A)),
+                                    ),
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      children: [
+                                        Icon(
+                                          locLabel == 'GPS'
+                                              ? Icons.gps_fixed
+                                              : Icons.location_city,
+                                          color: Colors.white54,
+                                          size: 12,
+                                        ),
+                                        const SizedBox(width: 4),
+                                        Text(
+                                          locLabel,
+                                          style: GoogleFonts.inter(
+                                            fontSize: 11,
+                                            color: Colors.white54,
+                                          ),
+                                        ),
+                                      ],
+                                    ),
+                                  ),
+                                ],
+                              ],
+                            );
+                          },
+                        ),
+                      ],
+                    ),
+                  ),
+                  GestureDetector(
+                    onTap: () => NavigatorService.pushNamedAndRemoveUntil(
+                        AppRoutes.eventDetailScreen),
+                    child: Image.asset(
+                      ImageConstant.imgLogoOnlist,
+                      height: 36,
+                      width: 36,
+                      fit: BoxFit.contain,
+                    ),
                   ),
                 ],
               ),
             ),
-            const SizedBox(height: 4),
-            // Content
+
+            // ── Search bar ────────────────────────────────────────────────
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: Container(
+                height: 44,
+                decoration: BoxDecoration(
+                  color: const Color(0xFF1A1A1A),
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: const Color(0xFF2A2A2A)),
+                ),
+                child: TextField(
+                  style: GoogleFonts.inter(
+                      fontSize: 14,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w500),
+                  decoration: InputDecoration(
+                    hintText: 'Cerca locale…',
+                    hintStyle: GoogleFonts.inter(
+                        fontSize: 14, color: Colors.white38),
+                    prefixIcon: const Icon(Icons.search,
+                        color: Colors.white38, size: 20),
+                    border: InputBorder.none,
+                    contentPadding:
+                        const EdgeInsets.symmetric(vertical: 12),
+                  ),
+                  onChanged: (v) => setState(() => _searchQuery = v),
+                ),
+              ),
+            ),
+
+            // ── Sort chips ─────────────────────────────────────────────────
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              child: Row(
+                children: [
+                  _SortChip(
+                    label: 'Più vicino',
+                    icon: Icons.near_me,
+                    selected: _sortMode == _SortMode.distanza,
+                    onTap: () =>
+                        setState(() => _sortMode = _SortMode.distanza),
+                  ),
+                  const SizedBox(width: 8),
+                  _SortChip(
+                    label: 'Più popolare',
+                    icon: Icons.local_fire_department,
+                    selected: _sortMode == _SortMode.popolarita,
+                    onTap: () =>
+                        setState(() => _sortMode = _SortMode.popolarita),
+                  ),
+                  if (_hasActiveFilters) ...[
+                    const SizedBox(width: 8),
+                    GestureDetector(
+                      onTap: _clearFilters,
+                      child: Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 10, vertical: 7),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF2A1A1A),
+                          borderRadius: BorderRadius.circular(20),
+                          border: Border.all(
+                              color: Colors.redAccent.withValues(alpha: 0.5),
+                              width: 1),
+                        ),
+                        child: Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            const Icon(Icons.close,
+                                size: 12, color: Colors.redAccent),
+                            const SizedBox(width: 4),
+                            Text('Azzera',
+                                style: GoogleFonts.inter(
+                                    fontSize: 12, color: Colors.redAccent)),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
+            ),
+
+            // ── Ricerca per città ──────────────────────────────────────
+            Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              child: GestureDetector(
+                onTap: _showCityPicker,
+                child: Container(
+                  height: 40,
+                  decoration: BoxDecoration(
+                    color: _customCity != null
+                        ? const Color(0xFF0009FF).withValues(alpha: 0.12)
+                        : const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(10),
+                    border: Border.all(
+                      color: _customCity != null
+                          ? const Color(0xFF0009FF).withValues(alpha: 0.5)
+                          : const Color(0xFF2A2A2A),
+                    ),
+                  ),
+                  child: Row(
+                    children: [
+                      const SizedBox(width: 10),
+                      Icon(
+                        Icons.location_city,
+                        color: _customCity != null
+                            ? const Color(0xFF6680FF)
+                            : Colors.white38,
+                        size: 16,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          _customCity?.nomeCitta ?? 'Cerca per città…',
+                          style: GoogleFonts.inter(
+                            fontSize: 13,
+                            color: _customCity != null
+                                ? Colors.white
+                                : Colors.white38,
+                          ),
+                        ),
+                      ),
+                      if (_customCity != null)
+                        GestureDetector(
+                          behavior: HitTestBehavior.opaque,
+                          onTap: () {
+                            setState(() => _customCity = null);
+                            final newFuture = _load();
+                            setState(() { _future = newFuture; });
+                          },
+                          child: const Padding(
+                            padding: EdgeInsets.all(10),
+                            child: Icon(Icons.close,
+                                color: Colors.white54, size: 15),
+                          ),
+                        )
+                      else
+                        const Padding(
+                          padding: EdgeInsets.only(right: 10),
+                          child: Icon(Icons.search,
+                              color: Colors.white38, size: 15),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+
+            // ── Filtri + lista (FutureBuilder) ────────────────────────────
             Expanded(
               child: FutureBuilder<_NearbyData>(
                 future: _future,
@@ -108,39 +782,88 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                       ),
                     );
                   }
+
                   final data = snap.data!;
-                  if (data.clubs.isEmpty) {
-                    return Center(
-                      child: Padding(
-                        padding: const EdgeInsets.all(24),
-                        child: Text(
-                          'Nessun locale trovato nel raggio di ${data.raggio} km.',
-                          style: GoogleFonts.inter(
-                            fontSize: 15,
-                            color: Colors.white54,
-                          ),
-                          textAlign: TextAlign.center,
+                  final filtered = _filtered(data.clubs);
+
+                  return Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // ── Filtro prezzo ──────────────────────────────────
+                      _buildPriceRow(),
+
+                      // ── Filtro genere ──────────────────────────────────
+                      if (data.allGeneri.isNotEmpty)
+                        _buildChipRow(
+                          items: data.allGeneri,
+                          selected: _selectedGeneri,
+                          onToggle: (g) => setState(() {
+                            if (_selectedGeneri.contains(g)) {
+                              _selectedGeneri.remove(g);
+                            } else {
+                              _selectedGeneri.add(g);
+                            }
+                          }),
+                          icon: Icons.music_note,
                         ),
-                      ),
-                    );
-                  }
-                  return ListView.separated(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 13, vertical: 8),
-                    itemCount: data.clubs.length,
-                    separatorBuilder: (_, __) => Container(
-                      height: 0.5,
-                      color: const Color(0xFF2A2A2A),
-                      margin: const EdgeInsets.symmetric(vertical: 4),
-                    ),
-                    itemBuilder: (context, i) {
-                      final club = data.clubs[i];
-                      return _ClubListTile(
-                        club: club,
-                        userLat: data.lat,
-                        userLng: data.lng,
-                      );
-                    },
+
+                      // ── Filtro città ───────────────────────────────────
+                      if (data.allCitta.length > 1)
+                        _buildChipRow(
+                          items: data.allCitta,
+                          selected: _selectedCitta,
+                          onToggle: (c) => setState(() {
+                            if (_selectedCitta.contains(c)) {
+                              _selectedCitta.remove(c);
+                            } else {
+                              _selectedCitta.add(c);
+                            }
+                          }),
+                          icon: Icons.location_city,
+                        ),
+
+                      // ── Lista locali ───────────────────────────────────
+                      if (filtered.isEmpty)
+                        Expanded(
+                          child: Center(
+                            child: Padding(
+                              padding: const EdgeInsets.all(24),
+                              child: Text(
+                                _hasActiveFilters || _searchQuery.isNotEmpty
+                                    ? 'Nessun locale corrisponde ai filtri.'
+                                    : 'Nessun locale trovato nel raggio di ${data.raggio} km.',
+                                style: GoogleFonts.inter(
+                                  fontSize: 15,
+                                  color: Colors.white54,
+                                ),
+                                textAlign: TextAlign.center,
+                              ),
+                            ),
+                          ),
+                        )
+                      else
+                        Expanded(
+                          child: ListView.separated(
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 12, vertical: 8),
+                            itemCount: filtered.length,
+                            separatorBuilder: (_, __) => Container(
+                              height: 0.5,
+                              color: const Color(0xFF2A2A2A),
+                              margin:
+                                  const EdgeInsets.symmetric(vertical: 2),
+                            ),
+                            itemBuilder: (context, i) {
+                              return _ClubListTile(
+                                club: filtered[i],
+                                index: i,
+                                userLat: data.lat,
+                                userLng: data.lng,
+                              );
+                            },
+                          ),
+                        ),
+                    ],
                   );
                 },
               ),
@@ -150,26 +873,200 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
       ),
     );
   }
+
+  // ── Filter widgets ─────────────────────────────────────────────────────────
+
+  Widget _buildPriceRow() {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: [1, 2, 3].map((p) {
+            final label = '€' * p;
+            final sel = _selectedPrezzo == p;
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () =>
+                    setState(() => _selectedPrezzo = sel ? null : p),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: sel
+                        ? const Color(0xFF0009FF).withValues(alpha: 0.18)
+                        : const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: sel
+                          ? const Color(0xFF0009FF)
+                          : const Color(0xFF2A2A2A),
+                      width: sel ? 1.5 : 0.5,
+                    ),
+                  ),
+                  child: Text(
+                    label,
+                    style: GoogleFonts.inter(
+                      fontSize: 13,
+                      fontWeight:
+                          sel ? FontWeight.w600 : FontWeight.w400,
+                      color: sel ? Colors.white : Colors.white54,
+                    ),
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
+
+  Widget _buildChipRow({
+    required List<String> items,
+    required Set<String> selected,
+    required void Function(String) onToggle,
+    required IconData icon,
+  }) {
+    return Padding(
+      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
+      child: SingleChildScrollView(
+        scrollDirection: Axis.horizontal,
+        child: Row(
+          children: items.map((item) {
+            final sel = selected.contains(item);
+            return Padding(
+              padding: const EdgeInsets.only(right: 8),
+              child: GestureDetector(
+                onTap: () => onToggle(item),
+                child: AnimatedContainer(
+                  duration: const Duration(milliseconds: 180),
+                  padding: const EdgeInsets.symmetric(
+                      horizontal: 12, vertical: 7),
+                  decoration: BoxDecoration(
+                    color: sel
+                        ? const Color(0xFF0009FF).withValues(alpha: 0.18)
+                        : const Color(0xFF1A1A1A),
+                    borderRadius: BorderRadius.circular(20),
+                    border: Border.all(
+                      color: sel
+                          ? const Color(0xFF0009FF)
+                          : const Color(0xFF2A2A2A),
+                      width: sel ? 1.5 : 0.5,
+                    ),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Icon(icon,
+                          size: 13,
+                          color: sel
+                              ? const Color(0xFF6680FF)
+                              : Colors.white38),
+                      const SizedBox(width: 5),
+                      Text(
+                        item,
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          fontWeight:
+                              sel ? FontWeight.w600 : FontWeight.w400,
+                          color: sel ? Colors.white : Colors.white54,
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            );
+          }).toList(),
+        ),
+      ),
+    );
+  }
 }
 
-// ── Club list tile ─────────────────────────────────────────────────────────────
+// ── Sort chip ────────────────────────────────────────────────────────────────
+
+class _SortChip extends StatelessWidget {
+  final String label;
+  final IconData icon;
+  final bool selected;
+  final VoidCallback onTap;
+
+  const _SortChip({
+    required this.label,
+    required this.icon,
+    required this.selected,
+    required this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+        decoration: BoxDecoration(
+          color: selected
+              ? const Color(0xFF0009FF).withValues(alpha: 0.18)
+              : const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(20),
+          border: Border.all(
+            color: selected
+                ? const Color(0xFF0009FF)
+                : const Color(0xFF2A2A2A),
+            width: selected ? 1.5 : 0.5,
+          ),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(icon,
+                size: 14,
+                color:
+                    selected ? const Color(0xFF6680FF) : Colors.white38),
+            const SizedBox(width: 5),
+            Text(
+              label,
+              style: GoogleFonts.inter(
+                fontSize: 13,
+                fontWeight:
+                    selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected ? Colors.white : Colors.white54,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Club list tile ───────────────────────────────────────────────────────────
 
 class _ClubListTile extends StatelessWidget {
   final LocaleModel club;
+  final int index;
   final double? userLat;
   final double? userLng;
 
   const _ClubListTile({
     required this.club,
+    required this.index,
     required this.userLat,
     required this.userLng,
   });
 
   String? _distanceLabel() {
-    if (userLat == null || userLng == null || club.lat == null || club.lng == null) {
-      return null;
-    }
-    final dist = ClubService.distanceKm(userLat!, userLng!, club.lat!, club.lng!);
+    if (userLat == null ||
+        userLng == null ||
+        club.lat == null ||
+        club.lng == null) return null;
+    final dist =
+        ClubService.distanceKm(userLat!, userLng!, club.lat!, club.lng!);
     return dist < 1
         ? '${(dist * 1000).round()} m'
         : '${dist.toStringAsFixed(1)} km';
@@ -190,19 +1087,32 @@ class _ClubListTile extends StatelessWidget {
             // Club image
             ClipRRect(
               borderRadius: BorderRadius.circular(8),
-              child: Container(
-                width: 60,
-                height: 60,
-                color: const Color(0xFF2A2A2A),
+              child: SizedBox(
+                width: 64,
+                height: 64,
                 child: club.fotoUrl != null
                     ? Image.network(
                         club.fotoUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                            Icons.nightlife,
-                            color: Color(0xFF666666)),
+                        errorBuilder: (_, __, ___) => Image.asset(
+                          _kStockImages[index % _kStockImages.length],
+                          fit: BoxFit.cover,
+                          errorBuilder: (_, __, ___) => Container(
+                            color: const Color(0xFF2A2A2A),
+                            child: const Icon(Icons.nightlife,
+                                color: Color(0xFF666666)),
+                          ),
+                        ),
                       )
-                    : const Icon(Icons.nightlife, color: Color(0xFF666666)),
+                    : Image.asset(
+                        _kStockImages[index % _kStockImages.length],
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: const Color(0xFF2A2A2A),
+                          child: const Icon(Icons.nightlife,
+                              color: Color(0xFF666666)),
+                        ),
+                      ),
               ),
             ),
             const SizedBox(width: 14),
@@ -225,6 +1135,8 @@ class _ClubListTile extends StatelessWidget {
                       club.indirizzoCompleto,
                       style: GoogleFonts.inter(
                           fontSize: 12, color: Colors.white54),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                   if (club.generiString.isNotEmpty) ...[
@@ -232,34 +1144,58 @@ class _ClubListTile extends StatelessWidget {
                     Text(
                       club.generiString,
                       style: GoogleFonts.inter(
-                          fontSize: 11, color: const Color(0xFF6680FF)),
+                          fontSize: 11,
+                          color: const Color(0xFF6680FF)),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ],
                 ],
               ),
             ),
-            // Distance badge
-            if (distLabel != null) ...[
-              const SizedBox(width: 8),
-              Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.circular(6),
-                  border: Border.all(
-                      color: const Color(0xFF333333), width: 0.5),
-                ),
-                child: Text(
-                  distLabel,
-                  style: GoogleFonts.inter(
-                    fontSize: 11,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white70,
+            // Right: distance + popularity
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.end,
+              children: [
+                if (distLabel != null)
+                  Container(
+                    padding: const EdgeInsets.symmetric(
+                        horizontal: 8, vertical: 4),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1A1A1A),
+                      borderRadius: BorderRadius.circular(6),
+                      border: Border.all(
+                          color: const Color(0xFF333333), width: 0.5),
+                    ),
+                    child: Text(
+                      distLabel,
+                      style: GoogleFonts.inter(
+                        fontSize: 11,
+                        fontWeight: FontWeight.w600,
+                        color: Colors.white70,
+                      ),
+                    ),
                   ),
-                ),
-              ),
-            ],
+                if (club.famosita > 0) ...[
+                  const SizedBox(height: 4),
+                  Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.local_fire_department,
+                          size: 11, color: Color(0xFFFF6B35)),
+                      const SizedBox(width: 2),
+                      Text(
+                        '${club.famosita}',
+                        style: GoogleFonts.inter(
+                          fontSize: 10,
+                          color: Colors.white38,
+                        ),
+                      ),
+                    ],
+                  ),
+                ],
+              ],
+            ),
           ],
         ),
       ),
@@ -267,15 +1203,37 @@ class _ClubListTile extends StatelessWidget {
   }
 }
 
+// ── Data model ───────────────────────────────────────────────────────────────
+
 class _NearbyData {
   final List<LocaleModel> clubs;
   final int raggio;
   final double? lat;
   final double? lng;
+  final String? locationLabel;
 
-  _NearbyData(
-      {required this.clubs,
-      required this.raggio,
-      required this.lat,
-      required this.lng});
+  _NearbyData({
+    required this.clubs,
+    required this.raggio,
+    required this.lat,
+    required this.lng,
+    this.locationLabel,
+  });
+
+  List<String> get allGeneri {
+    final s = <String>{};
+    for (final c in clubs) {
+      s.addAll(c.generiMusicali);
+    }
+    return s.toList()..sort();
+  }
+
+  List<String> get allCitta {
+    return clubs
+        .map((c) => c.nomeCitta)
+        .whereType<String>()
+        .toSet()
+        .toList()
+      ..sort();
+  }
 }

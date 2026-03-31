@@ -49,8 +49,17 @@ class LocaleModel extends Equatable {
   }
 
   factory LocaleModel.fromMap(Map<String, dynamic> m) {
-    // Supabase JOIN restituisce citta come oggetto annidato: {"nome_citta": "Milano"}
+    // Supabase JOIN restituisce citta come oggetto annidato:
+    // {"nome_citta": "Milano", "lat": 45.46, "lng": 9.19}
     final cittaObj = m['citta'] as Map<String, dynamic>?;
+
+    // Usa le coordinate del locale se presenti, altrimenti fallback alle
+    // coordinate della città (JOIN). Questo permette di trovare i locali
+    // nel raggio anche se non hanno lat/lng propri nella tabella.
+    final lat = (m['lat'] as num?)?.toDouble() ??
+        (cittaObj?['lat'] as num?)?.toDouble();
+    final lng = (m['lng'] as num?)?.toDouble() ??
+        (cittaObj?['lng'] as num?)?.toDouble();
 
     return LocaleModel(
       id: m['id'] as String,
@@ -68,8 +77,8 @@ class LocaleModel extends Equatable {
       prezzoIndicativo: (m['prezzo_indicativo'] as int?) ?? 1,
       linkTripadvisor: m['link_tripadvisor'] as String?,
       descrizione: m['descrizione'] as String?,
-      lat: (m['lat'] as num?)?.toDouble(),
-      lng: (m['lng'] as num?)?.toDouble(),
+      lat: lat,
+      lng: lng,
     );
   }
 

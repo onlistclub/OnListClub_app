@@ -7,6 +7,8 @@ class LocationService {
   static const String _remindLaterKey    = 'location_remind_later_at';
   static const String _idCittaKey        = 'user_id_citta';
   static const String _nomeCittaKey      = 'user_citta';
+  static const String _latKey            = 'user_city_lat';
+  static const String _lngKey            = 'user_city_lng';
   static const int    _remindIntervalDays = 7;
 
   // ---------------------------------------------------------------------------
@@ -56,7 +58,7 @@ class LocationService {
 
     final response = await Supabase.instance.client
         .from('citta')
-        .select('id_citta, nome_citta')
+        .select('id_citta, nome_citta, lat, lng')
         .ilike('nome_citta', '$q%')
         .order('nome_citta')
         .limit(8);
@@ -74,6 +76,8 @@ class LocationService {
     final prefs = await SharedPreferences.getInstance();
     await prefs.setString(_idCittaKey,   citta.idCitta);
     await prefs.setString(_nomeCittaKey, citta.nomeCitta);
+    if (citta.lat != null) await prefs.setDouble(_latKey, citta.lat!);
+    if (citta.lng != null) await prefs.setDouble(_lngKey, citta.lng!);
 
     try {
       await Supabase.instance.client.auth.updateUser(
@@ -90,6 +94,8 @@ class LocationService {
     final id   = prefs.getString(_idCittaKey);
     final nome = prefs.getString(_nomeCittaKey);
     if (id == null || nome == null) return null;
-    return CittaModel(idCitta: id, nomeCitta: nome);
+    final lat = prefs.getDouble(_latKey);
+    final lng = prefs.getDouble(_lngKey);
+    return CittaModel(idCitta: id, nomeCitta: nome, lat: lat, lng: lng);
   }
 }

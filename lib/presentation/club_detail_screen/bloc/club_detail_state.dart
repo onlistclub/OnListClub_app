@@ -3,6 +3,7 @@ part of 'club_detail_bloc.dart';
 class ClubDetailState extends Equatable {
   final LocaleModel locale;
   final SerataModel? eventoOggi;
+  final List<SerataModel> serate;
   final bool isPreferito;
   final bool isLoadingFavorite;
   final bool showFavoriteBadge;
@@ -12,6 +13,7 @@ class ClubDetailState extends Equatable {
   const ClubDetailState({
     required this.locale,
     this.eventoOggi,
+    this.serate = const [],
     this.isPreferito = false,
     this.isLoadingFavorite = false,
     this.showFavoriteBadge = false,
@@ -23,6 +25,7 @@ class ClubDetailState extends Equatable {
   List<Object?> get props => [
         locale,
         eventoOggi,
+        serate,
         isPreferito,
         isLoadingFavorite,
         showFavoriteBadge,
@@ -33,6 +36,7 @@ class ClubDetailState extends Equatable {
   ClubDetailState copyWith({
     LocaleModel? locale,
     SerataModel? eventoOggi,
+    List<SerataModel>? serate,
     bool? isPreferito,
     bool? isLoadingFavorite,
     bool? showFavoriteBadge,
@@ -42,6 +46,7 @@ class ClubDetailState extends Equatable {
     return ClubDetailState(
       locale: locale ?? this.locale,
       eventoOggi: eventoOggi ?? this.eventoOggi,
+      serate: serate ?? this.serate,
       isPreferito: isPreferito ?? this.isPreferito,
       isLoadingFavorite: isLoadingFavorite ?? this.isLoadingFavorite,
       showFavoriteBadge: showFavoriteBadge ?? this.showFavoriteBadge,

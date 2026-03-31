@@ -1,7 +1,57 @@
 # OnListClub — Documentazione per sviluppatori
 
-**OnListClub** è un'app mobile Flutter per la gestione di eventi e liste nei club.
-Backend: Supabase. Gestione dello stato: BLoC.
+---
+
+## Cos'è OnList
+
+**OnList** è una piattaforma mobile per scoprire, seguire e prenotare eventi nelle discoteche e nei club.
+
+L'idea di fondo è semplice: l'utente apre l'app, vede i club vicini a lui, guarda le serate in programma questa notte (o nei prossimi giorni), e prenota il suo posto con pochi tap — senza code, senza intermediari.
+
+Dal lato dei club, OnList è uno strumento per gestire le proprie serate, le liste, i posti disponibili e la comunicazione con i clienti.
+
+**In sintesi:**
+- Per l'utente: trovare il locale giusto nella propria città, vedere cosa c'è stasera, prenotare
+- Per il club: gestire con un gestionale serate ed eventi, comunicare con i clienti, avere una lista digitale
+
+L'app è mobile-first (iOS e Android), costruita con Flutter e Supabase come backend.
+
+---
+
+## Ruoli nel team di sviluppo
+
+> Aggiorna questa tabella con i nomi del team.
+
+| Ruolo | Responsabilità | Nome |
+|---|---|---|
+| **Tech Lead / Dev Flutter** | Architettura app, BLoC, schermate principali | _(da aggiungere)_ |
+| **Backend Developer** | Database Supabase, RPC, policy RLS, query SQL | _(da aggiungere)_ |
+| **UI/UX Designer** | Figma, design system, flussi utente | _(da aggiungere)_ |
+| **Product Owner** | Requisiti, priorità, roadmap features | _(da aggiungere)_ |
+
+---
+
+## Ruoli nell'app
+
+L'app distingue tre tipi di utente, con permessi diversi:
+
+### Utente normale (user)
+- Si registra con email/password, Google o Apple
+- Visualizza i club vicini e le serate in programma
+- Prenota il proprio posto a una serata
+- Salva i club preferiti
+- Gestisce il proprio profilo
+
+### Gestore locale (manager) — in sviluppo
+- Accede a una dashboard dedicata al proprio club
+- Crea e modifica le serate del locale
+- Visualizza le prenotazioni e gestisce la lista
+- Può aggiungere foto, generi musicali, orari e prezzi
+
+### Amministratore (admin) — interno
+- Accesso completo al database via Supabase Dashboard
+- Gestisce i locali, approva nuovi club, monitora i dati
+- Configura le RLS policy e le funzioni RPC
 
 ---
 

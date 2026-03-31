@@ -3,8 +3,9 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/locale_model.dart';
 import '../models/serata_model.dart';
 
-/// SELECT con JOIN verso citta per ottenere nome_citta
-const _localiSelect = '*, citta!id_citta(nome_citta)';
+/// SELECT con JOIN verso citta per ottenere nome_citta e coordinate città.
+/// Le coordinate città servono come fallback per locali senza lat/lng propri.
+const _localiSelect = '*, citta!id_citta(nome_citta, lat, lng)';
 
 class ClubService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -52,7 +53,8 @@ class ClubService {
         .order('ora_apertura')
         .limit(limit);
     return (response as List<dynamic>)
-        .map((m) => SerataModel.fromMap(m as Map<String, dynamic>))
+        .whereType<Map<String, dynamic>>()
+        .map((m) => SerataModel.fromMap(m))
         .toList();
   }
 
@@ -69,12 +71,12 @@ class ClubService {
 
     final response = await _client
         .from('locali')
-        .select(_localiSelect)
-        .not('lat', 'is', null)
-        .not('lng', 'is', null);
+        .select(_localiSelect);
 
     final locali = (response as List<dynamic>)
-        .map((m) => LocaleModel.fromMap(m as Map<String, dynamic>))
+        .whereType<Map<String, dynamic>>()
+        .map((m) => LocaleModel.fromMap(m))
+        .where((l) => l.lat != null && l.lng != null)
         .toList();
 
     if (locali.isEmpty) {
@@ -92,6 +94,7 @@ class ClubService {
 
   /// Recupera tutti i locali ordinati per distanza (Haversine) dall'utente.
   /// Se lat/lng sono null, fallback su famosità.
+  /// I locali senza coordinate proprie usano le coordinate della città (via JOIN).
   static Future<List<LocaleModel>> getLocaliVicini(
     double? lat,
     double? lng, {
@@ -103,12 +106,12 @@ class ClubService {
 
     final response = await _client
         .from('locali')
-        .select(_localiSelect)
-        .not('lat', 'is', null)
-        .not('lng', 'is', null);
+        .select(_localiSelect);
 
     var locali = (response as List<dynamic>)
-        .map((m) => LocaleModel.fromMap(m as Map<String, dynamic>))
+        .whereType<Map<String, dynamic>>()
+        .map((m) => LocaleModel.fromMap(m))
+        .where((l) => l.lat != null && l.lng != null)
         .toList();
 
     if (raggioKm != null) {
@@ -161,7 +164,8 @@ class ClubService {
         .order('famosita', ascending: false)
         .limit(limit);
     return (response as List<dynamic>)
-        .map((m) => LocaleModel.fromMap(m as Map<String, dynamic>))
+        .whereType<Map<String, dynamic>>()
+        .map((m) => LocaleModel.fromMap(m))
         .toList();
   }
 

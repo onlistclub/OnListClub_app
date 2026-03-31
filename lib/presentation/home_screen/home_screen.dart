@@ -27,8 +27,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   late Animation<double> _appBarFade;
   late Animation<Offset> _appBarSlide;
-  late Animation<double> _radiusFade;
-  late Animation<Offset> _radiusSlide;
   late Animation<double> _heroFade;
   late Animation<double> _heroScale;
   late Animation<double> _titleFade;
@@ -54,8 +52,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
     _appBarFade   = _fade(0.00, 0.25);
     _appBarSlide  = _slide(const Offset(0, -0.5), 0.00, 0.25);
-    _radiusFade   = _fade(0.05, 0.30);
-    _radiusSlide  = _slide(const Offset(0, -0.3), 0.05, 0.30);
     _heroFade     = _fade(0.07, 0.43);
     _heroScale    = Tween<double>(begin: 0.95, end: 1).animate(
       CurvedAnimation(parent: _staggerCtrl,
@@ -238,14 +234,14 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     child: _buildAppBar(),
                   ),
                 ),
-                // Radius label
-                SlideTransition(
-                  position: _radiusSlide,
-                  child: FadeTransition(
-                    opacity: _radiusFade,
-                    child: _buildRadiusLabel(context, state),
-                  ),
-                ),
+                // Radius label — commentato, ora accessibile dalla ricerca
+                // SlideTransition(
+                //   position: _radiusSlide,
+                //   child: FadeTransition(
+                //     opacity: _radiusFade,
+                //     child: _buildRadiusLabel(context, state),
+                //   ),
+                // ),
                 // Scrollable content
                 Expanded(
                   child: state.isLoading
@@ -347,7 +343,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           ),
           Row(
             children: [
-              const Icon(Icons.search, color: Colors.white, size: 28),
+              GestureDetector(
+                onTap: () =>
+                    NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
+                child: const Icon(Icons.search, color: Colors.white, size: 28),
+              ),
               const SizedBox(width: 12),
               const Icon(Icons.person_outline, color: Colors.white, size: 28),
               const SizedBox(width: 10),
@@ -358,44 +358,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
-  // ── Radius label ───────────────────────────────────────────────────────────
-
-  Widget _buildRadiusLabel(BuildContext context, HomeState state) {
-    return GestureDetector(
-      onTap: () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
-      child: Container(
-        width: double.infinity,
-        margin: const EdgeInsets.symmetric(horizontal: 13),
-        padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 9),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-            color: const Color(0xFF0009FF).withValues(alpha: 0.4),
-            width: 1,
-          ),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.location_on_outlined,
-                color: Color(0xFF0009FF), size: 18),
-            const SizedBox(width: 8),
-            Text(
-              'Locali a raggio di: ${state.raggioKm} km',
-              style: GoogleFonts.inter(
-                fontSize: 14,
-                fontWeight: FontWeight.w600,
-                color: Colors.white,
-              ),
-            ),
-            const Spacer(),
-            const Icon(Icons.chevron_right,
-                color: Colors.white54, size: 20),
-          ],
-        ),
-      ),
-    );
-  }
 
   // ── Hero image ─────────────────────────────────────────────────────────────
 

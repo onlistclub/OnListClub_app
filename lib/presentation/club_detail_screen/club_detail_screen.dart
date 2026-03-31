@@ -13,7 +13,12 @@ class ClubDetailScreen extends StatefulWidget {
 
   static Widget builder(BuildContext context) {
     final locale =
-        ModalRoute.of(context)!.settings.arguments as LocaleModel;
+        ModalRoute.of(context)?.settings.arguments as LocaleModel?;
+    if (locale == null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => Navigator.of(context, rootNavigator: true).maybePop());
+      return const Scaffold(backgroundColor: Color(0xFF0D0D0D));
+    }
     return BlocProvider<ClubDetailBloc>(
       create: (_) => ClubDetailBloc(ClubDetailState(locale: locale))
         ..add(ClubDetailInitialEvent()),
@@ -257,6 +262,17 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                           ),
                         ),
                         const SizedBox(height: 24),
+                        // Prossime serate
+                        if (state.serate.isNotEmpty || !state.isLoading)
+                          SlideTransition(
+                            position: _sectionsSlide,
+                            child: FadeTransition(
+                              opacity: _sectionsFade,
+                              child: _buildSerateSection(
+                                  context, state.serate, state.locale),
+                            ),
+                          ),
+                        const SizedBox(height: 32),
                       ],
                     ),
                   ),
@@ -285,7 +301,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
           GestureDetector(
-            onTap: NavigatorService.goBack,
+            onTap: () => NavigatorService.pushNamedAndRemoveUntil(
+                AppRoutes.eventDetailScreen),
             child: ClipRRect(
               borderRadius: BorderRadius.circular(30),
               child: Image.asset(
@@ -613,6 +630,40 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     );
   }
 
+  // ── Prossime serate ─────────────────────────────────────────────────────────
+  Widget _buildSerateSection(
+      BuildContext context, List<SerataModel> serate, LocaleModel locale) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Padding(
+          padding: const EdgeInsets.fromLTRB(13, 0, 13, 14),
+          child: Text(
+            'Prossime serate',
+            style: GoogleFonts.inter(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+            ),
+          ),
+        ),
+        if (serate.isEmpty)
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 13),
+            child: Text(
+              'Nessuna serata in programma',
+              style: GoogleFonts.inter(fontSize: 14, color: Colors.white38),
+            ),
+          )
+        else
+          ...serate.map((s) => _SerataCard(
+                serata: s,
+                locale: locale,
+              )),
+      ],
+    );
+  }
+
   Widget _buildDivider() {
     return Container(
       height: 0.5,
@@ -715,6 +766,184 @@ class _AnimatedPressButtonState extends State<_AnimatedPressButton>
       },
       onTapCancel: () => _ctrl.reverse(),
       child: ScaleTransition(scale: _scale, child: widget.child),
+    );
+  }
+}
+
+// ── Serata card ────────────────────────────────────────────────────────────────
+class _SerataCard extends StatelessWidget {
+  final SerataModel serata;
+  final LocaleModel locale;
+
+  const _SerataCard({required this.serata, required this.locale});
+
+  String _formatData(DateTime d) {
+    const giorni = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+    const mesi = [
+      'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
+      'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
+    ];
+    return '${giorni[d.weekday - 1]} ${d.day} ${mesi[d.month - 1]}';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final status = serata.statusPosti;
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+      child: Container(
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(color: const Color(0xFF2A2A2A), width: 0.5),
+        ),
+        child: Row(
+          children: [
+            // Locandina / fallback icon
+            ClipRRect(
+              borderRadius: const BorderRadius.only(
+                topLeft: Radius.circular(10),
+                bottomLeft: Radius.circular(10),
+              ),
+              child: SizedBox(
+                width: 72,
+                height: 88,
+                child: serata.locandinaUrl != null
+                    ? Image.network(
+                        serata.locandinaUrl!,
+                        fit: BoxFit.cover,
+                        errorBuilder: (_, __, ___) => Container(
+                          color: const Color(0xFF2A2A2A),
+                          child: const Icon(Icons.event,
+                              color: Color(0xFF555555), size: 28),
+                        ),
+                      )
+                    : Container(
+                        color: const Color(0xFF2A2A2A),
+                        child: const Icon(Icons.event,
+                            color: Color(0xFF555555), size: 28),
+                      ),
+              ),
+            ),
+            const SizedBox(width: 12),
+            // Info
+            Expanded(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(vertical: 10),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      serata.nome,
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                    const SizedBox(height: 3),
+                    Text(
+                      '${_formatData(serata.data)}'
+                      '${serata.orarioString.isNotEmpty ? '  •  ${serata.orarioString}' : ''}',
+                      style: GoogleFonts.inter(
+                          fontSize: 12, color: Colors.white54),
+                    ),
+                    if (serata.generiMusicali.isNotEmpty) ...[
+                      const SizedBox(height: 3),
+                      Text(
+                        serata.generiMusicali.join(' · '),
+                        style: GoogleFonts.inter(
+                            fontSize: 11,
+                            color: const Color(0xFF6680FF)),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                    if (status != null) ...[
+                      const SizedBox(height: 4),
+                      Container(
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 2),
+                        decoration: BoxDecoration(
+                          color: status == 'Sold Out'
+                              ? Colors.red.withValues(alpha: 0.2)
+                              : const Color(0xFFFF6B35)
+                                  .withValues(alpha: 0.2),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          status,
+                          style: GoogleFonts.inter(
+                            fontSize: 10,
+                            fontWeight: FontWeight.w600,
+                            color: status == 'Sold Out'
+                                ? Colors.red
+                                : const Color(0xFFFF6B35),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ],
+                ),
+              ),
+            ),
+            const SizedBox(width: 8),
+            // Prenota button + prezzo
+            Padding(
+              padding: const EdgeInsets.only(right: 12),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                crossAxisAlignment: CrossAxisAlignment.end,
+                children: [
+                  if (serata.prezzoIngresso != null)
+                    Text(
+                      '€${serata.prezzoIngresso!.toStringAsFixed(0)}',
+                      style: GoogleFonts.inter(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white70,
+                      ),
+                    ),
+                  const SizedBox(height: 6),
+                  GestureDetector(
+                    onTap: status == 'Sold Out'
+                        ? null
+                        : () => NavigatorService.pushNamed(
+                              AppRoutes.bookingScreen,
+                              arguments: {
+                                'locale': locale,
+                                'serata': serata,
+                              },
+                            ),
+                    child: Container(
+                      padding: const EdgeInsets.symmetric(
+                          horizontal: 12, vertical: 7),
+                      decoration: BoxDecoration(
+                        color: status == 'Sold Out'
+                            ? const Color(0xFF333333)
+                            : const Color(0xFF0009FF),
+                        borderRadius: BorderRadius.circular(8),
+                      ),
+                      child: Text(
+                        status == 'Sold Out' ? 'Esaurito' : 'Prenota',
+                        style: GoogleFonts.inter(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w600,
+                          color: status == 'Sold Out'
+                              ? Colors.white38
+                              : Colors.white,
+                        ),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 }

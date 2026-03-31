@@ -12,10 +12,14 @@ class EventDetailClubScreen extends StatefulWidget {
   const EventDetailClubScreen({Key? key}) : super(key: key);
 
   static Widget builder(BuildContext context) {
-    final args =
-        ModalRoute.of(context)!.settings.arguments as Map<String, dynamic>;
-    final serata = args['serata'] as SerataModel;
-    final club = args['club'] as LocaleModel;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    final serata = (args is Map) ? args['serata'] as SerataModel? : null;
+    final club   = (args is Map) ? args['club']   as LocaleModel?  : null;
+    if (serata == null || club == null) {
+      WidgetsBinding.instance.addPostFrameCallback(
+          (_) => Navigator.of(context, rootNavigator: true).maybePop());
+      return const Scaffold(backgroundColor: Color(0xFF0D0D0D));
+    }
     return BlocProvider<EventDetailClubBloc>(
       create: (_) => EventDetailClubBloc(
         EventDetailClubState(club: club, serata: serata),

@@ -39,6 +39,10 @@
 		<string>UIInterfaceOrientationLandscapeLeft</string>
 		<string>UIInterfaceOrientationLandscapeRight</string>
 	</array>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
 	<key>CADisableMinimumFrameDurationOnPhone</key>
 	<true/>
 	<key>UIApplicationSupportsIndirectInputEvents</key>
