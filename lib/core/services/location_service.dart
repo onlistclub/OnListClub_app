@@ -11,6 +11,12 @@ class LocationService {
   static const String _lngKey            = 'user_city_lng';
   static const int    _remindIntervalDays = 7;
 
+  // Cache GPS device position
+  static const String _gpsLatKey        = 'gps_cached_lat';
+  static const String _gpsLngKey        = 'gps_cached_lng';
+  static const String _gpsTimestampKey  = 'gps_cached_at';
+  static const int    _gpsCacheMinutes  = 60;
+
   // ---------------------------------------------------------------------------
   // GPS permission helpers
   // ---------------------------------------------------------------------------
@@ -40,6 +46,35 @@ class LocationService {
       if (daysSince < _remindIntervalDays) return false;
     }
     return true;
+  }
+
+  // ---------------------------------------------------------------------------
+  // GPS position cache
+  // ---------------------------------------------------------------------------
+
+  /// Salva la posizione GPS ottenuta dal dispositivo con timestamp corrente.
+  static Future<void> saveGpsPosition(double lat, double lng) async {
+    final prefs = await SharedPreferences.getInstance();
+    await prefs.setDouble(_gpsLatKey, lat);
+    await prefs.setDouble(_gpsLngKey, lng);
+    await prefs.setInt(
+        _gpsTimestampKey, DateTime.now().millisecondsSinceEpoch);
+  }
+
+  /// Restituisce la posizione GPS in cache se è più recente di [_gpsCacheMinutes].
+  /// Restituisce null se la cache è scaduta o assente.
+  static Future<({double lat, double lng})?> getCachedGpsPosition() async {
+    final prefs = await SharedPreferences.getInstance();
+    final ts = prefs.getInt(_gpsTimestampKey);
+    if (ts == null) return null;
+    final age = DateTime.now()
+        .difference(DateTime.fromMillisecondsSinceEpoch(ts))
+        .inMinutes;
+    if (age >= _gpsCacheMinutes) return null;
+    final lat = prefs.getDouble(_gpsLatKey);
+    final lng = prefs.getDouble(_gpsLngKey);
+    if (lat == null || lng == null) return null;
+    return (lat: lat, lng: lng);
   }
 
   static Future<void> saveRemindLaterTimestamp() async {

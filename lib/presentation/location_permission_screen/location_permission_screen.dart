@@ -41,10 +41,10 @@ class LocationPermissionScreen extends StatelessWidget {
               child: Column(
                 children: [
                   const Spacer(flex: 3),
-                  // Location pin icon
+                  // Icona posizione
                   Container(
-                    width: 80,
-                    height: 80,
+                    width: 88,
+                    height: 88,
                     decoration: const BoxDecoration(
                       color: Color(0xFF0A0066),
                       shape: BoxShape.circle,
@@ -52,10 +52,11 @@ class LocationPermissionScreen extends StatelessWidget {
                     child: const Icon(
                       Icons.location_on,
                       color: Colors.white,
-                      size: 40,
+                      size: 44,
                     ),
                   ),
                   const SizedBox(height: 32),
+                  // Titolo
                   Text(
                     'Abilita la posizione precisa',
                     style: GoogleFonts.inter(
@@ -66,17 +67,18 @@ class LocationPermissionScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
+                  // Sottotitolo
                   Text(
-                    'La tua posizione sarà usata per mostrarti\npersone ed eventi vicino a te.',
+                    'La tua posizione sarà usata per mostrarti\neventi e locali vicino a te.',
                     style: GoogleFonts.inter(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.8),
+                      color: Colors.white.withValues(alpha: 0.85),
                     ),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
-                  // Open Settings button
+                  // Bottone Apri Impostazioni
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -89,31 +91,26 @@ class LocationPermissionScreen extends StatelessWidget {
                       style: ElevatedButton.styleFrom(
                         backgroundColor: const Color(0xFF0A0066),
                         foregroundColor: Colors.white,
-                        shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
                         elevation: 0,
+                        shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(30)),
                       ),
                       child: state.isLoading
                           ? const SizedBox(
                               width: 22,
                               height: 22,
                               child: CircularProgressIndicator(
-                                color: Colors.white,
-                                strokeWidth: 2.5,
-                              ),
+                                  color: Colors.white, strokeWidth: 2.5),
                             )
                           : Text(
                               'Apri Impostazioni',
                               style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                              ),
+                                  fontSize: 16, fontWeight: FontWeight.w700),
                             ),
                     ),
                   ),
                   const SizedBox(height: 14),
-                  // Remind me later button
+                  // Bottone Ricordamelo dopo
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -124,39 +121,36 @@ class LocationPermissionScreen extends StatelessWidget {
                               .read<LocationPermissionBloc>()
                               .add(const RemindLaterEvent()),
                       style: OutlinedButton.styleFrom(
-                        side: const BorderSide(color: Colors.white, width: 1.5),
+                        backgroundColor: Colors.white,
+                        foregroundColor: Colors.black87,
+                        side: BorderSide.none,
+                        elevation: 0,
                         shape: RoundedRectangleBorder(
-                          borderRadius: BorderRadius.circular(30),
-                        ),
+                            borderRadius: BorderRadius.circular(30)),
                       ),
                       child: Text(
                         'Ricordamelo più tardi',
                         style: GoogleFonts.inter(
                           fontSize: 16,
                           fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                          color: Colors.black87,
                         ),
                       ),
                     ),
                   ),
                   const Spacer(flex: 2),
-                  // Security note
+                  // Nota di sicurezza
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
-                      const Icon(
-                        Icons.lock_outline,
-                        color: Colors.white54,
-                        size: 14,
-                      ),
+                      const Icon(Icons.lock_outline,
+                          color: Colors.white54, size: 14),
                       const SizedBox(width: 6),
                       Flexible(
                         child: Text(
                           'La tua posizione è protetta e non verrà condivisa con terzi.',
                           style: GoogleFonts.inter(
-                            fontSize: 12,
-                            color: Colors.white54,
-                          ),
+                              fontSize: 12, color: Colors.white54),
                           textAlign: TextAlign.center,
                         ),
                       ),

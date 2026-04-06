@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
+import 'package:intl_phone_number_input/intl_phone_number_input.dart';
+
 import '../../core/app_export.dart';
-import '../../widgets/custom_button.dart';
-import '../../widgets/custom_edit_text.dart';
+import '../../core/utils/age_calculator.dart';
 import './bloc/sign_up_bloc.dart';
 import './models/sign_up_model.dart';
-// No custom country model
-import '../../core/utils/age_calculator.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 class SignUpScreen extends StatelessWidget {
   const SignUpScreen({Key? key}) : super(key: key);
@@ -24,333 +23,377 @@ class SignUpScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1600BC),
-              appTheme.indigo_900,
-              appTheme.black_900_01,
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: BlocConsumer<SignUpBloc, SignUpState>(
-          listener: (context, state) {
-            if (state.isSuccess) {
-              // Pass credentials and time to Verification Screen
-              NavigatorService.pushNamedAndRemoveUntil(
-                AppRoutes.verificationScreen,
-                arguments: {
-                  'registrationTime': DateTime.now(),
-                  'email': state.signUpModel?.email,
-                  'password': state.signUpModel?.password,
-                },
-              );
-            }
-            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!)),
-              );
-            }
-          },
-          builder: (context, state) {
-            return SafeArea(
-              child: Container(
-                width: double.infinity,
-                height: double.infinity,
-                padding: EdgeInsets.symmetric(horizontal: 28.h),
-                child: SingleChildScrollView(
-                  child: Form(
-                    key: state.formKey,
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        SizedBox(height: 40.h),
-                        Container(
-                          margin: EdgeInsets.only(left: 20.h),
-                          child: Text(
-                            'Registrati',
-                            style: TextStyleHelper
-                                .instance.headline32ExtraBoldSFCompact
-                                .copyWith(height: 1.22),
-                          ),
-                        ),
-                        SizedBox(height: 36.h),
-                        // Nome
-                        _buildLabel('Nome'),
-                        CustomEditText(
-                          controller: state.firstNameController,
-                          placeholder: 'Nome',
-                          inputType: 'TEXT',
-                          textStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact,
-                          contentPadding: EdgeInsets.all(12.h),
-                          validator: (value) {
-                            if (value == null || value.length < 2) {
-                              return 'Il nome deve avere almeno 2 caratteri';
-                            }
-                            return null;
-                          },
-                          onChanged: (value) {
-                            context.read<SignUpBloc>().add(FirstNameChangedEvent(firstName: value));
-                          },
-                        ),
-                        SizedBox(height: 16.h),
-                        // Cognome
-                        _buildLabel('Cognome'),
-                        CustomEditText(
-                          controller: state.lastNameController,
-                          placeholder: 'Cognome',
-                          inputType: 'TEXT',
-                          textStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact,
-                          contentPadding: EdgeInsets.all(12.h),
-                          validator: (value) {
-                            if (value == null || value.length < 2) {
-                              return 'Il cognome deve avere almeno 2 caratteri';
-                            }
-                            return null;
-                          },
-                          onChanged: (value) {
-                            context.read<SignUpBloc>().add(LastNameChangedEvent(lastName: value));
-                          },
-                        ),
-                        SizedBox(height: 16.h),
-                        // Email
-                        _buildLabel('Email'),
-                        CustomEditText(
-                          controller: state.emailController,
-                          placeholder: 'Email',
-                          inputType: 'EMAIL',
-                          textStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact,
-                          contentPadding: EdgeInsets.all(12.h),
-                          validator: (value) {
-                            if (value == null || value.isEmpty) {
-                              return 'Inserisci la tua email';
-                            }
-                            if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(value)) {
-                              return 'Inserisci un\'email valida';
-                            }
-                            return null;
-                          },
-                          onChanged: (value) {
-                            context.read<SignUpBloc>().add(EmailChangedEvent(email: value));
-                          },
-                        ),
-                        SizedBox(height: 16.h),
-                        // Password
-                        _buildLabel('Password'),
-                        CustomEditText(
-                          controller: state.passwordController,
-                          placeholder: 'Password',
-                          inputType: 'PASSWORD',
-                          passwordField: true,
-                          textStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact,
-                          contentPadding: EdgeInsets.all(12.h),
-                          validator: (value) {
-                            if (value == null || value.length < 8) {
-                              return 'La password deve avere almeno 8 caratteri';
-                            }
-                            return null;
-                          },
-                          onChanged: (value) {
-                            context.read<SignUpBloc>().add(PasswordChangedEvent(password: value));
-                          },
-                        ),
-                        SizedBox(height: 16.h),
-                        // Conferma Password
-                        _buildLabel('Conferma Password'),
-                        CustomEditText(
-                          controller: state.confirmPasswordController,
-                          placeholder: 'Conferma Password',
-                          inputType: 'PASSWORD',
-                          passwordField: true,
-                          textStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact,
-                          contentPadding: EdgeInsets.all(12.h),
-                          validator: (value) {
-                            if (value != state.signUpModel?.password) {
-                              return 'Le password non corrispondono';
-                            }
-                            return null;
-                          },
-                          onChanged: (value) {
-                            context.read<SignUpBloc>().add(ConfirmPasswordChangedEvent(confirmPassword: value));
-                          },
-                        ),
-                        SizedBox(height: 16.h),
-                        _buildLabel('Telefono'),
-                        InternationalPhoneNumberInput(
-                          textFieldController: state.phoneController,
-                          initialValue: PhoneNumber(isoCode: 'IT'),
-                          countries: const ['IT', 'CH', 'FR', 'DE', 'ES'],
-                          locale: 'it_IT',
-                          selectorConfig: const SelectorConfig(
-                            selectorType: PhoneInputSelectorType.DIALOG,
-                            showFlags: true,
-                            useEmoji: false,
-                            setSelectorButtonAsPrefixIcon: false,
-                            leadingPadding: 12,
-                            trailingSpace: true,
-                          ),
-                          ignoreBlank: false,
-                          autoValidateMode: AutovalidateMode.disabled,
-                          selectorTextStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(color: Colors.white),
-                          formatInput: false,
-                          keyboardType: TextInputType.phone,
-                          inputDecoration: InputDecoration(
-                            hintText: 'Telefono',
-                            hintStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(color: Colors.white54),
-                            fillColor: Colors.white.withValues(alpha: 0.1),
-                            filled: true,
-                            contentPadding: EdgeInsets.all(12.h),
-                            border: OutlineInputBorder(
-                              borderRadius: BorderRadius.circular(10.h),
-                              borderSide: const BorderSide(),
-                            ),
-                            errorStyle: const TextStyle(color: Colors.redAccent),
-                          ),
-                          onInputChanged: (phone) {
-                            final iso = phone.isoCode;
-                            final dial = phone.dialCode ?? '';
-                            final full = (phone.phoneNumber ?? '').replaceAll(' ', '');
-                            final cleaned = full.replaceAll(RegExp(r'\D'), '');
-                            final dialClean = dial.replaceAll('+', '');
-                            final nn = cleaned.startsWith(dialClean)
-                                ? cleaned.substring(dialClean.length)
-                                : cleaned;
-                            context.read<SignUpBloc>().add(PhoneChangedEvent(
-                              phone: full,
-                              countryIso: iso,
-                              nationalNumber: nn,
-                            ));
-                          },
-                        ),
-                        SizedBox(height: 16.h),
-                        // Data di nascita
-                        _buildLabel('Data di nascita'),
-                        GestureDetector(
-                          onTap: () => _selectDate(context),
-                          child: AbsorbPointer(
-                            child: CustomEditText(
-                              controller: state.dobController,
-                              placeholder: 'GG/MM/AAAA',
-                              inputType: 'TEXT',
-                              textStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact,
-                              contentPadding: EdgeInsets.all(12.h),
-                              validator: (value) {
-                                if (state.signUpModel?.dob == null) {
-                                  return 'Inserisci la data di nascita';
-                                }
-                                final age = DateTime.now().year - state.signUpModel!.dob!.year;
-                                if (age < 14) {
-                                  return 'Devi avere almeno 14 anni';
-                                }
-                                return null;
-                              },
-                            ),
-                          ),
-                        ),
-                        if (state.signUpModel?.dob != null) ...[
-                          SizedBox(height: 8.h),
-                          Builder(
-                            builder: (context) {
-                              final isAdult = AgeCalculator.isAdult(state.signUpModel!.dob!);
-                              return Text(
-                                isAdult ? "Utente maggiorenne" : "Utente minorenne",
-                                style: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(
-                                  color: isAdult ? Colors.green : Colors.orange,
-                                  fontSize: 14.fSize,
-                                ),
-                              );
-                            }
-                          ),
-                        ],
-                        SizedBox(height: 32.h),
-                        // Pulsante Registrati
-                        state.isLoading
-                            ? Center(child: CircularProgressIndicator(color: appTheme.white_A700))
-                            : Container(
-                                alignment: Alignment.center,
-                                child: CustomButton(
-                                  text: 'Registrati',
-                                  onPressed: () {
-                                    context.read<SignUpBloc>().add(SubmitSignUpEvent());
-                                  },
-                                  backgroundColor: appTheme.white_A700,
-                                  textColor: appTheme.black_900,
-                                  borderRadius: 10.h,
-                                  padding: EdgeInsets.symmetric(
-                                    horizontal: 30.h,
-                                    vertical: 2.h,
-                                  ),
-                                  fontSize: 16.fSize,
-                                  fontFamily: 'SF Compact',
-                                  fontWeight: FontWeight.w800,
-                                ),
-                              ),
-                         SizedBox(height: 20.h),
-                         // Link per tornare al login
-                         Container(
-                          alignment: Alignment.center,
-                          child: GestureDetector(
-                            onTap: () {
-                              NavigatorService.goBack();
-                            },
-                            child: Text(
-                              "Hai già un account? Accedi",
-                              style: TextStyle(
-                                color: appTheme.white_A700,
-                                decoration: TextDecoration.underline,
-                              ),
-                            ),
-                          ),
-                        ),
-                        SizedBox(height: 40.h),
-                      ],
+      backgroundColor: const Color(0xFF0000FF),
+      body: BlocConsumer<SignUpBloc, SignUpState>(
+        listener: (context, state) {
+          if (state.isSuccess) {
+            NavigatorService.pushNamedAndRemoveUntil(
+              AppRoutes.verificationScreen,
+              arguments: {
+                'registrationTime': DateTime.now(),
+                'email': state.signUpModel?.email,
+                'password': state.signUpModel?.password,
+              },
+            );
+          }
+          if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.errorMessage!)),
+            );
+          }
+        },
+        builder: (context, state) {
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: Form(
+                key: state.formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 40),
+                    Text(
+                      'Registrati',
+                      style: GoogleFonts.inter(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
                     ),
-                  ),
+                    const SizedBox(height: 36),
+                    // Nome
+                    _UnderlineField(
+                      label: 'Nome',
+                      controller: state.firstNameController,
+                      validator: (v) {
+                        if (v == null || v.length < 2) {
+                          return 'Il nome deve avere almeno 2 caratteri';
+                        }
+                        return null;
+                      },
+                      onChanged: (v) => context
+                          .read<SignUpBloc>()
+                          .add(FirstNameChangedEvent(firstName: v)),
+                    ),
+                    const SizedBox(height: 24),
+                    // Cognome
+                    _UnderlineField(
+                      label: 'Cognome',
+                      controller: state.lastNameController,
+                      validator: (v) {
+                        if (v == null || v.length < 2) {
+                          return 'Il cognome deve avere almeno 2 caratteri';
+                        }
+                        return null;
+                      },
+                      onChanged: (v) => context
+                          .read<SignUpBloc>()
+                          .add(LastNameChangedEvent(lastName: v)),
+                    ),
+                    const SizedBox(height: 24),
+                    // Data di nascita
+                    GestureDetector(
+                      onTap: () => _selectDate(context, state),
+                      child: AbsorbPointer(
+                        child: _UnderlineField(
+                          label: 'Data di nascita',
+                          controller: state.dobController,
+                          validator: (_) {
+                            if (state.signUpModel?.dob == null) {
+                              return 'Inserisci la data di nascita';
+                            }
+                            final age = DateTime.now().year -
+                                state.signUpModel!.dob!.year;
+                            if (age < 14) return 'Devi avere almeno 14 anni';
+                            return null;
+                          },
+                          onChanged: (_) {},
+                        ),
+                      ),
+                    ),
+                    if (state.signUpModel?.dob != null) ...[
+                      const SizedBox(height: 6),
+                      Text(
+                        AgeCalculator.isAdult(state.signUpModel!.dob!)
+                            ? 'Utente maggiorenne'
+                            : 'Utente minorenne',
+                        style: GoogleFonts.inter(
+                          fontSize: 13,
+                          color: AgeCalculator.isAdult(state.signUpModel!.dob!)
+                              ? Colors.greenAccent
+                              : Colors.orangeAccent,
+                        ),
+                      ),
+                    ],
+                    const SizedBox(height: 24),
+                    // Email
+                    _UnderlineField(
+                      label: 'Email',
+                      controller: state.emailController,
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Inserisci la tua email';
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(v)) {
+                          return 'Email non valida';
+                        }
+                        return null;
+                      },
+                      onChanged: (v) => context
+                          .read<SignUpBloc>()
+                          .add(EmailChangedEvent(email: v)),
+                    ),
+                    const SizedBox(height: 24),
+                    // Password
+                    _UnderlinePasswordField(
+                      controller: state.passwordController,
+                      onChanged: (v) => context
+                          .read<SignUpBloc>()
+                          .add(PasswordChangedEvent(password: v)),
+                    ),
+                    const SizedBox(height: 24),
+                    // Telefono (richiesto dal backend)
+                    Text(
+                      'Telefono',
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
+                    InternationalPhoneNumberInput(
+                      textFieldController: state.phoneController,
+                      initialValue: PhoneNumber(isoCode: 'IT'),
+                      countries: const ['IT', 'CH', 'FR', 'DE', 'ES'],
+                      locale: 'it_IT',
+                      selectorConfig: const SelectorConfig(
+                        selectorType: PhoneInputSelectorType.DIALOG,
+                        showFlags: true,
+                        useEmoji: false,
+                        setSelectorButtonAsPrefixIcon: false,
+                        leadingPadding: 0,
+                        trailingSpace: true,
+                      ),
+                      ignoreBlank: false,
+                      autoValidateMode: AutovalidateMode.disabled,
+                      selectorTextStyle: GoogleFonts.inter(
+                          fontSize: 16,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white),
+                      formatInput: false,
+                      keyboardType: TextInputType.phone,
+                      inputDecoration: InputDecoration(
+                        hintText: 'Numero di telefono',
+                        hintStyle: GoogleFonts.inter(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w700,
+                            color: Colors.white54),
+                        enabledBorder: const UnderlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.white, width: 1.5)),
+                        focusedBorder: const UnderlineInputBorder(
+                            borderSide:
+                                BorderSide(color: Colors.white, width: 2)),
+                        contentPadding: const EdgeInsets.only(bottom: 8),
+                        filled: false,
+                        errorStyle: const TextStyle(color: Colors.white70),
+                      ),
+                      onInputChanged: (phone) {
+                        final iso = phone.isoCode;
+                        final dial = phone.dialCode ?? '';
+                        final full =
+                            (phone.phoneNumber ?? '').replaceAll(' ', '');
+                        final cleaned = full.replaceAll(RegExp(r'\D'), '');
+                        final dialClean = dial.replaceAll('+', '');
+                        final nn = cleaned.startsWith(dialClean)
+                            ? cleaned.substring(dialClean.length)
+                            : cleaned;
+                        context.read<SignUpBloc>().add(PhoneChangedEvent(
+                            phone: full,
+                            countryIso: iso,
+                            nationalNumber: nn));
+                      },
+                    ),
+                    const SizedBox(height: 48),
+                    // Bottone Registrati centrato
+                    Center(
+                      child: state.isLoading
+                          ? const CircularProgressIndicator(color: Colors.white)
+                          : SizedBox(
+                              width: 160,
+                              height: 48,
+                              child: ElevatedButton(
+                                onPressed: () => context
+                                    .read<SignUpBloc>()
+                                    .add(SubmitSignUpEvent()),
+                                style: ElevatedButton.styleFrom(
+                                  backgroundColor: Colors.black,
+                                  foregroundColor: Colors.white,
+                                  elevation: 0,
+                                  shape: RoundedRectangleBorder(
+                                      borderRadius: BorderRadius.circular(30)),
+                                ),
+                                child: Text(
+                                  'Registrati',
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16,
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                  ),
+                                ),
+                              ),
+                            ),
+                    ),
+                    const SizedBox(height: 20),
+                    Center(
+                      child: GestureDetector(
+                        onTap: () => NavigatorService.goBack(),
+                        child: Text(
+                          'Hai già un account? Accedi',
+                          style: GoogleFonts.inter(
+                            fontSize: 14,
+                            color: Colors.white70,
+                            decoration: TextDecoration.underline,
+                            decorationColor: Colors.white70,
+                          ),
+                        ),
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  Widget _buildLabel(String text) {
-    return Container(
-      margin: EdgeInsets.only(left: 20.h, bottom: 8.h),
-      child: Text(
-        text,
-        style: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(
-          color: appTheme.white_A700,
-          fontSize: 14.fSize,
-        ),
-      ),
-    );
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+  Future<void> _selectDate(BuildContext context, SignUpState state) async {
+    final picked = await showDatePicker(
       context: context,
-      initialDate: DateTime.now().subtract(Duration(days: 365 * 14)),
+      initialDate:
+          DateTime.now().subtract(const Duration(days: 365 * 18)),
       firstDate: DateTime(1900),
       lastDate: DateTime.now(),
-      builder: (context, child) {
-        return Theme(
-          data: ThemeData.light().copyWith(
-            primaryColor: appTheme.indigo_900,
-            colorScheme: ColorScheme.light(primary: appTheme.indigo_900),
-            buttonTheme: ButtonThemeData(textTheme: ButtonTextTheme.primary),
+      builder: (context, child) => Theme(
+        data: ThemeData.dark().copyWith(
+          colorScheme: const ColorScheme.dark(
+            primary: Colors.white,
+            onPrimary: Color(0xFF0000FF),
+            surface: Color(0xFF0A0066),
+            onSurface: Colors.white,
           ),
-          child: child!,
-        );
-      },
+        ),
+        child: child!,
+      ),
     );
-    if (picked != null) {
+    if (picked != null && context.mounted) {
       context.read<SignUpBloc>().add(DobChangedEvent(dob: picked));
     }
+  }
+}
+
+// ── Underline fields ──────────────────────────────────────────────────────────
+
+class _UnderlineField extends StatelessWidget {
+  const _UnderlineField({
+    required this.label,
+    this.controller,
+    this.keyboardType,
+    this.validator,
+    this.onChanged,
+  });
+
+  final String label;
+  final TextEditingController? controller;
+  final TextInputType? keyboardType;
+  final FormFieldValidator<String>? validator;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: GoogleFonts.inter(
+          fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.inter(
+            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+        enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 1.5)),
+        focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 2)),
+        errorBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 1.5)),
+        focusedErrorBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 2)),
+        errorStyle: const TextStyle(color: Colors.white70),
+        filled: false,
+        contentPadding: const EdgeInsets.only(bottom: 8),
+      ),
+      validator: validator,
+      onChanged: onChanged,
+    );
+  }
+}
+
+class _UnderlinePasswordField extends StatefulWidget {
+  const _UnderlinePasswordField(
+      {required this.onChanged, this.controller});
+
+  final ValueChanged<String> onChanged;
+  final TextEditingController? controller;
+
+  @override
+  State<_UnderlinePasswordField> createState() =>
+      _UnderlinePasswordFieldState();
+}
+
+class _UnderlinePasswordFieldState extends State<_UnderlinePasswordField> {
+  bool _obscure = true;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: widget.controller,
+      obscureText: _obscure,
+      style: GoogleFonts.inter(
+          fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+      decoration: InputDecoration(
+        labelText: 'Password',
+        labelStyle: GoogleFonts.inter(
+            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+        enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 1.5)),
+        focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 2)),
+        errorBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 1.5)),
+        focusedErrorBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 2)),
+        errorStyle: const TextStyle(color: Colors.white70),
+        filled: false,
+        contentPadding: const EdgeInsets.only(bottom: 8),
+        suffixIcon: IconButton(
+          icon: Icon(
+              _obscure ? Icons.visibility_off : Icons.visibility,
+              color: Colors.white70,
+              size: 20),
+          onPressed: () => setState(() => _obscure = !_obscure),
+        ),
+      ),
+      validator: (v) {
+        if (v == null || v.length < 8) {
+          return 'La password deve avere almeno 8 caratteri';
+        }
+        return null;
+      },
+      onChanged: widget.onChanged,
+    );
   }
 }

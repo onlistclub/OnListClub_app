@@ -1,4 +1,3 @@
-import 'package:flutter/foundation.dart' show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
@@ -23,257 +22,202 @@ class AuthenticationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Color(0xFF1600BC),
-              Color(0xFF0E0066),
-              Color(0xFF050024),
-            ],
-            stops: [0.0, 0.5, 1.0],
-          ),
-        ),
-        child: BlocConsumer<AuthenticationBloc, AuthenticationState>(
-          listener: (context, state) {
-            if (state.isLoginSuccess) {
-              LocationService.shouldShowLocationPrompt().then((show) {
-                NavigatorService.pushNamedAndRemoveUntil(
-                  show
-                      ? AppRoutes.locationPermissionScreen
-                      : AppRoutes.eventDetailScreen,
-                );
-              });
-            }
-            if (state.needsProfileCompletion) {
-              NavigatorService.pushNamed(
-                AppRoutes.completeProfileScreen,
-                arguments: {
-                  'nome': state.oauthNome,
-                  'cognome': state.oauthCognome,
-                },
+      backgroundColor: const Color(0xFF0000FF),
+      body: BlocConsumer<AuthenticationBloc, AuthenticationState>(
+        listener: (context, state) {
+          if (state.isLoginSuccess) {
+            LocationService.shouldShowLocationPrompt().then((show) {
+              NavigatorService.pushNamedAndRemoveUntil(
+                show
+                    ? AppRoutes.locationPermissionScreen
+                    : AppRoutes.eventDetailScreen,
               );
-            }
-            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!)),
-              );
-            }
-          },
-          builder: (context, state) {
-            return SafeArea(
-              child: SingleChildScrollView(
-                padding: EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-                child: Form(
-                  key: state.formKey,
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      SizedBox(height: 80),
-                      Text(
-                        'Accedi',
-                        style: GoogleFonts.inter(
-                          fontSize: 32,
-                          fontWeight: FontWeight.w800,
-                          color: Colors.white,
+            });
+          }
+          if (state.needsProfileCompletion) {
+            NavigatorService.pushNamed(
+              AppRoutes.completeProfileScreen,
+              arguments: {
+                'nome': state.oauthNome,
+                'cognome': state.oauthCognome,
+              },
+            );
+          }
+          if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text(state.errorMessage!)),
+            );
+          }
+        },
+        builder: (context, state) {
+          return SafeArea(
+            child: SingleChildScrollView(
+              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+              child: Form(
+                key: state.formKey,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const SizedBox(height: 72),
+                    // Titolo
+                    Text(
+                      'Accedi',
+                      style: GoogleFonts.inter(
+                        fontSize: 36,
+                        fontWeight: FontWeight.w800,
+                        color: Colors.white,
+                      ),
+                    ),
+                    const SizedBox(height: 40),
+                    // Campo Email
+                    _UnderlineField(
+                      controller: state.emailController,
+                      label: 'Email',
+                      keyboardType: TextInputType.emailAddress,
+                      validator: (v) {
+                        if (v == null || v.isEmpty) return 'Inserisci la tua email';
+                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                            .hasMatch(v)) {
+                          return 'Email non valida';
+                        }
+                        return null;
+                      },
+                      onChanged: (v) => context
+                          .read<AuthenticationBloc>()
+                          .add(EmailChangedEvent(email: v)),
+                    ),
+                    const SizedBox(height: 28),
+                    // Campo Password
+                    _UnderlinePasswordField(
+                      controller: state.passwordController,
+                      onChanged: (v) => context
+                          .read<AuthenticationBloc>()
+                          .add(PasswordChangedEvent(password: v)),
+                    ),
+                    const SizedBox(height: 40),
+                    // Bottoni Accedi / Registrati affiancati e centrati
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        _BlackButton(
+                          label: 'Accedi',
+                          onTap: () => _onTapAccedi(context, state),
+                          width: 130,
                         ),
-                      ),
-                      SizedBox(height: 36),
-                      TextFormField(
-                        controller: state.emailController,
-                        keyboardType: TextInputType.emailAddress,
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.white,
+                        const SizedBox(width: 16),
+                        _BlackButton(
+                          label: 'Registrati',
+                          onTap: () =>
+                              NavigatorService.pushNamed(AppRoutes.signUpScreen),
+                          width: 130,
                         ),
-                        decoration: _inputDecoration('Email'),
-                        validator: (value) {
-                          if (value == null || value.isEmpty) {
-                            return 'Please enter your email';
-                          }
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(value)) {
-                            return 'Please enter a valid email';
-                          }
-                          return null;
-                        },
-                        onChanged: (value) {
-                          context.read<AuthenticationBloc>().add(
-                                EmailChangedEvent(email: value),
-                              );
-                        },
-                      ),
-                      SizedBox(height: 20),
-                      _PasswordField(
-                        controller: state.passwordController,
-                        onChanged: (value) {
-                          context.read<AuthenticationBloc>().add(
-                                PasswordChangedEvent(password: value),
-                              );
-                        },
-                      ),
-                      SizedBox(height: 28),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: ElevatedButton(
-                          onPressed: () => _onTapAccedi(context),
-                          style: ElevatedButton.styleFrom(
-                            backgroundColor: Colors.white,
-                            foregroundColor: Colors.black,
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            elevation: 0,
-                          ),
-                          child: Text(
-                            'Accedi',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.black,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 12),
-                      SizedBox(
-                        width: double.infinity,
-                        height: 48,
-                        child: OutlinedButton(
-                          onPressed: () => _onTapRegistrati(context),
-                          style: OutlinedButton.styleFrom(
-                            side: BorderSide(color: Colors.white, width: 1),
-                            shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                          ),
-                          child: Text(
-                            'Registrati',
-                            style: GoogleFonts.inter(
-                              fontSize: 16,
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                            ),
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: 28),
-                      Row(
-                        children: [
-                          Expanded(child: Divider(color: Colors.white38)),
-                          Padding(
-                            padding: EdgeInsets.symmetric(horizontal: 12),
-                            child: Text(
-                              'oppure',
-                              style: GoogleFonts.inter(
-                                fontSize: 13,
-                                color: Colors.white54,
-                              ),
-                            ),
-                          ),
-                          Expanded(child: Divider(color: Colors.white38)),
-                        ],
-                      ),
-                      SizedBox(height: 20),
-                      if (state.isLoading)
-                        Center(
-                          child: CircularProgressIndicator(color: Colors.white),
-                        )
-                      else ...[
-                        _OAuthButton(
-                          label: 'Accedi con Google',
-                          icon: _GoogleIcon(),
-                          onTap: () => context
-                              .read<AuthenticationBloc>()
-                              .add(GoogleSignInEvent()),
-                        ),
-                        if (defaultTargetPlatform == TargetPlatform.iOS) ...[
-                          SizedBox(height: 12),
-                          _OAuthButton(
-                            label: 'Accedi con Apple',
-                            icon: Icon(Icons.apple, color: Colors.white, size: 22),
-                            onTap: () => context
-                                .read<AuthenticationBloc>()
-                                .add(AppleSignInEvent()),
-                          ),
-                        ],
                       ],
+                    ),
+                    const SizedBox(height: 60),
+                    // OAuth buttons
+                    if (state.isLoading)
+                      const Center(
+                        child: CircularProgressIndicator(color: Colors.white),
+                      )
+                    else ...[
+                      _AppleButton(
+                        onTap: () => context
+                            .read<AuthenticationBloc>()
+                            .add(AppleSignInEvent()),
+                      ),
+                      const SizedBox(height: 12),
+                      _GoogleButton(
+                        onTap: () => context
+                            .read<AuthenticationBloc>()
+                            .add(GoogleSignInEvent()),
+                      ),
+                      const SizedBox(height: 12),
+                      _StaffButton(
+                        onTap: () =>
+                            ScaffoldMessenger.of(context).showSnackBar(
+                          const SnackBar(
+                              content:
+                                  Text('Accesso staff disponibile a breve')),
+                        ),
+                      ),
                     ],
-                  ),
+                    const SizedBox(height: 32),
+                  ],
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
 
-  InputDecoration _inputDecoration(String hint) {
-    return InputDecoration(
-      hintText: hint,
-      hintStyle: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.white.withValues(alpha: 0.5),
-      ),
-      filled: true,
-      fillColor: Colors.transparent,
-      contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Color(0xFF666666)),
-      ),
-      enabledBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Color(0xFF666666)),
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Colors.white, width: 1.5),
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Color(0xFFFF4444)),
-      ),
-      focusedErrorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide(color: Color(0xFFFF4444)),
-      ),
-    );
-  }
-
-  void _onTapAccedi(BuildContext context) {
-    final bloc = context.read<AuthenticationBloc>();
-    final state = bloc.state;
-
+  void _onTapAccedi(BuildContext context, AuthenticationState state) {
     if (state.formKey?.currentState?.validate() ?? false) {
-      bloc.add(LoginButtonPressedEvent());
+      context.read<AuthenticationBloc>().add(LoginButtonPressedEvent());
     }
   }
+}
 
-  void _onTapRegistrati(BuildContext context) {
-    NavigatorService.pushNamed(AppRoutes.signUpScreen);
+// ── Underline text field ───────────────────────────────────────────────────────
+
+class _UnderlineField extends StatelessWidget {
+  const _UnderlineField({
+    required this.label,
+    this.controller,
+    this.keyboardType,
+    this.validator,
+    this.onChanged,
+  });
+
+  final String label;
+  final TextEditingController? controller;
+  final TextInputType? keyboardType;
+  final FormFieldValidator<String>? validator;
+  final ValueChanged<String>? onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return TextFormField(
+      controller: controller,
+      keyboardType: keyboardType,
+      style: GoogleFonts.inter(
+          fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+      decoration: InputDecoration(
+        labelText: label,
+        labelStyle: GoogleFonts.inter(
+            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+        enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 1.5)),
+        focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 2)),
+        errorBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 1.5)),
+        focusedErrorBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 2)),
+        errorStyle: const TextStyle(color: Colors.white70),
+        filled: false,
+        contentPadding: const EdgeInsets.only(bottom: 8),
+      ),
+      validator: validator,
+      onChanged: onChanged,
+    );
   }
 }
 
-class _PasswordField extends StatefulWidget {
-  const _PasswordField({required this.controller, required this.onChanged});
+class _UnderlinePasswordField extends StatefulWidget {
+  const _UnderlinePasswordField(
+      {required this.onChanged, this.controller});
 
-  final TextEditingController? controller;
   final ValueChanged<String> onChanged;
+  final TextEditingController? controller;
 
   @override
-  State<_PasswordField> createState() => _PasswordFieldState();
+  State<_UnderlinePasswordField> createState() =>
+      _UnderlinePasswordFieldState();
 }
 
-class _PasswordFieldState extends State<_PasswordField> {
+class _UnderlinePasswordFieldState extends State<_UnderlinePasswordField> {
   bool _obscure = true;
 
   @override
@@ -282,56 +226,33 @@ class _PasswordFieldState extends State<_PasswordField> {
       controller: widget.controller,
       obscureText: _obscure,
       style: GoogleFonts.inter(
-        fontSize: 16,
-        fontWeight: FontWeight.w600,
-        color: Colors.white,
-      ),
+          fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
       decoration: InputDecoration(
-        hintText: 'Password',
-        hintStyle: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.w600,
-          color: Colors.white.withValues(alpha: 0.5),
-        ),
-        filled: true,
-        fillColor: Colors.transparent,
-        contentPadding: EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF666666)),
-        ),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFF666666)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white, width: 1.5),
-        ),
-        errorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFFFF4444)),
-        ),
-        focusedErrorBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Color(0xFFFF4444)),
-        ),
+        labelText: 'Password',
+        labelStyle: GoogleFonts.inter(
+            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
+        enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 1.5)),
+        focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white, width: 2)),
+        errorBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 1.5)),
+        focusedErrorBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.redAccent, width: 2)),
+        errorStyle: const TextStyle(color: Colors.white70),
+        filled: false,
+        contentPadding: const EdgeInsets.only(bottom: 8),
         suffixIcon: IconButton(
           icon: Icon(
-            _obscure ? Icons.visibility_off : Icons.visibility,
-            color: Colors.white.withValues(alpha: 0.5),
-            size: 20,
-          ),
+              _obscure ? Icons.visibility_off : Icons.visibility,
+              color: Colors.white70,
+              size: 20),
           onPressed: () => setState(() => _obscure = !_obscure),
         ),
       ),
-      validator: (value) {
-        if (value == null || value.isEmpty) {
-          return 'Please enter your password';
-        }
-        if (value.length < 6) {
-          return 'Password must be at least 6 characters';
-        }
+      validator: (v) {
+        if (v == null || v.isEmpty) return 'Inserisci la password';
+        if (v.length < 6) return 'Minimo 6 caratteri';
         return null;
       },
       onChanged: widget.onChanged,
@@ -339,56 +260,132 @@ class _PasswordFieldState extends State<_PasswordField> {
   }
 }
 
-class _OAuthButton extends StatelessWidget {
-  const _OAuthButton({
-    required this.label,
-    required this.icon,
-    required this.onTap,
-  });
+// ── Buttons ───────────────────────────────────────────────────────────────────
+
+class _BlackButton extends StatelessWidget {
+  const _BlackButton(
+      {required this.label, required this.onTap, this.width});
 
   final String label;
-  final Widget icon;
+  final VoidCallback onTap;
+  final double? width;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: width,
+      height: 48,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30)),
+        ),
+        child: Text(label,
+            style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w700,
+                color: Colors.white)),
+      ),
+    );
+  }
+}
+
+class _AppleButton extends StatelessWidget {
+  const _AppleButton({required this.onTap});
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 48,
-      child: OutlinedButton.icon(
+      height: 52,
+      child: ElevatedButton.icon(
         onPressed: onTap,
-        icon: icon,
-        label: Text(
-          label,
-          style: GoogleFonts.inter(
-            fontSize: 15,
-            fontWeight: FontWeight.w600,
-            color: Colors.white,
-          ),
-        ),
-        style: OutlinedButton.styleFrom(
-          side: const BorderSide(color: Colors.white38),
+        icon: const Icon(Icons.apple, color: Colors.white, size: 22),
+        label: Text('Continua con Apple',
+            style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white)),
+        style: ElevatedButton.styleFrom(
+          backgroundColor: Colors.black,
+          foregroundColor: Colors.white,
+          elevation: 0,
           shape: RoundedRectangleBorder(
-            borderRadius: BorderRadius.circular(12),
-          ),
+              borderRadius: BorderRadius.circular(30)),
         ),
       ),
     );
   }
 }
 
-class _GoogleIcon extends StatelessWidget {
-  const _GoogleIcon();
+class _GoogleButton extends StatelessWidget {
+  const _GoogleButton({required this.onTap});
+  final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: 20,
-      height: 20,
-      child: CustomPaint(painter: _GoogleLogoPainter()),
+      width: double.infinity,
+      height: 52,
+      child: OutlinedButton.icon(
+        onPressed: onTap,
+        icon: SizedBox(
+          width: 20,
+          height: 20,
+          child: CustomPaint(painter: _GoogleLogoPainter()),
+        ),
+        label: Text('Continua con Google',
+            style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.black87)),
+        style: OutlinedButton.styleFrom(
+          backgroundColor: Colors.white,
+          foregroundColor: Colors.black87,
+          side: BorderSide.none,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30)),
+        ),
+      ),
     );
   }
 }
+
+class _StaffButton extends StatelessWidget {
+  const _StaffButton({required this.onTap});
+  final VoidCallback onTap;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: double.infinity,
+      height: 52,
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: const Color(0xFF0A0066),
+          foregroundColor: Colors.white,
+          elevation: 0,
+          shape: RoundedRectangleBorder(
+              borderRadius: BorderRadius.circular(30)),
+        ),
+        child: Text('Accedi come Staff',
+            style: GoogleFonts.inter(
+                fontSize: 16,
+                fontWeight: FontWeight.w600,
+                color: Colors.white)),
+      ),
+    );
+  }
+}
+
+// ── Google logo painter ────────────────────────────────────────────────────────
 
 class _GoogleLogoPainter extends CustomPainter {
   @override
@@ -397,52 +394,31 @@ class _GoogleLogoPainter extends CustomPainter {
     final cx = size.width / 2;
     final cy = size.height / 2;
     final r = size.width / 2;
-
-    // Blue arc (top-right)
     paint.color = const Color(0xFF4285F4);
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(cx, cy), radius: r),
-      -1.4, 1.9, true, paint,
-    );
-    // Red arc (top-left)
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r),
+        -1.4, 1.9, true, paint);
     paint.color = const Color(0xFFEA4335);
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(cx, cy), radius: r),
-      -3.3, 1.9, true, paint,
-    );
-    // Yellow arc (bottom-left)
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r),
+        -3.3, 1.9, true, paint);
     paint.color = const Color(0xFFFBBC05);
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(cx, cy), radius: r),
-      2.5, 1.0, true, paint,
-    );
-    // Green arc (bottom-right)
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r),
+        2.5, 1.0, true, paint);
     paint.color = const Color(0xFF34A853);
-    canvas.drawArc(
-      Rect.fromCircle(center: Offset(cx, cy), radius: r),
-      3.5, 0.9, true, paint,
-    );
-    // White inner circle
+    canvas.drawArc(Rect.fromCircle(center: Offset(cx, cy), radius: r),
+        3.5, 0.9, true, paint);
     paint.color = Colors.white;
     canvas.drawCircle(Offset(cx, cy), r * 0.62, paint);
-    // Blue right rectangle (the "G" bar)
     paint.color = const Color(0xFF4285F4);
     canvas.drawRect(
-      Rect.fromLTWH(cx, cy - r * 0.22, r, r * 0.44),
-      paint,
-    );
-    // Re-cover inner circle white
-    canvas.drawCircle(Offset(cx, cy), r * 0.62, Paint()..color = Colors.white);
-    // Blue inner arc
+        Rect.fromLTWH(cx, cy - r * 0.22, r, r * 0.44), paint);
+    canvas.drawCircle(
+        Offset(cx, cy), r * 0.62, Paint()..color = Colors.white);
     paint.color = const Color(0xFF4285F4);
     canvas.drawArc(
-      Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.62),
-      -0.3, 0.6, true, paint,
-    );
-    // Re-white center
+        Rect.fromCircle(center: Offset(cx, cy), radius: r * 0.62),
+        -0.3, 0.6, true, paint);
     canvas.drawCircle(
-      Offset(cx, cy), r * 0.38, Paint()..color = Colors.white,
-    );
+        Offset(cx, cy), r * 0.38, Paint()..color = Colors.white);
   }
 
   @override

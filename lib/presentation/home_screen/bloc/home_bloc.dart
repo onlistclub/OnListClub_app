@@ -4,6 +4,7 @@ import '../../../core/app_export.dart';
 import '../../../core/models/locale_model.dart';
 import '../../../core/models/serata_model.dart';
 import '../../../core/services/club_service.dart';
+import '../../../core/services/location_service.dart';
 import '../../../core/utils/user_profile_manager.dart';
 
 part 'home_event.dart';
@@ -36,21 +37,28 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       // 1. Raggio utente
       final raggio = await UserProfileManager().getRaggioKm();
 
-      // 2. Posizione GPS (best-effort, non bloccante)
+      // 2. Posizione GPS — usa cache se recente (< 1h), altrimenti richiede GPS
       double? lat;
       double? lng;
       try {
-        final permission = await Geolocator.checkPermission();
-        if (permission == LocationPermission.whileInUse ||
-            permission == LocationPermission.always) {
-          final pos = await Geolocator.getCurrentPosition(
-            locationSettings: const LocationSettings(
-              accuracy: LocationAccuracy.low,
-              timeLimit: Duration(seconds: 5),
-            ),
-          );
-          lat = pos.latitude;
-          lng = pos.longitude;
+        final cached = await LocationService.getCachedGpsPosition();
+        if (cached != null) {
+          lat = cached.lat;
+          lng = cached.lng;
+        } else {
+          final permission = await Geolocator.checkPermission();
+          if (permission == LocationPermission.whileInUse ||
+              permission == LocationPermission.always) {
+            final pos = await Geolocator.getCurrentPosition(
+              locationSettings: const LocationSettings(
+                accuracy: LocationAccuracy.low,
+                timeLimit: Duration(seconds: 5),
+              ),
+            );
+            lat = pos.latitude;
+            lng = pos.longitude;
+            await LocationService.saveGpsPosition(lat, lng);
+          }
         }
       } catch (_) {}
 

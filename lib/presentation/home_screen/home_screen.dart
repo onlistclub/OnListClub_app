@@ -408,10 +408,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // ── Club address ───────────────────────────────────────────────────────────
 
   Widget _buildClubAddress(HomeState state) {
+    final locale = state.localeVicino;
+    final addressText = locale == null
+        ? ''
+        : [
+            if (locale.nomeCitta != null && locale.nomeCitta!.isNotEmpty)
+              locale.nomeCitta!,
+            if (locale.indirizzo != null && locale.indirizzo!.isNotEmpty)
+              locale.indirizzo!,
+          ].join(' - ');
     return Padding(
       padding: const EdgeInsets.fromLTRB(13, 10, 13, 0),
       child: Text(
-        state.localeVicino?.indirizzoCompleto ?? '',
+        addressText,
         style: GoogleFonts.inter(
           fontSize: 16,
           fontWeight: FontWeight.w400,
@@ -510,6 +519,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
         decoration: BoxDecoration(
           color: const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(10),
+          border: isToday
+              ? Border.all(
+                  color: const Color(0xFF0009FF).withValues(alpha: 0.5),
+                  width: 1,
+                )
+              : Border.all(
+                  color: const Color(0xFF2A2A2A),
+                  width: 0.5,
+                ),
         ),
         child: Row(
           children: [
@@ -555,7 +573,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         borderRadius: BorderRadius.circular(4),
                       ),
                       child: Text(
-                        isToday ? 'Questa sera' : _formatDate(serata.data),
+                        _formatDate(serata.data),
                         style: GoogleFonts.inter(
                           fontSize: 10,
                           fontWeight: FontWeight.w600,

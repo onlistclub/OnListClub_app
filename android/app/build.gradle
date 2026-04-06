@@ -3,14 +3,15 @@ plugins {
     id "com.android.application" // Solo l'ID
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
-    id "dev.flutter.flutter-gradle-plugin" 
-    // id 'com.android.library' // Non richiesto nel modulo 'app'
+    id "dev.flutter.flutter-gradle-plugin"
+    // Google Services — richiesto per Google Sign-In / Firebase
+    id "com.google.gms.google-services"
 }
 
 android {
-    namespace = "com.OnListClub.app"
+    namespace = "com.onlistforrocketprovasapplication.app"
     compileSdk = flutter.compileSdkVersion
-    ndkVersion = '26.1.10909125'
+    ndkVersion = '27.0.12077973'
 
     compileOptions {
         sourceCompatibility = JavaVersion.VERSION_1_8

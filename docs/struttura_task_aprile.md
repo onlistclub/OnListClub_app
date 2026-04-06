@@ -3,6 +3,19 @@
 
 ---
 
+## ⏸ DOPO MVP — Task Stripe (posticipate)
+
+> Queste task sono state spostate fuori dallo sprint corrente.
+> Da riprendere dopo il rilascio del primo MVP funzionante.
+
+| Task | Descrizione |
+|---|---|
+| Creare account Stripe | Verificare/creare account Stripe — raccogliere API keys; aggiungere come secret in Supabase Dashboard |
+| Edge function `create_payment_intent` | Scrivere `create_payment_intent(importo, tipo)` — crea PaymentIntent Stripe e ritorna `client_secret` |
+| Documentare endpoints pagamenti | Creare `docs/api_endpoints.md` con tutti gli endpoint/edge functions per biglietti e tavoli |
+
+---
+
 ## Legenda
 - **Dev A** — Flutter Frontend (UI, widget, design Figma)
 - **Dev B** — Flutter + BLoC + Integrazione Supabase/pagamenti
@@ -11,51 +24,6 @@
 ---
 
 ## FASE 1 — Fix Critici + Setup (1–10 aprile)
-
----
-
-### Mer 1 Aprile
-| | Task (~30 min) |
-|---|---|
-| **Dev A** | Leggere `home_screen.dart` e `home_bloc.dart` — identificare la causa della duplicazione "Questa sera" |
-| **Dev B** | Leggere `location_service.dart` — mappare l'intero flusso GPS e dove manca la cache |
-| **Dev C** | Creare tabella `biglietti` su Supabase: `id, evento_id, utente_id, quantita, stato, created_at` |
-
----
-
-### Gio 2 Aprile
-| | Task (~30 min) |
-|---|---|
-| **Dev A** | Fix duplicazione "Questa sera" in `home_screen.dart` — assicurarsi che il BLoC emetta lo stato una sola volta |
-| **Dev B** | Implementare cache posizione con `SharedPreferences` in `location_service.dart` — skip richiesta GPS se posizione < 1h fa |
-| **Dev C** | Creare tabella `prenotazioni_tavolo`: `id, club_id, utente_id, num_persone, orario, note, stato` |
-
----
-
-### Ven 3 Aprile
-| | Task (~30 min) |
-|---|---|
-| **Dev A** | Leggere `location_manual_screen.dart` e `nearby_clubs_screen.dart` — capire perché il raggio non è resettabile |
-| **Dev B** | Leggere `club_service.dart` — analizzare la query Supabase e capire perché non filtra per raggio reale |
-| **Dev C** | Creare tabella `pagamenti`: `id, tipo, riferimento_id, importo, stato, stripe_payment_id` — definire FK |
-
----
-
-### Sab 4 Aprile 🔵
-| | Task (~30 min) |
-|---|---|
-| **Dev A** 🔵 | Navigare tutta l'app su emulatore — annotare ogni bug visivo o crash su un documento/note |
-| **Dev B** 🔵 | Creare dati seed locali: utenti di test, club fittizi, eventi con date future nel DB di staging |
-| **Dev C** 🔵 | Creare dati seed Supabase: inserire manualmente 2–3 club con coordinate GPS reali e relativi eventi |
-
----
-
-### Dom 5 Aprile — *Pasqua* 🔵
-| | Task (~30 min) |
-|---|---|
-| **Dev A** 🔵 | Esplorare Figma — scorrere tutte le schermate non ancora toccate, capire il design system (colori, font, spaziature) |
-| **Dev B** 🔵 | Leggere documentazione Stripe Flutter SDK — capire come funziona il redirect Checkout e il ritorno in-app |
-| **Dev C** 🔵 | Leggere docs PostGIS su Supabase — capire come scrivere una query `nearby_clubs(lat, lng, raggio_km)` |
 
 ---
 
@@ -82,7 +50,7 @@
 |---|---|
 | **Dev A** | Confrontare Home Screen con Figma — annotare le 4–5 differenze visive prioritarie da correggere |
 | **Dev B** | Testare fix GPS su emulatore: verificare che non richieda permesso ad ogni avvio; testare fix raggio |
-| **Dev C** | Creare account Stripe (o verificare esistente) — raccogliere API keys; aggiungere come secret in Supabase Dashboard |
+| **Dev C** | ~~Creare account Stripe — raccogliere API keys~~ *(→ dopo MVP)* |
 
 ---
 
@@ -91,7 +59,7 @@
 |---|---|
 | **Dev A** | Allineare colori, font e spacing della Home Screen alle specifiche Figma (`theme_helper.dart`, `text_style_helper.dart`) |
 | **Dev B** | Configurare OAuth Google: aggiungere SHA-1 fingerprint, aggiornare `google-services.json`, abilitare provider in Supabase Auth |
-| **Dev C** | Scrivere edge function `create_payment_intent(importo, tipo)` — crea PaymentIntent Stripe e ritorna `client_secret` |
+| **Dev C** | ~~Scrivere edge function `create_payment_intent`~~ *(→ dopo MVP)* |
 
 ---
 
@@ -100,7 +68,7 @@
 |---|---|
 | **Dev A** | Allineare layout card evento nella Home Screen (immagine, titolo, orario, badge club) al design Figma |
 | **Dev B** | Testare OAuth Google su emulatore Android — flusso login → callback → sessione Supabase attiva |
-| **Dev C** | Documentare in `docs_utili/api_endpoints.md` tutti gli endpoint/edge functions necessari per biglietti e tavoli |
+| **Dev C** | ~~Documentare endpoints Stripe in `api_endpoints.md`~~ *(→ dopo MVP)* |
 
 ---
 

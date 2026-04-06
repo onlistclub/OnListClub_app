@@ -591,6 +591,44 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                                     ),
                                   ),
                                 ],
+                                // Chip reset raggio (visibile solo se ≠ default)
+                                if (raggio != 20) ...[
+                                  const SizedBox(width: 6),
+                                  GestureDetector(
+                                    onTap: () async {
+                                      await UserProfileManager().saveRaggioKm(20);
+                                      setState(() => _future = _load());
+                                    },
+                                    child: Container(
+                                      padding: const EdgeInsets.symmetric(
+                                          horizontal: 8, vertical: 5),
+                                      decoration: BoxDecoration(
+                                        color: const Color(0xFF2A1A1A),
+                                        borderRadius: BorderRadius.circular(20),
+                                        border: Border.all(
+                                          color: Colors.redAccent
+                                              .withValues(alpha: 0.5),
+                                          width: 1,
+                                        ),
+                                      ),
+                                      child: Row(
+                                        mainAxisSize: MainAxisSize.min,
+                                        children: [
+                                          const Icon(Icons.close,
+                                              size: 12,
+                                              color: Colors.redAccent),
+                                          const SizedBox(width: 4),
+                                          Text(
+                                            'raggio',
+                                            style: GoogleFonts.inter(
+                                                fontSize: 12,
+                                                color: Colors.redAccent),
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ),
+                                ],
                               ],
                             );
                           },

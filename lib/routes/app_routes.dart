@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../presentation/splash_screen/splash_screen.dart';
 import '../presentation/authentication_screen/authentication_screen.dart';
 import '../presentation/sign_up_screen/sign_up_screen.dart';
 import '../presentation/verification_screen/verification_screen.dart';
@@ -14,6 +15,7 @@ import '../presentation/event_detail_club_screen/event_detail_club_screen.dart';
 import '../presentation/nearby_clubs_screen/nearby_clubs_screen.dart';
 
 class AppRoutes {
+  static const String splashScreen             = '/splash_screen';
   static const String authenticationScreen     = '/authentication_screen';
   static const String signUpScreen             = '/sign_up_screen';
   static const String verificationScreen       = '/verification_screen';
@@ -38,9 +40,10 @@ class AppRoutes {
   /// Lista locali vicini all'utente filtrati per raggio.
   static const String nearbyClubsScreen        = '/nearby_clubs_screen';
 
-  static const String initialRoute = '/authentication_screen';
+  static const String initialRoute = splashScreen;
 
   static Map<String, WidgetBuilder> get routes => {
+        splashScreen:              SplashScreen.builder,
         authenticationScreen:      AuthenticationScreen.builder,
         signUpScreen:              SignUpScreen.builder,
         verificationScreen:        VerificationScreen.builder,

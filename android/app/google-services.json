@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "SOSTITUIRE_CON_PROJECT_NUMBER",
+    "project_id": "SOSTITUIRE_CON_PROJECT_ID",
+    "storage_bucket": "SOSTITUIRE_CON_PROJECT_ID.appspot.com"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:SOSTITUIRE_CON_PROJECT_NUMBER:android:SOSTITUIRE_CON_APP_HASH",
+        "android_client_info": {
+          "package_name": "com.onlistforrocketprovasapplication.app"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "SOSTITUIRE_CON_WEB_CLIENT_ID.apps.googleusercontent.com",
+          "client_type": 3
+        },
+        {
+          "client_id": "SOSTITUIRE_CON_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.onlistforrocketprovasapplication.app",
+            "certificate_hash": "SOSTITUIRE_CON_SHA1_DEBUG_FINGERPRINT"
+          }
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "SOSTITUIRE_CON_API_KEY"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "SOSTITUIRE_CON_WEB_CLIENT_ID.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

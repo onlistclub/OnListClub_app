@@ -1,16 +1,17 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import '../../core/app_export.dart';
 import '../../core/services/location_service.dart';
-import '../../widgets/custom_button.dart';
 import './bloc/verification_bloc.dart';
 
 class VerificationScreen extends StatelessWidget {
   const VerificationScreen({Key? key}) : super(key: key);
 
   static Widget builder(BuildContext context) {
-    // Arguments passed from SignUp
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    final registrationTime = args?['registrationTime'] as DateTime? ?? DateTime.now();
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final registrationTime =
+        args?['registrationTime'] as DateTime? ?? DateTime.now();
     final email = args?['email'] as String? ?? '';
     final password = args?['password'] as String? ?? '';
 
@@ -28,7 +29,7 @@ class VerificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Color(0xFF0000FF), // Bright Blue
+      backgroundColor: const Color(0xFF0000FF),
       body: BlocConsumer<verificationBloc, verificationState>(
         listener: (context, state) {
           if (state.isVerified) {
@@ -41,105 +42,116 @@ class VerificationScreen extends StatelessWidget {
             });
           }
           if (state.isExpired) {
-             NavigatorService.pushNamedAndRemoveUntil(AppRoutes.verificationFailureScreen);
+            NavigatorService.pushNamedAndRemoveUntil(
+                AppRoutes.verificationFailureScreen);
           }
-          if (state.errorMessage != null && state.errorMessage == "Verifica prima l'email") {
+          if (state.errorMessage != null &&
+              state.errorMessage == "Verifica prima l'email") {
             _showVerificationDialog(context);
           } else if (state.errorMessage != null) {
-             ScaffoldMessenger.of(context).showSnackBar(
+            ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.errorMessage!)),
             );
           }
-          
           if (state.emailResentMessage != null) {
-             ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.emailResentMessage!), backgroundColor: Colors.green),
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                  content: Text(state.emailResentMessage!),
+                  backgroundColor: Colors.green),
             );
           }
         },
         builder: (context, state) {
-          final hours = state.remainingTime.inHours;
-          final minutes = state.remainingTime.inMinutes.remainder(60);
-          final seconds = state.remainingTime.inSeconds.remainder(60);
-          final timerText = '${hours.toString().padLeft(2, '0')}:${minutes.toString().padLeft(2, '0')}:${seconds.toString().padLeft(2, '0')}';
-
-          return Container(
-            width: double.infinity,
-            padding: EdgeInsets.symmetric(horizontal: 24.h),
-            child: Column(
-              mainAxisAlignment: MainAxisAlignment.center,
-              children: [
-                Spacer(),
-                Text(
-                  "Grazie\nper esserti registrato!",
-                  style: TextStyleHelper.instance.headline32ExtraBoldSFCompact.copyWith(
-                    color: Colors.white,
-                    height: 1.2,
+          return SafeArea(
+            child: Padding(
+              padding: const EdgeInsets.symmetric(horizontal: 32),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  const Spacer(),
+                  // Titolo
+                  Text(
+                    'Grazie\nper esserti registrato!',
+                    style: GoogleFonts.inter(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w800,
+                      color: Colors.white,
+                      height: 1.2,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 24.h),
-                Text(
-                  "A BREVE TI ARRIVERÀ UN EMAIL DI CONFERMA",
-                  style: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(
-                    color: Colors.white,
-                    fontSize: 12.fSize,
+                  const SizedBox(height: 24),
+                  // Sottotitolo
+                  Text(
+                    'A BREVE TI ARRIVERÀ UN EMAIL DI CONFERMA',
+                    style: GoogleFonts.inter(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w600,
+                      color: Colors.white,
+                      letterSpacing: 0.5,
+                    ),
+                    textAlign: TextAlign.center,
                   ),
-                  textAlign: TextAlign.center,
-                ),
-                SizedBox(height: 16.h),
-                TextButton(
-                  onPressed: state.isLoading ? null : () {
-                    context.read<verificationBloc>().add(ResendEmailEvent());
-                  },
-                  child: Text(
-                    "Non hai ricevuto l'email? Clicca qui per rinviarla",
-                    style: TextStyle(
-                      color: Colors.white, 
-                      decoration: TextDecoration.underline,
-                      fontSize: 14.fSize,
+                  const SizedBox(height: 16),
+                  // Reinvia email
+                  TextButton(
+                    onPressed: state.isLoading
+                        ? null
+                        : () => context
+                            .read<verificationBloc>()
+                            .add(ResendEmailEvent()),
+                    child: Text(
+                      "Non hai ricevuto l'email? Clicca qui",
+                      style: GoogleFonts.inter(
+                        fontSize: 14,
+                        color: Colors.white,
+                        decoration: TextDecoration.underline,
+                        decorationColor: Colors.white,
+                      ),
                     ),
                   ),
-                ),
-                SizedBox(height: 24.h),
-                state.isLoading 
-                ? CircularProgressIndicator(color: Colors.white)
-                : CustomButton(
-                  text: 'Accedi',
-                  onPressed: () {
-                    context.read<verificationBloc>().add(CheckVerificationEvent());
-                  },
-                  backgroundColor: Colors.black,
-                  textColor: Colors.white,
-                  borderRadius: 30.h,
-                  padding: EdgeInsets.symmetric(
-                    horizontal: 30.h,
-                    vertical: 12.h,
+                  const SizedBox(height: 24),
+                  // Bottone Accedi
+                  state.isLoading
+                      ? const CircularProgressIndicator(color: Colors.white)
+                      : SizedBox(
+                          width: 160,
+                          height: 48,
+                          child: ElevatedButton(
+                            onPressed: () => context
+                                .read<verificationBloc>()
+                                .add(CheckVerificationEvent()),
+                            style: ElevatedButton.styleFrom(
+                              backgroundColor: Colors.black,
+                              foregroundColor: Colors.white,
+                              elevation: 0,
+                              shape: RoundedRectangleBorder(
+                                  borderRadius: BorderRadius.circular(30)),
+                            ),
+                            child: Text(
+                              'Accedi',
+                              style: GoogleFonts.inter(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                        ),
+                  const Spacer(),
+                  // Torna al login
+                  TextButton(
+                    onPressed: () => NavigatorService.pushNamedAndRemoveUntil(
+                        AppRoutes.authenticationScreen),
+                    child: Text(
+                      'Torna al login',
+                      style: GoogleFonts.inter(
+                          fontSize: 14, color: Colors.white70),
+                    ),
                   ),
-                  fontSize: 16.fSize,
-                  fontFamily: 'SF Compact',
-                  fontWeight: FontWeight.w800,
-                ),
-                SizedBox(height: 24.h),
-                Text(
-                  "Tempo rimanente per la verifica:\n$timerText",
-                  style: TextStyleHelper.instance.body14LightSFPro.copyWith(
-                    color: Colors.white70,
-                  ),
-                  textAlign: TextAlign.center,
-                ),
-                Spacer(),
-                TextButton(
-                  onPressed: () {
-                     NavigatorService.pushNamedAndRemoveUntil(AppRoutes.authenticationScreen);
-                  },
-                  child: Text(
-                    "Torna al login",
-                    style: TextStyle(color: Colors.white70, fontSize: 14.fSize),
-                  ),
-                ),
-                SizedBox(height: 20.h),
-              ],
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           );
         },
@@ -151,12 +163,13 @@ class VerificationScreen extends StatelessWidget {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text("Verifica Email"),
-        content: Text("Per favore, verifica la tua email cliccando sul link che ti abbiamo inviato prima di accedere."),
+        title: const Text('Verifica Email'),
+        content: const Text(
+            'Per favore, verifica la tua email cliccando sul link che ti abbiamo inviato prima di accedere.'),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: Text("OK"),
+            child: const Text('OK'),
           ),
         ],
       ),
