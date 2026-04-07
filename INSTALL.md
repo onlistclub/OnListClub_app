@@ -90,13 +90,46 @@ Installalo seguendo la procedura guidata. **Durante l'installazione**, assicurat
 
 Apri Android Studio, poi:
 1. Vai su *Settings → Languages & Frameworks → Android SDK*
-2. Nella scheda **SDK Platforms**, installa: **Android 14 (API 34)** o superiore
+2. Nella scheda **SDK Platforms**, installa: **Android 14 (API 34)** — deve essere spuntata anche la voce *Show Package Details* per verificare che il platform sia effettivamente scaricato
 3. Nella scheda **SDK Tools**, assicurati che siano spuntati:
-   - Android SDK Build-Tools
+   - Android SDK Build-Tools 34.0.0 (o superiore)
    - Android Emulator
    - Android SDK Platform-Tools
+   - NDK (Side by side) — versione **27.0.12077973**
 
 Clicca *Apply* per installare.
+
+> **Importante su Windows:** se il componente NDK viene scaricato in modo corrotto (errore `did not have a source.properties file`), eliminalo manualmente e riprova:
+> ```powershell
+> Remove-Item -Recurse -Force "C:\Users\<tuonome>\AppData\Local\Android\Sdk\ndk\27.0.12077973"
+> flutter run   # Gradle lo riscarica automaticamente
+> ```
+
+### Passo 2b — Aggiungi ADB al PATH (solo Windows)
+
+`adb` si trova in `platform-tools` ma non viene aggiunto automaticamente al PATH. Esegui in PowerShell:
+
+```powershell
+[Environment]::SetEnvironmentVariable("Path", $env:Path + ";C:\Users\<tuonome>\AppData\Local\Android\Sdk\platform-tools", "User")
+```
+
+Riavvia il terminale. Verifica con:
+```powershell
+adb version
+```
+
+### Passo 2c — Configura JAVA_HOME (solo Windows)
+
+Alcuni comandi (es. `sdkmanager`) richiedono `JAVA_HOME`. Android Studio include un JDK. Aggiungilo:
+
+```powershell
+[Environment]::SetEnvironmentVariable("JAVA_HOME", "C:\Program Files\Android\Android Studio\jbr", "User")
+```
+
+Per verificare dove si trova il Java usato da Flutter:
+```powershell
+flutter doctor -v | Select-String "Java"
+```
 
 ### Passo 3 — Accetta le licenze Android
 
@@ -297,6 +330,14 @@ flutter test test/core/utils/age_calculator_test.dart
 | `Supabase initialization failed` | Controlla che le credenziali in `env.json` siano corrette |
 | Build iOS fallisce con errore di firma | In Xcode, seleziona il tuo team in *Signing & Capabilities* |
 | `flutter pub get` fallisce | Controlla la connessione internet. Poi: `flutter clean && flutter pub get` |
+| `adb: comando non trovato` | Aggiungi `C:\Users\<tuonome>\AppData\Local\Android\Sdk\platform-tools` al PATH (vedi Passo 2b) |
+| `JAVA_HOME is not set` | Imposta JAVA_HOME a `C:\Program Files\Android\Android Studio\jbr` (vedi Passo 2c) |
+| `Failed to find Build Tools revision 34.0.0` | Installa Android SDK Platform 34 da Android Studio → SDK Manager → SDK Platforms |
+| `Failed to install platforms;android-34` | Stessa soluzione: installa **Android 14 (API 34)** da SDK Manager |
+| `Minimum supported Gradle version is 8.11.1` | In `android/gradle/wrapper/gradle-wrapper.properties` imposta `distributionUrl=https\://services.gradle.org/distributions/gradle-8.11.1-all.zip` |
+| `Dependency requires Android Gradle plugin 8.9.1 or higher` | In `android/settings.gradle` aggiorna entrambe le versioni AGP da `8.6.0` a `8.9.1` |
+| `NDK did not have a source.properties file` | L'NDK è corrotto. Elimina la cartella `ndk/27.0.12077973` dall'SDK e riesegui `flutter run` |
+| Build si blocca per OOM / `file di paging troppo piccolo` | PC con poca RAM. In `android/gradle.properties` riduci: `org.gradle.jvmargs=-Xmx1536m -XX:MaxMetaspaceSize=256m` e aggiungi `org.gradle.daemon=false` e `org.gradle.parallel=false` |
 
 ---
 

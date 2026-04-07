@@ -17,87 +17,77 @@
 ---
 
 ## Legenda
-- **Dev A** — Flutter Frontend (UI, widget, design Figma)
-- **Dev B** — Flutter + BLoC + Integrazione Supabase/pagamenti
-- **Dev C** — Backend (Supabase tables, edge functions, Stripe)
+- **Dev A** — Flutter Frontend (UI, widget, design, test mobile giornalieri)
+- **Dev B** — Flutter + BLoC + Integrazione Supabase/autenticazione
+- **Dev C** — Backend (Supabase tables, edge functions, chiavi/config)
 
 ---
 
-## FASE 1 — Fix Critici + Setup (1–10 aprile)
+## Note sui test mobile
+> A partire dall'8 aprile, Dev A esegue ogni giorno una sessione di test su dispositivo fisico per rilevare latenze e bug.
+> **Non correggere** transizioni animate o comportamenti di scroll — verranno affrontati in una fase separata post-MVP.
 
 ---
 
-### Lun 6 Aprile — *Pasquetta* 🔵
+## FASE 1 — Fix Critici + Setup + Google Auth (6–12 aprile)
+
+**Obiettivo entro domenica 12:** Google Auth funzionante ✅ · Chiavi e tabelle Supabase verificate ✅ · Peso app analizzato ✅
+
+---
+
+### Mer 8 Aprile 
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | Leggere `app_routes.dart` — verificare tutti i route definiti, annotare quelli mancanti o con navigazione errata |
-| **Dev B** 🔵 | Leggere docs Supabase Realtime — capire come funziona la subscription a una tabella per feature bottiglie |
-| **Dev C** 🔵 | Pianificare struttura delle edge functions necessarie per la Fase 2 (biglietti): input, output, casi di errore |
-
----
-
-### Mar 7 Aprile
-| | Task (~30 min) |
-|---|---|
-| **Dev A** | Aggiungere chip/pulsante "Rimuovi filtro raggio" in `nearby_clubs_screen.dart` che resetta al valore di default |
-| **Dev B** | Fix query in `club_service.dart`: implementare filtro distanza con formula haversine o chiamata RPC Supabase |
-| **Dev C** | Scrivere RLS policies per `biglietti` e `prenotazioni_tavolo` — solo il proprietario può leggere/modificare i propri record |
-
----
-
-### Mer 8 Aprile
-| | Task (~30 min) |
-|---|---|
-| **Dev A** | Confrontare Home Screen con Figma — annotare le 4–5 differenze visive prioritarie da correggere |
-| **Dev B** | Testare fix GPS su emulatore: verificare che non richieda permesso ad ogni avvio; testare fix raggio |
-| **Dev C** | ~~Creare account Stripe — raccogliere API keys~~ *(→ dopo MVP)* |
+| **Dev A** | Analizzare peso app — eseguire `flutter build apk --analyze-size`; documentare pacchetti/asset pesanti e proporre eventuali riduzioni |
+| **Dev B** | Verificare configurazione Google OAuth in Supabase Dashboard — Client ID, redirect URLs, SHA-1, stato provider attivo |
+| **Dev C** | Verificare chiavi Supabase nell'app (`SUPABASE_URL`, `ANON_KEY`) e struttura tabella `profiles` — annotare anomalie |
 
 ---
 
 ### Gio 9 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Allineare colori, font e spacing della Home Screen alle specifiche Figma (`theme_helper.dart`, `text_style_helper.dart`) |
-| **Dev B** | Configurare OAuth Google: aggiungere SHA-1 fingerprint, aggiornare `google-services.json`, abilitare provider in Supabase Auth |
-| **Dev C** | ~~Scrivere edge function `create_payment_intent`~~ *(→ dopo MVP)* |
+| **Dev A** | **Test mobile** — build debug su dispositivo fisico; testare Home, login, navigazione; annotare latenze e bug (escludere transizioni/scroll) |
+| **Dev B** | Configurare pacchetto `google_sign_in` in Flutter — aggiungere dipendenza, SHA-1 fingerprint, aggiornare `google-services.json` |
+| **Dev C** | Correggere problemi di chiavi/configurazione trovati l'8 apr; creare `docs/supabase_config.md` con stato aggiornato |
 
 ---
 
 ### Ven 10 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Allineare layout card evento nella Home Screen (immagine, titolo, orario, badge club) al design Figma |
-| **Dev B** | Testare OAuth Google su emulatore Android — flusso login → callback → sessione Supabase attiva |
-| **Dev C** | ~~Documentare endpoints Stripe in `api_endpoints.md`~~ *(→ dopo MVP)* |
-
----
-
-## FASE 2 — Feature Core: Acquisto Biglietti (11–17 aprile)
+| **Dev A** | **Test mobile** — flusso login completo (email + Google se disponibile); annotare latenze, crash e comportamenti anomali |
+| **Dev B** | Collegare Google Sign-In al provider Supabase Auth — implementare callback OAuth e gestione sessione nell'app |
+| **Dev C** | Audit tabelle principali (`clubs`, `events`, `profiles`) — verificare FK, indici e coerenza dati di test |
 
 ---
 
 ### Sab 11 Aprile 🔵
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | Testare su emulatore il fix "Questa sera" e il fix raggio — verificare che funzionino correttamente |
-| **Dev B** 🔵 | Code review dei fix di `location_service.dart` e `club_service.dart` scritti questa settimana |
-| **Dev C** 🔵 | Testare manualmente l'edge function `create_payment_intent` con Postman — verificare risposta Stripe |
+| **Dev A** 🔵 | **Test mobile** — focus latenze nelle schermate principali; applicare riduzioni peso app identificate l'8 apr |
+| **Dev B** 🔵 | Testare flusso completo Google Auth su emulatore Android — login → callback → sessione Supabase attiva → navigazione post-login |
+| **Dev C** 🔵 | Verificare integrità referenziale DB — FK corretti nelle tabelle `biglietti`, `prenotazioni_tavolo` |
 
 ---
 
 ### Dom 12 Aprile 🔵
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | Abbozzare su carta/Figma il layout di `ticket_purchase_screen.dart` e `ticket_confirmation_screen.dart` |
-| **Dev B** 🔵 | Studiare il pattern BLoC usato nel progetto (es. `club_detail_bloc.dart`) per coerenza nella scrittura del nuovo `ticket_bloc` |
-| **Dev C** 🔵 | Verificare integrità referenziale del DB — controllare che tutti gli FK siano corretti nelle nuove tabelle |
+| **Dev A** 🔵 | Preparare "Design Gap Document" — lista schermate che si discostano dal design attuale, pronto per quando arriva il design di Mark |
+| **Dev B** 🔵 | Testare Google Auth su dispositivo Android fisico — risolvere problemi SHA-1 o deeplink; documentare come ✅ completato o lista pendenze |
+| **Dev C** 🔵 | Studiare pattern BLoC usato nel progetto (`club_detail_bloc.dart`) per coerenza nella scrittura del `ticket_bloc` |
+
+---
+
+## FASE 2 — Feature Core: Acquisto Biglietti (13–19 aprile)
 
 ---
 
 ### Lun 13 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Creare `ticket_purchase_screen.dart` con scaffold: AppBar, layout base, placeholder per widget quantità e riepilogo |
+| **Dev A** | **Test mobile** — verificare fix della settimana precedente su dispositivo; annotare regressioni |
 | **Dev B** | Creare `ticket_event.dart` e `ticket_state.dart` — stati: `Initial, Loading, Loaded, Purchasing, Success, Error` |
 | **Dev C** | Edge function `check_ticket_availability(evento_id)` — ritorna posti disponibili e prezzo; testare su Dashboard |
 
@@ -106,7 +96,7 @@
 ### Mar 14 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Aggiungere widget selezione quantità biglietti (+/−) con limite max; mostrare prezzo unitario e totale dinamico |
+| **Dev A** | Creare `ticket_purchase_screen.dart` con scaffold: AppBar, layout base, placeholder widget quantità e riepilogo |
 | **Dev B** | Creare `ticket_bloc.dart` — evento `LoadTicketInfo`: chiama RPC `check_ticket_availability`, emette stato `Loaded` |
 | **Dev C** | Edge function `create_ticket_order(evento_id, quantita, utente_id)` — inserisce ordine atomicamente, scala disponibilità |
 
@@ -115,65 +105,69 @@
 ### Mer 15 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Aggiungere sezione riepilogo ordine in `ticket_purchase_screen.dart`: n° biglietti × prezzo, totale, pulsante "Procedi al pagamento" |
-| **Dev B** | Aggiungere evento `PurchaseTicket` nel BLoC — chiama `create_ticket_order` poi `create_payment_intent`; emette stati appropriati |
-| **Dev C** | Configurare webhook Stripe: `payment_intent.succeeded` → aggiorna campo `stato` in `biglietti` a `confermato` |
+| **Dev A** | Aggiungere widget selezione quantità biglietti (+/−) con limite max; mostrare prezzo unitario e totale dinamico |
+| **Dev B** | Aggiungere evento `PurchaseTicket` nel BLoC — chiama `create_ticket_order`; emette stati appropriati |
+| **Dev C** | Verificare edge function `create_ticket_order` — test concorrenza, availability scale, edge cases |
 
 ---
 
 ### Gio 16 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Creare `ticket_confirmation_screen.dart`: riepilogo ordine, placeholder QR code generato da ID ordine, pulsante "Torna alla home" |
-| **Dev B** | Integrare redirect Stripe Checkout: aprire URL pagamento con `url_launcher`, gestire ritorno nell'app e aggiornamento stato BLoC |
-| **Dev C** | Test end-to-end flusso biglietti: acquisto → pagamento Stripe test → webhook → stato `confermato` in DB |
+| **Dev A** | **Test mobile** — testare schermate biglietti su dispositivo fisico; annotare latenze e layout problems |
+| **Dev B** | Aggiungere sezione riepilogo ordine in `ticket_purchase_screen.dart` e pulsante "Conferma acquisto" |
+| **Dev C** | Test end-to-end flusso biglietti — acquisto → DB aggiornato → stato `confermato` |
 
 ---
 
 ### Ven 17 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | In `event_detail_club_screen.dart`: collegare pulsante "Acquista biglietto" → navigazione a `ticket_purchase_screen.dart` passando `evento_id` |
+| **Dev A** | Creare `ticket_confirmation_screen.dart`: riepilogo ordine, placeholder QR da ID ordine, pulsante "Torna alla home"; collegare pulsante in `event_detail_club_screen.dart` |
 | **Dev B** | Test flusso completo acquisto biglietto su emulatore — loading state, errori, success; fix bug BLoC se presenti |
-| **Dev C** | Fix bug emersi dai test del flusso biglietti; verificare RLS policies funzionino in tutti i casi |
+| **Dev C** | Fix bug emersi dai test flusso biglietti; verificare RLS policies in tutti i casi |
 
 ---
 
 ### Sab 18 Aprile 🔵
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | Test end-to-end flusso biglietti su emulatore — simulare disponibilità esaurita, errore pagamento, acquisto riuscito |
-| **Dev B** 🔵 | Preparare dispositivo Android reale per i test della settimana prossima (abilitare developer mode, trust su ADB) |
-| **Dev C** 🔵 | Controllare log Supabase e log Stripe — verificare che webhook funzioni e non ci siano errori silenziosi |
+| **Dev A** 🔵 | **Test mobile** — test flusso completo biglietti su dispositivo fisico; annotare latenze e bug (no transizioni) |
+| **Dev B** 🔵 | Code review `ticket_bloc.dart` — verificare stati, transizioni e gestione errori |
+| **Dev C** 🔵 | Controllare log Supabase — verificare che le edge functions non abbiano errori silenziosi |
 
 ---
 
 ### Dom 19 Aprile 🔵
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | Abbozzare layout `booking_screen.dart` confrontandolo con Figma — annotare componenti da costruire |
-| **Dev B** 🔵 | Leggere docs Stripe per gestione caparra/deposito in prenotazioni tavolo |
-| **Dev C** 🔵 | Scrivere query PostGIS di test nell'SQL editor di Supabase per `nearby_clubs(lat, lng, raggio_km)` |
+| **Dev A** 🔵 | Abbozzare layout `booking_screen.dart` — annotare componenti da costruire per prenotazione tavolo |
+| **Dev B** 🔵 | Preparare dispositivo Android reale per i test della settimana prossima (abilitare developer mode, trust su ADB) |
+| **Dev C** 🔵 | Scrivere query PostGIS di test nell'SQL Editor per `nearby_clubs(lat, lng, raggio_km)` |
 
 ---
 
-## FASE 3 — Feature Core: Tavoli + Inizio Secondarie (20–26 aprile)
+## FASE 3 — Feature Core: Tavoli + Design Mark (20–26 aprile)
+
+---
+
+> ⚠️ **Design di Mark**: quando arriva, Dev A interrompe la task del giorno e dedica la sessione ad applicare le correzioni prioritarie. Usare il "Design Gap Document" (preparato il 12 apr) come guida.
 
 ---
 
 ### Lun 20 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Rifare scaffold `booking_screen.dart` dal design Figma: layout base, AppBar, sezioni "Dettagli tavolo" e "Riepilogo" |
+| **Dev A** | Rifare scaffold `booking_screen.dart` (da design attuale o da Mark se già ricevuto): layout base, AppBar, sezioni "Dettagli tavolo" e "Riepilogo" |
 | **Dev B** | Creare `booking_event.dart` e `booking_state.dart` — stati: `Initial, Loading, AvailabilityLoaded, Confirming, Success, Error` |
-| **Dev C** | Edge function `check_table_availability(club_id, data, orario)` — verifica capienza residua per la fascia oraria richiesta |
+| **Dev C** | Edge function `check_table_availability(club_id, data, orario)` — verifica capienza residua per la fascia oraria |
 
 ---
 
 ### Mar 21 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Aggiungere in `booking_screen.dart`: widget selezione numero persone (slider o +/−) con min 1 e max capienza |
+| **Dev A** | **Test mobile** — testare schermate tavoli su dispositivo; annotare latenze e problemi UI (aggiornare Design Gap Document) |
 | **Dev B** | Creare `booking_bloc.dart` — evento `CheckAvailability`: chiama RPC, emette `AvailabilityLoaded` con orari disponibili |
 | **Dev C** | Edge function `create_table_booking(club_id, utente_id, num_persone, orario, note)` — crea prenotazione gestendo capienza massima |
 
@@ -182,17 +176,17 @@
 ### Mer 22 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Aggiungere in `booking_screen.dart`: chip orari disponibili + campo testo note speciali |
-| **Dev B** | Aggiungere evento `ConfirmBooking` nel BLoC — chiama `create_table_booking`, integra pagamento caparra con Stripe |
-| **Dev C** | Edge function `cancel_booking(prenotazione_id)` con calcolo trattenuta progressiva: < 24h = 20%, < 6h = 50%, < 1h = 100% |
+| **Dev A** | Aggiungere in `booking_screen.dart`: widget selezione persone (+/−), chip orari disponibili, campo note speciali |
+| **Dev B** | Aggiungere evento `ConfirmBooking` nel BLoC — chiama `create_table_booking`; gestire Success/Error state |
+| **Dev C** | Edge function `cancel_booking(prenotazione_id)` con calcolo trattenuta: < 24h = 20%, < 6h = 50%, < 1h = 100% |
 
 ---
 
 ### Gio 23 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Creare `booking_confirmation_screen.dart` con riepilogo prenotazione; aggiungere badge/pulsante "Salta la coda" in `event_detail_club_screen.dart` |
-| **Dev B** | **Testare acquisto biglietti su dispositivo Android fisico** — verificare GPS reale, pagamento, QR confirmation |
+| **Dev A** | Creare `booking_confirmation_screen.dart` con riepilogo prenotazione; aggiungere badge/pulsante "Salta la coda" |
+| **Dev B** | **Test biglietti su dispositivo Android fisico** — GPS reale, acquisto, QR confirmation |
 | **Dev C** | Creare tabella `coda`: `id, evento_id, utente_id, posizione, stato`; scrivere RPC `skip_queue(utente_id, evento_id)` |
 
 ---
@@ -200,8 +194,8 @@
 ### Ven 24 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Allineare `club_detail_screen.dart` al design Figma: header immagine, info club, lista eventi |
-| **Dev B** | Implementare logica "Salta la coda" nel BLoC: chiamata RPC `skip_queue` + feedback UI (snackbar di conferma) |
+| **Dev A** | **Test mobile** — test flusso tavoli completo su dispositivo fisico; annotare bug e latenze |
+| **Dev B** | Implementare logica "Salta la coda" nel BLoC: chiamata RPC `skip_queue` + snackbar di conferma |
 | **Dev C** | Creare tabella `ordini_bottiglie`: `id, prenotazione_id, bottiglia_id, quantita, stato`; definire relazioni |
 
 ---
@@ -209,18 +203,18 @@
 ### Sab 25 Aprile — *Festa della Liberazione* 🔵
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | Test flusso prenotazione tavolo su emulatore — simulare orario non disponibile, conferma, annullamento |
-| **Dev B** 🔵 | Code review di `booking_bloc.dart` — verificare che tutti gli stati e le transizioni siano corretti |
-| **Dev C** 🔵 | Ottimizzare indici DB su colonne frequentemente interrogate: `evento_id`, `utente_id`, `club_id`, `stato` |
+| **Dev A** 🔵 | Applicare correzioni design di Mark (se ricevuto) — allineare schermate prioritarie; aggiornare Design Gap Document |
+| **Dev B** 🔵 | Code review `booking_bloc.dart` — verificare stati, transizioni e gestione errori |
+| **Dev C** 🔵 | Ottimizzare indici DB su colonne frequenti: `evento_id`, `utente_id`, `club_id`, `stato` |
 
 ---
 
 ### Dom 26 Aprile 🔵
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | Rivedere `event_detail_club_screen.dart` — annotare miglioramenti UI per la settimana finale |
+| **Dev A** 🔵 | **Test mobile** — test flusso completo; verificare fix applicati; aggiornare lista bug residui |
 | **Dev B** 🔵 | Preparare checklist test iOS: schermate da testare, flussi da verificare, casi limite |
-| **Dev C** 🔵 | Scrivere struttura catalologo bottiglie su Supabase: tabella `bottiglie` con `id, nome, prezzo, club_id` |
+| **Dev C** 🔵 | Scrivere struttura catalogo bottiglie su Supabase: tabella `bottiglie` con `id, nome, prezzo, club_id` |
 
 ---
 
@@ -231,18 +225,18 @@
 ### Lun 27 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Allineare `event_detail_club_screen.dart` al Figma; creare bottom sheet/modale per visualizzare e aggiungere ordine bottiglie |
-| **Dev B** | Integrare Supabase Realtime nel BLoC: subscription a `ordini_bottiglie` per aggiornamenti live dell'ordine durante la serata |
-| **Dev C** | Edge function `splitpay_request(prenotazione_id, amici[])` — divide il totale, genera un link di pagamento Stripe per ciascun amico |
+| **Dev A** | Applicare correzioni design Mark (se non ancora completato) — allineare `club_detail_screen.dart` e Home Screen; creare modale per ordine bottiglie |
+| **Dev B** | Integrare Supabase Realtime nel BLoC: subscription a `ordini_bottiglie` per aggiornamenti live ordine |
+| **Dev C** | Edge function `splitpay_request(prenotazione_id, amici[])` — divide il totale, genera link pagamento per ciascun amico |
 
 ---
 
 ### Mar 28 Aprile
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | UI splitpay in `booking_confirmation_screen.dart`: sezione "Dividi spesa", inserimento amici (nome/telefono), pulsante "Invia richiesta" |
-| **Dev B** | Integrare BLoC splitpay: evento `RequestSplitPay` → chiama edge function → mostra stato pagamento per ciascun amico |
-| **Dev C** | Implementare RPC PostGIS `nearby_clubs(lat, lng, raggio_km)` in Supabase — sostituire l'attuale query in `club_service.dart` |
+| **Dev A** | **Test mobile** — test flusso completo app post-design; annotare bug residui e latenze; aggiornare lista finale |
+| **Dev B** | Integrare BLoC splitpay: evento `RequestSplitPay` → chiama edge function → mostra stato pagamento amici |
+| **Dev C** | Implementare RPC PostGIS `nearby_clubs(lat, lng, raggio_km)` in Supabase — sostituire query in `club_service.dart` |
 
 ---
 
@@ -250,17 +244,17 @@
 | | Task (~30 min) |
 |---|---|
 | **Dev A** | UI cancellazione tavolo: pulsante "Cancella prenotazione" con modale che mostra trattenuta calcolata in tempo reale |
-| **Dev B** | **Test iOS su dispositivo reale** (richiede Mac + Xcode) — testare GPS, login, biglietti, tavoli |
-| **Dev C** | Audit sicurezza: revisione RLS policies su tutte le tabelle; aggiungere validazione input nelle edge functions (importi > 0, campi obbligatori) |
+| **Dev B** | **Test iOS su dispositivo reale** (richiede Mac + Xcode) — GPS, login Google, biglietti, tavoli |
+| **Dev C** | Audit sicurezza: revisione RLS su tutte le tabelle; validazione input nelle edge functions (importi > 0, campi obbligatori) |
 
 ---
 
 ### Gio 30 Aprile — **MVP DAY** ✅
 | | Task (~30 min) |
 |---|---|
-| **Dev A** | Revisione UX generale: loading state su tutti i pulsanti principali, empty state su liste vuote, transizioni tra schermate |
+| **Dev A** | **Test mobile finale** — loading state su tutti i pulsanti principali, empty state su liste vuote; lista bug residui per post-MVP |
 | **Dev B** | Fix bug finali emersi dai test iOS/Android; verificare che tutti i flussi core funzionino end-to-end |
-| **Dev C** | Preparare environment staging finale; aggiornare `docs_utili/api_endpoints.md` con stato finale di tutti gli endpoint |
+| **Dev C** | Preparare environment staging finale; aggiornare `docs/supabase_config.md` e `docs_utili/api_endpoints.md` |
 
 ---
 
@@ -268,11 +262,11 @@
 
 | Data | Obiettivo |
 |---|---|
-| **Ven 3 apr** | Bug GPS + raggio identificati; tabelle DB create su Supabase |
-| **Ven 10 apr** | Fix visivi Home, OAuth Google attivo, infra Stripe operativa |
-| **Ven 17 apr** | Acquisto biglietti end-to-end funzionante |
+| **Dom 12 apr** | Google Auth ✅ · Chiavi e tabelle Supabase verificate ✅ · Peso app analizzato ✅ |
+| **Ven 17 apr** | Acquisto biglietti end-to-end funzionante (senza Stripe) |
 | **Gio 23 apr** | Test biglietti su dispositivo Android reale ✅ |
 | **Ven 24 apr** | Acquisto tavoli + salta coda funzionanti |
+| **~Sab 25 apr** | Design di Mark applicato (appena ricevuto) |
 | **Gio 30 apr** | MVP completo — tutti i flussi core testati su iOS e Android ✅ |
 
 ---
@@ -280,5 +274,8 @@
 ## Note operative
 - 🔵 I giorni con task opzionali (weekend/festività) possono essere saltati senza impatto sul piano.
 - Se una task richiede più di 30 min, si spezza nel giorno successivo senza spostare le altre.
-- **OAuth Apple** richiede Mac + Xcode: organizzare l'accesso entro il 28 aprile.
+- **Test mobile giornalieri**: ignorare volontariamente transizioni animate e comportamenti di scroll — verranno corretti in una fase separata post-MVP.
+- **Design di Mark**: quando arriva, Dev A interrompe la task del giorno e applica le correzioni. Usare il "Design Gap Document" (preparato il 12 apr) come guida.
+- **OAuth Apple** richiede Mac + Xcode: organizzare accesso entro il 28 aprile.
 - **Test iOS fisico** (29 apr, Dev B): richiede Apple Developer Account attivo.
+- **Stripe** è posticipato a dopo MVP — non blocca il completamento del piano.
