@@ -1,6 +1,6 @@
 {
   "project_info": {
-    "project_number": "SOSTITUIRE_CON_PROJECT_NUMBER",
+    "project_number": "73394688512",
     "project_id": "SOSTITUIRE_CON_PROJECT_ID",
     "storage_bucket": "SOSTITUIRE_CON_PROJECT_ID.appspot.com"
   },
@@ -9,20 +9,20 @@
       "client_info": {
         "mobilesdk_app_id": "1:SOSTITUIRE_CON_PROJECT_NUMBER:android:SOSTITUIRE_CON_APP_HASH",
         "android_client_info": {
-          "package_name": "com.onlistforrocketprovasapplication.app"
+          "package_name": "com.onlistclub.app"
         }
       },
       "oauth_client": [
         {
-          "client_id": "SOSTITUIRE_CON_WEB_CLIENT_ID.apps.googleusercontent.com",
+          "client_id": "73394688512-3hpr0tasf7blofmtg1dtcn5dto2rtpl1.apps.googleusercontent.com",
           "client_type": 3
         },
         {
-          "client_id": "SOSTITUIRE_CON_ANDROID_CLIENT_ID.apps.googleusercontent.com",
+          "client_id": "73394688512-526enhn5g314acnjc5f09vqb5mtu2n5n.apps.googleusercontent.com",
           "client_type": 1,
           "android_info": {
-            "package_name": "com.onlistforrocketprovasapplication.app",
-            "certificate_hash": "SOSTITUIRE_CON_SHA1_DEBUG_FINGERPRINT"
+            "package_name": "com.onlistclub.app",
+            "certificate_hash": "72:A5:3C:00:38:8F:A3:78:00:ED:89:A4:79:6F:10:FD:18:0D:A5:D8"
           }
         }
       ],
@@ -35,7 +35,7 @@
         "appinvite_service": {
           "other_platform_oauth_client": [
             {
-              "client_id": "SOSTITUIRE_CON_WEB_CLIENT_ID.apps.googleusercontent.com",
+              "client_id": "73394688512-3hpr0tasf7blofmtg1dtcn5dto2rtpl1.apps.googleusercontent.com",
               "client_type": 3
             }
           ]

@@ -8,6 +8,7 @@ import '../models/authentication_model.dart';
 import '../../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/utils/user_profile_manager.dart';
+import '../../../../main.dart' show googleWebClientId;
 
 part 'authentication_event.dart';
 part 'authentication_state.dart';
@@ -43,10 +44,15 @@ class AuthenticationBloc
       emit(state.copyWith(isLoading: false, errorMessage: 'Login fallito'));
       return;
     }
-    final profileExists = await UserProfileManager().isProfileComplete();
-    if (profileExists) {
+
+    // NON chiamiamo ensureProfileExists() qui: nel flusso OAuth la riga in
+    // public.utenti viene creata solo DOPO che l'utente completa il form.
+    final profileComplete = await UserProfileManager().isProfileComplete();
+    if (profileComplete) {
+      // Profilo già completo: accedi direttamente
       emit(state.copyWith(isLoading: false, isLoginSuccess: true));
     } else {
+      // Prima volta con OAuth (o profilo incompleto): pre-compila nome/cognome/email
       final metadata = user.userMetadata ?? {};
       final fullName = metadata['full_name'] as String? ?? metadata['name'] as String?;
       String? nome;
@@ -63,6 +69,7 @@ class AuthenticationBloc
         needsProfileCompletion: true,
         oauthNome: nome,
         oauthCognome: cognome,
+        oauthEmail: user.email,
       ));
     }
   }
@@ -160,15 +167,25 @@ class AuthenticationBloc
   ) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
     try {
-      final googleUser = await GoogleSignIn().signIn();
+      // serverClientId è il Web Client ID di Google Cloud Console (type 3).
+      // È obbligatorio affinché Supabase possa verificare l'idToken ricevuto.
+      // Configurare GOOGLE_WEB_CLIENT_ID in env.json seguendo docs/oauth_google_setup.md.
+      final googleSignIn = GoogleSignIn(
+        serverClientId: googleWebClientId,
+      );
+      final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
+        // L'utente ha annullato il popup di selezione account
         emit(state.copyWith(isLoading: false));
         return;
       }
       final auth = await googleUser.authentication;
       final idToken = auth.idToken;
       if (idToken == null) {
-        emit(state.copyWith(isLoading: false, errorMessage: 'Google login fallito'));
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: 'Google login fallito: idToken assente. Verificare Web Client ID in env.json.',
+        ));
         return;
       }
       await Supabase.instance.client.auth.signInWithIdToken(

@@ -9,9 +9,14 @@ abstract class CompleteProfileEvent extends Equatable {
 class CompleteProfileInitialEvent extends CompleteProfileEvent {
   final String? prefillNome;
   final String? prefillCognome;
-  const CompleteProfileInitialEvent({this.prefillNome, this.prefillCognome});
+  final String? prefillEmail;
+  const CompleteProfileInitialEvent({
+    this.prefillNome,
+    this.prefillCognome,
+    this.prefillEmail,
+  });
   @override
-  List<Object?> get props => [prefillNome, prefillCognome];
+  List<Object?> get props => [prefillNome, prefillCognome, prefillEmail];
 }
 
 class CompleteProfileFirstNameChangedEvent extends CompleteProfileEvent {

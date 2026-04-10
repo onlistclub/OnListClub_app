@@ -1,0 +1,4502 @@
+[
+    {
+        "routine_name": "_postgis_deprecate",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_postgis_index_extent",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_postgis_join_selectivity",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_postgis_pgsql_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_postgis_scripts_pgsql_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_postgis_selectivity",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_postgis_stats",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_3ddfullywithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_3ddwithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_3dintersects",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_asgml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_asx3d",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_bestsrid",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_bestsrid",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_contains",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_containsproperly",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_coveredby",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_coveredby",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_covers",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_covers",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_crosses",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_dfullywithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_distancetree",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_distancetree",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_distanceuncached",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_distanceuncached",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_distanceuncached",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_dwithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_dwithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_dwithinuncached",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_dwithinuncached",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_equals",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_expand",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_geomfromgml",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_intersects",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_linecrossingdirection",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_longestline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_maxdistance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_orderingequals",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_overlaps",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_pointoutside",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_sortablehash",
+        "routine_type": "FUNCTION",
+        "return_type": "bigint",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_touches",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_voronoi",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "_st_within",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "addauth",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "addgeometrycolumn",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "addgeometrycolumn",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "addgeometrycolumn",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box",
+        "routine_type": "FUNCTION",
+        "return_type": "box",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box",
+        "routine_type": "FUNCTION",
+        "return_type": "box",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box2d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box2d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box2d_in",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box2d_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box2df_in",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box2df_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box3d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box3d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box3d_in",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box3d_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "box3dtobox",
+        "routine_type": "FUNCTION",
+        "return_type": "box",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "bytea",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "bytea",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "checkauth",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "checkauth",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "checkauthtrigger",
+        "routine_type": "FUNCTION",
+        "return_type": "trigger",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "contains_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "contains_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "contains_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "disablelongtransactions",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "dropgeometrycolumn",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "dropgeometrycolumn",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "dropgeometrycolumn",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "dropgeometrytable",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "dropgeometrytable",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "dropgeometrytable",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "enablelongtransactions",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "equals",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "find_srid",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geog_brin_inclusion_add_value",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_analyze",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_cmp",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_distance_knn",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_eq",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_ge",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gist_compress",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gist_consistent",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gist_decompress",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gist_distance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gist_penalty",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gist_picksplit",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gist_same",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gist_union",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_gt",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_in",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_le",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_lt",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_overlaps",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_recv",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_send",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_spgist_choose_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_spgist_compress_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_spgist_config_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_spgist_inner_consistent_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_spgist_leaf_consistent_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_spgist_picksplit_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_typmod_in",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geography_typmod_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geom2d_brin_inclusion_add_value",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geom3d_brin_inclusion_add_value",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geom4d_brin_inclusion_add_value",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_above",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_analyze",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_below",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_cmp",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_contained_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_contains",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_contains_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_contains_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_distance_box",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_distance_centroid",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_distance_centroid_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_distance_cpa",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_eq",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_ge",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_compress_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_compress_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_consistent_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_consistent_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_decompress_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_decompress_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_distance_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_distance_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_penalty_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_penalty_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_picksplit_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_picksplit_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_same_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_same_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_sortsupport_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_union_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gist_union_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_gt",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_hash",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_in",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_le",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_left",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_lt",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_overabove",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_overbelow",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_overlaps",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_overlaps_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_overlaps_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_overleft",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_overright",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_recv",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_right",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_same",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_same_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_same_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_send",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_sortsupport",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_choose_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_choose_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_choose_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_compress_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_compress_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_compress_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_config_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_config_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_config_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_inner_consistent_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_inner_consistent_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_inner_consistent_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_leaf_consistent_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_leaf_consistent_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_leaf_consistent_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_picksplit_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_picksplit_3d",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_spgist_picksplit_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_typmod_in",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_typmod_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_within",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometry_within_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometrytype",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geometrytype",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geomfromewkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "geomfromewkt",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "get_gestore_by_codice",
+        "routine_type": "FUNCTION",
+        "return_type": "record",
+        "routine_definition": "\r\nbegin\r\n  return query\r\n    select g.email, c.nome\r\n    from public.gestori g\r\n    join public.clubs c on c.id = g.club_id\r\n    where g.codice = p_codice\r\n      and g.attivo = true\r\n    limit 1;\r\nend;\r\n"
+    },
+    {
+        "routine_name": "get_proj4_from_srid",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "gettransactionid",
+        "routine_type": "FUNCTION",
+        "return_type": "xid",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "gidx_in",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "gidx_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "gserialized_gist_joinsel_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "gserialized_gist_joinsel_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "gserialized_gist_sel_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "gserialized_gist_sel_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "handle_new_user",
+        "routine_type": "FUNCTION",
+        "return_type": "trigger",
+        "routine_definition": "\r\nbegin\r\n  insert into public.users (id, email)\r\n  values (new.id, new.email);\r\n  return new;\r\nend; "
+    },
+    {
+        "routine_name": "is_contained_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "is_contained_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "is_contained_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "json",
+        "routine_type": "FUNCTION",
+        "return_type": "json",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "jsonb",
+        "routine_type": "FUNCTION",
+        "return_type": "jsonb",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "lockrow",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "lockrow",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "lockrow",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "lockrow",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "longtransactionsenabled",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "my_club_id",
+        "routine_type": "FUNCTION",
+        "return_type": "uuid",
+        "routine_definition": "\r\n  select club_id from public.gestori\r\n  where user_id = auth.uid() and attivo = true\r\n  limit 1;\r\n"
+    },
+    {
+        "routine_name": "nearby_clubs",
+        "routine_type": "FUNCTION",
+        "return_type": "record",
+        "routine_definition": "\r\n  SELECT\r\n    l.id,\r\n    l.nome,\r\n    l.indirizzo,\r\n    l.citta,\r\n    l.id_citta,\r\n    l.logo_url,\r\n    l.foto_url,\r\n    l.famosita,\r\n    l.generi_musicali,\r\n    l.prezzo_indicativo,\r\n    l.descrizione,\r\n    l.link_tripadvisor,\r\n    -- Coordinate effettive usate per il calcolo:\r\n    -- usa lat/lng del locale se presenti, altrimenti quelle della città (JOIN)\r\n    COALESCE(l.lat, c.lat)          AS lat,\r\n    COALESCE(l.lng, c.lng)          AS lng,\r\n    -- Distanza in km con Haversine (ST_Distance su geography restituisce metri)\r\n    ROUND(\r\n      ST_Distance(\r\n        ST_MakePoint(COALESCE(l.lng, c.lng), COALESCE(l.lat, c.lat))::geography,\r\n        ST_MakePoint(user_lng, user_lat)::geography\r\n      )::numeric / 1000,\r\n      2\r\n    )::FLOAT                        AS distanza_km\r\n  FROM locali l\r\n  LEFT JOIN citta c ON c.id_citta = l.id_citta\r\n  WHERE\r\n    -- Filtra solo locali con coordinate (proprie o della città)\r\n    COALESCE(l.lat, c.lat) IS NOT NULL\r\n    AND COALESCE(l.lng, c.lng) IS NOT NULL\r\n    -- Filtro raggio con ST_DWithin (usa indice spaziale, molto performante)\r\n    AND ST_DWithin(\r\n      ST_MakePoint(COALESCE(l.lng, c.lng), COALESCE(l.lat, c.lat))::geography,\r\n      ST_MakePoint(user_lng, user_lat)::geography,\r\n      raggio_km * 1000  -- ST_DWithin usa metri\r\n    )\r\n  ORDER BY distanza_km ASC;\r\n"
+    },
+    {
+        "routine_name": "overlaps_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "overlaps_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "overlaps_2d",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "overlaps_geog",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "overlaps_geog",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "overlaps_geog",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "overlaps_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "overlaps_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "overlaps_nd",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "path",
+        "routine_type": "FUNCTION",
+        "return_type": "path",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asflatgeobuf_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asflatgeobuf_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asflatgeobuf_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asflatgeobuf_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asgeobuf_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asgeobuf_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asgeobuf_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_combinefn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_deserialfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_serialfn",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_asmvt_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_accum_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_accum_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_accum_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_clusterintersecting_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "ARRAY",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_clusterwithin_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "ARRAY",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_collect_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_makeline_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_polygonize_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_union_parallel_combinefn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_union_parallel_deserialfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_union_parallel_finalfn",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_union_parallel_serialfn",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_union_parallel_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "pgis_geometry_union_parallel_transfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "point",
+        "routine_type": "FUNCTION",
+        "return_type": "point",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "polygon",
+        "routine_type": "FUNCTION",
+        "return_type": "polygon",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "populate_geometry_columns",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "populate_geometry_columns",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_addbbox",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_cache_bbox",
+        "routine_type": "FUNCTION",
+        "return_type": "trigger",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_constraint_dims",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_constraint_srid",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_constraint_type",
+        "routine_type": "FUNCTION",
+        "return_type": "character varying",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_dropbbox",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_extensions_upgrade",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_full_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_geos_noop",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_geos_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_getbbox",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_hasbbox",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_index_supportfn",
+        "routine_type": "FUNCTION",
+        "return_type": "internal",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_lib_build_date",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_lib_revision",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_lib_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_libjson_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_liblwgeom_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_libprotobuf_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_libxml_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_noop",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_proj_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_scripts_build_date",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_scripts_installed",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_scripts_released",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_svn_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_transform_geometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_type_name",
+        "routine_type": "FUNCTION",
+        "return_type": "character varying",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_typmod_dims",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_typmod_srid",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_typmod_type",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "postgis_wagyu_version",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "register_user_transaction",
+        "routine_type": "FUNCTION",
+        "return_type": "json",
+        "routine_definition": "\r\ndeclare\r\n  v_is_adult boolean := false;\r\n  v_users_id uuid := p_user_id;\r\n  v_country_id uuid := null;\r\n  v_now timestamp := now();\r\n  v_has_iso boolean := false;\r\n  v_has_code boolean := false;\r\nbegin\r\n  if p_nome is null or length(trim(p_nome)) = 0 then\r\n    raise exception 'Nome obbligatorio';\r\n  end if;\r\n  if p_cognome is null or length(trim(p_cognome)) = 0 then\r\n    raise exception 'Cognome obbligatorio';\r\n  end if;\r\n  if p_data_nascita is null then\r\n    raise exception 'Data di nascita obbligatoria';\r\n  end if;\r\n  if p_telefono is null or length(trim(p_telefono)) < 7 then\r\n    raise exception 'Telefono non valido';\r\n  end if;\r\n\r\n  v_is_adult := (date_part('year', age(current_date, p_data_nascita)) >= 18);\r\n\r\n  select exists(\r\n    select 1 from information_schema.columns\r\n    where table_schema='public' and table_name='countries' and column_name='iso'\r\n  ) into v_has_iso;\r\n\r\n  select exists(\r\n    select 1 from information_schema.columns\r\n    where table_schema='public' and table_name='countries' and column_name='code'\r\n  ) into v_has_code;\r\n\r\n  if v_has_iso then\r\n    select id into v_country_id\r\n    from public.countries\r\n    where upper(iso) = upper(p_country_iso)\r\n    limit 1;\r\n  elsif v_has_code then\r\n    select id into v_country_id\r\n    from public.countries\r\n    where upper(code) = upper(p_country_iso)\r\n    limit 1;\r\n  else\r\n    v_country_id := null;\r\n  end if;\r\n\r\n  begin\r\n    insert into public.users (id, nome, cognome, email, data_nascita, maggiorenne, created_at)\r\n    values (v_users_id, p_nome, p_cognome, p_email, p_data_nascita, v_is_adult, v_now)\r\n    on conflict (id) do update\r\n      set nome = excluded.nome,\r\n          cognome = excluded.cognome,\r\n          email = excluded.email,\r\n          data_nascita = excluded.data_nascita,\r\n          maggiorenne = excluded.maggiorenne,\r\n          updated_at = v_now;\r\n\r\n    insert into public.users_phones (user_id, country_id, telefono, is_primary, is_verified, created_at)\r\n    values (v_users_id, v_country_id, p_telefono, true, false, v_now)\r\n    on conflict (user_id, telefono) do update\r\n      set country_id = excluded.country_id,\r\n          is_primary = excluded.is_primary,\r\n          is_verified = excluded.is_verified,\r\n          updated_at = v_now;\r\n\r\n    return json_build_object(\r\n      'user_id', v_users_id,\r\n      'country_id', v_country_id,\r\n      'maggiorenne', v_is_adult,\r\n      'status', 'ok'\r\n    );\r\n  exception when others then\r\n    raise;\r\n  end;\r\nend;\r\n"
+    },
+    {
+        "routine_name": "set_updated_at",
+        "routine_type": "FUNCTION",
+        "return_type": "trigger",
+        "routine_definition": "\r\nbegin\r\n  new.updated_at = now();\r\n  return new;\r\nend;\r\n"
+    },
+    {
+        "routine_name": "spheroid_in",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "spheroid_out",
+        "routine_type": "FUNCTION",
+        "return_type": "cstring",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dclosestpoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3ddfullywithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3ddistance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3ddwithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dextent",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dintersects",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dlength",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dlineinterpolatepoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dlongestline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dmakebox",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dmaxdistance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dperimeter",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_3dshortestline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_addmeasure",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_addpoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_addpoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_affine",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_affine",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_angle",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_angle",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_area",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_area",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_area",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_area2d",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asbinary",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asbinary",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asbinary",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asbinary",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asencodedpolyline",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asewkb",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asewkb",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asewkt",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asewkt",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asewkt",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asewkt",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asewkt",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asflatgeobuf",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asflatgeobuf",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asflatgeobuf",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgeobuf",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgeobuf",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgeojson",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgeojson",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgeojson",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgeojson",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asgml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_ashexewkb",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_ashexewkb",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_askml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_askml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_askml",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_aslatlontext",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asmarc21",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asmvt",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asmvt",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asmvt",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asmvt",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asmvt",
+        "routine_type": null,
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asmvtgeom",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_assvg",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_assvg",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_assvg",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_astext",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_astext",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_astext",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_astext",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_astext",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_astwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_astwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "bytea",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_asx3d",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_azimuth",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_azimuth",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_bdmpolyfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_bdpolyfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_boundary",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_boundingdiagonal",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_box2dfromgeohash",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buffer",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buffer",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buffer",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buffer",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buffer",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buffer",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buffer",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buffer",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_buildarea",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_centroid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_centroid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_centroid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_chaikinsmoothing",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_cleangeometry",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_clipbybox2d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_closestpoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_closestpointofapproach",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_clusterdbscan",
+        "routine_type": null,
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_clusterintersecting",
+        "routine_type": "FUNCTION",
+        "return_type": "ARRAY",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_clusterintersecting",
+        "routine_type": null,
+        "return_type": "ARRAY",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_clusterkmeans",
+        "routine_type": null,
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_clusterwithin",
+        "routine_type": null,
+        "return_type": "ARRAY",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_clusterwithin",
+        "routine_type": "FUNCTION",
+        "return_type": "ARRAY",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_collect",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_collect",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_collect",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_collectionextract",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_collectionextract",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_collectionhomogenize",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_combinebbox",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_combinebbox",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_combinebbox",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_concavehull",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_contains",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_containsproperly",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_convexhull",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_coorddim",
+        "routine_type": "FUNCTION",
+        "return_type": "smallint",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_coveredby",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_coveredby",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_coveredby",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_covers",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_covers",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_covers",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_cpawithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_crosses",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_curvetoline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_delaunaytriangles",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dfullywithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_difference",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dimension",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_disjoint",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_distance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_distance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_distance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_distancecpa",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_distancesphere",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_distancesphere",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_distancespheroid",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_distancespheroid",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dump",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dumppoints",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dumprings",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dumpsegments",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dwithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dwithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_dwithin",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_endpoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_envelope",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_equals",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_estimatedextent",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_estimatedextent",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_estimatedextent",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_expand",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_expand",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_expand",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_expand",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_expand",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_expand",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_extent",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_exteriorring",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_filterbym",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_findextent",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_findextent",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_flipcoordinates",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_force2d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_force3d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_force3dm",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_force3dz",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_force4d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_forcecollection",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_forcecurve",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_forcepolygonccw",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_forcepolygoncw",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_forcerhr",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_forcesfs",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_forcesfs",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_frechetdistance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_fromflatgeobuf",
+        "routine_type": "FUNCTION",
+        "return_type": "anyelement",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_fromflatgeobuftotable",
+        "routine_type": "FUNCTION",
+        "return_type": "void",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_generatepoints",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_generatepoints",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geogfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geogfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geographyfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geohash",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geohash",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomcollfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomcollfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomcollfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomcollfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geometricmedian",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geometryfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geometryfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geometryn",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geometrytype",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromewkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromewkt",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromgeohash",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromgeojson",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromgeojson",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromgeojson",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromgml",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromgml",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromkml",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfrommarc21",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromtwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_geomfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_gmltosql",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_gmltosql",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_hasarc",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_hausdorffdistance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_hausdorffdistance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_hexagon",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_hexagongrid",
+        "routine_type": "FUNCTION",
+        "return_type": "record",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_interiorringn",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_interpolatepoint",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_intersection",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_intersection",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_intersection",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_intersects",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_intersects",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_intersects",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isclosed",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_iscollection",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isempty",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_ispolygonccw",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_ispolygoncw",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isring",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_issimple",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isvalid",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isvalid",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isvaliddetail",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isvalidreason",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isvalidreason",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_isvalidtrajectory",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_length",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_length",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_length",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_length2d",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_length2dspheroid",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_lengthspheroid",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_letters",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linecrossingdirection",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linefromencodedpolyline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linefrommultipoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linefromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linefromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linefromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linefromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_lineinterpolatepoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_lineinterpolatepoints",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linelocatepoint",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linemerge",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linemerge",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linestringfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linestringfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linesubstring",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_linetocurve",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_locatealong",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_locatebetween",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_locatebetweenelevations",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_longestline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_m",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makebox2d",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makeenvelope",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makeline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makeline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makeline",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makepoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makepoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makepoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makepointm",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makepolygon",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makepolygon",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makevalid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_makevalid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_maxdistance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_maximuminscribedcircle",
+        "routine_type": "FUNCTION",
+        "return_type": "record",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_memcollect",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_memsize",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_memunion",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_minimumboundingcircle",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_minimumboundingradius",
+        "routine_type": "FUNCTION",
+        "return_type": "record",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_minimumclearance",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_minimumclearanceline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mlinefromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mlinefromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mlinefromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mlinefromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mpointfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mpointfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mpointfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mpointfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mpolyfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mpolyfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mpolyfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_mpolyfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multi",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multilinefromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multilinestringfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multilinestringfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multipointfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multipointfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multipointfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multipolyfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multipolyfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multipolygonfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_multipolygonfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_ndims",
+        "routine_type": "FUNCTION",
+        "return_type": "smallint",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_node",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_normalize",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_npoints",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_nrings",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_numgeometries",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_numinteriorring",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_numinteriorrings",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_numpatches",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_numpoints",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_offsetcurve",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_orderingequals",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_orientedenvelope",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_overlaps",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_patchn",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_perimeter",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_perimeter",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_perimeter2d",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_point",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_point",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointfromgeohash",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointinsidecircle",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointm",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointn",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointonsurface",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_points",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointz",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_pointzm",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polyfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polyfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polyfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polyfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polygon",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polygonfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polygonfromtext",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polygonfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polygonfromwkb",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polygonize",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_polygonize",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_project",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_quantizecoordinates",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_reduceprecision",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_relate",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_relate",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_relate",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_relatematch",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_removepoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_removerepeatedpoints",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_reverse",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_rotate",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_rotate",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_rotate",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_rotatex",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_rotatey",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_rotatez",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_scale",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_scale",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_scale",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_scale",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_scroll",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_segmentize",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_segmentize",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_seteffectivearea",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_setpoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_setsrid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_setsrid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_sharedpaths",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_shiftlongitude",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_shortestline",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_simplify",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_simplify",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_simplifypolygonhull",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_simplifypreservetopology",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_simplifyvw",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_snap",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_snaptogrid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_snaptogrid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_snaptogrid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_snaptogrid",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_split",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_square",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_squaregrid",
+        "routine_type": "FUNCTION",
+        "return_type": "record",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_srid",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_srid",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_startpoint",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_subdivide",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_summary",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_summary",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_swapordinates",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_symdifference",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_symmetricdifference",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_tileenvelope",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_touches",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_transform",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_transform",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_transform",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_transform",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_translate",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_translate",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_transscale",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_triangulatepolygon",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_unaryunion",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_union",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_union",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_union",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_union",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_union",
+        "routine_type": null,
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_voronoilines",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_voronoipolygons",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_within",
+        "routine_type": "FUNCTION",
+        "return_type": "boolean",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_wkbtosql",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_wkttosql",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_wrapx",
+        "routine_type": "FUNCTION",
+        "return_type": "USER-DEFINED",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_x",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_xmax",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_xmin",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_y",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_ymax",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_ymin",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_z",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_zmax",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_zmflag",
+        "routine_type": "FUNCTION",
+        "return_type": "smallint",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "st_zmin",
+        "routine_type": "FUNCTION",
+        "return_type": "double precision",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "text",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "unlockrows",
+        "routine_type": "FUNCTION",
+        "return_type": "integer",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "updategeometrysrid",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "updategeometrysrid",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    },
+    {
+        "routine_name": "updategeometrysrid",
+        "routine_type": "FUNCTION",
+        "return_type": "text",
+        "routine_definition": null
+    }
+]

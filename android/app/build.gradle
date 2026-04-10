@@ -1,15 +1,14 @@
-// android/app/build.gradle (CONFIGURAZIONE CORRETTA)
+// android/app/build.gradle
 plugins {
-    id "com.android.application" // Solo l'ID
+    id "com.android.application"
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
-    // Google Services — richiesto per Google Sign-In / Firebase
-    id "com.google.gms.google-services"
+    // NOTA: com.google.gms.google-services rimosso — app usa Supabase, non Firebase
 }
 
 android {
-    namespace = "com.onlistforrocketprovasapplication.app"
+    namespace = "com.onlistclub.app"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = '27.0.12077973'
 
@@ -24,7 +23,7 @@ android {
 
     defaultConfig {
         // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
-        applicationId = "com.onlistforrocketprovasapplication.app"
+        applicationId = "com.onlistclub.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
         minSdk = flutter.minSdkVersion

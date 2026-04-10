@@ -65,7 +65,7 @@ class LocaleModel extends Equatable {
       id: m['id'] as String,
       nome: m['nome'] as String,
       indirizzo: m['indirizzo'] as String?,
-      nomeCitta: (cittaObj?['nome_citta'] as String?) ?? (m['citta'] as String?),
+      nomeCitta: cittaObj?['nome_citta'] as String?,
       idCitta: m['id_citta'] as String?,
       logoUrl: m['logo_url'] as String?,
       fotoUrl: m['foto_url'] as String?,

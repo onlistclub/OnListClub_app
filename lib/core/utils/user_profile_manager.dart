@@ -7,17 +7,24 @@ class UserProfileManager {
   factory UserProfileManager() => _instance;
   UserProfileManager._internal();
 
-  /// Returns true if a row exists in `public.utenti` for the current user.
+  /// Returns true if the user has a complete profile in `public.utenti`.
+  /// A profile is considered complete when the required fields
+  /// (nome, cognome, data_nascita) are all non-null.
+  /// This is used to decide whether to redirect to CompleteProfileScreen.
   Future<bool> isProfileComplete() async {
     final client = Supabase.instance.client;
     final user = client.auth.currentUser;
     if (user == null) return false;
     final data = await client
         .from('utenti')
-        .select('id')
+        .select('nome, cognome, data_nascita')
         .eq('id', user.id)
         .maybeSingle();
-    return data != null;
+    if (data == null) return false;
+    // Il profilo è completo solo se tutti i campi obbligatori sono presenti
+    return data['nome'] != null &&
+        data['cognome'] != null &&
+        data['data_nascita'] != null;
   }
 
   /// Legge il raggio di ricerca in km salvato nel profilo utente.
@@ -86,8 +93,6 @@ class UserProfileManager {
       final nome = metadata['nome'] as String?;
       final cognome = metadata['cognome'] as String?;
       final dobString = metadata['data_nascita'] as String?;
-      final _telefono = metadata['telefono'] as String?;
-      final _phoneIso = metadata['phone_country_iso'] as String?;
       
       DateTime? dob;
       if (dobString != null) {

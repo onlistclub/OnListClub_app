@@ -13,11 +13,13 @@ class CompleteProfileScreen extends StatelessWidget {
     final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final nome = args?['nome'] as String?;
     final cognome = args?['cognome'] as String?;
+    final email = args?['email'] as String?;
     return BlocProvider<CompleteProfileBloc>(
       create: (context) => CompleteProfileBloc(const CompleteProfileState())
         ..add(CompleteProfileInitialEvent(
           prefillNome: nome,
           prefillCognome: cognome,
+          prefillEmail: email,
         )),
       child: const CompleteProfileScreen(),
     );
@@ -84,6 +86,32 @@ class CompleteProfileScreen extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: 32.h),
+                        // Email (read-only — pre-compilata da Google OAuth)
+                        if (state.emailController != null &&
+                            state.emailController!.text.isNotEmpty) ...[
+                          _buildLabel('Email'),
+                          CustomEditText(
+                            controller: state.emailController,
+                            placeholder: 'Email',
+                            inputType: 'EMAIL',
+                            enabled: false,
+                            textStyle: TextStyleHelper.instance.title16ExtraBoldSFCompact
+                                .copyWith(color: appTheme.white_A700.withValues(alpha: 0.5)),
+                            fillColor: Colors.white.withValues(alpha: 0.05),
+                            contentPadding: EdgeInsets.all(12.h),
+                          ),
+                          SizedBox(height: 4.h),
+                          Container(
+                            margin: EdgeInsets.only(left: 12.h, bottom: 12.h),
+                            child: Text(
+                              'Email proveniente dal tuo account Google',
+                              style: TextStyleHelper.instance.title16ExtraBoldSFCompact.copyWith(
+                                color: appTheme.white_A700.withValues(alpha: 0.4),
+                                fontSize: 11.fSize,
+                              ),
+                            ),
+                          ),
+                        ],
                         _buildLabel('Nome'),
                         CustomEditText(
                           controller: state.firstNameController,

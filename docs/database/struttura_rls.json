@@ -1,0 +1,74 @@
+[
+    {
+        "table_name": "utenti",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "preferiti",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "provincia",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "eventi",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "cap",
+        "rls_enabled": false
+    },
+    {
+        "table_name": "pagamenti",
+        "rls_enabled": false
+    },
+    {
+        "table_name": "citta",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "ingressi_giornalieri",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "gestori",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "tavoli",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "staff",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "prenotazioni",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "paesi",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "locali",
+        "rls_enabled": true
+    },
+    {
+        "table_name": "spatial_ref_sys",
+        "rls_enabled": false
+    },
+    {
+        "table_name": "biglietti",
+        "rls_enabled": false
+    }
+]

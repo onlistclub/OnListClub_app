@@ -40,6 +40,7 @@ class AuthenticationScreen extends StatelessWidget {
               arguments: {
                 'nome': state.oauthNome,
                 'cognome': state.oauthCognome,
+                'email': state.oauthEmail,
               },
             );
           }

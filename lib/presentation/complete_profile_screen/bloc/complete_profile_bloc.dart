@@ -27,9 +27,11 @@ class CompleteProfileBloc
   ) {
     final firstNameCtrl = TextEditingController(text: event.prefillNome ?? '');
     final lastNameCtrl = TextEditingController(text: event.prefillCognome ?? '');
+    final emailCtrl = TextEditingController(text: event.prefillEmail ?? '');
     emit(state.copyWith(
       firstNameController: firstNameCtrl,
       lastNameController: lastNameCtrl,
+      emailController: emailCtrl,
       dobController: TextEditingController(),
       phoneController: TextEditingController(),
       formKey: GlobalKey<FormState>(),

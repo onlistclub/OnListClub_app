@@ -1,0 +1,944 @@
+[
+    {
+        "table_name": "biglietti",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "biglietti",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "biglietti",
+        "column_name": "evento_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "biglietti",
+        "column_name": "tipo",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "biglietti",
+        "column_name": "prezzo",
+        "data_type": "numeric",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "biglietti",
+        "column_name": "stato",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "biglietti",
+        "column_name": "stripe_payment_intent_id",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "biglietti",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "cap",
+        "column_name": "id_cap",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "cap",
+        "column_name": "cap_valore",
+        "data_type": "character varying",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "cap",
+        "column_name": "id_citta",
+        "data_type": "uuid",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "citta",
+        "column_name": "id_citta",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "citta",
+        "column_name": "nome_citta",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "citta",
+        "column_name": "id_provincia",
+        "data_type": "uuid",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "citta",
+        "column_name": "lat",
+        "data_type": "double precision",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "citta",
+        "column_name": "lng",
+        "data_type": "double precision",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "club_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "nome",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "descrizione",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "data",
+        "data_type": "date",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "ora_apertura",
+        "data_type": "time without time zone",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "ora_chiusura",
+        "data_type": "time without time zone",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "ingressi_previsti",
+        "data_type": "integer",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "incasso_previsto",
+        "data_type": "numeric",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "prezzo_ingresso",
+        "data_type": "numeric",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "locandina_url",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "stato",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "generi_musicali",
+        "data_type": "ARRAY",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "eventi",
+        "column_name": "posti_prenotati",
+        "data_type": "integer",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "geography_columns",
+        "column_name": "f_table_catalog",
+        "data_type": "name",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geography_columns",
+        "column_name": "f_table_schema",
+        "data_type": "name",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geography_columns",
+        "column_name": "f_table_name",
+        "data_type": "name",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geography_columns",
+        "column_name": "f_geography_column",
+        "data_type": "name",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geography_columns",
+        "column_name": "coord_dimension",
+        "data_type": "integer",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geography_columns",
+        "column_name": "srid",
+        "data_type": "integer",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geography_columns",
+        "column_name": "type",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geometry_columns",
+        "column_name": "f_table_catalog",
+        "data_type": "character varying",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geometry_columns",
+        "column_name": "f_table_schema",
+        "data_type": "name",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geometry_columns",
+        "column_name": "f_table_name",
+        "data_type": "name",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geometry_columns",
+        "column_name": "f_geometry_column",
+        "data_type": "name",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geometry_columns",
+        "column_name": "coord_dimension",
+        "data_type": "integer",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geometry_columns",
+        "column_name": "srid",
+        "data_type": "integer",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "geometry_columns",
+        "column_name": "type",
+        "data_type": "character varying",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "gestori",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "gestori",
+        "column_name": "club_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "gestori",
+        "column_name": "codice",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "gestori",
+        "column_name": "nome",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "gestori",
+        "column_name": "ruolo",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "gestori",
+        "column_name": "attivo",
+        "data_type": "boolean",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "gestori",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "gestori",
+        "column_name": "email",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "ingressi_giornalieri",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "ingressi_giornalieri",
+        "column_name": "club_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "ingressi_giornalieri",
+        "column_name": "data",
+        "data_type": "date",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "ingressi_giornalieri",
+        "column_name": "count",
+        "data_type": "integer",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "nome",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "logo_url",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "indirizzo",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "citta",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "telefono",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "email",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "famosita",
+        "data_type": "integer",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "generi_musicali",
+        "data_type": "ARRAY",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "foto_url",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "prezzo_indicativo",
+        "data_type": "smallint",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "link_tripadvisor",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "descrizione",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "lat",
+        "data_type": "double precision",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "lng",
+        "data_type": "double precision",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "locali",
+        "column_name": "id_citta",
+        "data_type": "uuid",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "paesi",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "paesi",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "paesi",
+        "column_name": "updated_at",
+        "data_type": "timestamp without time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "paesi",
+        "column_name": "iso_code",
+        "data_type": "character varying",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "paesi",
+        "column_name": "nome",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "paesi",
+        "column_name": "numero_prefisso",
+        "data_type": "character varying",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "pagamenti",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "pagamenti",
+        "column_name": "tipo",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "pagamenti",
+        "column_name": "riferimento_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "pagamenti",
+        "column_name": "importo",
+        "data_type": "numeric",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "pagamenti",
+        "column_name": "stato",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "pagamenti",
+        "column_name": "stripe_payment_id",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "pagamenti",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "preferiti",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "preferiti",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "preferiti",
+        "column_name": "locale_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "preferiti",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "evento_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "tavolo_id",
+        "data_type": "uuid",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "nome_cliente",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "n_persone",
+        "data_type": "integer",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "telefono",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "note",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "stato",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "evento_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "tavolo_id",
+        "data_type": "uuid",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "n_persone",
+        "data_type": "integer",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "nome_cliente",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "telefono",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "note",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "stato",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "stripe_payment_intent_id",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "prenotazioni_tavolo",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "provincia",
+        "column_name": "id_provincia",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "provincia",
+        "column_name": "sigla",
+        "data_type": "character varying",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "provincia",
+        "column_name": "nome_provincia",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "spatial_ref_sys",
+        "column_name": "srid",
+        "data_type": "integer",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "spatial_ref_sys",
+        "column_name": "auth_name",
+        "data_type": "character varying",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "spatial_ref_sys",
+        "column_name": "auth_srid",
+        "data_type": "integer",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "spatial_ref_sys",
+        "column_name": "srtext",
+        "data_type": "character varying",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "spatial_ref_sys",
+        "column_name": "proj4text",
+        "data_type": "character varying",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "club_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "nome",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "ruolo",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "telefono",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "email",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "stato",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "attivo",
+        "data_type": "boolean",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "staff",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "tavoli",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "tavoli",
+        "column_name": "club_id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "tavoli",
+        "column_name": "numero",
+        "data_type": "text",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "tavoli",
+        "column_name": "zona",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "tavoli",
+        "column_name": "capacita",
+        "data_type": "integer",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "tavoli",
+        "column_name": "occupato",
+        "data_type": "boolean",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "tavoli",
+        "column_name": "note",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "tavoli",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "id",
+        "data_type": "uuid",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "email",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "nome",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "cognome",
+        "data_type": "text",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "data_nascita",
+        "data_type": "date",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "maggiorenne",
+        "data_type": "boolean",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti",
+        "column_name": "raggio_km",
+        "data_type": "integer",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "column_name": "id",
+        "data_type": "bigint",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "column_name": "created_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "NO"
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "column_name": "updated_at",
+        "data_type": "timestamp with time zone",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "column_name": "user_id",
+        "data_type": "uuid",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "column_name": "country_id",
+        "data_type": "uuid",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "column_name": "telefono",
+        "data_type": "character varying",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "column_name": "is_primary",
+        "data_type": "boolean",
+        "is_nullable": "YES"
+    },
+    {
+        "table_name": "utenti_numeri_telefono",
+        "column_name": "is_verified",
+        "data_type": "boolean",
+        "is_nullable": "YES"
+    }
+]

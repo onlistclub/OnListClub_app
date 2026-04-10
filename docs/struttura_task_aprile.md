@@ -31,52 +31,23 @@
 
 ## FASE 1 — Fix Critici + Setup + Google Auth (6–12 aprile)
 
-**Obiettivo entro domenica 12:** Google Auth funzionante ✅ · Chiavi e tabelle Supabase verificate ✅ · Peso app analizzato ✅
-
----
-
-### Mer 8 Aprile 
-| | Task (~30 min) |
-|---|---|
-| **Dev A** | Analizzare peso app — eseguire `flutter build apk --analyze-size`; documentare pacchetti/asset pesanti e proporre eventuali riduzioni |
-| **Dev B** | Verificare configurazione Google OAuth in Supabase Dashboard — Client ID, redirect URLs, SHA-1, stato provider attivo |
-| **Dev C** | Verificare chiavi Supabase nell'app (`SUPABASE_URL`, `ANON_KEY`) e struttura tabella `profiles` — annotare anomalie |
-
----
-
-### Gio 9 Aprile
-| | Task (~30 min) |
-|---|---|
-| **Dev A** | **Test mobile** — build debug su dispositivo fisico; testare Home, login, navigazione; annotare latenze e bug (escludere transizioni/scroll) |
-| **Dev B** | Configurare pacchetto `google_sign_in` in Flutter — aggiungere dipendenza, SHA-1 fingerprint, aggiornare `google-services.json` |
-| **Dev C** | Correggere problemi di chiavi/configurazione trovati l'8 apr; creare `docs/supabase_config.md` con stato aggiornato |
-
----
-
-### Ven 10 Aprile
-| | Task (~30 min) |
-|---|---|
-| **Dev A** | **Test mobile** — flusso login completo (email + Google se disponibile); annotare latenze, crash e comportamenti anomali |
-| **Dev B** | Collegare Google Sign-In al provider Supabase Auth — implementare callback OAuth e gestione sessione nell'app |
-| **Dev C** | Audit tabelle principali (`clubs`, `events`, `profiles`) — verificare FK, indici e coerenza dati di test |
-
----
+**Obiettivo entro domenica 12:** Google Auth funzionante ✅ · Chiavi e tabelle Supabase verificate ✅
 
 ### Sab 11 Aprile 🔵
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | **Test mobile** — focus latenze nelle schermate principali; applicare riduzioni peso app identificate l'8 apr |
-| **Dev B** 🔵 | Testare flusso completo Google Auth su emulatore Android — login → callback → sessione Supabase attiva → navigazione post-login |
-| **Dev C** 🔵 | Verificare integrità referenziale DB — FK corretti nelle tabelle `biglietti`, `prenotazioni_tavolo` |
+| **Dev A** 🔵 | Pulizia UI: togliere i generi musicali e la label gialla dalle card; rimuovere il pulsante "profilo" in alto a destra e mantenerlo SOLO nella bottom nav. Implementare pagina del profilo prendendo i design di Figma.|
+| **Dev B** 🔵 | Auth & Sessione: impostare la persistenza per rimanere sempre loggati (no re-login); testare registrazione con Google OAuth e forzare la compilazione manuale di data nascita e città se mancanti. |
+| **Dev C** 🔵 | Controllo DB: riverificare l'intero database con AI e trovare eventuali incongruenze residue prima di procedere allo sviluppo dei biglietti e tavoli con errori. |
 
 ---
 
 ### Dom 12 Aprile 🔵
 | | Task (~30 min) |
 |---|---|
-| **Dev A** 🔵 | Preparare "Design Gap Document" — lista schermate che si discostano dal design attuale, pronto per quando arriva il design di Mark |
-| **Dev B** 🔵 | Testare Google Auth su dispositivo Android fisico — risolvere problemi SHA-1 o deeplink; documentare come ✅ completato o lista pendenze |
-| **Dev C** 🔵 | Studiare pattern BLoC usato nel progetto (`club_detail_bloc.dart`) per coerenza nella scrittura del `ticket_bloc` |
+| **Dev A** 🔵 | Nuova UI: creare la pagina delle Informazioni dell'utente (layout base da riempire progressivamente col design); migliorare la Mappa del raggio (design moderno, non "anni 2000") per vedere bene le città. |
+| **Dev B** 🔵 | Fix logica: risolvere il problema delle città duplicate che appaiono doppie durante la ricerca. |
+| **Dev C** 🔵 | Supporto e validazione: testare assieme a Dev B la scrittura corretta su Supabase del profilo utente (dopo Google OAuth) e del nuovo flusso persistente di accesso. |
 
 ---
 

@@ -1,4 +1,4 @@
-package com.onlistforrocketprovasapplication.app
+package com.onlistclub.app
 
 import io.flutter.embedding.android.FlutterActivity
 

@@ -3,6 +3,7 @@ part of 'complete_profile_bloc.dart';
 class CompleteProfileState extends Equatable {
   final TextEditingController? firstNameController;
   final TextEditingController? lastNameController;
+  final TextEditingController? emailController;
   final TextEditingController? dobController;
   final TextEditingController? phoneController;
   final GlobalKey<FormState>? formKey;
@@ -14,6 +15,7 @@ class CompleteProfileState extends Equatable {
   const CompleteProfileState({
     this.firstNameController,
     this.lastNameController,
+    this.emailController,
     this.dobController,
     this.phoneController,
     this.formKey,
@@ -27,6 +29,7 @@ class CompleteProfileState extends Equatable {
   List<Object?> get props => [
         firstNameController,
         lastNameController,
+        emailController,
         dobController,
         phoneController,
         formKey,
@@ -39,6 +42,7 @@ class CompleteProfileState extends Equatable {
   CompleteProfileState copyWith({
     TextEditingController? firstNameController,
     TextEditingController? lastNameController,
+    TextEditingController? emailController,
     TextEditingController? dobController,
     TextEditingController? phoneController,
     GlobalKey<FormState>? formKey,
@@ -50,6 +54,7 @@ class CompleteProfileState extends Equatable {
     return CompleteProfileState(
       firstNameController: firstNameController ?? this.firstNameController,
       lastNameController: lastNameController ?? this.lastNameController,
+      emailController: emailController ?? this.emailController,
       dobController: dobController ?? this.dobController,
       phoneController: phoneController ?? this.phoneController,
       formKey: formKey ?? this.formKey,

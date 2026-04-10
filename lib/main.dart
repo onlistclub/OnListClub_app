@@ -11,6 +11,11 @@ import 'dart:convert';
 
 var globalMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+/// Google Web Client ID letto da env.json — necessario come serverClientId per
+/// autenticare i token Google tramite Supabase Auth.
+/// Da compilare in env.json dopo aver creato le credenziali su Google Cloud Console.
+String? googleWebClientId;
+
 void main() {
   // 1. Assicura che l'ambiente Flutter sia inizializzato prima di qualsiasi altra cosa.
   WidgetsFlutterBinding.ensureInitialized();
@@ -42,7 +47,14 @@ class _MyAppState extends State<MyApp> {
 
       debugPrint('[Startup] Loading env...');
       final env = await _loadEnvSafe();
-      
+
+      // Rende disponibile il Web Client ID a tutto l'albero dell'app
+      googleWebClientId = env['GOOGLE_WEB_CLIENT_ID'] as String?;
+      if (googleWebClientId == null || googleWebClientId!.contains('SOSTITUIRE')) {
+        debugPrint('[Startup] ⚠️ GOOGLE_WEB_CLIENT_ID non configurato — Google Sign-In non funzionerà.');
+        googleWebClientId = null;
+      }
+
       debugPrint('[Startup] Initializing Supabase...');
       await Supabase.initialize(
         url: env['SUPABASE_URL'] ?? '',

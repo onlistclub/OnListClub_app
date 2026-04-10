@@ -10,6 +10,7 @@ class AuthenticationState extends Equatable {
   final bool needsProfileCompletion;
   final String? oauthNome;
   final String? oauthCognome;
+  final String? oauthEmail;
   final String? errorMessage;
   final AuthenticationModel? authenticationModel;
 
@@ -23,6 +24,7 @@ class AuthenticationState extends Equatable {
     this.needsProfileCompletion = false,
     this.oauthNome,
     this.oauthCognome,
+    this.oauthEmail,
     this.errorMessage,
     this.authenticationModel,
   });
@@ -38,6 +40,7 @@ class AuthenticationState extends Equatable {
         needsProfileCompletion,
         oauthNome,
         oauthCognome,
+        oauthEmail,
         errorMessage,
         authenticationModel,
       ];
@@ -52,6 +55,7 @@ class AuthenticationState extends Equatable {
     bool? needsProfileCompletion,
     String? oauthNome,
     String? oauthCognome,
+    String? oauthEmail,
     String? errorMessage,
     AuthenticationModel? authenticationModel,
   }) {
@@ -65,6 +69,7 @@ class AuthenticationState extends Equatable {
       needsProfileCompletion: needsProfileCompletion ?? this.needsProfileCompletion,
       oauthNome: oauthNome ?? this.oauthNome,
       oauthCognome: oauthCognome ?? this.oauthCognome,
+      oauthEmail: oauthEmail ?? this.oauthEmail,
       errorMessage: errorMessage ?? this.errorMessage,
       authenticationModel: authenticationModel ?? this.authenticationModel,
     );
