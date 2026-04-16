@@ -51,6 +51,8 @@
 
 ---
 
+**ASPETTARE DESIGN UFFICIALE DI QUELLA PARTE DELLA RICERCA DI LOCALE!**
+
 ## FASE 2 — Feature Core: Acquisto Biglietti (13–19 aprile)
 
 ---
