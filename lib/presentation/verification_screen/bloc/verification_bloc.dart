@@ -34,6 +34,10 @@ class verificationBloc extends Bloc<verificationEvent, verificationState> {
   void _startTimer(DateTime registrationTime) {
     _timer?.cancel();
     _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (isClosed) {
+        timer.cancel();
+        return;
+      }
       final now = DateTime.now();
       final deadline = registrationTime.add(const Duration(hours: 4));
       final remaining = deadline.difference(now);
@@ -41,7 +45,6 @@ class verificationBloc extends Bloc<verificationEvent, verificationState> {
       if (remaining.isNegative) {
         timer.cancel();
         add(const TimerTickEvent(Duration.zero));
-        // Trigger expiration handling if needed immediately, or wait for user action
       } else {
         add(TimerTickEvent(remaining));
       }

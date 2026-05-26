@@ -51,16 +51,37 @@ class SerataModel extends Equatable {
   }
 
   factory SerataModel.fromMap(Map<String, dynamic> m) {
-    // ora_apertura può arrivare come "22:00:00" — tronchiamo a "22:00"
+    // Gestione vecchi e nuovi campi
     String? _trim(String? s) => s != null && s.length >= 5 ? s.substring(0, 5) : s;
+
+    final inizioTs = m['inizio_evento'] as String?;
+    final fineTs = m['fine_evento'] as String?;
+
+    DateTime? parsedInizio =
+        inizioTs != null ? DateTime.tryParse(inizioTs)?.toLocal() : null;
+    DateTime? parsedData = m['data'] != null
+        ? DateTime.tryParse(m['data'] as String)
+        : null;
+    final startDate = parsedInizio ?? parsedData ?? DateTime.now();
+
+    final oraAp = parsedInizio != null
+        ? "${startDate.hour.toString().padLeft(2, '0')}:${startDate.minute.toString().padLeft(2, '0')}"
+        : _trim(m['ora_apertura'] as String?);
+
+    String? oraCh = _trim(m['ora_chiusura'] as String?);
+    final parsedFine =
+        fineTs != null ? DateTime.tryParse(fineTs)?.toLocal() : null;
+    if (parsedFine != null) {
+      oraCh = "${parsedFine.hour.toString().padLeft(2, '0')}:${parsedFine.minute.toString().padLeft(2, '0')}";
+    }
 
     return SerataModel(
       id: m['id'] as String,
       clubId: m['club_id'] as String,
       nome: m['nome'] as String,
-      data: DateTime.parse(m['data'] as String),
-      oraApertura: _trim(m['ora_apertura'] as String?),
-      oraChiusura: _trim(m['ora_chiusura'] as String?),
+      data: startDate,
+      oraApertura: oraAp,
+      oraChiusura: oraCh,
       ingressiPrevisti: (m['ingressi_previsti'] as int?) ?? 0,
       postiPrenotati: (m['posti_prenotati'] as int?) ?? 0,
       locandinaUrl: m['locandina_url'] as String?,

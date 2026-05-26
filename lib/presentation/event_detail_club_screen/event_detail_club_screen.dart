@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,7 +6,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_export.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
-import '../../widgets/custom_image_view.dart';
+import '../../widgets/custom_top_bar.dart';
 import 'bloc/event_detail_club_bloc.dart';
 
 class EventDetailClubScreen extends StatefulWidget {
@@ -13,8 +14,26 @@ class EventDetailClubScreen extends StatefulWidget {
 
   static Widget builder(BuildContext context) {
     final args = ModalRoute.of(context)?.settings.arguments;
-    final serata = (args is Map) ? args['serata'] as SerataModel? : null;
-    final club   = (args is Map) ? args['club']   as LocaleModel?  : null;
+    SerataModel? serata;
+    LocaleModel? club;
+
+    if (args is Map) {
+      final sData = args['serata'];
+      final cData = args['club'] ?? args['locale'];
+
+      if (sData is SerataModel) {
+        serata = sData;
+      } else if (sData is Map<String, dynamic>) {
+        serata = SerataModel.fromMap(sData);
+      }
+
+      if (cData is LocaleModel) {
+        club = cData;
+      } else if (cData is Map<String, dynamic>) {
+        club = LocaleModel.fromMap(cData);
+      }
+    }
+
     if (serata == null || club == null) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => Navigator.of(context, rootNavigator: true).maybePop());
@@ -22,7 +41,7 @@ class EventDetailClubScreen extends StatefulWidget {
     }
     return BlocProvider<EventDetailClubBloc>(
       create: (_) => EventDetailClubBloc(
-        EventDetailClubState(club: club, serata: serata),
+        EventDetailClubState(club: club!, serata: serata!),
       )..add(EventDetailClubInitialEvent()),
       child: const EventDetailClubScreen(),
     );
@@ -179,7 +198,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                 SlideTransition(
                   position: _appBarSlide,
                   child: FadeTransition(
-                      opacity: _appBarFade, child: _buildAppBar()),
+                      opacity: _appBarFade, child: const CustomTopBar()),
                 ),
                 // Content
                 Expanded(
@@ -241,14 +260,6 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                     ),
                   ),
                 ),
-                // Bottom nav
-                SlideTransition(
-                  position: _navSlide,
-                  child: FadeTransition(
-                    opacity: _navFade,
-                    child: _buildBottomNav(context, state),
-                  ),
-                ),
               ],
             ),
           );
@@ -305,10 +316,10 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
               height: 217,
               color: const Color(0xFF1A1A2E),
               child: imgUrl != null
-                  ? Image.network(
-                      imgUrl,
+                  ? CachedNetworkImage(
+                      imageUrl: imgUrl,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) => const Icon(
+                      errorWidget: (_, __, ___) => const Icon(
                           Icons.nightlife,
                           color: Color(0xFF666666),
                           size: 48),

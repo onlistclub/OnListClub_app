@@ -4,10 +4,12 @@ import 'package:intl_phone_number_input/intl_phone_number_input.dart';
 
 import '../../core/app_export.dart';
 import '../../core/utils/age_calculator.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/utils/analytics_mixin.dart';
 import './bloc/sign_up_bloc.dart';
 import './models/sign_up_model.dart';
 
-class SignUpScreen extends StatelessWidget {
+class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
 
   static Widget builder(BuildContext context) {
@@ -21,12 +23,21 @@ class SignUpScreen extends StatelessWidget {
   }
 
   @override
+  State<SignUpScreen> createState() => _SignUpScreenState();
+}
+
+class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
+  @override
+  String get screenName => 'sign_up';
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0000FF),
       body: BlocConsumer<SignUpBloc, SignUpState>(
         listener: (context, state) {
           if (state.isSuccess) {
+            AnalyticsService.log(event: 'registration_email_success');
             NavigatorService.pushNamedAndRemoveUntil(
               AppRoutes.verificationScreen,
               arguments: {
@@ -37,6 +48,7 @@ class SignUpScreen extends StatelessWidget {
             );
           }
           if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+            AnalyticsService.log(event: 'registration_error', metadata: {'error': state.errorMessage});
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.errorMessage!)),
             );
@@ -61,7 +73,6 @@ class SignUpScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 36),
-                    // Nome
                     _UnderlineField(
                       label: 'Nome',
                       controller: state.firstNameController,
@@ -76,7 +87,6 @@ class SignUpScreen extends StatelessWidget {
                           .add(FirstNameChangedEvent(firstName: v)),
                     ),
                     const SizedBox(height: 24),
-                    // Cognome
                     _UnderlineField(
                       label: 'Cognome',
                       controller: state.lastNameController,
@@ -91,7 +101,6 @@ class SignUpScreen extends StatelessWidget {
                           .add(LastNameChangedEvent(lastName: v)),
                     ),
                     const SizedBox(height: 24),
-                    // Data di nascita
                     GestureDetector(
                       onTap: () => _selectDate(context, state),
                       child: AbsorbPointer(
@@ -126,7 +135,6 @@ class SignUpScreen extends StatelessWidget {
                       ),
                     ],
                     const SizedBox(height: 24),
-                    // Email
                     _UnderlineField(
                       label: 'Email',
                       controller: state.emailController,
@@ -144,7 +152,6 @@ class SignUpScreen extends StatelessWidget {
                           .add(EmailChangedEvent(email: v)),
                     ),
                     const SizedBox(height: 24),
-                    // Password
                     _UnderlinePasswordField(
                       controller: state.passwordController,
                       onChanged: (v) => context
@@ -152,7 +159,6 @@ class SignUpScreen extends StatelessWidget {
                           .add(PasswordChangedEvent(password: v)),
                     ),
                     const SizedBox(height: 24),
-                    // Telefono (richiesto dal backend)
                     Text(
                       'Telefono',
                       style: GoogleFonts.inter(
@@ -216,7 +222,6 @@ class SignUpScreen extends StatelessWidget {
                       },
                     ),
                     const SizedBox(height: 48),
-                    // Bottone Registrati centrato
                     Center(
                       child: state.isLoading
                           ? const CircularProgressIndicator(color: Colors.white)
@@ -224,9 +229,12 @@ class SignUpScreen extends StatelessWidget {
                               width: 160,
                               height: 48,
                               child: ElevatedButton(
-                                onPressed: () => context
+                                onPressed: () {
+                                  AnalyticsService.log(event: 'registration_attempt');
+                                  context
                                     .read<SignUpBloc>()
-                                    .add(SubmitSignUpEvent()),
+                                    .add(SubmitSignUpEvent());
+                                },
                                 style: ElevatedButton.styleFrom(
                                   backgroundColor: Colors.black,
                                   foregroundColor: Colors.white,

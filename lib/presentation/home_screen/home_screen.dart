@@ -1,11 +1,18 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/app_export.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
+import '../../core/services/club_service.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
-import '../../widgets/custom_image_view.dart';
+import '../../core/utils/analytics_mixin.dart';
+import '../../widgets/shared_footer.dart';
+import '../../widgets/custom_top_bar.dart';
+import '../../core/services/notification_service.dart';
+import '../../core/utils/user_profile_manager.dart';
 import 'bloc/home_bloc.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -22,7 +29,10 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
+class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, ScreenAnalytics {
+  @override
+  String get screenName => 'home';
+
   late AnimationController _staggerCtrl;
 
   late Animation<double> _appBarFade;
@@ -72,6 +82,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     _navSlide     = _slide(const Offset(0, 1), 0.64, 1.00);
 
     _staggerCtrl.forward();
+
+    // Notifiche: controlla nuovi eventi dei preferiti
+    NotificationService.checkNewEventsForFavorites();
   }
 
   Animation<double> _fade(double begin, double end) =>
@@ -166,11 +179,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                     height: 52,
                     color: const Color(0xFF2A2A2A),
                     child: e.locandinaUrl != null
-                        ? Image.network(e.locandinaUrl!,
+                        ? CustomImageView(
+                            imagePath: e.locandinaUrl!,
+                            width: 52,
+                            height: 52,
                             fit: BoxFit.cover,
-                            errorBuilder: (_, __, ___) => const Icon(
-                                Icons.music_note,
-                                color: Color(0xFF666666)))
+                            placeHolder: ImageConstant.imgImageNotFound,
+                          )
                         : const Icon(Icons.music_note,
                             color: Color(0xFF666666)),
                   ),
@@ -203,6 +218,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  static final DateFormat _eventDateFormat = DateFormat('EEE d MMM', 'it_IT');
+
   String _formatDate(DateTime d) {
     final oggi = DateTime.now();
     if (d.year == oggi.year && d.month == oggi.month && d.day == oggi.day) {
@@ -212,7 +229,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     if (d.year == domani.year && d.month == domani.month && d.day == domani.day) {
       return 'Domani';
     }
-    return DateFormat('EEE d MMM', 'it_IT').format(d);
+    return _eventDateFormat.format(d);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -220,106 +237,116 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
+      backgroundColor: Colors.black,
       body: BlocBuilder<HomeBloc, HomeState>(
+        buildWhen: (prev, curr) =>
+            prev.localeVicino != curr.localeVicino ||
+            prev.upcomingEventi != curr.upcomingEventi ||
+            prev.isLoading != curr.isLoading ||
+            prev.isGpsForced != curr.isGpsForced ||
+            prev.locationSourceLabel != curr.locationSourceLabel ||
+            prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
         builder: (context, state) {
           return SafeArea(
+            bottom: false,
             child: Column(
-              children: [
-                // AppBar
-                SlideTransition(
-                  position: _appBarSlide,
-                  child: FadeTransition(
-                    opacity: _appBarFade,
-                    child: _buildAppBar(),
+                children: [
+                  // AppBar — fixed at top
+                  SlideTransition(
+                    position: _appBarSlide,
+                    child: FadeTransition(
+                      opacity: _appBarFade,
+                      child: const CustomTopBar(isHome: true),
+                    ),
                   ),
-                ),
-                // Radius label — commentato, ora accessibile dalla ricerca
-                // SlideTransition(
-                //   position: _radiusSlide,
-                //   child: FadeTransition(
-                //     opacity: _radiusFade,
-                //     child: _buildRadiusLabel(context, state),
-                //   ),
-                // ),
-                // Scrollable content
-                Expanded(
-                  child: state.isLoading
-                      ? const Center(
-                          child: CircularProgressIndicator(
-                              color: Color(0xFF0009FF)))
-                      : SingleChildScrollView(
-                          child: Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              // Hero image
-                              FadeTransition(
-                                opacity: _heroFade,
-                                child: ScaleTransition(
-                                  scale: _heroScale,
-                                  child: _buildHeroImage(state),
-                                ),
-                              ),
-                              // Club name
-                              SlideTransition(
-                                position: _titleSlide,
-                                child: FadeTransition(
-                                  opacity: _titleFade,
-                                  child: _buildClubName(state),
-                                ),
-                              ),
-                              // Club address
-                              SlideTransition(
-                                position: _subtitleSlide,
-                                child: FadeTransition(
-                                  opacity: _subtitleFade,
-                                  child: _buildClubAddress(state),
-                                ),
-                              ),
-                              // RISERVA button
-                              FadeTransition(
-                                opacity: _buttonFade,
-                                child: ScaleTransition(
-                                  scale: _buttonScale,
-                                  child: _buildReserveButton(context, state),
-                                ),
-                              ),
-                              // Events section
-                              if (state.upcomingEventi.isNotEmpty) ...[
-                                const SizedBox(height: 20),
-                                SlideTransition(
-                                  position: _sectionSlide,
-                                  child: FadeTransition(
-                                    opacity: _sectionFade,
-                                    child: _buildSectionTitle(state),
+                  // Location info & GPS toggle
+                  SlideTransition(
+                    position: _appBarSlide,
+                    child: FadeTransition(
+                      opacity: _appBarFade,
+                      child: _buildLocationInfo(context, state),
+                    ),
+                  ),
+                  // Scrollable content
+                  Expanded(
+                    child: state.isLoading
+                        ? const Center(
+                            child: CircularProgressIndicator(
+                                color: Color(0xFF0009FF)))
+                        : state.localeVicino == null
+                            ? Center(
+                                child: Text(
+                                  'Nessun locale trovato.\nProva a cambiare raggio o cercare in un\'altra città.',
+                                  textAlign: TextAlign.center,
+                                  style: GoogleFonts.inter(
+                                    fontSize: 16,
+                                    color: Colors.white54,
                                   ),
                                 ),
-                                const SizedBox(height: 12),
-                                SlideTransition(
-                                  position: _cardsSlide,
-                                  child: FadeTransition(
-                                    opacity: _cardsFade,
-                                    child: _buildEventCards(context, state),
-                                  ),
+                              )
+                            : RepaintBoundary(child: SingleChildScrollView(
+                                padding: const EdgeInsets.only(bottom: 80),
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    // Hero image
+                                    FadeTransition(
+                                      opacity: _heroFade,
+                                      child: ScaleTransition(
+                                        scale: _heroScale,
+                                        child: _buildHeroImage(state),
+                                      ),
+                                    ),
+                                    // Club name
+                                    SlideTransition(
+                                      position: _titleSlide,
+                                      child: FadeTransition(
+                                        opacity: _titleFade,
+                                        child: _buildClubName(state),
+                                      ),
+                                    ),
+                                    // Club details
+                                    SlideTransition(
+                                      position: _subtitleSlide,
+                                      child: FadeTransition(
+                                        opacity: _subtitleFade,
+                                        child: _buildClubDetails(state),
+                                      ),
+                                    ),
+                                    // Events section
+                                    if (state.upcomingEventi.isNotEmpty) ...[
+                                      SlideTransition(
+                                        position: _sectionSlide,
+                                        child: FadeTransition(
+                                          opacity: _sectionFade,
+                                          child: _buildSectionTitle(state),
+                                        ),
+                                      ),
+                                      SlideTransition(
+                                        position: _cardsSlide,
+                                        child: FadeTransition(
+                                          opacity: _cardsFade,
+                                          child: _buildEventCards(context, state),
+                                        ),
+                                      ),
+                                    ],
+                                    const SizedBox(height: 24),
+                                  ],
                                 ),
-                              ],
-                              const SizedBox(height: 24),
-                            ],
-                          ),
-                        ),
-                ),
-                // Bottom nav
-                SlideTransition(
-                  position: _navSlide,
-                  child: FadeTransition(
-                    opacity: _navFade,
-                    child: _buildBottomNav(context, state),
+                                ),
+                              ),
                   ),
-                ),
-              ],
-            ),
-          );
+                ],
+              ),
+            );
         },
+      ),
+      bottomNavigationBar: SlideTransition(
+        position: _navSlide,
+        child: FadeTransition(
+          opacity: _navFade,
+          child: const SharedFooter(currentIndex: 0),
+        ),
       ),
     );
   }
@@ -345,11 +372,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
             children: [
               GestureDetector(
                 onTap: () =>
-                    NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
+                    NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen)
+                        .then((_) {
+                  if (mounted) {
+                    context.read<HomeBloc>().add(HomeRefreshEvent());
+                  }
+                }),
                 child: const Icon(Icons.search, color: Colors.white, size: 28),
               ),
               const SizedBox(width: 12),
-              const Icon(Icons.person_outline, color: Colors.white, size: 28),
+              GestureDetector(
+                onTap: () => NavigatorService.pushNamed(AppRoutes.profileScreen),
+                child: const Icon(Icons.person_outline, color: Colors.white, size: 28),
+              ),
               const SizedBox(width: 10),
             ],
           ),
@@ -358,13 +393,223 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 
+  // ── Location Info ────────────────────────────────────────────────────────
+  
+  Widget _buildLocationInfo(BuildContext context, HomeState state) {
+    if (state.localeVicino == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          // Sinistra: icona posizione + label + chip raggio
+          Expanded(
+            child: Row(
+              children: [
+                if (state.locationSourceLabel.isNotEmpty) ...[
+                  Flexible(
+                    child: Text(
+                      state.locationSourceLabel,
+                      style: GoogleFonts.inter(
+                        fontSize: 12,
+                        color: Colors.white70,
+                        fontWeight: FontWeight.w500,
+                      ),
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                ],
+              ],
+            ),
+          ),
+          const SizedBox(width: 8),
+          // Destra: GPS toggle
+          if (!state.isGpsForced)
+            GestureDetector(
+              onTap: () {
+                context.read<HomeBloc>().add(const HomeForceGpsEvent(true));
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Ricerca tramite GPS attivata')),
+                );
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF2A2A2A),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF444444)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.my_location, color: Colors.white, size: 12),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Usa GPS',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+          if (state.isGpsForced)
+            GestureDetector(
+              onTap: () {
+                context.read<HomeBloc>().add(const HomeForceGpsEvent(false));
+              },
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                decoration: BoxDecoration(
+                  color: const Color(0xFF0009FF).withValues(alpha: 0.2),
+                  borderRadius: BorderRadius.circular(20),
+                  border: Border.all(color: const Color(0xFF0009FF)),
+                ),
+                child: Row(
+                  children: [
+                    const Icon(Icons.close, color: Colors.white, size: 12),
+                    const SizedBox(width: 4),
+                    Text(
+                      'Rimuovi GPS',
+                      style: GoogleFonts.inter(
+                        fontSize: 10,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ),
+        ],
+      ),
+    );
+  }
+
+  // ── Radius Picker ────────────────────────────────────────────────────────
+
+  void _showRadiusPicker(BuildContext context, int currentRaggio) {
+    final bloc = context.read<HomeBloc>();
+    showModalBottomSheet(
+      context: context,
+      backgroundColor: const Color(0xFF141414),
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
+      ),
+      builder: (ctx) {
+        int tempRaggio = currentRaggio;
+        return StatefulBuilder(
+          builder: (ctx, setS) {
+            return Padding(
+              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
+              child: Column(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  // Handle bar
+                  Container(
+                    width: 40,
+                    height: 4,
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF444444),
+                      borderRadius: BorderRadius.circular(2),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                  Row(
+                    children: [
+                      const Icon(Icons.radar, color: Color(0xFF6B6BFF), size: 22),
+                      const SizedBox(width: 10),
+                      Text(
+                        'Raggio di ricerca',
+                        style: GoogleFonts.inter(
+                          fontSize: 18,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                        ),
+                      ),
+                      const Spacer(),
+                      Container(
+                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+                        decoration: BoxDecoration(
+                          color: const Color(0xFF1D00FF).withValues(alpha: 0.25),
+                          borderRadius: BorderRadius.circular(12),
+                          border: Border.all(color: const Color(0xFF1D00FF).withValues(alpha: 0.6)),
+                        ),
+                        child: Text(
+                          '$tempRaggio km',
+                          style: GoogleFonts.inter(
+                            fontSize: 18,
+                            fontWeight: FontWeight.w800,
+                            color: const Color(0xFF9999FF),
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 20),
+                  SliderTheme(
+                    data: SliderTheme.of(ctx).copyWith(
+                      activeTrackColor: const Color(0xFF1D00FF),
+                      inactiveTrackColor: const Color(0xFF2A2A2A),
+                      thumbColor: Colors.white,
+                      overlayColor: const Color(0xFF1D00FF).withValues(alpha: 0.2),
+                      trackHeight: 4,
+                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
+                    ),
+                    child: Slider(
+                      value: tempRaggio.toDouble(),
+                      min: 1,
+                      max: 100,
+                      divisions: 99,
+                      onChanged: (v) => setS(() => tempRaggio = v.round()),
+                    ),
+                  ),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      Text('1 km', style: GoogleFonts.inter(fontSize: 11, color: Colors.white38)),
+                      Text('100 km', style: GoogleFonts.inter(fontSize: 11, color: Colors.white38)),
+                    ],
+                  ),
+                  const SizedBox(height: 24),
+                  SizedBox(
+                    width: double.infinity,
+                    child: ElevatedButton(
+                      style: ElevatedButton.styleFrom(
+                        backgroundColor: const Color(0xFF1D00FF),
+                        foregroundColor: Colors.white,
+                        padding: const EdgeInsets.symmetric(vertical: 14),
+                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                      ),
+                      onPressed: () async {
+                        Navigator.pop(ctx);
+                        await UserProfileManager().saveRaggioKm(tempRaggio);
+                        bloc.add(HomeRefreshEvent());
+                      },
+                      child: Text(
+                        'Applica',
+                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
+        );
+      },
+    );
+  }
 
   // ── Hero image ─────────────────────────────────────────────────────────────
 
   Widget _buildHeroImage(HomeState state) {
     final fotoUrl = state.localeVicino?.fotoUrl;
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 14, 10, 0),
+      padding: const EdgeInsets.symmetric(horizontal: 9),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(10),
         child: Container(
@@ -372,14 +617,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
           height: 217,
           color: const Color(0xFF1A1A2E),
           child: fotoUrl != null
-              ? Image.network(
-                  fotoUrl,
+              ? CustomImageView(
+                  imagePath: fotoUrl,
+                  width: MediaQuery.of(context).size.width,
+                  height: 217,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const Icon(
-                    Icons.nightlife,
-                    color: Color(0xFF666666),
-                    size: 48,
-                  ),
+                  placeHolder: ImageConstant.imgImageNotFound,
                 )
               : const Icon(Icons.nightlife,
                   color: Color(0xFF666666), size: 48),
@@ -392,74 +635,154 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
 
   Widget _buildClubName(HomeState state) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(13, 22, 13, 0),
-      child: Text(
-        state.localeVicino?.nome ?? '',
-        style: GoogleFonts.inter(
-          fontSize: 36,
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-          letterSpacing: -0.08 * 36,
-        ),
+      padding: const EdgeInsets.only(left: 14, top: 11, right: 14),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        children: [
+          Expanded(
+            child: Text(
+              state.localeVicino?.nome ?? '',
+              style: GoogleFonts.inter(
+                fontSize: 36,
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: 41 / 36,
+                letterSpacing: -0.08 * 36,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ),
+          ),
+          if (state.localeVicino != null)
+            Padding(
+              padding: const EdgeInsets.only(left: 8.0),
+              child: _AnimatedBookmark(clubId: state.localeVicino!.id),
+            ),
+        ],
       ),
     );
   }
 
-  // ── Club address ───────────────────────────────────────────────────────────
+  // ── Club details ───────────────────────────────────────────────────────────
 
-  Widget _buildClubAddress(HomeState state) {
+  Widget _buildClubDetails(HomeState state) {
     final locale = state.localeVicino;
-    final addressText = locale == null
-        ? ''
-        : [
-            if (locale.nomeCitta != null && locale.nomeCitta!.isNotEmpty)
-              locale.nomeCitta!,
-            if (locale.indirizzo != null && locale.indirizzo!.isNotEmpty)
-              locale.indirizzo!,
-          ].join(' - ');
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(13, 10, 13, 0),
-      child: Text(
-        addressText,
-        style: GoogleFonts.inter(
-          fontSize: 16,
-          fontWeight: FontWeight.w400,
-          color: Colors.white.withValues(alpha: 0.6),
-        ),
-      ),
-    );
-  }
+    if (locale == null) return const SizedBox.shrink();
 
-  // ── RISERVA button ─────────────────────────────────────────────────────────
+    String orario = '23:00 - 05:00';
+    if (state.upcomingEventi.isNotEmpty) {
+      final p = state.upcomingEventi.first;
+      if (p.orarioString.isNotEmpty) {
+        orario = p.orarioString;
+      }
+    }
 
-  Widget _buildReserveButton(BuildContext context, HomeState state) {
+    final priceStr = locale.prezzoString;
+    final emptyPrice = '€' * (5 - locale.prezzoIndicativo).clamp(0, 5);
+
+    final addr = [
+      if (locale.nomeCitta != null && locale.nomeCitta!.isNotEmpty) locale.nomeCitta!,
+      if (locale.indirizzo != null && locale.indirizzo!.isNotEmpty) locale.indirizzo!,
+    ].join(' - ');
+
     return Padding(
-      padding: const EdgeInsets.fromLTRB(11, 16, 11, 0),
-      child: _AnimatedPressButton(
-        onPressed: () => _onReservaTapped(context, state),
-        child: Container(
-          width: double.infinity,
-          height: 49,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              colors: [Color(0xFF0009FF), Color(0xFF000599)],
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              stops: [0.0, 0.8173],
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            'RISERVA IL TUO POSTO ORA',
-            style: GoogleFonts.inter(
-              fontSize: 20,
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: -0.08 * 20,
+      padding: const EdgeInsets.fromLTRB(14, 3, 14, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          // Indirizzo
+          Opacity(
+            opacity: 0.6,
+            child: Text(
+              addr,
+              style: GoogleFonts.inter(
+                fontSize: 16,
+                color: Colors.white,
+                fontWeight: FontWeight.w700,
+                height: 18 / 16,
+              ),
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
-        ),
+          const SizedBox(height: 11),
+          
+          // Orario e prezzo
+          Row(
+            children: [
+              const Opacity(
+                opacity: 0.6,
+                child: Icon(Icons.access_time, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 6),
+              Opacity(
+                opacity: 0.6,
+                child: Text(
+                  orario,
+                  style: GoogleFonts.inter(
+                    fontSize: 16,
+                    color: Colors.white,
+                    fontWeight: FontWeight.w700,
+                    height: 18 / 16,
+                  ),
+                ),
+              ),
+              const SizedBox(width: 14),
+              RichText(
+                text: TextSpan(
+                  children: [
+                    TextSpan(
+                      text: priceStr,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: Colors.white,
+                        fontWeight: FontWeight.w500,
+                        height: 22 / 16,
+                      ),
+                    ),
+                    TextSpan(
+                      text: emptyPrice,
+                      style: GoogleFonts.inter(
+                        fontSize: 16,
+                        color: Colors.white.withValues(alpha: 0.3),
+                        fontWeight: FontWeight.w500,
+                        height: 22 / 16,
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+            ],
+          ),
+          const SizedBox(height: 13),
+
+          // Generi musicali
+          Row(
+            children: [
+              const Opacity(
+                opacity: 0.6,
+                child: Icon(Icons.music_note, color: Colors.white, size: 20),
+              ),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Opacity(
+                  opacity: 0.6,
+                  child: Text(
+                    locale.generiString.isNotEmpty ? locale.generiString : 'Tutti i generi',
+                    style: GoogleFonts.inter(
+                      fontSize: 16,
+                      color: Colors.white,
+                      fontWeight: FontWeight.w700,
+                      height: 18 / 16,
+                    ),
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
       ),
     );
   }
@@ -467,23 +790,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // ── Section title ──────────────────────────────────────────────────────────
 
   Widget _buildSectionTitle(HomeState state) {
-    final hasToday = state.upcomingEventi.any((e) {
-      final now = DateTime.now();
-      return e.data.year == now.year &&
-          e.data.month == now.month &&
-          e.data.day == now.day;
-    });
-    final label = hasToday && state.upcomingEventi.length == 1
-        ? 'Questa sera'
-        : 'Prossime serate';
+    if (state.upcomingEventi.isEmpty) return const SizedBox.shrink();
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 13),
+      padding: const EdgeInsets.fromLTRB(10, 12, 10, 9),
       child: Text(
-        label,
+        'Prossime serate',
         style: GoogleFonts.inter(
-          fontSize: 24,
+          fontSize: 32,
           fontWeight: FontWeight.w700,
           color: Colors.white,
+          height: 37 / 32,
+          letterSpacing: -0.08 * 32,
         ),
       ),
     );
@@ -492,126 +809,327 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
   // ── Event cards ────────────────────────────────────────────────────────────
 
   Widget _buildEventCards(BuildContext context, HomeState state) {
+    if (state.upcomingEventi.isEmpty) return const SizedBox.shrink();
+    
     final club = state.localeVicino!;
+    
     return Column(
-      children: state.upcomingEventi.map((serata) {
-        return Padding(
-          padding: const EdgeInsets.fromLTRB(13, 0, 13, 10),
-          child: _buildEventCard(context, serata, club),
-        );
-      }).toList(),
+      children: [
+        for (int i = 0; i < state.upcomingEventi.length; i++)
+          if (i == 0)
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
+              child: _buildProminentEventCard(context, state.upcomingEventi[i], club),
+            )
+          else
+            Padding(
+              padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
+              child: _buildEventCard(context, state.upcomingEventi[i], club),
+            ),
+      ],
+    );
+  }
+
+  Widget _buildProminentEventCard(BuildContext context, SerataModel serata, LocaleModel club) {
+    final now = DateTime.now();
+    final isToday = serata.data.year == now.year && serata.data.month == now.month && serata.data.day == now.day;
+    
+    return _AnimatedPressButton(
+      onPressed: () => _navigateToEventDetailClub(context, serata, club),
+      child: Container(
+        width: 369,
+        height: 132,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            colors: [Color(0xFF000000), Color(0xFF0004D4)],
+            stops: [0.274, 0.7067],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Stack(
+          children: [
+            // Event image
+            Positioned(
+              left: 6,
+              top: 6,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 95,
+                  height: 119,
+                  color: const Color(0xFF2A2A2A),
+                  child: serata.locandinaUrl != null
+                      ? CustomImageView(
+                          imagePath: serata.locandinaUrl!,
+                          width: 95,
+                          height: 119,
+                          fit: BoxFit.cover,
+                          placeHolder: ImageConstant.imgImageNotFound,
+                        )
+                      : const Icon(Icons.music_note, color: Color(0xFF666666), size: 32),
+                ),
+              ),
+            ),
+            // Event info
+            Positioned(
+              left: 106,
+              top: 6,
+              child: Text(
+                serata.nome.isNotEmpty ? serata.nome : 'Spring Party',
+                style: GoogleFonts.inter(
+                  fontSize: 20,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  height: 23 / 20,
+                  letterSpacing: -0.08 * 20,
+                ),
+              ),
+            ),
+            if (isToday)
+              Positioned(
+                left: 106,
+                top: 39,
+                child: Text(
+                  'OGGI',
+                  style: GoogleFonts.inter(
+                    fontSize: 22.22,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    height: 26 / 22.22,
+                    letterSpacing: -0.08 * 22.22,
+                  ),
+                ),
+              ),
+            Positioned(
+              left: 110,
+              top: 74,
+              child: Text(
+                _formatDate(serata.data),
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
+                  height: 12 / 12,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 110,
+              top: 86.31,
+              child: Text(
+                serata.orarioString,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
+                  height: 12 / 12,
+                ),
+              ),
+            ),
+            Positioned(
+              left: 106,
+              top: 109,
+              child: Opacity(
+                opacity: 0.5,
+                child: Text(
+                  serata.generiMusicali.isNotEmpty ? serata.generiMusicali.join(' - ') : club.generiString,
+                  style: GoogleFonts.inter(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    height: 13 / 13,
+                  ),
+                ),
+              ),
+            ),
+            // PRENOTA Button
+            Positioned(
+              left: 274,
+              top: 47,
+              child: Container(
+                width: 86,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1500B3), Color(0xFF201064)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(6.48),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      offset: const Offset(0, 4),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'PRENOTA',
+                  style: GoogleFonts.inter(
+                    fontSize: 15.55,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    height: 18 / 15.55,
+                    letterSpacing: -0.1 * 15.55,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
     );
   }
 
   Widget _buildEventCard(
       BuildContext context, SerataModel serata, LocaleModel club) {
-    final isToday = () {
-      final now = DateTime.now();
-      return serata.data.year == now.year &&
-          serata.data.month == now.month &&
-          serata.data.day == now.day;
-    }();
-
     return _AnimatedPressButton(
       onPressed: () => _navigateToEventDetailClub(context, serata, club),
       child: Container(
-        height: 95,
+        width: 369,
+        height: 108,
         decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
+          gradient: const LinearGradient(
+            colors: [Color(0xFF000000), Color(0xFF0009FF)],
+            stops: [0.2067, 0.8173],
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+          ),
           borderRadius: BorderRadius.circular(10),
-          border: isToday
-              ? Border.all(
-                  color: const Color(0xFF0009FF).withValues(alpha: 0.5),
-                  width: 1,
-                )
-              : Border.all(
-                  color: const Color(0xFF2A2A2A),
-                  width: 0.5,
-                ),
         ),
-        child: Row(
+        child: Stack(
           children: [
             // Event image
-            ClipRRect(
-              borderRadius: const BorderRadius.horizontal(
-                  left: Radius.circular(10)),
-              child: Container(
-                width: 165,
-                height: 95,
-                color: const Color(0xFF2A2A2A),
-                child: serata.locandinaUrl != null
-                    ? Image.network(
-                        serata.locandinaUrl!,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
-                          Icons.music_note,
-                          color: Color(0xFF666666),
-                          size: 32,
-                        ),
-                      )
-                    : const Icon(Icons.music_note,
-                        color: Color(0xFF666666), size: 32),
-              ),
-            ),
-            const SizedBox(width: 10),
-            // Event info
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    // Date badge
-                    Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 8, vertical: 2),
-                      decoration: BoxDecoration(
-                        color: isToday
-                            ? const Color(0xFF0009FF).withValues(alpha: 0.25)
-                            : const Color(0xFF333333),
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      child: Text(
-                        _formatDate(serata.data),
-                        style: GoogleFonts.inter(
-                          fontSize: 10,
-                          fontWeight: FontWeight.w600,
-                          color: isToday
-                              ? const Color(0xFF6680FF)
-                              : Colors.white60,
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 5),
-                    // Event name
-                    Text(
-                      serata.nome,
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                      style: GoogleFonts.inter(
-                        fontSize: 18,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        letterSpacing: -0.08 * 18,
-                      ),
-                    ),
-                    if (serata.orarioString.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        serata.orarioString,
-                        style: GoogleFonts.inter(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white.withValues(alpha: 0.5),
-                        ),
-                      ),
-                    ],
-                  ],
+            Positioned(
+              left: 15,
+              top: 7, // 672 - 665
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: Container(
+                  width: 165,
+                  height: 95,
+                  color: const Color(0xFF2A2A2A),
+                  child: serata.locandinaUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: serata.locandinaUrl!,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 495,
+                          memCacheHeight: 285,
+                          errorWidget: (_, __, ___) => const Icon(
+                            Icons.music_note,
+                            color: Color(0xFF666666),
+                            size: 32,
+                          ),
+                        )
+                      : const Icon(Icons.music_note,
+                          color: Color(0xFF666666), size: 32),
                 ),
               ),
             ),
-            const SizedBox(width: 10),
+            // Event name
+            Positioned(
+              left: 189,
+              top: 7,
+              child: SizedBox(
+                width: 159,
+                child: Text(
+                  serata.nome,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: GoogleFonts.inter(
+                    fontSize: 32,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    height: 37 / 32,
+                    letterSpacing: -0.08 * 32,
+                  ),
+                ),
+              ),
+            ),
+            // Date
+            Positioned(
+              left: 193,
+              top: 49, // 714 - 665
+              child: Text(
+                _formatDate(serata.data),
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
+                  height: 12 / 12,
+                ),
+              ),
+            ),
+            // Hours
+            Positioned(
+              left: 193,
+              top: 60, // 725 - 665
+              child: Text(
+                serata.orarioString,
+                style: GoogleFonts.inter(
+                  fontSize: 12,
+                  fontWeight: FontWeight.w400,
+                  color: Colors.white,
+                  height: 12 / 12,
+                ),
+              ),
+            ),
+            // Location
+            Positioned(
+              left: 189,
+              top: 90, // 755 - 665
+              child: Opacity(
+                opacity: 0.8,
+                child: Text(
+                  club.nomeCitta ?? 'Milano (MI)',
+                  style: GoogleFonts.inter(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    height: 12 / 12,
+                  ),
+                ),
+              ),
+            ),
+            // PRENOTA Button
+            Positioned(
+              left: 283, // 283
+              top: 62,  // 727 - 665
+              child: Container(
+                width: 86,
+                height: 38,
+                decoration: BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0xFF1500B3), Color(0xFF201064)],
+                    begin: Alignment.centerLeft,
+                    end: Alignment.centerRight,
+                  ),
+                  borderRadius: BorderRadius.circular(6.48),
+                  boxShadow: [
+                    BoxShadow(
+                      color: Colors.black.withValues(alpha: 0.25),
+                      offset: const Offset(0, 4),
+                      blurRadius: 4,
+                    ),
+                  ],
+                ),
+                alignment: Alignment.center,
+                child: Text(
+                  'PRENOTA',
+                  style: GoogleFonts.inter(
+                    fontSize: 15.55,
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white,
+                    height: 18 / 15.55,
+                    letterSpacing: -0.1 * 15.55,
+                  ),
+                ),
+              ),
+            ),
           ],
         ),
       ),
@@ -646,8 +1164,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final isSelected = index == selected;
     return Expanded(
       child: GestureDetector(
-        onTap: () =>
-            context.read<HomeBloc>().add(HomeBottomNavSelectedEvent(index)),
+        onTap: () {
+          if (index == 1) {
+            NavigatorService.pushNamed(AppRoutes.cartScreen);
+          } else if (index == 2) {
+            // Notifications (TODO)
+          } else if (index == 3) {
+            NavigatorService.pushNamed(AppRoutes.profileScreen);
+          } else {
+            context.read<HomeBloc>().add(HomeBottomNavSelectedEvent(index));
+          }
+        },
         behavior: HitTestBehavior.opaque,
         child: SizedBox(
           height: 31,
@@ -716,6 +1243,90 @@ class _AnimatedPressButtonState extends State<_AnimatedPressButton>
       },
       onTapCancel: () => _ctrl.reverse(),
       child: ScaleTransition(scale: _scale, child: widget.child),
+    );
+  }
+}
+
+// ── Animated Bookmark ───────────────────────────────────────────────────────
+
+class _AnimatedBookmark extends StatefulWidget {
+  final String clubId;
+  const _AnimatedBookmark({Key? key, required this.clubId}) : super(key: key);
+  @override
+  _AnimatedBookmarkState createState() => _AnimatedBookmarkState();
+}
+
+class _AnimatedBookmarkState extends State<_AnimatedBookmark> with SingleTickerProviderStateMixin {
+  bool isSaved = false;
+  late AnimationController _ctrl;
+  late Animation<double> _scale;
+
+  @override
+  void initState() {
+    super.initState();
+    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
+    _scale = TweenSequence<double>([
+      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.4), weight: 50),
+      TweenSequenceItem(tween: Tween(begin: 1.4, end: 1.0), weight: 50),
+    ]).animate(_ctrl);
+    
+    _checkPreferito();
+  }
+
+  Future<void> _checkPreferito() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    final saved = await ClubService.isPreferito(user.id, widget.clubId);
+    if (mounted) {
+      setState(() => isSaved = saved);
+    }
+  }
+
+  Future<void> _togglePreferito() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+
+    final newState = !isSaved;
+    setState(() => isSaved = newState);
+    _ctrl.forward(from: 0.0);
+
+    try {
+      if (newState) {
+        await ClubService.addPreferito(user.id, widget.clubId);
+      } else {
+        await ClubService.removePreferito(user.id, widget.clubId);
+      }
+    } catch (_) {
+      // Revert in caso di errore
+      if (mounted) {
+        setState(() => isSaved = !newState);
+      }
+    }
+  }
+
+  @override
+  void dispose() {
+    _ctrl.dispose();
+    super.dispose();
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      onTap: _togglePreferito,
+      child: AnimatedBuilder(
+        animation: _scale,
+        builder: (context, child) {
+          return Transform.scale(
+            scale: _scale.value,
+            child: Icon(
+              isSaved ? Icons.bookmark : Icons.bookmark_border,
+              color: Colors.white,
+              size: 48,
+            ),
+          );
+        },
+      ),
     );
   }
 }

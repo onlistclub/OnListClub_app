@@ -18,3 +18,11 @@ class HomeBottomNavSelectedEvent extends HomeEvent {
   @override
   List<Object?> get props => [index];
 }
+
+class HomeForceGpsEvent extends HomeEvent {
+  final bool enable;
+  const HomeForceGpsEvent(this.enable);
+
+  @override
+  List<Object?> get props => [enable];
+}

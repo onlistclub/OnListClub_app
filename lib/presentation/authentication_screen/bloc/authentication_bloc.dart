@@ -169,22 +169,26 @@ class AuthenticationBloc
     try {
       // serverClientId è il Web Client ID di Google Cloud Console (type 3).
       // È obbligatorio affinché Supabase possa verificare l'idToken ricevuto.
-      // Configurare GOOGLE_WEB_CLIENT_ID in env.json seguendo docs/oauth_google_setup.md.
+      // Configurabile via --dart-define=GOOGLE_WEB_CLIENT_ID=... (fallback env.json).
       final googleSignIn = GoogleSignIn(
         serverClientId: googleWebClientId,
       );
       final googleUser = await googleSignIn.signIn();
       if (googleUser == null) {
-        // L'utente ha annullato il popup di selezione account
+        // L'utente ha annullato il popup di selezione account.
+        debugPrint('[AuthBloc] Google sign-in annullato dall\'utente');
         emit(state.copyWith(isLoading: false));
         return;
       }
       final auth = await googleUser.authentication;
       final idToken = auth.idToken;
       if (idToken == null) {
+        debugPrint(
+            '[AuthBloc] Google sign-in: idToken assente (configurazione Web Client ID errata?)');
         emit(state.copyWith(
           isLoading: false,
-          errorMessage: 'Google login fallito: idToken assente. Verificare Web Client ID in env.json.',
+          errorMessage:
+              'Google login fallito: configurazione client mancante.',
         ));
         return;
       }
@@ -194,10 +198,14 @@ class AuthenticationBloc
         accessToken: auth.accessToken,
       );
       await _handlePostOAuthLogin(emit);
+    } on AuthException catch (e) {
+      debugPrint('[AuthBloc] Google sign-in - AuthException: ${e.message}');
+      emit(state.copyWith(isLoading: false, errorMessage: e.message));
     } catch (e) {
+      debugPrint('[AuthBloc] Google sign-in - errore inatteso: $e');
       emit(state.copyWith(
         isLoading: false,
-        errorMessage: e is AuthException ? e.message : 'Google login fallito',
+        errorMessage: 'Google login fallito. Riprova.',
       ));
     }
   }
@@ -208,6 +216,9 @@ class AuthenticationBloc
   ) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
     try {
+      // rawNonce viene generato qui e l'hash sha256 viene inviato ad Apple.
+      // Supabase verifica server-side che l'hash del rawNonce passato coincida
+      // con il nonce dentro l'idToken: questo previene replay attack.
       final rawNonce = _generateNonce();
       final hashedNonce = _sha256ofString(rawNonce);
       final credential = await SignInWithApple.getAppleIDCredential(
@@ -219,7 +230,10 @@ class AuthenticationBloc
       );
       final idToken = credential.identityToken;
       if (idToken == null) {
-        emit(state.copyWith(isLoading: false, errorMessage: 'Apple login fallito'));
+        debugPrint('[AuthBloc] Apple sign-in: identityToken assente');
+        emit(state.copyWith(
+            isLoading: false,
+            errorMessage: 'Apple login fallito: token non ricevuto.'));
         return;
       }
       await Supabase.instance.client.auth.signInWithIdToken(
@@ -228,11 +242,34 @@ class AuthenticationBloc
         nonce: rawNonce,
       );
       await _handlePostOAuthLogin(emit);
+    } on SignInWithAppleAuthorizationException catch (e) {
+      // Codici: canceled, failed, invalidResponse, notHandled, unknown.
+      debugPrint(
+          '[AuthBloc] Apple sign-in - SignInWithAppleAuthorizationException: code=${e.code} msg=${e.message}');
+      if (e.code == AuthorizationErrorCode.canceled) {
+        emit(state.copyWith(isLoading: false));
+      } else {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: 'Apple login fallito (${e.code.name}).',
+        ));
+      }
+    } on AuthException catch (e) {
+      debugPrint('[AuthBloc] Apple sign-in - AuthException: ${e.message}');
+      emit(state.copyWith(isLoading: false, errorMessage: e.message));
     } catch (e) {
+      debugPrint('[AuthBloc] Apple sign-in - errore inatteso: $e');
       emit(state.copyWith(
         isLoading: false,
-        errorMessage: e is AuthException ? e.message : 'Apple login fallito',
+        errorMessage: 'Apple login fallito. Riprova.',
       ));
     }
+  }
+
+  @override
+  Future<void> close() {
+    state.emailController?.dispose();
+    state.passwordController?.dispose();
+    return super.close();
   }
 }

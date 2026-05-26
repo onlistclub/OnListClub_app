@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/app_export.dart';
+import '../../core/utils/analytics_mixin.dart';
 import 'bloc/location_permission_bloc.dart';
 
-class LocationPermissionScreen extends StatelessWidget {
+class LocationPermissionScreen extends StatefulWidget {
   const LocationPermissionScreen({Key? key}) : super(key: key);
 
   static Widget builder(BuildContext context) {
@@ -13,6 +14,14 @@ class LocationPermissionScreen extends StatelessWidget {
       child: const LocationPermissionScreen(),
     );
   }
+
+  @override
+  State<LocationPermissionScreen> createState() => _LocationPermissionScreenState();
+}
+
+class _LocationPermissionScreenState extends State<LocationPermissionScreen> with ScreenAnalytics {
+  @override
+  String get screenName => 'location_permission';
 
   @override
   Widget build(BuildContext context) {
@@ -41,7 +50,6 @@ class LocationPermissionScreen extends StatelessWidget {
               child: Column(
                 children: [
                   const Spacer(flex: 3),
-                  // Icona posizione
                   Container(
                     width: 88,
                     height: 88,
@@ -56,7 +64,6 @@ class LocationPermissionScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 32),
-                  // Titolo
                   Text(
                     'Abilita la posizione precisa',
                     style: GoogleFonts.inter(
@@ -67,7 +74,6 @@ class LocationPermissionScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  // Sottotitolo
                   Text(
                     'La tua posizione sarà usata per mostrarti\neventi e locali vicino a te.',
                     style: GoogleFonts.inter(
@@ -78,7 +84,6 @@ class LocationPermissionScreen extends StatelessWidget {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 40),
-                  // Bottone Apri Impostazioni
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -110,7 +115,6 @@ class LocationPermissionScreen extends StatelessWidget {
                     ),
                   ),
                   const SizedBox(height: 14),
-                  // Bottone Ricordamelo dopo
                   SizedBox(
                     width: double.infinity,
                     height: 52,
@@ -139,7 +143,6 @@ class LocationPermissionScreen extends StatelessWidget {
                     ),
                   ),
                   const Spacer(flex: 2),
-                  // Nota di sicurezza
                   Row(
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [

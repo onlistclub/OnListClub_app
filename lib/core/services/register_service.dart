@@ -28,7 +28,7 @@ class RegisterService {
     final isAdult = AgeCalculator.isAdult(dataNascita);
     try {
       final result = await _client.rpc('register_user_transaction', params: {
-        'p_user_id': userId,
+        'p_id_utente': userId,
         'p_nome': nome,
         'p_cognome': cognome,
         'p_email': email,
@@ -56,9 +56,7 @@ Future<String> resolveCountryIdFromIso(String isoCode) async {
       .eq('iso_code', iso)
       .maybeSingle();
 
-  // Debug
-  // ignore: avoid_print
-  print('[resolveCountryIdFromIso] iso=$iso row=$row');
+  debugPrint('[resolveCountryIdFromIso] iso=$iso row=$row');
 
   final id = row?['id'];
   if (id == null) throw StateError('Paese non trovato per ISO $iso');
@@ -89,11 +87,11 @@ Future<String> resolveCountryIdFromIso(String isoCode) async {
       'maggiorenne': maggiorenne,
     });
     await _client.from('utenti_numeri_telefono').upsert({
-      'user_id': userId,
+      'id_utente': userId,
       'country_id': countryId,
       'telefono': nationalNumber,
       'is_primary': true,
       'is_verified': false,
-    }, onConflict: 'user_id,telefono');
+    }, onConflict: 'id_utente,telefono');
   }
 }

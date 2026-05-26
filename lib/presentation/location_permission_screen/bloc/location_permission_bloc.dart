@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:geolocator/geolocator.dart';
+import '../../../core/services/analytics_service.dart';
 import '../../../core/services/location_service.dart';
 
 part 'location_permission_event.dart';
@@ -37,14 +38,17 @@ class LocationPermissionBloc
       if (permission == LocationPermission.deniedForever) {
         // User permanently denied: open phone settings
         await LocationService.openSettings();
+        AnalyticsService.logGpsPermission(granted: false);
         emit(state.copyWith(isLoading: false));
       } else {
         // Request permission → triggers native OS dialog
         final result = await LocationService.requestPermission();
         if (result == LocationPermission.always ||
             result == LocationPermission.whileInUse) {
+          AnalyticsService.logGpsPermission(granted: true);
           emit(state.copyWith(isLoading: false, isPermissionGranted: true));
         } else {
+          AnalyticsService.logGpsPermission(granted: false);
           emit(state.copyWith(isLoading: false));
         }
       }

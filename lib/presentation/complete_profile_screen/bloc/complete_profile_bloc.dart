@@ -125,22 +125,47 @@ class CompleteProfileBloc
       final cleaned = nn.replaceAll(RegExp(r'\D'), '');
       final countryId = await RegisterService().resolveCountryIdFromIso(iso);
 
-      await Supabase.instance.client.from('utenti').upsert({
-        'id': user.id,
-        'nome': model.firstName,
-        'cognome': model.lastName,
-        'email': user.email,
-        'data_nascita': dob.toIso8601String(),
-        'maggiorenne': DateTime.now().difference(dob).inDays >= 365 * 18,
-      });
+      // Upsert profilo utente: chiediamo l'eco della riga inserita per
+      // verificare che l'operazione abbia davvero scritto (potrebbe non farlo
+      // silenziosamente in caso di RLS policy negativa).
+      final utenteRows = await Supabase.instance.client
+          .from('utenti')
+          .upsert({
+            'id': user.id,
+            'nome': model.firstName,
+            'cognome': model.lastName,
+            'email': user.email,
+            'data_nascita': dob.toIso8601String(),
+            'maggiorenne': DateTime.now().difference(dob).inDays >= 365 * 18,
+          })
+          .select();
+      if ((utenteRows as List).isEmpty) {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage:
+              'Impossibile salvare il profilo. Riprova fra qualche secondo.',
+        ));
+        return;
+      }
 
-      await Supabase.instance.client.from('utenti_numeri_telefono').upsert({
-        'user_id': user.id,
-        'country_id': countryId,
-        'telefono': cleaned,
-        'is_primary': true,
-        'is_verified': false,
-      }, onConflict: 'user_id,telefono');
+      final telefonoRows = await Supabase.instance.client
+          .from('utenti_numeri_telefono')
+          .upsert({
+            'id_utente': user.id,
+            'country_id': countryId,
+            'telefono': cleaned,
+            'is_primary': true,
+            'is_verified': false,
+          }, onConflict: 'id_utente,telefono')
+          .select();
+      if ((telefonoRows as List).isEmpty) {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage:
+              'Impossibile salvare il numero di telefono. Riprova.',
+        ));
+        return;
+      }
 
       emit(state.copyWith(isLoading: false, isSuccess: true));
     } catch (e) {
@@ -149,5 +174,15 @@ class CompleteProfileBloc
         errorMessage: 'Errore salvataggio: $e',
       ));
     }
+  }
+
+  @override
+  Future<void> close() {
+    state.firstNameController?.dispose();
+    state.lastNameController?.dispose();
+    state.emailController?.dispose();
+    state.dobController?.dispose();
+    state.phoneController?.dispose();
+    return super.close();
   }
 }

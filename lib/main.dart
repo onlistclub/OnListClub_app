@@ -6,14 +6,24 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 // Assicurati che 'core/app_export.dart' non contenga logica bloccante sincrona.
 import 'core/app_export.dart';
+import 'core/services/location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
 
 var globalMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
-/// Google Web Client ID letto da env.json — necessario come serverClientId per
-/// autenticare i token Google tramite Supabase Auth.
-/// Da compilare in env.json dopo aver creato le credenziali su Google Cloud Console.
+// Chiavi lette a build-time da --dart-define. Esempio:
+//   flutter run --dart-define=SUPABASE_URL=... \
+//               --dart-define=SUPABASE_ANON_KEY=... \
+//               --dart-define=GOOGLE_WEB_CLIENT_ID=...
+// In assenza di --dart-define, si fa fallback su env.json (solo per dev locale).
+const _kSupabaseUrlDefine = String.fromEnvironment('SUPABASE_URL');
+const _kSupabaseAnonKeyDefine = String.fromEnvironment('SUPABASE_ANON_KEY');
+const _kGoogleWebClientIdDefine =
+    String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+
+/// Google Web Client ID — necessario come serverClientId per autenticare i
+/// token Google tramite Supabase Auth.
 String? googleWebClientId;
 
 void main() {
@@ -46,20 +56,43 @@ class _MyAppState extends State<MyApp> {
       ]);
 
       debugPrint('[Startup] Loading env...');
-      final env = await _loadEnvSafe();
+      // Priorità: --dart-define (sicuro, non finisce negli asset).
+      // Fallback: env.json (dev locale, da rimuovere prima della release).
+      String supabaseUrl = _kSupabaseUrlDefine;
+      String supabaseAnonKey = _kSupabaseAnonKeyDefine;
+      String? googleClientId =
+          _kGoogleWebClientIdDefine.isEmpty ? null : _kGoogleWebClientIdDefine;
 
-      // Rende disponibile il Web Client ID a tutto l'albero dell'app
-      googleWebClientId = env['GOOGLE_WEB_CLIENT_ID'] as String?;
-      if (googleWebClientId == null || googleWebClientId!.contains('SOSTITUIRE')) {
-        debugPrint('[Startup] ⚠️ GOOGLE_WEB_CLIENT_ID non configurato — Google Sign-In non funzionerà.');
+      if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+        debugPrint(
+            '[Startup] ⚠️ --dart-define non impostate, fallback a env.json');
+        final env = await _loadEnvSafe();
+        if (supabaseUrl.isEmpty) {
+          supabaseUrl = (env['SUPABASE_URL'] as String?) ?? '';
+        }
+        if (supabaseAnonKey.isEmpty) {
+          supabaseAnonKey = (env['SUPABASE_ANON_KEY'] as String?) ?? '';
+        }
+        googleClientId ??= env['GOOGLE_WEB_CLIENT_ID'] as String?;
+      }
+
+      googleWebClientId = googleClientId;
+      if (googleWebClientId == null ||
+          googleWebClientId!.contains('SOSTITUIRE')) {
+        debugPrint(
+            '[Startup] ⚠️ GOOGLE_WEB_CLIENT_ID non configurato — Google Sign-In non funzionerà.');
         googleWebClientId = null;
       }
 
       debugPrint('[Startup] Initializing Supabase...');
       await Supabase.initialize(
-        url: env['SUPABASE_URL'] ?? '',
-        anonKey: env['SUPABASE_ANON_KEY'] ?? '',
+        url: supabaseUrl,
+        anonKey: supabaseAnonKey,
       );
+
+      // Ripristina i flag persistenti che vengono letti sincronicamente
+      // a runtime (es. LocationService.isGpsForced).
+      await LocationService.loadGpsForcedFromPrefs();
       debugPrint('[Startup] Initialization complete.');
     } catch (e) {
       debugPrint('[Startup] Initialization error: $e');

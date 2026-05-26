@@ -11,13 +11,9 @@ dependencies:
   flutter_svg: ^2.0.12
   cached_network_image: ^3.4.1
   shared_preferences: ^2.3.3
-  connectivity_plus: ^7.0.0
-  gradient_borders: ^1.0.2
   flutter_bloc: ^9.1.1
   equatable: ^2.0.5
-  universal_html: ^2.2.4
   supabase_flutter: ^2.6.0
-  intl_phone_field: ^3.2.0
   intl_phone_number_input: ^0.7.4
   phone_numbers_parser: ^8.2.0
   google_fonts: ^8.0.1
@@ -28,23 +24,20 @@ dependencies:
   url_launcher: ^6.3.0
   flutter_map: ^7.0.2
   latlong2: ^0.9.1
+  qr_flutter: ^4.1.0
+  geocoding: ^4.0.0
 dev_dependencies:
   flutter_test:    # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
     sdk: flutter   # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
   flutter_launcher_icons: ^0.13.1
 # ...resto del file...   
 
-flutter: 
+flutter:
   uses-material-design: true # 🚨 CRITICAL: Required for Material icon font - DO NOT REMOVE
-  assets: 
+  assets:
     - assets/
     - assets/images/
     - env.json
-  fonts: 
-    - family: Tilt Warp
-      fonts: 
-        - asset: assets/fonts/TiltWarpRegular.ttf
-          weight: 400
 
 flutter_icons:
   android: true

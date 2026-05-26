@@ -1,11 +1,12 @@
 import 'dart:math';
+import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/locale_model.dart';
 import '../models/serata_model.dart';
 
 /// SELECT con JOIN verso citta per ottenere nome_citta e coordinate città.
 /// Le coordinate città servono come fallback per locali senza lat/lng propri.
-const _localiSelect = '*, citta!id_citta(nome_citta, lat, lng)';
+const _localiSelect = '*, citta(nome_citta, lat, lng)';
 
 class ClubService {
   static SupabaseClient get _client => Supabase.instance.client;
@@ -24,13 +25,17 @@ class ClubService {
   /// Recupera l'evento attivo di oggi per un locale.
   static Future<SerataModel?> getEventoOggi(String clubId) async {
     final oggi = DateTime.now().toIso8601String().substring(0, 10);
+    final oggiInizio = '${oggi}T00:00:00Z';
+    final domaniInizio = DateTime.now().add(const Duration(days: 1)).toIso8601String().substring(0, 10) + 'T00:00:00Z';
+    
     final response = await _client
         .from('eventi')
         .select()
         .eq('club_id', clubId)
-        .eq('data', oggi)
+        .gte('inizio_evento', oggiInizio)
+        .lt('inizio_evento', domaniInizio)
         .eq('stato', 'attivo')
-        .order('ora_apertura')
+        .order('inizio_evento')
         .limit(1)
         .maybeSingle();
     if (response == null) return null;
@@ -43,14 +48,15 @@ class ClubService {
     int limit = 10,
   }) async {
     final oggi = DateTime.now().toIso8601String().substring(0, 10);
+    final oggiInizio = '${oggi}T00:00:00Z';
+    
     final response = await _client
         .from('eventi')
         .select()
         .eq('club_id', clubId)
         .eq('stato', 'attivo')
-        .gte('data', oggi)
-        .order('data')
-        .order('ora_apertura')
+        .gte('inizio_evento', oggiInizio)
+        .order('inizio_evento')
         .limit(limit);
     return (response as List<dynamic>)
         .whereType<Map<String, dynamic>>()
@@ -104,28 +110,34 @@ class ClubService {
       return getLocaliByFamosita(limit: 50);
     }
 
-    final response = await _client
-        .from('locali')
-        .select(_localiSelect);
+    try {
+      final response = await _client
+          .from('locali')
+          .select(_localiSelect);
 
-    var locali = (response as List<dynamic>)
-        .whereType<Map<String, dynamic>>()
-        .map((m) => LocaleModel.fromMap(m))
-        .where((l) => l.lat != null && l.lng != null)
-        .toList();
-
-    if (raggioKm != null) {
-      locali = locali
-          .where((l) => _haversineKm(lat, lng, l.lat!, l.lng!) <= raggioKm)
+      var locali = (response as List<dynamic>)
+          .whereType<Map<String, dynamic>>()
+          .map((m) => LocaleModel.fromMap(m))
+          .where((l) => l.lat != null && l.lng != null)
           .toList();
+
+      if (raggioKm != null) {
+        locali = locali
+            .where((l) => _haversineKm(lat, lng, l.lat!, l.lng!) <= raggioKm)
+            .toList();
+      }
+
+      locali.sort((a, b) {
+        final da = _haversineKm(lat, lng, a.lat!, a.lng!);
+        final db = _haversineKm(lat, lng, b.lat!, b.lng!);
+        return da.compareTo(db);
+      });
+      return locali;
+    } catch (e, stacktrace) {
+      debugPrint("[DEBUG] ERRORE MENTRE CARICO I LOCALI: $e\n$stacktrace");
+      return [];
     }
 
-    locali.sort((a, b) {
-      final da = _haversineKm(lat, lng, a.lat!, a.lng!);
-      final db = _haversineKm(lat, lng, b.lat!, b.lng!);
-      return da.compareTo(db);
-    });
-    return locali;
   }
 
   /// Controlla se un locale è nei preferiti dell'utente.
@@ -133,7 +145,7 @@ class ClubService {
     final response = await _client
         .from('preferiti')
         .select('id')
-        .eq('user_id', userId)
+        .eq('id_utente', userId)
         .eq('locale_id', localeId)
         .maybeSingle();
     return response != null;
@@ -142,7 +154,7 @@ class ClubService {
   /// Aggiunge un locale ai preferiti.
   static Future<void> addPreferito(String userId, String localeId) async {
     await _client.from('preferiti').insert({
-      'user_id': userId,
+      'id_utente': userId,
       'locale_id': localeId,
     });
   }
@@ -152,7 +164,7 @@ class ClubService {
     await _client
         .from('preferiti')
         .delete()
-        .eq('user_id', userId)
+        .eq('id_utente', userId)
         .eq('locale_id', localeId);
   }
 

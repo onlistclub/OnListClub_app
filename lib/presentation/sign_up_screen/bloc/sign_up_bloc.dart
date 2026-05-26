@@ -133,6 +133,17 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       final model = state.signUpModel;
       if (model == null) return;
 
+      // Guard di sicurezza: anche se la UI valida le password, il BLoC non si
+      // affida solo al form — un evento sparato a mano o controller fuori sync
+      // potrebbero arrivare qui con password e confirmPassword diverse.
+      if (model.password.isEmpty || model.password != model.confirmPassword) {
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage: 'Le password non coincidono',
+        ));
+        return;
+      }
+
       final client = Supabase.instance.client;
 
       final response = await client.auth.signUp(
@@ -171,13 +182,13 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
             'maggiorenne': isAdult,
           });
           await Supabase.instance.client.from('utenti_numeri_telefono').upsert({
-            'user_id': user.id,
+            'id_utente': user.id,
             'country_id': countryId,
             'telefono': cleaned,
             'is_primary': true,
             'is_verified': false,
-          }, onConflict: 'user_id,telefono');
-          debugPrint('[SignUpBloc] utenti_numeri_telefono upserted payload: {user_id:${user.id}, country_id:$countryId, telefono:$cleaned}');
+          }, onConflict: 'id_utente,telefono');
+          debugPrint('[SignUpBloc] utenti_numeri_telefono upserted payload: {id_utente:${user.id}, country_id:$countryId, telefono:$cleaned}');
           emit(state.copyWith(isLoading: false, isSuccess: true));
         } catch (e) {
           debugPrint('[SignUpBloc] Insert error: $e');
@@ -197,5 +208,17 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
         errorMessage: e is AuthException ? e.message : 'Registration failed: $e',
       ));
     }
+  }
+
+  @override
+  Future<void> close() {
+    state.firstNameController?.dispose();
+    state.lastNameController?.dispose();
+    state.emailController?.dispose();
+    state.passwordController?.dispose();
+    state.confirmPasswordController?.dispose();
+    state.dobController?.dispose();
+    state.phoneController?.dispose();
+    return super.close();
   }
 }

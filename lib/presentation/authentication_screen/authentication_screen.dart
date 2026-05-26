@@ -3,10 +3,12 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
 import '../../core/services/location_service.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/utils/analytics_mixin.dart';
 import './bloc/authentication_bloc.dart';
 import './models/authentication_model.dart';
 
-class AuthenticationScreen extends StatelessWidget {
+class AuthenticationScreen extends StatefulWidget {
   const AuthenticationScreen({Key? key}) : super(key: key);
 
   static Widget builder(BuildContext context) {
@@ -20,12 +22,21 @@ class AuthenticationScreen extends StatelessWidget {
   }
 
   @override
+  State<AuthenticationScreen> createState() => _AuthenticationScreenState();
+}
+
+class _AuthenticationScreenState extends State<AuthenticationScreen> with ScreenAnalytics {
+  @override
+  String get screenName => 'authentication';
+
+  @override
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: const Color(0xFF0000FF),
       body: BlocConsumer<AuthenticationBloc, AuthenticationState>(
         listener: (context, state) {
           if (state.isLoginSuccess) {
+            AnalyticsService.log(event: 'login_success');
             LocationService.shouldShowLocationPrompt().then((show) {
               NavigatorService.pushNamedAndRemoveUntil(
                 show
@@ -35,6 +46,7 @@ class AuthenticationScreen extends StatelessWidget {
             });
           }
           if (state.needsProfileCompletion) {
+            AnalyticsService.log(event: 'registration_oauth_started');
             NavigatorService.pushNamed(
               AppRoutes.completeProfileScreen,
               arguments: {
@@ -45,6 +57,7 @@ class AuthenticationScreen extends StatelessWidget {
             );
           }
           if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+            AnalyticsService.log(event: 'login_error', metadata: {'error': state.errorMessage});
             ScaffoldMessenger.of(context).showSnackBar(
               SnackBar(content: Text(state.errorMessage!)),
             );
@@ -60,7 +73,6 @@ class AuthenticationScreen extends StatelessWidget {
                   crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
                     const SizedBox(height: 72),
-                    // Titolo
                     Text(
                       'Accedi',
                       style: GoogleFonts.inter(
@@ -70,7 +82,6 @@ class AuthenticationScreen extends StatelessWidget {
                       ),
                     ),
                     const SizedBox(height: 40),
-                    // Campo Email
                     _UnderlineField(
                       controller: state.emailController,
                       label: 'Email',
@@ -88,7 +99,6 @@ class AuthenticationScreen extends StatelessWidget {
                           .add(EmailChangedEvent(email: v)),
                     ),
                     const SizedBox(height: 28),
-                    // Campo Password
                     _UnderlinePasswordField(
                       controller: state.passwordController,
                       onChanged: (v) => context
@@ -96,7 +106,6 @@ class AuthenticationScreen extends StatelessWidget {
                           .add(PasswordChangedEvent(password: v)),
                     ),
                     const SizedBox(height: 40),
-                    // Bottoni Accedi / Registrati affiancati e centrati
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -108,29 +117,36 @@ class AuthenticationScreen extends StatelessWidget {
                         const SizedBox(width: 16),
                         _BlackButton(
                           label: 'Registrati',
-                          onTap: () =>
-                              NavigatorService.pushNamed(AppRoutes.signUpScreen),
+                          onTap: () {
+                            AnalyticsService.log(event: 'registration_email_started');
+                            NavigatorService.pushNamed(AppRoutes.signUpScreen);
+                          },
                           width: 130,
                         ),
                       ],
                     ),
                     const SizedBox(height: 60),
-                    // OAuth buttons
                     if (state.isLoading)
                       const Center(
                         child: CircularProgressIndicator(color: Colors.white),
                       )
                     else ...[
                       _AppleButton(
-                        onTap: () => context
-                            .read<AuthenticationBloc>()
-                            .add(AppleSignInEvent()),
+                        onTap: () {
+                          AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'apple'});
+                          context
+                              .read<AuthenticationBloc>()
+                              .add(AppleSignInEvent());
+                        },
                       ),
                       const SizedBox(height: 12),
                       _GoogleButton(
-                        onTap: () => context
-                            .read<AuthenticationBloc>()
-                            .add(GoogleSignInEvent()),
+                        onTap: () {
+                          AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'google'});
+                          context
+                              .read<AuthenticationBloc>()
+                              .add(GoogleSignInEvent());
+                        },
                       ),
                       const SizedBox(height: 12),
                       _StaffButton(
@@ -155,6 +171,7 @@ class AuthenticationScreen extends StatelessWidget {
 
   void _onTapAccedi(BuildContext context, AuthenticationState state) {
     if (state.formKey?.currentState?.validate() ?? false) {
+      AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'email'});
       context.read<AuthenticationBloc>().add(LoginButtonPressedEvent());
     }
   }

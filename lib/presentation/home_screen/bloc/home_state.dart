@@ -7,6 +7,8 @@ class HomeState extends Equatable {
   final LocaleModel? localeVicino;
   final List<SerataModel> upcomingEventi;
   final int raggioKm;
+  final bool isGpsForced;
+  final String locationSourceLabel;
 
   const HomeState({
     this.homeModel,
@@ -15,6 +17,8 @@ class HomeState extends Equatable {
     this.localeVicino,
     this.upcomingEventi = const [],
     this.raggioKm = 20,
+    this.isGpsForced = false,
+    this.locationSourceLabel = '',
   });
 
   @override
@@ -25,6 +29,8 @@ class HomeState extends Equatable {
         localeVicino,
         upcomingEventi,
         raggioKm,
+        isGpsForced,
+        locationSourceLabel,
       ];
 
   HomeState copyWith({
@@ -34,6 +40,8 @@ class HomeState extends Equatable {
     LocaleModel? localeVicino,
     List<SerataModel>? upcomingEventi,
     int? raggioKm,
+    bool? isGpsForced,
+    String? locationSourceLabel,
   }) {
     return HomeState(
       homeModel: homeModel ?? this.homeModel,
@@ -43,6 +51,8 @@ class HomeState extends Equatable {
       localeVicino: localeVicino ?? this.localeVicino,
       upcomingEventi: upcomingEventi ?? this.upcomingEventi,
       raggioKm: raggioKm ?? this.raggioKm,
+      isGpsForced: isGpsForced ?? this.isGpsForced,
+      locationSourceLabel: locationSourceLabel ?? this.locationSourceLabel,
     );
   }
 }

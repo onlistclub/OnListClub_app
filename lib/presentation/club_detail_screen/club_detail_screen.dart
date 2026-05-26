@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
@@ -5,22 +6,32 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../core/app_export.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
-import '../../widgets/custom_image_view.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/utils/analytics_mixin.dart';
+import '../../widgets/custom_top_bar.dart';
+import '../../widgets/shared_footer.dart';
 import 'bloc/club_detail_bloc.dart';
 
 class ClubDetailScreen extends StatefulWidget {
   const ClubDetailScreen({Key? key}) : super(key: key);
 
   static Widget builder(BuildContext context) {
-    final locale =
-        ModalRoute.of(context)?.settings.arguments as LocaleModel?;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    LocaleModel? locale;
+
+    if (args is LocaleModel) {
+      locale = args;
+    } else if (args is Map<String, dynamic>) {
+      locale = LocaleModel.fromMap(args);
+    }
+
     if (locale == null) {
       WidgetsBinding.instance.addPostFrameCallback(
           (_) => Navigator.of(context, rootNavigator: true).maybePop());
       return const Scaffold(backgroundColor: Color(0xFF0D0D0D));
     }
     return BlocProvider<ClubDetailBloc>(
-      create: (_) => ClubDetailBloc(ClubDetailState(locale: locale))
+      create: (_) => ClubDetailBloc(ClubDetailState(locale: locale!))
         ..add(ClubDetailInitialEvent()),
       child: const ClubDetailScreen(),
     );
@@ -31,7 +42,10 @@ class ClubDetailScreen extends StatefulWidget {
 }
 
 class _ClubDetailScreenState extends State<ClubDetailScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ScreenAnalytics {
+  @override
+  String get screenName => 'club_detail';
+
   // ── Staggered entrance animations ──────────────────────────────────────────
   late AnimationController _staggerCtrl;
   late Animation<double> _appBarFade;
@@ -63,6 +77,14 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   @override
   void initState() {
     super.initState();
+
+    // Analytics: log club visualizzato
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      final locale = ModalRoute.of(context)?.settings.arguments as LocaleModel?;
+      if (locale != null) {
+        AnalyticsService.logClubViewed(clubId: locale.id, clubName: locale.nome);
+      }
+    });
 
     _staggerCtrl = AnimationController(
       vsync: this,
@@ -193,7 +215,16 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
       body: BlocConsumer<ClubDetailBloc, ClubDetailState>(
+        listenWhen: (prev, curr) =>
+            prev.showFavoriteBadge != curr.showFavoriteBadge,
         listener: (context, state) => _syncBadgeAnimation(state.showFavoriteBadge),
+        buildWhen: (prev, curr) =>
+            prev.locale != curr.locale ||
+            prev.eventoOggi != curr.eventoOggi ||
+            prev.serate != curr.serate ||
+            prev.isLoading != curr.isLoading ||
+            prev.isPreferito != curr.isPreferito ||
+            prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
         builder: (context, state) {
           return SafeArea(
             child: Column(
@@ -203,7 +234,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   position: _appBarSlide,
                   child: FadeTransition(
                     opacity: _appBarFade,
-                    child: _buildAppBar(),
+                    child: const CustomTopBar(),
                   ),
                 ),
                 // Body
@@ -277,19 +308,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                     ),
                   ),
                 ),
-                // Bottom nav
-                SlideTransition(
-                  position: _navSlide,
-                  child: FadeTransition(
-                    opacity: _navFade,
-                    child: _buildBottomNav(context, state),
-                  ),
-                ),
               ],
             ),
           );
         },
       ),
+      bottomNavigationBar: const SharedFooter(currentIndex: 0),
     );
   }
 
@@ -336,10 +360,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
               height: 217,
               color: const Color(0xFF1A1A2E),
               child: state.locale.fotoUrl != null
-                  ? Image.network(
-                      state.locale.fotoUrl!,
+                  ? CachedNetworkImage(
+                      imageUrl: state.locale.fotoUrl!,
                       fit: BoxFit.cover,
-                      errorBuilder: (_, __, ___) =>
+                      errorWidget: (_, __, ___) =>
                           const Icon(Icons.nightlife, color: Color(0xFF666666), size: 48),
                     )
                   : const Icon(Icons.nightlife, color: Color(0xFF666666), size: 48),
@@ -809,10 +833,12 @@ class _SerataCard extends StatelessWidget {
                 width: 72,
                 height: 88,
                 child: serata.locandinaUrl != null
-                    ? Image.network(
-                        serata.locandinaUrl!,
+                    ? CachedNetworkImage(
+                        imageUrl: serata.locandinaUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
+                        memCacheWidth: 216,
+                        memCacheHeight: 264,
+                        errorWidget: (_, __, ___) => Container(
                           color: const Color(0xFF2A2A2A),
                           child: const Icon(Icons.event,
                               color: Color(0xFF555555), size: 28),

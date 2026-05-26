@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
 import '../../core/utils/image_constant.dart';
 import '../../core/utils/navigator_service.dart';
+import '../../core/services/analytics_service.dart';
+import '../../core/utils/analytics_mixin.dart';
 import '../../routes/app_routes.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -12,17 +15,32 @@ class SplashScreen extends StatefulWidget {
   State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State<SplashScreen> {
+class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
+  @override
+  String get screenName => 'splash';
+
   @override
   void initState() {
     super.initState();
-    Future.delayed(const Duration(milliseconds: 1800), () {
-      if (mounted) {
-        NavigatorService.pushNamedAndRemoveUntil(
-          AppRoutes.authenticationScreen,
-        );
+    AnalyticsService.log(event: 'app_open');
+    _checkSession();
+  }
+
+  Future<void> _checkSession() async {
+    await Future.delayed(const Duration(milliseconds: 1800));
+    if (!mounted) return;
+    
+    try {
+      final session = Supabase.instance.client.auth.currentSession;
+      if (session != null) {
+        NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
+      } else {
+        NavigatorService.pushNamedAndRemoveUntil(AppRoutes.authenticationScreen);
       }
-    });
+    } catch (e) {
+      debugPrint('[Splash] Session check error: $e');
+      NavigatorService.pushNamedAndRemoveUntil(AppRoutes.authenticationScreen);
+    }
   }
 
   @override

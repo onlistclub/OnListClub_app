@@ -1,18 +1,19 @@
+import 'dart:async';
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:latlong2/latlong.dart';
-
 import '../../core/models/citta_model.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/services/club_service.dart';
 import '../../core/services/location_service.dart';
-import '../../core/utils/image_constant.dart';
 import '../../core/utils/navigator_service.dart';
 import '../../core/utils/user_profile_manager.dart';
 import '../../routes/app_routes.dart';
+import '../../core/utils/analytics_mixin.dart';
+import '../../widgets/custom_top_bar.dart';
 
 enum _SortMode { distanza, popolarita }
 
@@ -33,14 +34,19 @@ class NearbyClubsScreen extends StatefulWidget {
   State<NearbyClubsScreen> createState() => _NearbyClubsScreenState();
 }
 
-class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
+class _NearbyClubsScreenState extends State<NearbyClubsScreen>
+    with ScreenAnalytics {
+  @override
+  String get screenName => 'search_nearby';
+
   late Future<_NearbyData> _future;
   String _searchQuery = '';
   _SortMode _sortMode = _SortMode.distanza;
   final Set<String> _selectedGeneri = {};
   final Set<String> _selectedCitta = {};
   int? _selectedPrezzo; // null = tutti, 1/2/3 = €/€€/€€€
-  CittaModel? _customCity; // città cercata manualmente: ha priorità su GPS/saved
+  CittaModel?
+      _customCity; // città cercata manualmente: ha priorità su GPS/saved
 
   @override
   void initState() {
@@ -52,22 +58,17 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
 
   Future<_NearbyData> _load() async {
     final raggio = await UserProfileManager().getRaggioKm();
+    final isGpsForced = LocationService.isGpsForced;
 
     double? lat;
     double? lng;
     String? locationLabel;
+    bool gpsAttempted = false;
 
-    if (_customCity != null && _customCity!.lat != null) {
-      // Priorità 1: città cercata manualmente nell'app
-      lat = _customCity!.lat;
-      lng = _customCity!.lng;
-      locationLabel = _customCity!.nomeCitta;
-    } else {
-      // Priorità 2: GPS
+    Future<void> tryGps() async {
+      gpsAttempted = true;
       try {
         var permission = await Geolocator.checkPermission();
-        // On web, never request permission proactively — the browser dialog
-        // can hang the Future if there's no prior user interaction.
         if (!kIsWeb && permission == LocationPermission.denied) {
           permission = await Geolocator.requestPermission();
         }
@@ -76,16 +77,28 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
           final pos = await Geolocator.getCurrentPosition(
             locationSettings: const LocationSettings(
               accuracy: LocationAccuracy.low,
-              timeLimit: Duration(seconds: 5),
+              timeLimit: Duration(seconds: 3),
             ),
           );
           lat = pos.latitude;
           lng = pos.longitude;
           locationLabel = 'GPS';
+        } else {
+          debugPrint('[NearbyClubs] GPS permesso negato: $permission');
         }
-      } catch (_) {}
+      } catch (e) {
+        debugPrint('[NearbyClubs] tryGps fallito: $e');
+      }
+    }
 
-      // Priorità 3: città salvata manualmente nelle impostazioni
+    if (_customCity != null && _customCity!.lat != null) {
+      // Priorità 1: città cercata manualmente nell'app
+      lat = _customCity!.lat;
+      lng = _customCity!.lng;
+      locationLabel = _customCity!.nomeCitta;
+    } else if (isGpsForced) {
+      // Priorità 2: GPS forzato. Se il GPS fallisce, fallback su saved.
+      await tryGps();
       if (lat == null) {
         final savedCity = await LocationService.getSavedLocation();
         if (savedCity?.lat != null) {
@@ -94,25 +107,59 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
           locationLabel = savedCity.nomeCitta;
         }
       }
+    } else {
+      // Priorità 3: città salvata manualmente nelle impostazioni
+      final savedCity = await LocationService.getSavedLocation();
+      if (savedCity?.lat != null) {
+        lat = savedCity!.lat;
+        lng = savedCity.lng;
+        locationLabel = savedCity.nomeCitta;
+      }
+
+      // Priorità 4: fallback a GPS
+      if (lat == null) {
+        await tryGps();
+      }
+    }
+
+    // Se nessuna sorgente di posizione è disponibile, mostriamo comunque
+    // i locali più popolari come fallback con etichetta esplicita.
+    final locationAvailable = lat != null && lng != null;
+    if (!locationAvailable) {
+      locationLabel = 'Locali più popolari';
     }
 
     List<LocaleModel> clubs = [];
     try {
-      clubs =
-          await ClubService.getLocaliVicini(lat, lng, raggioKm: raggio.toDouble());
-    } catch (_) {}
+      clubs = await ClubService.getLocaliVicini(lat, lng,
+          raggioKm: raggio.toDouble());
+    } catch (e) {
+      debugPrint('[NearbyClubs] getLocaliVicini fallito: $e');
+    }
     return _NearbyData(
       clubs: clubs,
       raggio: raggio,
       lat: lat,
       lng: lng,
       locationLabel: locationLabel,
+      locationAvailable: locationAvailable,
+      gpsAttempted: gpsAttempted,
     );
   }
 
   // ── Filtering ──────────────────────────────────────────────────────────────
 
+  List<LocaleModel>? _filteredCache;
+  String? _filteredCacheKey;
+
   List<LocaleModel> _filtered(List<LocaleModel> clubs) {
+    final key =
+        '${identityHashCode(clubs)}|$_searchQuery|${_selectedGeneri.join(',')}'
+        '|${_selectedCitta.join(',')}|$_selectedPrezzo|${_sortMode.index}';
+    if (key == _filteredCacheKey && _filteredCache != null) {
+      return _filteredCache!;
+    }
+
     var list = clubs.where((c) {
       // Testo
       if (_searchQuery.isNotEmpty) {
@@ -139,9 +186,11 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
     }).toList();
 
     if (_sortMode == _SortMode.popolarita) {
-      list = List.from(list)
-        ..sort((a, b) => b.famosita.compareTo(a.famosita));
+      list.sort((a, b) => b.famosita.compareTo(a.famosita));
     }
+
+    _filteredCache = list;
+    _filteredCacheKey = key;
     return list;
   }
 
@@ -171,8 +220,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
     double? lng,
   }) async {
     int tempRaggio = currentRaggio;
-    final mapCtrl =
-        (lat != null && lng != null) ? MapController() : null;
+    final mapCtrl = (lat != null && lng != null) ? MapController() : null;
 
     final confirmed = await showDialog<bool>(
       context: context,
@@ -193,7 +241,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                 children: [
                   Text(
                     'Cambia raggio',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
+                        fontFamily: 'Helvetica',
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 18),
@@ -258,7 +307,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                   Center(
                     child: Text(
                       '$tempRaggio km',
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
+                        fontFamily: 'Helvetica',
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -298,11 +348,15 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       Text('2 km',
-                          style: GoogleFonts.inter(
-                              fontSize: 11, color: Colors.white38)),
+                          style: TextStyle(
+                              fontFamily: 'Helvetica',
+                              fontSize: 11,
+                              color: Colors.white38)),
                       Text('50 km',
-                          style: GoogleFonts.inter(
-                              fontSize: 11, color: Colors.white38)),
+                          style: TextStyle(
+                              fontFamily: 'Helvetica',
+                              fontSize: 11,
+                              color: Colors.white38)),
                     ],
                   ),
                   const SizedBox(height: 8),
@@ -312,7 +366,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                       TextButton(
                         onPressed: () => Navigator.pop(ctx, false),
                         child: Text('Annulla',
-                            style: GoogleFonts.inter(color: Colors.white54)),
+                            style: TextStyle(
+                                fontFamily: 'Helvetica',
+                                color: Colors.white54)),
                       ),
                       const SizedBox(width: 8),
                       ElevatedButton(
@@ -323,7 +379,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                               borderRadius: BorderRadius.circular(8)),
                         ),
                         child: Text('Applica',
-                            style: GoogleFonts.inter(
+                            style: TextStyle(
+                                fontFamily: 'Helvetica',
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600)),
                       ),
@@ -340,7 +397,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
     if (confirmed == true) {
       await UserProfileManager().saveRaggioKm(tempRaggio);
       final newFuture = _load();
-      setState(() { _future = newFuture; });
+      setState(() {
+        _future = newFuture;
+      });
     }
   }
 
@@ -349,6 +408,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
   Future<void> _showCityPicker() async {
     final TextEditingController ctrl = TextEditingController();
     List<CittaModel> results = [];
+    Timer? searchDebounce;
+    // Marker monotonico per scartare risposte di chiamate ormai obsolete
+    // (es. utente digita "mil" mentre "mi" è ancora in volo).
+    int searchSeq = 0;
 
     final picked = await showDialog<CittaModel>(
       context: context,
@@ -367,7 +430,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                 children: [
                   Text(
                     'Cerca per città',
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
+                        fontFamily: 'Helvetica',
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 17),
@@ -376,12 +440,16 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                   TextField(
                     controller: ctrl,
                     autofocus: true,
-                    style: GoogleFonts.inter(
-                        color: Colors.white, fontSize: 14),
+                    style: TextStyle(
+                        fontFamily: 'Helvetica',
+                        color: Colors.white,
+                        fontSize: 14),
                     decoration: InputDecoration(
                       hintText: 'Nome città…',
-                      hintStyle:
-                          GoogleFonts.inter(color: Colors.white38, fontSize: 14),
+                      hintStyle: TextStyle(
+                          fontFamily: 'Helvetica',
+                          color: Colors.white38,
+                          fontSize: 14),
                       prefixIcon: const Icon(Icons.search,
                           color: Colors.white38, size: 20),
                       filled: true,
@@ -390,21 +458,34 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
                       ),
-                      contentPadding:
-                          const EdgeInsets.symmetric(vertical: 12),
+                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
                     ),
-                    onChanged: (v) async {
-                      if (v.trim().length >= 2) {
-                        try {
-                          final r =
-                              await LocationService.searchCitta(v.trim());
-                          setS(() => results = r);
-                        } catch (_) {
-                          setS(() => results = []);
-                        }
-                      } else {
+                    onChanged: (v) {
+                      searchDebounce?.cancel();
+                      final query = v.trim();
+                      if (query.length < 2) {
                         setS(() => results = []);
+                        return;
                       }
+                      searchSeq++;
+                      final mySeq = searchSeq;
+                      searchDebounce = Timer(
+                        const Duration(milliseconds: 300),
+                        () async {
+                          try {
+                            final r =
+                                await LocationService.searchCitta(query);
+                            // Scarta se nel frattempo l'utente ha digitato altro.
+                            if (mySeq != searchSeq) return;
+                            setS(() => results = r);
+                          } catch (e) {
+                            debugPrint(
+                                '[NearbyClubs] searchCitta fallita: $e');
+                            if (mySeq != searchSeq) return;
+                            setS(() => results = []);
+                          }
+                        },
+                      );
                     },
                   ),
                   if (results.isNotEmpty) ...[
@@ -429,8 +510,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                                   Expanded(
                                     child: Text(
                                       c.nomeCitta,
-                                      style: GoogleFonts.inter(
-                                          color: Colors.white, fontSize: 14),
+                                      style: TextStyle(
+                                          fontFamily: 'Helvetica',
+                                          color: Colors.white,
+                                          fontSize: 14),
                                     ),
                                   ),
                                 ],
@@ -445,8 +528,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                     Center(
                       child: Text(
                         'Nessuna città trovata',
-                        style: GoogleFonts.inter(
-                            color: Colors.white38, fontSize: 13),
+                        style: TextStyle(
+                            fontFamily: 'Helvetica',
+                            color: Colors.white38,
+                            fontSize: 13),
                       ),
                     ),
                   ],
@@ -456,7 +541,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                     child: TextButton(
                       onPressed: () => Navigator.pop(ctx),
                       child: Text('Annulla',
-                          style: GoogleFonts.inter(color: Colors.white54)),
+                          style: TextStyle(
+                              fontFamily: 'Helvetica', color: Colors.white54)),
                     ),
                   ),
                 ],
@@ -470,7 +556,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
     if (picked != null) {
       setState(() => _customCity = picked);
       final newFuture = _load();
-      setState(() { _future = newFuture; });
+      setState(() {
+        _future = newFuture;
+      });
     }
   }
 
@@ -478,16 +566,19 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final isGpsForced = LocationService.isGpsForced;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
       body: SafeArea(
         child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── AppBar ──────────────────────────────────────────────────────
+            // ── CustomTopBar ──
+            const CustomTopBar(showSearch: false),
+            // Subheader with back button and chips
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Row(
                 children: [
                   GestureDetector(
@@ -497,153 +588,130 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                   ),
                   const SizedBox(width: 10),
                   Expanded(
-                    child: Row(
-                      children: [
-                        Text(
-                          'Ricerca locali',
-                          style: GoogleFonts.inter(
-                            fontSize: 17,
-                            fontWeight: FontWeight.w700,
-                            color: Colors.white,
-                          ),
-                        ),
-                        const SizedBox(width: 10),
-                        FutureBuilder<_NearbyData>(
-                          future: _future,
-                          builder: (_, snap) {
-                            final raggio = snap.data?.raggio ?? 20;
-                            final locLabel = snap.data?.locationLabel;
-                            return Row(
-                              mainAxisSize: MainAxisSize.min,
-                              children: [
-                                // Chip raggio
-                                GestureDetector(
-                                  onTap: () => _showRadiusDialog(
-                                    raggio,
-                                    lat: snap.data?.lat,
-                                    lng: snap.data?.lng,
+                    child: SingleChildScrollView(
+                      scrollDirection: Axis.horizontal,
+                      child: FutureBuilder<_NearbyData>(
+                        future: _future,
+                        builder: (_, snap) {
+                          final raggio = snap.data?.raggio ?? 20;
+                          final locLabel = snap.data?.locationLabel;
+                          return Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              // Chip raggio
+                              GestureDetector(
+                                onTap: () => _showRadiusDialog(
+                                  raggio,
+                                  lat: snap.data?.lat,
+                                  lng: snap.data?.lng,
+                                ),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 10, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF0009FF)
+                                        .withValues(alpha: 0.15),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                      color: const Color(0xFF0009FF)
+                                          .withValues(alpha: 0.5),
+                                      width: 1,
+                                    ),
                                   ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        '$raggio km',
+                                        style: TextStyle(
+                                          fontFamily: 'Helvetica',
+                                          fontSize: 12,
+                                          fontWeight: FontWeight.w600,
+                                          color: const Color(0xFF6680FF),
+                                        ),
+                                      ),
+                                      const SizedBox(width: 4),
+                                      const Icon(Icons.tune,
+                                          color: Color(0xFF6680FF), size: 12),
+                                    ],
+                                  ),
+                                ),
+                              ),
+                              // Chip sorgente posizione
+                              if (locLabel != null) ...[
+                                const SizedBox(width: 6),
+                                Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 5),
+                                  decoration: BoxDecoration(
+                                    color: const Color(0xFF1A1A1A),
+                                    borderRadius: BorderRadius.circular(20),
+                                    border: Border.all(
+                                        color: const Color(0xFF2A2A2A)),
+                                  ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Text(
+                                        locLabel,
+                                        style: TextStyle(
+                                          fontFamily: 'Helvetica',
+                                          fontSize: 11,
+                                          color: Colors.white54,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                              // Usa GPS button (solo se non forzato e non su GPS)
+                              if (!isGpsForced && locLabel != 'GPS') ...[
+                                const SizedBox(width: 8),
+                                GestureDetector(
+                                  onTap: () {
+                                    LocationService.isGpsForced = true;
+                                    setState(() {
+                                      _customCity = null;
+                                      _future = _load();
+                                    });
+                                    ScaffoldMessenger.of(context).showSnackBar(
+                                      const SnackBar(
+                                          content: Text(
+                                              'Ricerca tramite GPS attivata')),
+                                    );
+                                  },
                                   child: Container(
                                     padding: const EdgeInsets.symmetric(
-                                        horizontal: 10, vertical: 5),
+                                        horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF0009FF)
-                                          .withValues(alpha: 0.15),
+                                      color: const Color(0xFF2A2A2A),
                                       borderRadius: BorderRadius.circular(20),
                                       border: Border.all(
-                                        color: const Color(0xFF0009FF)
-                                            .withValues(alpha: 0.5),
-                                        width: 1,
-                                      ),
+                                          color: const Color(0xFF444444)),
                                     ),
                                     child: Row(
-                                      mainAxisSize: MainAxisSize.min,
                                       children: [
-                                        const Icon(Icons.location_on_outlined,
-                                            color: Color(0xFF6680FF), size: 13),
+                                        const Icon(Icons.my_location,
+                                            color: Colors.white, size: 12),
                                         const SizedBox(width: 4),
                                         Text(
-                                          '$raggio km',
-                                          style: GoogleFonts.inter(
-                                            fontSize: 12,
+                                          'Usa GPS',
+                                          style: TextStyle(
+                                            fontFamily: 'Helvetica',
+                                            fontSize: 10,
+                                            color: Colors.white,
                                             fontWeight: FontWeight.w600,
-                                            color: const Color(0xFF6680FF),
                                           ),
                                         ),
-                                        const SizedBox(width: 4),
-                                        const Icon(Icons.tune,
-                                            color: Color(0xFF6680FF), size: 12),
                                       ],
                                     ),
                                   ),
                                 ),
-                                // Chip sorgente posizione
-                                if (locLabel != null) ...[
-                                  const SizedBox(width: 6),
-                                  Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 5),
-                                    decoration: BoxDecoration(
-                                      color: const Color(0xFF1A1A1A),
-                                      borderRadius: BorderRadius.circular(20),
-                                      border: Border.all(
-                                          color: const Color(0xFF2A2A2A)),
-                                    ),
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      children: [
-                                        Icon(
-                                          locLabel == 'GPS'
-                                              ? Icons.gps_fixed
-                                              : Icons.location_city,
-                                          color: Colors.white54,
-                                          size: 12,
-                                        ),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          locLabel,
-                                          style: GoogleFonts.inter(
-                                            fontSize: 11,
-                                            color: Colors.white54,
-                                          ),
-                                        ),
-                                      ],
-                                    ),
-                                  ),
-                                ],
-                                // Chip reset raggio (visibile solo se ≠ default)
-                                if (raggio != 20) ...[
-                                  const SizedBox(width: 6),
-                                  GestureDetector(
-                                    onTap: () async {
-                                      await UserProfileManager().saveRaggioKm(20);
-                                      setState(() => _future = _load());
-                                    },
-                                    child: Container(
-                                      padding: const EdgeInsets.symmetric(
-                                          horizontal: 8, vertical: 5),
-                                      decoration: BoxDecoration(
-                                        color: const Color(0xFF2A1A1A),
-                                        borderRadius: BorderRadius.circular(20),
-                                        border: Border.all(
-                                          color: Colors.redAccent
-                                              .withValues(alpha: 0.5),
-                                          width: 1,
-                                        ),
-                                      ),
-                                      child: Row(
-                                        mainAxisSize: MainAxisSize.min,
-                                        children: [
-                                          const Icon(Icons.close,
-                                              size: 12,
-                                              color: Colors.redAccent),
-                                          const SizedBox(width: 4),
-                                          Text(
-                                            'raggio',
-                                            style: GoogleFonts.inter(
-                                                fontSize: 12,
-                                                color: Colors.redAccent),
-                                          ),
-                                        ],
-                                      ),
-                                    ),
-                                  ),
-                                ],
                               ],
-                            );
-                          },
-                        ),
-                      ],
-                    ),
-                  ),
-                  GestureDetector(
-                    onTap: () => NavigatorService.pushNamedAndRemoveUntil(
-                        AppRoutes.eventDetailScreen),
-                    child: Image.asset(
-                      ImageConstant.imgLogoOnlist,
-                      height: 36,
-                      width: 36,
-                      fit: BoxFit.contain,
+                            ],
+                          );
+                        },
+                      ),
                     ),
                   ),
                 ],
@@ -652,8 +720,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
 
             // ── Search bar ────────────────────────────────────────────────
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Container(
                 height: 44,
                 decoration: BoxDecoration(
@@ -662,19 +729,21 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                   border: Border.all(color: const Color(0xFF2A2A2A)),
                 ),
                 child: TextField(
-                  style: GoogleFonts.inter(
+                  style: TextStyle(
+                      fontFamily: 'Helvetica',
                       fontSize: 14,
                       color: Colors.white,
                       fontWeight: FontWeight.w500),
                   decoration: InputDecoration(
                     hintText: 'Cerca locale…',
-                    hintStyle: GoogleFonts.inter(
-                        fontSize: 14, color: Colors.white38),
+                    hintStyle: TextStyle(
+                        fontFamily: 'Helvetica',
+                        fontSize: 14,
+                        color: Colors.white38),
                     prefixIcon: const Icon(Icons.search,
                         color: Colors.white38, size: 20),
                     border: InputBorder.none,
-                    contentPadding:
-                        const EdgeInsets.symmetric(vertical: 12),
+                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onChanged: (v) => setState(() => _searchQuery = v),
                 ),
@@ -683,16 +752,14 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
 
             // ── Sort chips ─────────────────────────────────────────────────
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
               child: Row(
                 children: [
                   _SortChip(
                     label: 'Più vicino',
                     icon: Icons.near_me,
                     selected: _sortMode == _SortMode.distanza,
-                    onTap: () =>
-                        setState(() => _sortMode = _SortMode.distanza),
+                    onTap: () => setState(() => _sortMode = _SortMode.distanza),
                   ),
                   const SizedBox(width: 8),
                   _SortChip(
@@ -723,8 +790,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                                 size: 12, color: Colors.redAccent),
                             const SizedBox(width: 4),
                             Text('Azzera',
-                                style: GoogleFonts.inter(
-                                    fontSize: 12, color: Colors.redAccent)),
+                                style: TextStyle(
+                                    fontFamily: 'Helvetica',
+                                    fontSize: 12,
+                                    color: Colors.redAccent)),
                           ],
                         ),
                       ),
@@ -736,8 +805,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
 
             // ── Ricerca per città ──────────────────────────────────────
             Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: GestureDetector(
                 onTap: _showCityPicker,
                 child: Container(
@@ -767,7 +835,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                       Expanded(
                         child: Text(
                           _customCity?.nomeCitta ?? 'Cerca per città…',
-                          style: GoogleFonts.inter(
+                          style: TextStyle(
+                            fontFamily: 'Helvetica',
                             fontSize: 13,
                             color: _customCity != null
                                 ? Colors.white
@@ -781,7 +850,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                           onTap: () {
                             setState(() => _customCity = null);
                             final newFuture = _load();
-                            setState(() { _future = newFuture; });
+                            setState(() {
+                              _future = newFuture;
+                            });
                           },
                           child: const Padding(
                             padding: EdgeInsets.all(10),
@@ -808,15 +879,33 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                 builder: (context, snap) {
                   if (snap.connectionState != ConnectionState.done) {
                     return const Center(
-                      child: CircularProgressIndicator(
-                          color: Color(0xFF0009FF)),
+                      child:
+                          CircularProgressIndicator(color: Color(0xFF0009FF)),
                     );
                   }
                   if (snap.hasError || snap.data == null) {
                     return Center(
-                      child: Text(
-                        'Errore nel caricamento',
-                        style: GoogleFonts.inter(color: Colors.white54),
+                      child: Column(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Text(
+                            'Errore nel caricamento',
+                            style: TextStyle(
+                                fontFamily: 'Helvetica',
+                                color: Colors.white54),
+                          ),
+                          const SizedBox(height: 12),
+                          TextButton(
+                            onPressed: () =>
+                                setState(() => _future = _load()),
+                            child: const Text(
+                              'Riprova',
+                              style: TextStyle(
+                                  fontFamily: 'Helvetica',
+                                  color: Color(0xFF0009FF)),
+                            ),
+                          ),
+                        ],
                       ),
                     );
                   }
@@ -827,6 +916,54 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                   return Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
+                      // Banner non bloccante quando la posizione non è
+                      // disponibile: l'utente vede comunque i locali più
+                      // popolari ma capisce perché.
+                      if (!data.locationAvailable)
+                        Container(
+                          width: double.infinity,
+                          margin: const EdgeInsets.symmetric(
+                              horizontal: 14, vertical: 8),
+                          padding: const EdgeInsets.symmetric(
+                              horizontal: 12, vertical: 10),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1A1A1A),
+                            borderRadius: BorderRadius.circular(10),
+                            border: Border.all(
+                                color: const Color(0xFF2A2A2A), width: 0.5),
+                          ),
+                          child: Row(
+                            children: [
+                              const Icon(Icons.location_off,
+                                  color: Colors.white54, size: 16),
+                              const SizedBox(width: 8),
+                              Expanded(
+                                child: Text(
+                                  data.gpsAttempted
+                                      ? 'Posizione non disponibile. Mostro i locali più popolari.'
+                                      : 'Imposta la tua città per vedere i locali vicini.',
+                                  style: const TextStyle(
+                                    fontFamily: 'Helvetica',
+                                    fontSize: 12,
+                                    color: Colors.white70,
+                                  ),
+                                ),
+                              ),
+                              TextButton(
+                                onPressed: () =>
+                                    setState(() => _future = _load()),
+                                child: const Text(
+                                  'Riprova',
+                                  style: TextStyle(
+                                    fontFamily: 'Helvetica',
+                                    fontSize: 12,
+                                    color: Color(0xFF0009FF),
+                                  ),
+                                ),
+                              ),
+                            ],
+                          ),
+                        ),
                       // ── Filtro prezzo ──────────────────────────────────
                       _buildPriceRow(),
 
@@ -870,7 +1007,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                                 _hasActiveFilters || _searchQuery.isNotEmpty
                                     ? 'Nessun locale corrisponde ai filtri.'
                                     : 'Nessun locale trovato nel raggio di ${data.raggio} km.',
-                                style: GoogleFonts.inter(
+                                style: TextStyle(
+                                  fontFamily: 'Helvetica',
                                   fontSize: 15,
                                   color: Colors.white54,
                                 ),
@@ -888,8 +1026,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                             separatorBuilder: (_, __) => Container(
                               height: 0.5,
                               color: const Color(0xFF2A2A2A),
-                              margin:
-                                  const EdgeInsets.symmetric(vertical: 2),
+                              margin: const EdgeInsets.symmetric(vertical: 2),
                             ),
                             itemBuilder: (context, i) {
                               return _ClubListTile(
@@ -926,12 +1063,11 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
             return Padding(
               padding: const EdgeInsets.only(right: 8),
               child: GestureDetector(
-                onTap: () =>
-                    setState(() => _selectedPrezzo = sel ? null : p),
+                onTap: () => setState(() => _selectedPrezzo = sel ? null : p),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: sel
                         ? const Color(0xFF0009FF).withValues(alpha: 0.18)
@@ -946,10 +1082,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                   ),
                   child: Text(
                     label,
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
+                      fontFamily: 'Helvetica',
                       fontSize: 13,
-                      fontWeight:
-                          sel ? FontWeight.w600 : FontWeight.w400,
+                      fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
                       color: sel ? Colors.white : Colors.white54,
                     ),
                   ),
@@ -981,8 +1117,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                 onTap: () => onToggle(item),
                 child: AnimatedContainer(
                   duration: const Duration(milliseconds: 180),
-                  padding: const EdgeInsets.symmetric(
-                      horizontal: 12, vertical: 7),
+                  padding:
+                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: sel
                         ? const Color(0xFF0009FF).withValues(alpha: 0.18)
@@ -1000,16 +1136,15 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen> {
                     children: [
                       Icon(icon,
                           size: 13,
-                          color: sel
-                              ? const Color(0xFF6680FF)
-                              : Colors.white38),
+                          color:
+                              sel ? const Color(0xFF6680FF) : Colors.white38),
                       const SizedBox(width: 5),
                       Text(
                         item,
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
+                          fontFamily: 'Helvetica',
                           fontSize: 13,
-                          fontWeight:
-                              sel ? FontWeight.w600 : FontWeight.w400,
+                          fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
                           color: sel ? Colors.white : Colors.white54,
                         ),
                       ),
@@ -1053,9 +1188,7 @@ class _SortChip extends StatelessWidget {
               : const Color(0xFF1A1A1A),
           borderRadius: BorderRadius.circular(20),
           border: Border.all(
-            color: selected
-                ? const Color(0xFF0009FF)
-                : const Color(0xFF2A2A2A),
+            color: selected ? const Color(0xFF0009FF) : const Color(0xFF2A2A2A),
             width: selected ? 1.5 : 0.5,
           ),
         ),
@@ -1064,15 +1197,14 @@ class _SortChip extends StatelessWidget {
           children: [
             Icon(icon,
                 size: 14,
-                color:
-                    selected ? const Color(0xFF6680FF) : Colors.white38),
+                color: selected ? const Color(0xFF6680FF) : Colors.white38),
             const SizedBox(width: 5),
             Text(
               label,
-              style: GoogleFonts.inter(
+              style: TextStyle(
+                fontFamily: 'Helvetica',
                 fontSize: 13,
-                fontWeight:
-                    selected ? FontWeight.w600 : FontWeight.w400,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
                 color: selected ? Colors.white : Colors.white54,
               ),
             ),
@@ -1129,10 +1261,12 @@ class _ClubListTile extends StatelessWidget {
                 width: 64,
                 height: 64,
                 child: club.fotoUrl != null
-                    ? Image.network(
-                        club.fotoUrl!,
+                    ? CachedNetworkImage(
+                        imageUrl: club.fotoUrl!,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Image.asset(
+                        memCacheWidth: 192,
+                        memCacheHeight: 192,
+                        errorWidget: (_, __, ___) => Image.asset(
                           _kStockImages[index % _kStockImages.length],
                           fit: BoxFit.cover,
                           errorBuilder: (_, __, ___) => Container(
@@ -1161,7 +1295,8 @@ class _ClubListTile extends StatelessWidget {
                 children: [
                   Text(
                     club.nome,
-                    style: GoogleFonts.inter(
+                    style: TextStyle(
+                      fontFamily: 'Helvetica',
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -1171,8 +1306,10 @@ class _ClubListTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       club.indirizzoCompleto,
-                      style: GoogleFonts.inter(
-                          fontSize: 12, color: Colors.white54),
+                      style: TextStyle(
+                          fontFamily: 'Helvetica',
+                          fontSize: 12,
+                          color: Colors.white54),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1181,7 +1318,8 @@ class _ClubListTile extends StatelessWidget {
                     const SizedBox(height: 3),
                     Text(
                       club.generiString,
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
+                          fontFamily: 'Helvetica',
                           fontSize: 11,
                           color: const Color(0xFF6680FF)),
                       maxLines: 1,
@@ -1197,8 +1335,8 @@ class _ClubListTile extends StatelessWidget {
               children: [
                 if (distLabel != null)
                   Container(
-                    padding: const EdgeInsets.symmetric(
-                        horizontal: 8, vertical: 4),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
                       color: const Color(0xFF1A1A1A),
                       borderRadius: BorderRadius.circular(6),
@@ -1207,7 +1345,8 @@ class _ClubListTile extends StatelessWidget {
                     ),
                     child: Text(
                       distLabel,
-                      style: GoogleFonts.inter(
+                      style: TextStyle(
+                        fontFamily: 'Helvetica',
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: Colors.white70,
@@ -1224,7 +1363,8 @@ class _ClubListTile extends StatelessWidget {
                       const SizedBox(width: 2),
                       Text(
                         '${club.famosita}',
-                        style: GoogleFonts.inter(
+                        style: TextStyle(
+                          fontFamily: 'Helvetica',
                           fontSize: 10,
                           color: Colors.white38,
                         ),
@@ -1249,6 +1389,8 @@ class _NearbyData {
   final double? lat;
   final double? lng;
   final String? locationLabel;
+  final bool locationAvailable;
+  final bool gpsAttempted;
 
   _NearbyData({
     required this.clubs,
@@ -1256,6 +1398,8 @@ class _NearbyData {
     required this.lat,
     required this.lng,
     this.locationLabel,
+    this.locationAvailable = true,
+    this.gpsAttempted = false,
   });
 
   List<String> get allGeneri {
@@ -1267,11 +1411,7 @@ class _NearbyData {
   }
 
   List<String> get allCitta {
-    return clubs
-        .map((c) => c.nomeCitta)
-        .whereType<String>()
-        .toSet()
-        .toList()
+    return clubs.map((c) => c.nomeCitta).whereType<String>().toSet().toList()
       ..sort();
   }
 }

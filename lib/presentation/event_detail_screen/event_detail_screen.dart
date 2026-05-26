@@ -1,8 +1,9 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
-import '../../widgets/custom_image_view.dart';
+import '../../core/utils/analytics_mixin.dart';
 import './bloc/event_detail_bloc.dart';
 import './models/event_detail_model.dart';
 
@@ -24,7 +25,10 @@ class EventDetailScreen extends StatefulWidget {
 }
 
 class _EventDetailScreenState extends State<EventDetailScreen>
-    with TickerProviderStateMixin {
+    with TickerProviderStateMixin, ScreenAnalytics {
+  @override
+  String get screenName => 'event_detail';
+
   late AnimationController _staggerController;
   late AnimationController _heroController;
 
@@ -122,6 +126,10 @@ class _EventDetailScreenState extends State<EventDetailScreen>
     return Scaffold(
       backgroundColor: const Color(0xFF0D0D0D),
       body: BlocBuilder<EventDetailBloc, EventDetailState>(
+        buildWhen: (prev, curr) =>
+            prev.hottestClub != curr.hottestClub ||
+            prev.eventoOggi != curr.eventoOggi ||
+            prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
         builder: (context, state) {
           return SafeArea(
             child: Column(
@@ -246,10 +254,10 @@ class _EventDetailScreenState extends State<EventDetailScreen>
           height: 217,
           color: const Color(0xFF1A1A2E),
           child: fotoUrl != null
-              ? Image.network(
-                  fotoUrl,
+              ? CachedNetworkImage(
+                  imageUrl: fotoUrl,
                   fit: BoxFit.cover,
-                  errorBuilder: (_, __, ___) => const SizedBox.shrink(),
+                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 )
               : const SizedBox.shrink(),
         ),
@@ -365,10 +373,12 @@ class _EventDetailScreenState extends State<EventDetailScreen>
                 height: 95,
                 color: const Color(0xFF2A2A2A),
                 child: imageUrl != null
-                    ? Image.network(
-                        imageUrl,
+                    ? CachedNetworkImage(
+                        imageUrl: imageUrl,
                         fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => const Icon(
+                        memCacheWidth: 495,
+                        memCacheHeight: 285,
+                        errorWidget: (_, __, ___) => const Icon(
                           Icons.music_note,
                           color: Color(0xFF666666),
                           size: 32,

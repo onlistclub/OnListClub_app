@@ -12,8 +12,8 @@ class NavigatorService {
         ?.pushNamed(routeName, arguments: arguments);
   }
 
-  static void goBack() {
-    return navigatorKey.currentState?.pop();
+  static void goBack({dynamic result}) {
+    return navigatorKey.currentState?.pop(result);
   }
 
   static Future<dynamic> pushNamedAndRemoveUntil(

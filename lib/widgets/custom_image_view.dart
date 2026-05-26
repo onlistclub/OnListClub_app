@@ -154,6 +154,8 @@ class CustomImageView extends StatelessWidget {
           fit: fit,
           imageUrl: imagePathSafe,
           color: color,
+          memCacheWidth: width != null ? (width! * 3).toInt() : 800,
+          memCacheHeight: height != null ? (height! * 3).toInt() : null,
           placeholder: (context, url) => Container(
             height: 30,
             width: 30,

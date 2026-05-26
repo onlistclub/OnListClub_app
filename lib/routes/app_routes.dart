@@ -6,13 +6,19 @@ import '../presentation/verification_screen/verification_screen.dart';
 import '../presentation/verification_failure_screen/verification_failure_screen.dart';
 import '../presentation/home_screen/home_screen.dart';
 import '../presentation/complete_profile_screen/complete_profile_screen.dart';
-import '../presentation/app_navigation_screen/app_navigation_screen.dart';
 import '../presentation/location_permission_screen/location_permission_screen.dart';
 import '../presentation/location_manual_screen/location_manual_screen.dart';
 import '../presentation/club_detail_screen/club_detail_screen.dart';
 import '../presentation/booking_screen/booking_screen.dart';
 import '../presentation/event_detail_club_screen/event_detail_club_screen.dart';
 import '../presentation/nearby_clubs_screen/nearby_clubs_screen.dart';
+import '../presentation/profile_screen/profile_screen.dart';
+import '../presentation/notifications_screen/notifications_screen.dart';
+import '../presentation/cart_screen/cart_screen.dart';
+import '../presentation/orders_screen/orders_screen.dart';
+import '../presentation/payment_success_screen/payment_success_screen.dart';
+import '../presentation/prevendita_detail_screen/prevendita_detail_screen.dart';
+import '../presentation/tavolo_detail_screen/tavolo_detail_screen.dart';
 
 class AppRoutes {
   static const String splashScreen             = '/splash_screen';
@@ -28,7 +34,6 @@ class AppRoutes {
   static const String eventDetailScreen        = '/home_screen';
 
   static const String completeProfileScreen    = '/complete_profile_screen';
-  static const String appNavigationScreen      = '/app_navigation_screen';
   static const String locationPermissionScreen = '/location_permission_screen';
   static const String locationManualScreen     = '/location_manual_screen';
   static const String clubDetailScreen         = '/club_detail_screen';
@@ -40,6 +45,14 @@ class AppRoutes {
   /// Lista locali vicini all'utente filtrati per raggio.
   static const String nearbyClubsScreen        = '/nearby_clubs_screen';
 
+  static const String profileScreen            = '/profile_screen';
+  static const String notificationsScreen      = '/notifications_screen';
+  static const String cartScreen               = '/cart_screen';
+  static const String ordersScreen              = '/orders_screen';
+  static const String paymentSuccessScreen     = '/payment_success_screen';
+  static const String prevenditaDetailScreen   = '/prevendita_detail_screen';
+  static const String tavoloDetailScreen       = '/tavolo_detail_screen';
+
   static const String initialRoute = splashScreen;
 
   static Map<String, WidgetBuilder> get routes => {
@@ -50,12 +63,18 @@ class AppRoutes {
         verificationFailureScreen: VerificationFailureScreen.builder,
         homeScreen:                HomeScreen.builder,
         completeProfileScreen:     CompleteProfileScreen.builder,
-        appNavigationScreen:       AppNavigationScreen.builder,
         locationPermissionScreen:  LocationPermissionScreen.builder,
         locationManualScreen:      LocationManualScreen.builder,
         clubDetailScreen:          ClubDetailScreen.builder,
         bookingScreen:             BookingScreen.builder,
         eventDetailClubScreen:     EventDetailClubScreen.builder,
         nearbyClubsScreen:         NearbyClubsScreen.builder,
+        profileScreen:             ProfileScreen.builder,
+        notificationsScreen:       NotificationsScreen.builder,
+        cartScreen:                CartScreen.builder,
+        ordersScreen:               OrdersScreen.builder,
+        paymentSuccessScreen:       PaymentSuccessScreen.builder,
+        prevenditaDetailScreen:     PrevenditaDetailScreen.builder,
+        tavoloDetailScreen:         TavoloDetailScreen.builder,
       };
 }

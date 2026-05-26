@@ -1,6 +1,7 @@
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import '../../../core/models/citta_model.dart';
+import '../../../core/services/analytics_service.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/utils/user_profile_manager.dart';
 
@@ -52,6 +53,13 @@ class LocationManualBloc
     SelectCittaEvent event,
     Emitter<LocationManualState> emit,
   ) {
+    // Analytics: traccia quale città viene selezionata
+    AnalyticsService.logCitySelected(
+      cityName: event.citta.nomeCitta,
+      cityId:   event.citta.idCitta,
+      lat:      event.citta.lat,
+      lng:      event.citta.lng,
+    );
     emit(state.copyWith(
       selectedCitta: event.citta,
       cities: [],

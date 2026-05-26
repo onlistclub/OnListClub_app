@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 import '../../core/app_export.dart';
+import '../../core/utils/analytics_mixin.dart';
 import 'bloc/location_manual_bloc.dart';
 
 class LocationManualScreen extends StatefulWidget {
@@ -17,7 +18,10 @@ class LocationManualScreen extends StatefulWidget {
   State<LocationManualScreen> createState() => _LocationManualScreenState();
 }
 
-class _LocationManualScreenState extends State<LocationManualScreen> {
+class _LocationManualScreenState extends State<LocationManualScreen> with ScreenAnalytics {
+  @override
+  String get screenName => 'location_manual';
+
   final TextEditingController _cittaCtrl = TextEditingController();
   final TextEditingController _capCtrl = TextEditingController();
 
@@ -140,8 +144,9 @@ class _LocationManualScreenState extends State<LocationManualScreen> {
                           ),
                           onChanged: (v) => bloc.add(SearchCittaEvent(v)),
                         ),
+                        // Campo Cap (Nascosto graficamente come richiesto)
+                        /*
                         const SizedBox(height: 16),
-                        // Campo Cap (UI only — la ricerca avviene per città)
                         TextField(
                           controller: _capCtrl,
                           keyboardType: TextInputType.number,
@@ -170,6 +175,7 @@ class _LocationManualScreenState extends State<LocationManualScreen> {
                             filled: false,
                           ),
                         ),
+                        */
                       ],
                     ),
                   ),
