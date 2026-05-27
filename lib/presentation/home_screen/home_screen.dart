@@ -12,7 +12,6 @@ import '../../core/utils/analytics_mixin.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../core/services/notification_service.dart';
-import '../../core/services/user_profile_manager.dart';
 import 'bloc/home_bloc.dart';
 
 class HomeScreen extends StatefulWidget {
@@ -43,8 +42,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   late Animation<Offset> _titleSlide;
   late Animation<double> _subtitleFade;
   late Animation<Offset> _subtitleSlide;
-  late Animation<double> _buttonFade;
-  late Animation<double> _buttonScale;
   late Animation<double> _sectionFade;
   late Animation<Offset> _sectionSlide;
   late Animation<double> _cardsFade;
@@ -70,10 +67,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     _titleSlide   = _slide(const Offset(0, 0.3), 0.18, 0.50);
     _subtitleFade = _fade(0.25, 0.57);
     _subtitleSlide= _slide(const Offset(0, 0.3), 0.25, 0.57);
-    _buttonFade   = _fade(0.32, 0.64);
-    _buttonScale  = Tween<double>(begin: 0.9, end: 1).animate(
-      CurvedAnimation(parent: _staggerCtrl,
-          curve: const Interval(0.32, 0.64, curve: Curves.easeOutBack)));
     _sectionFade  = _fade(0.43, 0.72);
     _sectionSlide = _slide(const Offset(0, 0.3), 0.43, 0.72);
     _cardsFade    = _fade(0.54, 0.86);
@@ -114,107 +107,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     NavigatorService.pushNamed(
       AppRoutes.eventDetailClubScreen,
       arguments: {'serata': serata, 'club': club},
-    );
-  }
-
-  void _onReservaTapped(BuildContext context, HomeState state) {
-    final club = state.localeVicino;
-    if (club == null) return;
-    final eventi = state.upcomingEventi;
-    if (eventi.isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Nessuna serata disponibile al momento')),
-      );
-      return;
-    }
-    if (eventi.length == 1) {
-      _navigateToEventDetailClub(context, eventi.first, club);
-      return;
-    }
-    _showEventPicker(context, eventi, club);
-  }
-
-  void _showEventPicker(
-      BuildContext context, List<SerataModel> eventi, LocaleModel club) {
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF1A1A1A),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
-      ),
-      builder: (ctx) {
-        return Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            const SizedBox(height: 8),
-            Container(
-              width: 40,
-              height: 4,
-              decoration: BoxDecoration(
-                color: const Color(0xFF555555),
-                borderRadius: BorderRadius.circular(2),
-              ),
-            ),
-            const SizedBox(height: 14),
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16),
-              child: Text(
-                'Scegli la serata',
-                style: GoogleFonts.inter(
-                  fontSize: 18,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            ...eventi.map(
-              (e) => ListTile(
-                contentPadding:
-                    const EdgeInsets.symmetric(horizontal: 20, vertical: 4),
-                leading: ClipRRect(
-                  borderRadius: BorderRadius.circular(8),
-                  child: Container(
-                    width: 52,
-                    height: 52,
-                    color: const Color(0xFF2A2A2A),
-                    child: e.locandinaUrl != null
-                        ? CustomImageView(
-                            imagePath: e.locandinaUrl!,
-                            width: 52,
-                            height: 52,
-                            fit: BoxFit.cover,
-                            placeHolder: ImageConstant.imgImageNotFound,
-                          )
-                        : const Icon(Icons.music_note,
-                            color: Color(0xFF666666)),
-                  ),
-                ),
-                title: Text(
-                  e.nome,
-                  style: GoogleFonts.inter(
-                    fontSize: 15,
-                    fontWeight: FontWeight.w600,
-                    color: Colors.white,
-                  ),
-                ),
-                subtitle: Text(
-                  '${_formatDate(e.data)}  ·  ${e.orarioString}',
-                  style: GoogleFonts.inter(
-                    fontSize: 12,
-                    color: Colors.white54,
-                  ),
-                ),
-                onTap: () {
-                  Navigator.pop(ctx);
-                  _navigateToEventDetailClub(context, e, club);
-                },
-              ),
-            ),
-            const SizedBox(height: 16),
-          ],
-        );
-      },
     );
   }
 
@@ -351,48 +243,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
-  // ── AppBar ─────────────────────────────────────────────────────────────────
-
-  Widget _buildAppBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Image.asset(
-              ImageConstant.imgLogoOnlist,
-              height: 60,
-              width: 60,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Row(
-            children: [
-              GestureDetector(
-                onTap: () =>
-                    NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen)
-                        .then((_) {
-                  if (mounted) {
-                    context.read<HomeBloc>().add(HomeRefreshEvent());
-                  }
-                }),
-                child: const Icon(Icons.search, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => NavigatorService.pushNamed(AppRoutes.profileScreen),
-                child: const Icon(Icons.person_outline, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 10),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   // ── Location Info ────────────────────────────────────────────────────────
   
   Widget _buildLocationInfo(BuildContext context, HomeState state) {
@@ -486,121 +336,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             ),
         ],
       ),
-    );
-  }
-
-  // ── Radius Picker ────────────────────────────────────────────────────────
-
-  void _showRadiusPicker(BuildContext context, int currentRaggio) {
-    final bloc = context.read<HomeBloc>();
-    showModalBottomSheet(
-      context: context,
-      backgroundColor: const Color(0xFF141414),
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(24)),
-      ),
-      builder: (ctx) {
-        int tempRaggio = currentRaggio;
-        return StatefulBuilder(
-          builder: (ctx, setS) {
-            return Padding(
-              padding: const EdgeInsets.fromLTRB(24, 16, 24, 32),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Handle bar
-                  Container(
-                    width: 40,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF444444),
-                      borderRadius: BorderRadius.circular(2),
-                    ),
-                  ),
-                  const SizedBox(height: 20),
-                  Row(
-                    children: [
-                      const Icon(Icons.radar, color: Color(0xFF6B6BFF), size: 22),
-                      const SizedBox(width: 10),
-                      Text(
-                        'Raggio di ricerca',
-                        style: GoogleFonts.inter(
-                          fontSize: 18,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                        ),
-                      ),
-                      const Spacer(),
-                      Container(
-                        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF1D00FF).withValues(alpha: 0.25),
-                          borderRadius: BorderRadius.circular(12),
-                          border: Border.all(color: const Color(0xFF1D00FF).withValues(alpha: 0.6)),
-                        ),
-                        child: Text(
-                          '$tempRaggio km',
-                          style: GoogleFonts.inter(
-                            fontSize: 18,
-                            fontWeight: FontWeight.w800,
-                            color: const Color(0xFF9999FF),
-                          ),
-                        ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 20),
-                  SliderTheme(
-                    data: SliderTheme.of(ctx).copyWith(
-                      activeTrackColor: const Color(0xFF1D00FF),
-                      inactiveTrackColor: const Color(0xFF2A2A2A),
-                      thumbColor: Colors.white,
-                      overlayColor: const Color(0xFF1D00FF).withValues(alpha: 0.2),
-                      trackHeight: 4,
-                      thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 10),
-                    ),
-                    child: Slider(
-                      value: tempRaggio.toDouble(),
-                      min: 1,
-                      max: 100,
-                      divisions: 99,
-                      onChanged: (v) => setS(() => tempRaggio = v.round()),
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('1 km', style: GoogleFonts.inter(fontSize: 11, color: Colors.white38)),
-                      Text('100 km', style: GoogleFonts.inter(fontSize: 11, color: Colors.white38)),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                  SizedBox(
-                    width: double.infinity,
-                    child: ElevatedButton(
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF1D00FF),
-                        foregroundColor: Colors.white,
-                        padding: const EdgeInsets.symmetric(vertical: 14),
-                        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                      ),
-                      onPressed: () async {
-                        Navigator.pop(ctx);
-                        await UserProfileManager().saveRaggioKm(tempRaggio);
-                        bloc.add(HomeRefreshEvent());
-                      },
-                      child: Text(
-                        'Applica',
-                        style: GoogleFonts.inter(fontSize: 16, fontWeight: FontWeight.w700),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            );
-          },
-        );
-      },
     );
   }
 
@@ -1136,69 +871,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
-  // ── Bottom nav ─────────────────────────────────────────────────────────────
-
-  Widget _buildBottomNav(BuildContext context, HomeState state) {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFF2A2A2A), width: 0.5)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 10),
-      child: Row(
-        children: [
-          _buildNavItem(context, ImageConstant.imgHome, 0,
-              state.selectedBottomNavIndex),
-          _buildNavItem(context, ImageConstant.imgShoppingCart, 1,
-              state.selectedBottomNavIndex),
-          _buildNavItem(
-              context, ImageConstant.imgBell, 2, state.selectedBottomNavIndex),
-          _buildNavItem(
-              context, ImageConstant.imgUser, 3, state.selectedBottomNavIndex),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(
-      BuildContext context, String imagePath, int index, int selected) {
-    final isSelected = index == selected;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () {
-          if (index == 1) {
-            NavigatorService.pushNamed(AppRoutes.cartScreen);
-          } else if (index == 2) {
-            // Notifications (TODO)
-          } else if (index == 3) {
-            NavigatorService.pushNamed(AppRoutes.profileScreen);
-          } else {
-            context.read<HomeBloc>().add(HomeBottomNavSelectedEvent(index));
-          }
-        },
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          height: 31,
-          child: Center(
-            child: AnimatedScale(
-              scale: isSelected ? 1.2 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutBack,
-              child: AnimatedOpacity(
-                opacity: isSelected ? 1.0 : 0.5,
-                duration: const Duration(milliseconds: 200),
-                child: CustomImageView(
-                  imagePath: imagePath,
-                  height: 28,
-                  width: 28,
-                  color: isSelected ? Colors.white : const Color(0xFF888888),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ── Animated press button ──────────────────────────────────────────────────────

@@ -69,8 +69,6 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
   late Animation<double> _buttonScale;
   late Animation<double> _sectionsFade;
   late Animation<Offset> _sectionsSlide;
-  late Animation<double> _navFade;
-  late Animation<Offset> _navSlide;
 
   // ── Bookmark bounce ────────────────────────────────────────────────────────
   late AnimationController _bookmarkCtrl;
@@ -108,8 +106,6 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
           curve: const Interval(0.32, 0.64, curve: Curves.easeOutBack)));
     _sectionsFade  = _fade(0.43, 0.78);
     _sectionsSlide = _slide(const Offset(0, 0.3), 0.43, 0.78);
-    _navFade       = _fade(0.64, 1.00);
-    _navSlide      = _slide(const Offset(0, 1), 0.64, 1.00);
 
     _staggerCtrl.forward();
 
@@ -264,35 +260,6 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
             ),
           );
         },
-      ),
-    );
-  }
-
-  // ── AppBar ─────────────────────────────────────────────────────────────────
-
-  Widget _buildAppBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: NavigatorService.goBack,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: Image.asset(
-                ImageConstant.imgLogoOnlist,
-                height: 60,
-                width: 60,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(right: 10),
-            child: Icon(Icons.search, color: Colors.white, size: 34),
-          ),
-        ],
       ),
     );
   }
@@ -616,58 +583,6 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
         margin: const EdgeInsets.symmetric(horizontal: 13),
       );
 
-  // ── Bottom nav ─────────────────────────────────────────────────────────────
-
-  Widget _buildBottomNav(
-      BuildContext context, EventDetailClubState state) {
-    return Container(
-      decoration: const BoxDecoration(
-        border: Border(top: BorderSide(color: Color(0xFF2A2A2A), width: 0.5)),
-      ),
-      padding: const EdgeInsets.symmetric(horizontal: 36, vertical: 10),
-      child: Row(
-        children: [
-          _buildNavItem(context, ImageConstant.imgHome, 0, state),
-          _buildNavItem(context, ImageConstant.imgShoppingCart, 1, state),
-          _buildNavItem(context, ImageConstant.imgBell, 2, state),
-          _buildNavItem(context, ImageConstant.imgUser, 3, state),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildNavItem(BuildContext context, String imagePath, int index,
-      EventDetailClubState state) {
-    final isSelected = state.selectedBottomNavIndex == index;
-    return Expanded(
-      child: GestureDetector(
-        onTap: () => context
-            .read<EventDetailClubBloc>()
-            .add(EventDetailClubBottomNavSelectedEvent(index)),
-        behavior: HitTestBehavior.opaque,
-        child: SizedBox(
-          height: 31,
-          child: Center(
-            child: AnimatedScale(
-              scale: isSelected ? 1.2 : 1.0,
-              duration: const Duration(milliseconds: 200),
-              curve: Curves.easeOutBack,
-              child: AnimatedOpacity(
-                opacity: isSelected ? 1.0 : 0.5,
-                duration: const Duration(milliseconds: 200),
-                child: CustomImageView(
-                  imagePath: imagePath,
-                  height: 28,
-                  width: 28,
-                  color: isSelected ? Colors.white : const Color(0xFF888888),
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
 }
 
 // ── Animated press button ──────────────────────────────────────────────────────

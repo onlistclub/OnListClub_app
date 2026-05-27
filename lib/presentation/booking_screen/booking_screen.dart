@@ -27,7 +27,6 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   String get screenName => 'booking_selection';
 
   BookingStep _currentStep = BookingStep.selection;
-  bool _isTavoloSelected = false;
 
   // Database Data (Initialized with samples)
   List<Map<String, dynamic>> _prevendite = [
@@ -253,22 +252,6 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     );
   }
 
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          Icon(Icons.home_outlined, color: Colors.white, size: 32),
-          Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 32),
-          Icon(Icons.shopping_cart_outlined, color: Colors.white, size: 32),
-          Icon(Icons.notifications_none, color: Colors.white, size: 32),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBody(LocaleModel? locale, SerataModel? serata) {
     switch (_currentStep) {
       case BookingStep.selection:
@@ -292,7 +275,6 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         _buildSelectionButton("Tavolo", () {
           AnalyticsService.log(event: 'booking_funnel_start', metadata: {'type': 'table'});
           setState(() {
-            _isTavoloSelected = true;
             _currentStep = BookingStep.tableConfig;
           });
         }),
@@ -300,7 +282,6 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         _buildSelectionButton("Prevendita", () {
           AnalyticsService.log(event: 'booking_funnel_start', metadata: {'type': 'ticket'});
           setState(() {
-            _isTavoloSelected = false;
             _currentStep = BookingStep.ticketList;
           });
         }),
@@ -770,32 +751,6 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           ),
         ),
       ],
-    );
-  }
-
-  Widget _buildSmallTicketBox(String name, String price) {
-    return Container(
-      padding: const EdgeInsets.all(10),
-      decoration: BoxDecoration(
-        color: const Color(0xFF1D00FF),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Row(
-            mainAxisAlignment: MainAxisAlignment.end,
-            children: [
-              Text(price,
-                  style: GoogleFonts.inter(color: Colors.white, fontSize: 10)),
-            ],
-          ),
-          Text("+ 2 drink omaggio",
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 6)),
-          Text(name,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold)),
-        ],
-      ),
     );
   }
 

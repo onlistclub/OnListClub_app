@@ -83,28 +83,4 @@ class PaymentSuccessScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBackButton() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 10, top: 10),
-      child: GestureDetector(
-        onTap: () => NavigatorService.goBack(),
-        child: Row(
-          children: [
-            const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-            const SizedBox(width: 10),
-            Text(
-              'Torna indietro',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 20,
-                fontWeight: FontWeight.w400,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() => const SharedFooter(currentIndex: 1);
 }

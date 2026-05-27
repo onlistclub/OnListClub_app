@@ -102,40 +102,6 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          GestureDetector(
-            onTap: () => NavigatorService.goBack(),
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(30),
-              child: Image.asset(
-                ImageConstant.imgLogoOnlist,
-                height: 60,
-                width: 60,
-                fit: BoxFit.cover,
-              ),
-            ),
-          ),
-          Row(
-            children: [
-              const Icon(Icons.search, color: Colors.white, size: 28),
-              const SizedBox(width: 12),
-              GestureDetector(
-                onTap: () => NavigatorService.goBack(),
-                child: const Icon(Icons.person_outline, color: Colors.white, size: 28),
-              ),
-              const SizedBox(width: 4),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildPrevenditeList() {
     if (_prevendite.isEmpty) {
       return Center(

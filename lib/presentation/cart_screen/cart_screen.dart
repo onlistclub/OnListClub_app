@@ -25,8 +25,6 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   String get screenName => 'cart';
 
   bool _isPaying = false;
-  bool _isLoadingProfile = true;
-  Map<String, dynamic>? _userProfile;
 
   @override
   void initState() {
@@ -46,7 +44,6 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
       final profile = await OrdersService.getUserProfile();
       if (profile != null && mounted) {
         setState(() {
-          _userProfile = profile;
           // Pre-compila il primo intestatario solo se ancora vuoto
           if (_nameControllers[0].text.isEmpty) {
             final fullName = "${profile['nome'] ?? ''} ${profile['cognome'] ?? ''}".trim();
@@ -67,8 +64,6 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
       }
     } catch (e) {
       debugPrint("Errore caricamento profilo in CartScreen: $e");
-    } finally {
-      if (mounted) setState(() => _isLoadingProfile = false);
     }
   }
 
@@ -499,36 +494,6 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
     );
   }
 
-  Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Image.asset(
-            'assets/images/logo_onlist.png',
-            height: 30,
-            errorBuilder: (context, error, stackTrace) => Text(
-              'OnList',
-              style: GoogleFonts.outfit(
-                color: Colors.white,
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-          ),
-          const Row(
-            children: [
-              Icon(Icons.search, color: Colors.white, size: 28),
-              SizedBox(width: 15),
-              Icon(Icons.person_outline, color: Colors.white, size: 28),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
   Widget _buildBackButton() {
     return Padding(
       padding: const EdgeInsets.only(left: 10, top: 10),
@@ -548,22 +513,6 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() {
-    return Container(
-      padding: const EdgeInsets.symmetric(vertical: 15, horizontal: 30),
-      margin: const EdgeInsets.only(bottom: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: const [
-          Icon(Icons.home_outlined, color: Colors.white, size: 32),
-          Icon(Icons.shopping_bag_outlined, color: Colors.white, size: 32),
-          Icon(Icons.shopping_cart, color: Color(0xFF1D00FF), size: 32),
-          Icon(Icons.notifications_none, color: Colors.white, size: 32),
-        ],
       ),
     );
   }
