@@ -1,5 +1,5 @@
 import 'package:flutter/material.dart';
-import '../../core/utils/image_constant.dart';
+import '../../core/constants/image_constant.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
