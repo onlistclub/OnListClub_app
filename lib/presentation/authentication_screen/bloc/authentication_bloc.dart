@@ -7,7 +7,7 @@ import 'package:sign_in_with_apple/sign_in_with_apple.dart';
 import '../models/authentication_model.dart';
 import '../../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../../../core/utils/user_profile_manager.dart';
+import '../../../core/services/user_profile_manager.dart';
 import '../../../../main.dart' show googleWebClientId;
 
 part 'authentication_event.dart';

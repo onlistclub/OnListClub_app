@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/utils/image_constant.dart';
-import '../../core/utils/navigator_service.dart';
+import '../../core/services/navigator_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../routes/app_routes.dart';

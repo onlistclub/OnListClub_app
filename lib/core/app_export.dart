@@ -1,4 +1,4 @@
-export 'utils/navigator_service.dart';
+export 'services/navigator_service.dart';
 export 'package:equatable/equatable.dart';
 export 'package:flutter_bloc/flutter_bloc.dart';
 export '../routes/app_routes.dart';

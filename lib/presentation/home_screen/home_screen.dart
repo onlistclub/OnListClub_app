@@ -12,7 +12,7 @@ import '../../core/utils/analytics_mixin.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../core/services/notification_service.dart';
-import '../../core/utils/user_profile_manager.dart';
+import '../../core/services/user_profile_manager.dart';
 import 'bloc/home_bloc.dart';
 
 class HomeScreen extends StatefulWidget {

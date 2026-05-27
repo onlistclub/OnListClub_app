@@ -3,7 +3,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:equatable/equatable.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
-import '../../../core/utils/user_profile_manager.dart';
+import '../../../core/services/user_profile_manager.dart';
 
 part 'verification_event.dart';
 part 'verification_state.dart';

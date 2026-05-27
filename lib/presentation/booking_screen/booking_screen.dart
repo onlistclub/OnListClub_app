@@ -6,7 +6,7 @@ import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
-import '../../core/utils/navigator_service.dart';
+import '../../core/services/navigator_service.dart';
 import '../../core/services/booking_service.dart';
 import '../../routes/app_routes.dart';
 import '../../widgets/app_loading_indicator.dart';

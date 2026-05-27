@@ -8,7 +8,7 @@ import '../../../core/services/analytics_service.dart';
 import '../../../core/services/club_service.dart';
 import '../../../core/services/location_service.dart';
 import '../../../core/services/orders_service.dart';
-import '../../../core/utils/user_profile_manager.dart';
+import '../../../core/services/user_profile_manager.dart';
 
 part 'home_event.dart';
 part 'home_state.dart';

@@ -3,7 +3,7 @@ import 'package:equatable/equatable.dart';
 import '../../../core/models/citta_model.dart';
 import '../../../core/services/analytics_service.dart';
 import '../../../core/services/location_service.dart';
-import '../../../core/utils/user_profile_manager.dart';
+import '../../../core/services/user_profile_manager.dart';
 
 part 'location_manual_event.dart';
 part 'location_manual_state.dart';

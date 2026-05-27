@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import 'age_calculator.dart';
+import '../utils/age_calculator.dart';
 
 class UserProfileManager {
   static final UserProfileManager _instance = UserProfileManager._internal();
