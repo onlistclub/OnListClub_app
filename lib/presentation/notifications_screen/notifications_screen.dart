@@ -68,7 +68,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
           ],
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 2),
+      bottomNavigationBar: const SharedFooter(currentIndex: 3),
     );
   }
 

@@ -283,7 +283,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           ],
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 3),
+      bottomNavigationBar: const SharedFooter(currentIndex: -1),
     );
   }
 

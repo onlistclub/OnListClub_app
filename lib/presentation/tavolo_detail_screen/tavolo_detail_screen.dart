@@ -179,5 +179,5 @@ class TavoloDetailScreen extends StatelessWidget {
     );
   }
 
-  Widget _buildBottomNav() => const SharedFooter(currentIndex: 2);
+  Widget _buildBottomNav() => const SharedFooter(currentIndex: 1);
 }

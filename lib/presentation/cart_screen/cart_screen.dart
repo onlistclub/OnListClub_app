@@ -222,7 +222,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
           ],
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 1),
+      bottomNavigationBar: const SharedFooter(currentIndex: 2),
     );
   }
 

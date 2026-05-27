@@ -55,7 +55,7 @@ class PaymentSuccessScreen extends StatelessWidget {
           ],
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 1),
+      bottomNavigationBar: const SharedFooter(currentIndex: 2),
     );
   }
 

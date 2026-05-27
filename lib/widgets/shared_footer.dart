@@ -4,9 +4,13 @@ import '../core/services/badge_service.dart';
 
 /// Bottom navigation bar condivisa dalle schermate principali.
 ///
-/// Riceve `currentIndex` per evidenziare la tab attiva, gestisce internamente
-/// la navigazione fra Home / Ordini / Notifiche / Profilo. Si aggancia a
-/// `BadgeService` per mostrare il pallino sulle notifiche non lette.
+/// Ordine icone (allineato al Figma `docs/figma_screen/off/`):
+/// 0 = Home, 1 = Borsa (ordini acquistati), 2 = Carrello (cart attivo),
+/// 3 = Campanella (notifiche). Il Profilo NON è in questa nav bar — si
+/// raggiunge dall'icona persona del `CustomTopBar` (in alto a destra).
+///
+/// Riceve `currentIndex` per evidenziare la tab attiva. Passare `-1` per
+/// nessuna tab evidenziata (es. schermate raggiunte da Profilo).
 class SharedFooter extends StatelessWidget {
   final int currentIndex;
 
@@ -14,15 +18,14 @@ class SharedFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Figma specs: iconSOTTO at left:34, top:787 in 852px screen
-    // Rectangle 191: 312x49px, rgba(255,255,255,0.02), border-radius:10
-    // Frame 355: gap:60px, centered, 298.42x30.93px
+    // Figma specs: Rectangle 191: 354x49px rgba(255,255,255,0.02) border-radius:10,
+    // 4 icone equispaziate, badge "tab attiva" 73x43 rgba(255,255,255,~0.25) sotto l'icona.
     return Container(
       color: Colors.black,
       child: SafeArea(
         top: false,
         child: SizedBox(
-          height: 65, // 852 - 787 = 65px from bottom
+          height: 65,
           child: Center(
             child: Container(
               width: 312,
@@ -37,11 +40,12 @@ class SharedFooter extends StatelessWidget {
                   children: [
                     _buildNavItem(ImageConstant.imgHome, 0, AppRoutes.homeScreen),
                     const SizedBox(width: 60),
-                    _buildNavItem(ImageConstant.imgShoppingCart, 1, AppRoutes.cartScreen),
+                    _buildNavItem(null, 1, AppRoutes.ordersScreen,
+                        iconData: Icons.shopping_bag_outlined),
                     const SizedBox(width: 60),
-                    _buildNavItem(ImageConstant.imgBell, 2, AppRoutes.notificationsScreen),
+                    _buildNavItem(ImageConstant.imgShoppingCart, 2, AppRoutes.cartScreen),
                     const SizedBox(width: 60),
-                    _buildNavItem(ImageConstant.imgUser, 3, AppRoutes.profileScreen),
+                    _buildNavItem(ImageConstant.imgBell, 3, AppRoutes.notificationsScreen),
                   ],
                 ),
               ),
@@ -56,7 +60,7 @@ class SharedFooter extends StatelessWidget {
     final isSelected = currentIndex == index;
     return GestureDetector(
       onTap: () {
-        if (index == 2) {
+        if (index == 3) {
           BadgeService().clearNotificationBadge();
         }
         if (!isSelected && routeName.isNotEmpty) {
@@ -88,7 +92,7 @@ class SharedFooter extends StatelessWidget {
                     ),
             ),
           ),
-          if (index == 2) // Badge per le notifiche
+          if (index == 3) // Badge per le notifiche
             ValueListenableBuilder<int>(
               valueListenable: BadgeService().notificationBadgeCount,
               builder: (context, count, child) {
