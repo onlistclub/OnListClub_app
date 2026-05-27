@@ -1,4 +1,9 @@
 // lib/core/constants/image_constant.dart
+/// Path statici degli asset immagine usati dall'app.
+///
+/// Centralizza la base path (`assets/images/`) così che rinominare la cartella
+/// asset richieda di toccare solo questo file. Usare sempre `ImageConstant.xxx`
+/// nei widget, mai stringhe hardcoded.
 class ImageConstant {
   // Base path for all assets
   static String _basePath = 'assets/images/';

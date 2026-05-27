@@ -8,6 +8,11 @@ import '../models/serata_model.dart';
 /// Le coordinate città servono come fallback per locali senza lat/lng propri.
 const _localiSelect = '*, citta(nome_citta, lat, lng)';
 
+/// Accesso a `locali` ed `eventi` su Supabase.
+///
+/// Espone i fetch usati da Home, NearbyClubs e ClubDetail: lista locali per città,
+/// dettaglio singolo locale, serate del locale, filtri per raggio km. Restituisce
+/// sempre `LocaleModel` / `SerataModel` già mappati.
 class ClubService {
   static SupabaseClient get _client => Supabase.instance.client;
 

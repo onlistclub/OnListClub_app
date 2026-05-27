@@ -3,6 +3,11 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/notification_model.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
+/// Lettura e scrittura notifiche utente su Supabase.
+///
+/// Espone fetch lista, conteggio non lette, mark-as-read. Cachea l'ultimo
+/// accesso su `shared_preferences` per calcolare le notifiche "nuove" rispetto
+/// all'ultima apertura. Aggiorna anche il badge in `BadgeService`.
 class NotificationService {
   static final _client = Supabase.instance.client;
 

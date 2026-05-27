@@ -1,3 +1,10 @@
+/// Mappa centralizzata delle rotte dell'app.
+///
+/// Espone `AppRoutes.<screenName>` (stringa-rotta) e la mappa `routes` consumata
+/// da `MaterialApp` in `main.dart`. Quando si aggiunge una schermata, registrarla
+/// qui per essere navigabile via `Navigator.pushNamed` / `NavigatorService`.
+library;
+
 import 'package:flutter/material.dart';
 import '../presentation/splash_screen/splash_screen.dart';
 import '../presentation/authentication_screen/authentication_screen.dart';

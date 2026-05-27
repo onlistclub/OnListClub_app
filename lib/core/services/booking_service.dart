@@ -1,6 +1,11 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'notification_service.dart';
 
+/// Accesso alle tabelle `prevendite` e `prenotazioni_tavoli` su Supabase.
+///
+/// Espone i metodi usati dal flusso di acquisto: lettura disponibilità,
+/// creazione prevendita/tavolo, annullamento. Dipende da `NotificationService`
+/// per generare la notifica utente quando una prenotazione cambia stato.
 class BookingService {
   static SupabaseClient get _client => Supabase.instance.client;
 

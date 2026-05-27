@@ -1,3 +1,8 @@
+/// Tabella statica ISO ↔ prefisso telefonico per i paesi supportati dall'app.
+///
+/// Espone helper per ottenere il dial code da un codice ISO (e viceversa) senza
+/// chiamare il DB. Pensato come fallback offline a `PhoneService`. Nessuna
+/// dipendenza esterna.
 class PhoneUtils {
   static const Map<String, String> _dialByIso = {
     'IT': '+39',

@@ -89,9 +89,10 @@ Ogni schermata ha il suo README con la spiegazione del codice e della logica.
 | [phone_service.dart](lib/core/services/phone_service.dart) | Gestione e normalizzazione numeri di telefono |
 | [club_service.dart](lib/core/services/club_service.dart) | Fetch dei club dal database |
 | [location_service.dart](lib/core/services/location_service.dart) | Rilevamento posizione GPS |
-| [user_profile_manager.dart](lib/core/utils/user_profile_manager.dart) | Creazione profilo post-verifica email |
+| [user_profile_manager.dart](lib/core/services/user_profile_manager.dart) | Creazione e lettura del profilo utente in `public.utenti` |
 | [age_calculator.dart](lib/core/utils/age_calculator.dart) | Calcolo maggiore età |
-| [navigator_service.dart](lib/core/utils/navigator_service.dart) | Navigazione centralizzata tra schermate |
+| [navigator_service.dart](lib/core/services/navigator_service.dart) | Navigazione centralizzata tra schermate |
+| [image_constant.dart](lib/core/constants/image_constant.dart) | Path statici degli asset immagine |
 
 ---
 
@@ -121,6 +122,78 @@ App avviata
 
 La persistenza avviene tramite una funzione RPC transazionale:
 `register_user_transaction` — inserisce atomicamente utente + telefono dopo la verifica email.
+
+---
+
+## Stack tecnico
+
+- **Frontend mobile:** Flutter (Dart SDK `^3.6.0`), target iOS + Android
+- **State management:** [`flutter_bloc`](https://pub.dev/packages/flutter_bloc) `^9.1.1` + `equatable`
+- **Backend / DB / Auth:** [Supabase](https://supabase.com) (Postgres + RLS + RPC)
+- **Auth social:** Google Sign-In, Sign in with Apple
+- **Mappa:** `flutter_map` + `latlong2`, geocoding via `geolocator` + `geocoding`
+- **Networking immagini:** `cached_network_image`
+- **Font/styling:** `google_fonts` + design system definito in [.claude/CLAUDE.md](.claude/CLAUDE.md)
+
+L'elenco completo delle dipendenze è in [pubspec.yaml](pubspec.yaml).
+
+---
+
+## Setup e avvio
+
+```bash
+# 1. Installa le dipendenze
+flutter pub get
+
+# 2. Verifica che tutto compili e i lint passino
+flutter analyze
+flutter test
+
+# 3. Avvia su un device/emulatore connesso
+#    Le chiavi Supabase vanno passate via --dart-define (mai committate).
+flutter run \
+  --dart-define=SUPABASE_URL=https://<project>.supabase.co \
+  --dart-define=SUPABASE_ANON_KEY=<anon-key> \
+  --dart-define=GOOGLE_WEB_CLIENT_ID=<client-id>
+```
+
+In assenza di `--dart-define` l'app fa fallback su `env.json` (solo per dev locale,
+**non** versionato). Vedi [INSTALL.md](INSTALL.md) per il setup di Flutter, Android
+SDK e Xcode.
+
+---
+
+## Struttura del progetto
+
+```
+OnListClub_app/
+├── README.md                ← questo file
+├── pubspec.yaml             ← dipendenze e asset
+├── android/, ios/, web/     ← cartelle di piattaforma generate da Flutter
+├── assets/                  ← immagini, logo, env.json (dev only)
+├── docs/                    ← documentazione tecnica e schema DB
+├── test/                    ← test automatici
+└── lib/                     ← tutto il codice Dart dell'app
+    ├── main.dart            ← entry point: init Supabase + MaterialApp
+    ├── core/                ← layer non-UI (vedi lib/core/README.md)
+    │   ├── app_export.dart  ← barrel: riesporta tipi e helper più usati
+    │   ├── constants/       ← path asset, costanti statiche
+    │   ├── models/          ← domain models (Locale, Serata, Città, Notification)
+    │   ├── services/        ← Supabase, GPS, navigator, profilo utente
+    │   └── utils/           ← helper puri (date, età, telefono, size)
+    ├── routes/              ← mappa rotte e nomi (AppRoutes)
+    ├── theme/               ← colori e text style del design system
+    ├── widgets/             ← componenti UI riutilizzabili globali
+    └── presentation/        ← una cartella per schermata (UI + BLoC + model)
+```
+
+Ogni cartella principale di `lib/` ha un proprio `README.md` con il dettaglio
+dei file e del loro ruolo. La maggior parte delle schermate in
+`lib/presentation/` ha già un README dedicato al flusso utente.
+
+> Le regole di progetto (design system, convenzioni di codice, qualità) sono
+> dichiarate in [.claude/CLAUDE.md](.claude/CLAUDE.md) — leggere prima di
+> contribuire.
 
 ---
 

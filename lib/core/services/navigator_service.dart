@@ -1,5 +1,10 @@
 import 'package:flutter/material.dart';
 
+/// Servizio di navigazione globale, indipendente da `BuildContext`.
+///
+/// Espone una `GlobalKey<NavigatorState>` che `MaterialApp` aggancia in
+/// `main.dart`. Usato dai BLoC e dai servizi (che non hanno `context`) per fare
+/// push/pop e per i redirect post-login.
 // ignore_for_file: must_be_immutable
 class NavigatorService {
   static GlobalKey<NavigatorState> navigatorKey = GlobalKey<NavigatorState>();

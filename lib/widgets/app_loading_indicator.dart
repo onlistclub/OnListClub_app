@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
 
+/// Spinner standard dell'app: `CircularProgressIndicator` con il colore brand
+/// (`#1D00FF`). Da usare ovunque serva un loading, per consistenza visiva.
 class AppLoadingIndicator extends StatelessWidget {
   const AppLoadingIndicator({Key? key}) : super(key: key);
 

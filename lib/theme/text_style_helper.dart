@@ -1,6 +1,13 @@
 import 'package:flutter/material.dart';
 import '../core/app_export.dart';
 
+/// Catalogo centrale di `TextStyle` dell'app.
+///
+/// Espone `TextStyleHelper.instance` con tutti gli stili (display, heading, body,
+/// caption) calibrati sul Figma. Le size sono espresse via `num.fSize`
+/// (`SizeUtils`) per essere responsive. Da usare al posto di `TextStyle(...)`
+/// hardcoded nei widget.
+///
 /// A helper class for managing text styles in the application
 class TextStyleHelper {
   static TextStyleHelper? _instance;

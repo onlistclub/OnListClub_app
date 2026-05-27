@@ -1,3 +1,8 @@
+/// Modello del dominio per la tabella `citta`.
+///
+/// Espone id, nome e coordinate della città. Usata dalla schermata di selezione
+/// manuale (`LocationManualScreen`) e come fallback geografico in `ClubService`
+/// quando un locale non ha lat/lng propri.
 class CittaModel {
   final String idCitta;
   final String nomeCitta;

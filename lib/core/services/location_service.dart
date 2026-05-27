@@ -5,6 +5,12 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/citta_model.dart';
 
+/// Servizio di risoluzione della posizione utente.
+///
+/// Combina tre fonti: GPS (geolocator), selezione manuale (con geocoding inverso)
+/// e cache su `shared_preferences`. Espone anche flag persistenti come
+/// `isGpsForced` letto sincronicamente all'avvio in `main.dart`. Dipende da
+/// `CittaModel` per la lista città di Supabase.
 class LocationService {
   static const String _remindLaterKey    = 'location_remind_later_at';
   static const String _idCittaKey        = 'id_utente_citta';

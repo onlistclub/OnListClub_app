@@ -1,3 +1,10 @@
+/// Entry point dell'app OnListClub.
+///
+/// Inizializza Flutter, blocca l'orientamento verticale, carica le chiavi
+/// (Supabase + Google) da `--dart-define` con fallback a `env.json`, inizializza
+/// Supabase e fa partire `MaterialApp` con le rotte definite in `AppRoutes`.
+library;
+
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';

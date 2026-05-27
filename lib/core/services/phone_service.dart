@@ -1,5 +1,10 @@
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Risoluzione `id_paese` ↔ codice ISO via tabella `paesi` su Supabase.
+///
+/// Usato in registrazione e nei moduli di edit profilo per convertire l'ISO
+/// selezionato dall'`intl_phone_number_input` nel foreign key richiesto dalla
+/// tabella `users_phones`.
 class PhoneService {
   final SupabaseClient _client = Supabase.instance.client;
 

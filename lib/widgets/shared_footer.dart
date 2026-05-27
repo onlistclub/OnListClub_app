@@ -2,6 +2,11 @@ import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 import '../core/services/badge_service.dart';
 
+/// Bottom navigation bar condivisa dalle schermate principali.
+///
+/// Riceve `currentIndex` per evidenziare la tab attiva, gestisce internamente
+/// la navigazione fra Home / Ordini / Notifiche / Profilo. Si aggancia a
+/// `BadgeService` per mostrare il pallino sulle notifiche non lette.
 class SharedFooter extends StatelessWidget {
   final int currentIndex;
 

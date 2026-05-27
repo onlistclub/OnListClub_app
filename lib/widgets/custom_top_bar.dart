@@ -1,6 +1,11 @@
 import 'package:flutter/material.dart';
 import '../core/app_export.dart';
 
+/// App bar custom condivisa dalle schermate principali.
+///
+/// Espone le opzioni `showProfile`, `showSearch`, `isHome` e i callback
+/// associati. Implementa `PreferredSizeWidget` per poter essere usata come
+/// `appBar:` di uno `Scaffold`. Le icone arrivano da `ImageConstant`.
 class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   final bool showProfile;
   final bool showSearch;

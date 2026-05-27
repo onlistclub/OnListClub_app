@@ -1,6 +1,11 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
+/// Storico ordini dell'utente: prevendite + prenotazioni tavolo.
+///
+/// Espone i fetch usati da `OrdersScreen` e dai dettagli prevendita/tavolo.
+/// Restituisce mappe grezze dal DB (non model dedicati) perché lo schema è
+/// ancora in evoluzione.
 class OrdersService {
   static SupabaseClient get _client => Supabase.instance.client;
 

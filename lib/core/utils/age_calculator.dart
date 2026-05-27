@@ -1,3 +1,8 @@
+/// Helper puro per il calcolo della maggiore età.
+///
+/// Espone `AgeCalculator.isAdult(dob)` (true se ≥ 18 anni). Usato in
+/// registrazione e in `UserProfileManager.ensureProfileExists` per impostare
+/// il flag `maggiorenne` su `utenti`. Nessuna dipendenza esterna.
 class AgeCalculator {
   /// Calcola se una persona è maggiorenne (>= 18 anni)
   /// basandosi sulla data di nascita [dob] e una data di riferimento [currentDate] (opzionale, default: oggi).

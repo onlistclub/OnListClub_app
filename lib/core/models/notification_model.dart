@@ -1,5 +1,10 @@
 import 'package:equatable/equatable.dart';
 
+/// Modello del dominio per la tabella `notifiche`.
+///
+/// Espone i campi mostrati da `NotificationsScreen` (titolo, messaggio, tipo,
+/// flag letto, createdAt) più `relatedId` per il deep-link verso la risorsa
+/// collegata (ordine, prevendita, evento).
 class NotificationModel extends Equatable {
   final String id;
   final String utenteId;

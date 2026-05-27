@@ -1,3 +1,10 @@
+/// Widget unico per mostrare un'immagine di qualsiasi tipo.
+///
+/// Decide il renderer guardando il path: rete (`http(s)://...`) → `cached_network_image`,
+/// estensione `.svg` → `flutter_svg`, percorso filesystem → `Image.file`, altrimenti
+/// `Image.asset`. Usato in tutta la UI per non dover scegliere ogni volta il widget.
+library;
+
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';

@@ -3,6 +3,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/age_calculator.dart';
 import '../utils/phone_utils.dart';
 
+/// Registrazione utente: insert atomico su `utenti` + `users_phones` via RPC.
+///
+/// Chiama la funzione Postgres `register_user_transaction` per garantire che
+/// utente e telefono siano scritti nella stessa transazione (no orfani in caso
+/// di errore). Dipende da `AgeCalculator` per il flag `maggiorenne` e da
+/// `PhoneUtils` per la normalizzazione del prefisso.
 class RegisterService {
   final SupabaseClient _client = Supabase.instance.client;
 

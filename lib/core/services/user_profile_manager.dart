@@ -2,6 +2,12 @@ import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../utils/age_calculator.dart';
 
+/// Servizio singleton per il profilo utente in `public.utenti`.
+///
+/// Espone le operazioni che il resto dell'app fa sul profilo: verifica
+/// completezza dei dati obbligatori, lettura/scrittura del raggio di ricerca,
+/// upsert post-OAuth a partire dai metadata di `auth.users`. Dipende da
+/// Supabase e da `AgeCalculator` per il flag `maggiorenne`.
 class UserProfileManager {
   static final UserProfileManager _instance = UserProfileManager._internal();
   factory UserProfileManager() => _instance;

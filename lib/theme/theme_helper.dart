@@ -1,3 +1,10 @@
+/// Theme e palette colori dell'app.
+///
+/// Espone `appTheme` (colori brand) e `theme` (`ThemeData` per `MaterialApp`).
+/// I valori canonici sono dichiarati in `.claude/CLAUDE.md` — questo file è la
+/// loro implementazione Dart. Non aggiungere colori non presenti lì.
+library;
+
 import 'package:flutter/material.dart';
 
 LightCodeColors get appTheme => ThemeHelper().themeColor();

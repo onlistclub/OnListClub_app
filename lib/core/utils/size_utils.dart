@@ -1,3 +1,10 @@
+/// Helper per il layout responsive sui breakpoint del design Figma.
+///
+/// Espone le extension `num.h`, `num.fSize` e la classe `SizeUtils`. Calcola le
+/// dimensioni proporzionali al rapporto fra schermo attuale e viewport Figma
+/// (`393 × 822`). Inizializzato dal builder di Sizer in `main.dart`.
+library;
+
 import 'package:flutter/material.dart'; // These are the Viewport values of your Figma Design.
 
 // These are used in the code as a reference to create your UI Responsively.

@@ -1,5 +1,10 @@
 import 'package:equatable/equatable.dart';
 
+/// Modello del dominio per la tabella `locali` (club/discoteca).
+///
+/// Espone i campi mostrati dalle schermate di scoperta (Home, NearbyClubs,
+/// ClubDetail): nome, indirizzo, foto, generi musicali, prezzo indicativo,
+/// coordinate. `nomeCitta` arriva dal JOIN con `citta` in `ClubService`.
 class LocaleModel extends Equatable {
   final String id;
   final String nome;
