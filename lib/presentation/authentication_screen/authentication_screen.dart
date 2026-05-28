@@ -1,10 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import './bloc/authentication_bloc.dart';
 import './models/authentication_model.dart';
 
@@ -32,139 +33,125 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0000FF),
-      body: BlocConsumer<AuthenticationBloc, AuthenticationState>(
-        listener: (context, state) {
-          if (state.isLoginSuccess) {
-            AnalyticsService.log(event: 'login_success');
-            LocationService.shouldShowLocationPrompt().then((show) {
-              NavigatorService.pushNamedAndRemoveUntil(
-                show
-                    ? AppRoutes.locationPermissionScreen
-                    : AppRoutes.eventDetailScreen,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+        child: BlocConsumer<AuthenticationBloc, AuthenticationState>(
+          listener: (context, state) {
+            if (state.isLoginSuccess) {
+              AnalyticsService.log(event: 'login_success');
+              LocationService.shouldShowLocationPrompt().then((show) {
+                NavigatorService.pushNamedAndRemoveUntil(
+                  show
+                      ? AppRoutes.locationPermissionScreen
+                      : AppRoutes.eventDetailScreen,
+                );
+              });
+            }
+            if (state.needsProfileCompletion) {
+              AnalyticsService.log(event: 'registration_oauth_started');
+              NavigatorService.pushNamed(
+                AppRoutes.completeProfileScreen,
+                arguments: {
+                  'nome': state.oauthNome,
+                  'cognome': state.oauthCognome,
+                  'email': state.oauthEmail,
+                },
               );
-            });
-          }
-          if (state.needsProfileCompletion) {
-            AnalyticsService.log(event: 'registration_oauth_started');
-            NavigatorService.pushNamed(
-              AppRoutes.completeProfileScreen,
-              arguments: {
-                'nome': state.oauthNome,
-                'cognome': state.oauthCognome,
-                'email': state.oauthEmail,
-              },
-            );
-          }
-          if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
-            AnalyticsService.log(event: 'login_error', metadata: {'error': state.errorMessage});
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage!)),
-            );
-          }
-        },
-        builder: (context, state) {
-          return SafeArea(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
-              child: Form(
-                key: state.formKey,
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 72),
-                    Text(
-                      'Accedi',
-                      style: GoogleFonts.inter(
-                        fontSize: 36,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
+            }
+            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+              AnalyticsService.log(event: 'login_error', metadata: {'error': state.errorMessage});
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.errorMessage!)),
+              );
+            }
+          },
+          builder: (context, state) {
+            return SafeArea(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                child: Form(
+                  key: state.formKey,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      const SizedBox(height: 72),
+                      Text('Accedi', style: OnlistTextStyles.display40Regular),
+                      const SizedBox(height: 40),
+                      _UnderlineField(
+                        controller: state.emailController,
+                        label: 'Email',
+                        keyboardType: TextInputType.emailAddress,
+                        validator: (v) {
+                          if (v == null || v.isEmpty) return 'Inserisci la tua email';
+                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                              .hasMatch(v)) {
+                            return 'Email non valida';
+                          }
+                          return null;
+                        },
+                        onChanged: (v) => context
+                            .read<AuthenticationBloc>()
+                            .add(EmailChangedEvent(email: v)),
                       ),
-                    ),
-                    const SizedBox(height: 40),
-                    _UnderlineField(
-                      controller: state.emailController,
-                      label: 'Email',
-                      keyboardType: TextInputType.emailAddress,
-                      validator: (v) {
-                        if (v == null || v.isEmpty) return 'Inserisci la tua email';
-                        if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                            .hasMatch(v)) {
-                          return 'Email non valida';
-                        }
-                        return null;
-                      },
-                      onChanged: (v) => context
-                          .read<AuthenticationBloc>()
-                          .add(EmailChangedEvent(email: v)),
-                    ),
-                    const SizedBox(height: 28),
-                    _UnderlinePasswordField(
-                      controller: state.passwordController,
-                      onChanged: (v) => context
-                          .read<AuthenticationBloc>()
-                          .add(PasswordChangedEvent(password: v)),
-                    ),
-                    const SizedBox(height: 40),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        _BlackButton(
-                          label: 'Accedi',
-                          onTap: () => _onTapAccedi(context, state),
-                          width: 130,
+                      const SizedBox(height: 28),
+                      _UnderlinePasswordField(
+                        controller: state.passwordController,
+                        onChanged: (v) => context
+                            .read<AuthenticationBloc>()
+                            .add(PasswordChangedEvent(password: v)),
+                      ),
+                      const SizedBox(height: 40),
+                      // Bottoni Accedi / Registrati — impilati e centrati (Figma)
+                      Center(
+                        child: Column(
+                          children: [
+                            _WhiteButton(
+                              label: 'Accedi',
+                              onTap: () => _onTapAccedi(context, state),
+                            ),
+                            const SizedBox(height: 16),
+                            _WhiteButton(
+                              label: 'Registrati',
+                              onTap: () {
+                                AnalyticsService.log(event: 'registration_email_started');
+                                NavigatorService.pushNamed(AppRoutes.signUpScreen);
+                              },
+                            ),
+                          ],
                         ),
-                        const SizedBox(width: 16),
-                        _BlackButton(
-                          label: 'Registrati',
+                      ),
+                      const SizedBox(height: 60),
+                      if (state.isLoading)
+                        const Center(
+                          child: CircularProgressIndicator(color: OnlistColors.white),
+                        )
+                      else ...[
+                        _AppleButton(
                           onTap: () {
-                            AnalyticsService.log(event: 'registration_email_started');
-                            NavigatorService.pushNamed(AppRoutes.signUpScreen);
+                            AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'apple'});
+                            context
+                                .read<AuthenticationBloc>()
+                                .add(AppleSignInEvent());
                           },
-                          width: 130,
+                        ),
+                        const SizedBox(height: 12),
+                        _GoogleButton(
+                          onTap: () {
+                            AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'google'});
+                            context
+                                .read<AuthenticationBloc>()
+                                .add(GoogleSignInEvent());
+                          },
                         ),
                       ],
-                    ),
-                    const SizedBox(height: 60),
-                    if (state.isLoading)
-                      const Center(
-                        child: CircularProgressIndicator(color: Colors.white),
-                      )
-                    else ...[
-                      _AppleButton(
-                        onTap: () {
-                          AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'apple'});
-                          context
-                              .read<AuthenticationBloc>()
-                              .add(AppleSignInEvent());
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _GoogleButton(
-                        onTap: () {
-                          AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'google'});
-                          context
-                              .read<AuthenticationBloc>()
-                              .add(GoogleSignInEvent());
-                        },
-                      ),
-                      const SizedBox(height: 12),
-                      _StaffButton(
-                        onTap: () =>
-                            ScaffoldMessenger.of(context).showSnackBar(
-                          const SnackBar(
-                              content:
-                                  Text('Accesso staff disponibile a breve')),
-                        ),
-                      ),
+                      const SizedBox(height: 32),
                     ],
-                    const SizedBox(height: 32),
-                  ],
+                  ),
                 ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
@@ -178,6 +165,31 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
 }
 
 // ── Underline text field ───────────────────────────────────────────────────────
+
+const TextStyle _kInputStyle = TextStyle(
+  fontFamily: 'HelveticaNeue',
+  fontSize: 16,
+  fontWeight: FontWeight.w400,
+  color: OnlistColors.white,
+);
+
+InputDecoration _underlineDecoration({Widget? suffixIcon}) {
+  return InputDecoration(
+    isDense: true,
+    filled: false,
+    contentPadding: const EdgeInsets.only(top: 8, bottom: 6),
+    enabledBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: OnlistColors.white, width: 2)),
+    focusedBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: OnlistColors.white, width: 2)),
+    errorBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Colors.redAccent, width: 2)),
+    focusedErrorBorder: const UnderlineInputBorder(
+        borderSide: BorderSide(color: Colors.redAccent, width: 2)),
+    errorStyle: const TextStyle(color: Colors.white70),
+    suffixIcon: suffixIcon,
+  );
+}
 
 class _UnderlineField extends StatelessWidget {
   const _UnderlineField({
@@ -196,29 +208,19 @@ class _UnderlineField extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      style: GoogleFonts.inter(
-          fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: GoogleFonts.inter(
-            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-        enabledBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.white, width: 1.5)),
-        focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.white, width: 2)),
-        errorBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.redAccent, width: 1.5)),
-        focusedErrorBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.redAccent, width: 2)),
-        errorStyle: const TextStyle(color: Colors.white70),
-        filled: false,
-        contentPadding: const EdgeInsets.only(bottom: 8),
-      ),
-      validator: validator,
-      onChanged: onChanged,
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text(label, style: OnlistTextStyles.formLabel22),
+        TextFormField(
+          controller: controller,
+          keyboardType: keyboardType,
+          style: _kInputStyle,
+          decoration: _underlineDecoration(),
+          validator: validator,
+          onChanged: onChanged,
+        ),
+      ],
     );
   }
 }
@@ -240,73 +242,59 @@ class _UnderlinePasswordFieldState extends State<_UnderlinePasswordField> {
 
   @override
   Widget build(BuildContext context) {
-    return TextFormField(
-      controller: widget.controller,
-      obscureText: _obscure,
-      style: GoogleFonts.inter(
-          fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-      decoration: InputDecoration(
-        labelText: 'Password',
-        labelStyle: GoogleFonts.inter(
-            fontSize: 16, fontWeight: FontWeight.w700, color: Colors.white),
-        enabledBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.white, width: 1.5)),
-        focusedBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.white, width: 2)),
-        errorBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.redAccent, width: 1.5)),
-        focusedErrorBorder: const UnderlineInputBorder(
-            borderSide: BorderSide(color: Colors.redAccent, width: 2)),
-        errorStyle: const TextStyle(color: Colors.white70),
-        filled: false,
-        contentPadding: const EdgeInsets.only(bottom: 8),
-        suffixIcon: IconButton(
-          icon: Icon(
-              _obscure ? Icons.visibility_off : Icons.visibility,
-              color: Colors.white70,
-              size: 20),
-          onPressed: () => setState(() => _obscure = !_obscure),
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        Text('Password', style: OnlistTextStyles.formLabel22),
+        TextFormField(
+          controller: widget.controller,
+          obscureText: _obscure,
+          style: _kInputStyle,
+          decoration: _underlineDecoration(
+            suffixIcon: IconButton(
+              icon: Icon(
+                  _obscure ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white70,
+                  size: 20),
+              onPressed: () => setState(() => _obscure = !_obscure),
+            ),
+          ),
+          validator: (v) {
+            if (v == null || v.isEmpty) return 'Inserisci la password';
+            if (v.length < 6) return 'Minimo 6 caratteri';
+            return null;
+          },
+          onChanged: widget.onChanged,
         ),
-      ),
-      validator: (v) {
-        if (v == null || v.isEmpty) return 'Inserisci la password';
-        if (v.length < 6) return 'Minimo 6 caratteri';
-        return null;
-      },
-      onChanged: widget.onChanged,
+      ],
     );
   }
 }
 
 // ── Buttons ───────────────────────────────────────────────────────────────────
 
-class _BlackButton extends StatelessWidget {
-  const _BlackButton(
-      {required this.label, required this.onTap, this.width});
+class _WhiteButton extends StatelessWidget {
+  const _WhiteButton({required this.label, required this.onTap});
 
   final String label;
   final VoidCallback onTap;
-  final double? width;
 
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      width: width,
-      height: 48,
+      width: 150,
+      height: 40,
       child: ElevatedButton(
         onPressed: onTap,
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
+          backgroundColor: OnlistColors.white,
+          foregroundColor: OnlistColors.black,
           elevation: 0,
+          padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30)),
+              borderRadius: BorderRadius.circular(10)),
         ),
-        child: Text(label,
-            style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w700,
-                color: Colors.white)),
+        child: Text(label, style: OnlistTextStyles.button16Bold),
       ),
     );
   }
@@ -320,21 +308,17 @@ class _AppleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 52,
+      height: 47,
       child: ElevatedButton.icon(
         onPressed: onTap,
-        icon: const Icon(Icons.apple, color: Colors.white, size: 22),
-        label: Text('Continua con Apple',
-            style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white)),
+        icon: const Icon(Icons.apple, color: OnlistColors.black, size: 24),
+        label: Text('Continua con Apple', style: _kSocialLabel),
         style: ElevatedButton.styleFrom(
-          backgroundColor: Colors.black,
-          foregroundColor: Colors.white,
+          backgroundColor: OnlistColors.white,
+          foregroundColor: OnlistColors.black,
           elevation: 0,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30)),
+              borderRadius: BorderRadius.circular(11)),
         ),
       ),
     );
@@ -349,59 +333,33 @@ class _GoogleButton extends StatelessWidget {
   Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
-      height: 52,
-      child: OutlinedButton.icon(
+      height: 47,
+      child: ElevatedButton.icon(
         onPressed: onTap,
         icon: SizedBox(
-          width: 20,
-          height: 20,
+          width: 22,
+          height: 22,
           child: CustomPaint(painter: _GoogleLogoPainter()),
         ),
-        label: Text('Continua con Google',
-            style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.black87)),
-        style: OutlinedButton.styleFrom(
-          backgroundColor: Colors.white,
-          foregroundColor: Colors.black87,
-          side: BorderSide.none,
-          elevation: 0,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30)),
-        ),
-      ),
-    );
-  }
-}
-
-class _StaffButton extends StatelessWidget {
-  const _StaffButton({required this.onTap});
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 52,
-      child: ElevatedButton(
-        onPressed: onTap,
+        label: Text('Continua con Google', style: _kSocialLabel),
         style: ElevatedButton.styleFrom(
-          backgroundColor: const Color(0xFF0A0066),
-          foregroundColor: Colors.white,
+          backgroundColor: OnlistColors.white,
+          foregroundColor: OnlistColors.black,
           elevation: 0,
           shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(30)),
+              borderRadius: BorderRadius.circular(11)),
         ),
-        child: Text('Accedi come Staff',
-            style: GoogleFonts.inter(
-                fontSize: 16,
-                fontWeight: FontWeight.w600,
-                color: Colors.white)),
       ),
     );
   }
 }
+
+const TextStyle _kSocialLabel = TextStyle(
+  fontFamily: 'HelveticaNeue',
+  fontSize: 16,
+  fontWeight: FontWeight.w500,
+  color: Color(0xBD000000), // rgba(0,0,0,0.74)
+);
 
 // ── Google logo painter ────────────────────────────────────────────────────────
 
