@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/app_export.dart';
@@ -9,6 +8,8 @@ import '../../core/services/club_service.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../core/services/notification_service.dart';
@@ -130,7 +131,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: BlocBuilder<HomeBloc, HomeState>(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: BlocBuilder<HomeBloc, HomeState>(
         buildWhen: (prev, curr) =>
             prev.localeVicino != curr.localeVicino ||
             prev.upcomingEventi != curr.upcomingEventi ||
@@ -170,7 +173,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                                 child: Text(
                                   'Nessun locale trovato.\nProva a cambiare raggio o cercare in un\'altra città.',
                                   textAlign: TextAlign.center,
-                                  style: GoogleFonts.inter(
+                                  style: OnlistTextStyles.hn(
                                     fontSize: 16,
                                     color: Colors.white54,
                                   ),
@@ -205,6 +208,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                                         child: _buildClubDetails(state),
                                       ),
                                     ),
+                                    // CTA "RISERVA IL TUO POSTO ORA" → booking serata in evidenza
+                                    if (state.upcomingEventi.isNotEmpty)
+                                      SlideTransition(
+                                        position: _subtitleSlide,
+                                        child: FadeTransition(
+                                          opacity: _subtitleFade,
+                                          child: _buildReserveButton(context, state),
+                                        ),
+                                      ),
                                     // Events section
                                     if (state.upcomingEventi.isNotEmpty) ...[
                                       SlideTransition(
@@ -232,6 +244,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               ),
             );
         },
+        ),
       ),
       bottomNavigationBar: SlideTransition(
         position: _navSlide,
@@ -261,7 +274,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   Flexible(
                     child: Text(
                       state.locationSourceLabel,
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 12,
                         color: Colors.white70,
                         fontWeight: FontWeight.w500,
@@ -296,7 +309,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     const SizedBox(width: 4),
                     Text(
                       'Usa GPS',
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 10,
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -324,7 +337,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     const SizedBox(width: 4),
                     Text(
                       'Rimuovi GPS',
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 10,
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
@@ -345,23 +358,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     final fotoUrl = state.localeVicino?.fotoUrl;
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 9),
-      child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
-        child: Container(
-          width: double.infinity,
-          height: 217,
-          color: const Color(0xFF1A1A2E),
-          child: fotoUrl != null
-              ? CustomImageView(
-                  imagePath: fotoUrl,
-                  width: MediaQuery.of(context).size.width,
-                  height: 217,
-                  fit: BoxFit.cover,
-                  placeHolder: ImageConstant.imgImageNotFound,
-                )
-              : const Icon(Icons.nightlife,
-                  color: Color(0xFF666666), size: 48),
-        ),
+      child: Stack(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: double.infinity,
+              height: 217,
+              color: const Color(0xFF1A1A2E),
+              child: fotoUrl != null
+                  ? CustomImageView(
+                      imagePath: fotoUrl,
+                      width: MediaQuery.of(context).size.width,
+                      height: 217,
+                      fit: BoxFit.cover,
+                      placeHolder: ImageConstant.imgImageNotFound,
+                    )
+                  : const Icon(Icons.nightlife,
+                      color: Color(0xFF666666), size: 48),
+            ),
+          ),
+          // Pill "Il tuo club preferito" — solo se il club è nei preferiti
+          if (state.localeVicino != null)
+            Positioned(
+              top: 12,
+              left: 12,
+              child: _FavoritePill(clubId: state.localeVicino!.id),
+            ),
+        ],
       ),
     );
   }
@@ -377,7 +401,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           Expanded(
             child: Text(
               state.localeVicino?.nome ?? '',
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 fontSize: 36,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -430,7 +454,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             opacity: 0.6,
             child: Text(
               addr,
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 fontSize: 16,
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
@@ -454,7 +478,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 opacity: 0.6,
                 child: Text(
                   orario,
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     fontSize: 16,
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
@@ -468,7 +492,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   children: [
                     TextSpan(
                       text: priceStr,
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 16,
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
@@ -477,7 +501,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     ),
                     TextSpan(
                       text: emptyPrice,
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 16,
                         color: Colors.white.withValues(alpha: 0.3),
                         fontWeight: FontWeight.w500,
@@ -504,7 +528,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   opacity: 0.6,
                   child: Text(
                     locale.generiString.isNotEmpty ? locale.generiString : 'Tutti i generi',
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       fontSize: 16,
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
@@ -522,6 +546,49 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
+  // ── Reserve CTA ──────────────────────────────────────────────────────────
+
+  Widget _buildReserveButton(BuildContext context, HomeState state) {
+    final serata = state.upcomingEventi.isNotEmpty
+        ? state.upcomingEventi.first
+        : null;
+    final club = state.localeVicino;
+    if (serata == null || club == null) return const SizedBox.shrink();
+
+    return Padding(
+      padding: const EdgeInsets.fromLTRB(11, 13, 11, 4),
+      child: _AnimatedPressButton(
+        onPressed: () => NavigatorService.pushNamed(
+          AppRoutes.bookingScreen,
+          arguments: {'serata': serata, 'club': club},
+        ),
+        child: Container(
+          width: double.infinity,
+          height: 49,
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Color(0x33989898), Color(0x331E00FF)],
+            ),
+            borderRadius: BorderRadius.circular(10),
+          ),
+          alignment: Alignment.center,
+          child: Text(
+            'RISERVA IL TUO POSTO ORA',
+            style: OnlistTextStyles.hn(
+              fontSize: 20,
+              fontWeight: FontWeight.w700,
+              color: OnlistColors.white,
+              height: 23 / 20,
+              letterSpacing: -0.08 * 20,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   // ── Section title ──────────────────────────────────────────────────────────
 
   Widget _buildSectionTitle(HomeState state) {
@@ -530,7 +597,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       padding: const EdgeInsets.fromLTRB(10, 12, 10, 9),
       child: Text(
         'Prossime serate',
-        style: GoogleFonts.inter(
+        style: OnlistTextStyles.hn(
           fontSize: 32,
           fontWeight: FontWeight.w700,
           color: Colors.white,
@@ -613,7 +680,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               top: 6,
               child: Text(
                 serata.nome.isNotEmpty ? serata.nome : 'Spring Party',
-                style: GoogleFonts.inter(
+                style: OnlistTextStyles.hn(
                   fontSize: 20,
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
@@ -628,7 +695,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 top: 39,
                 child: Text(
                   'OGGI',
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     fontSize: 22.22,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -642,7 +709,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               top: 74,
               child: Text(
                 _formatDate(serata.data),
-                style: GoogleFonts.inter(
+                style: OnlistTextStyles.hn(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                   color: Colors.white,
@@ -655,7 +722,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               top: 86.31,
               child: Text(
                 serata.orarioString,
-                style: GoogleFonts.inter(
+                style: OnlistTextStyles.hn(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                   color: Colors.white,
@@ -670,7 +737,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 opacity: 0.5,
                 child: Text(
                   serata.generiMusicali.isNotEmpty ? serata.generiMusicali.join(' - ') : club.generiString,
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     fontSize: 13,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -704,7 +771,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 alignment: Alignment.center,
                 child: Text(
                   'PRENOTA',
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     fontSize: 15.55,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -775,7 +842,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   serata.nome,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     fontSize: 32,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -791,7 +858,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               top: 49, // 714 - 665
               child: Text(
                 _formatDate(serata.data),
-                style: GoogleFonts.inter(
+                style: OnlistTextStyles.hn(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                   color: Colors.white,
@@ -805,7 +872,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
               top: 60, // 725 - 665
               child: Text(
                 serata.orarioString,
-                style: GoogleFonts.inter(
+                style: OnlistTextStyles.hn(
                   fontSize: 12,
                   fontWeight: FontWeight.w400,
                   color: Colors.white,
@@ -821,7 +888,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 opacity: 0.8,
                 child: Text(
                   club.nomeCitta ?? 'Milano (MI)',
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -855,7 +922,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 alignment: Alignment.center,
                 child: Text(
                   'PRENOTA',
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     fontSize: 15.55,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
@@ -915,6 +982,64 @@ class _AnimatedPressButtonState extends State<_AnimatedPressButton>
       },
       onTapCancel: () => _ctrl.reverse(),
       child: ScaleTransition(scale: _scale, child: widget.child),
+    );
+  }
+}
+
+// ── Favorite pill ───────────────────────────────────────────────────────────
+// Mostra "Il tuo club preferito" solo se il club è effettivamente nei preferiti.
+
+class _FavoritePill extends StatefulWidget {
+  final String clubId;
+  const _FavoritePill({required this.clubId});
+
+  @override
+  State<_FavoritePill> createState() => _FavoritePillState();
+}
+
+class _FavoritePillState extends State<_FavoritePill> {
+  bool _isPreferito = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _check();
+  }
+
+  @override
+  void didUpdateWidget(covariant _FavoritePill oldWidget) {
+    super.didUpdateWidget(oldWidget);
+    if (oldWidget.clubId != widget.clubId) _check();
+  }
+
+  Future<void> _check() async {
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
+    final saved = await ClubService.isPreferito(user.id, widget.clubId);
+    if (mounted) setState(() => _isPreferito = saved);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    if (!_isPreferito) return const SizedBox.shrink();
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+      decoration: BoxDecoration(
+        gradient: const LinearGradient(
+          begin: Alignment.centerLeft,
+          end: Alignment.centerRight,
+          colors: [Color(0x33000000), Color(0x330013FF)],
+        ),
+        borderRadius: BorderRadius.circular(5),
+      ),
+      child: Text(
+        'Il tuo club preferito',
+        style: OnlistTextStyles.hn(
+          fontSize: 14,
+          fontWeight: FontWeight.w700,
+          color: OnlistColors.white,
+        ),
+      ),
     );
   }
 }

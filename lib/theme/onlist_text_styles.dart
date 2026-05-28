@@ -12,6 +12,24 @@ class OnlistTextStyles {
 
   static const String _family = 'HelveticaNeue';
 
+  /// Helper per stili ad-hoc su HelveticaNeue (sostituisce GoogleFonts.inter(...)
+  /// nelle schermate con molti stili inline). Stessa firma dei parametri usati.
+  static TextStyle hn({
+    double? fontSize,
+    FontWeight? fontWeight,
+    Color? color,
+    double? height,
+    double? letterSpacing,
+  }) =>
+      TextStyle(
+        fontFamily: _family,
+        fontSize: fontSize,
+        fontWeight: fontWeight,
+        color: color,
+        height: height,
+        letterSpacing: letterSpacing,
+      );
+
   // ── Titoli grandi (display) ─────────────────────────────────────────────
 
   /// Titolo "ORDINE" della schermata 15. 64/63 w300 LS -0.07em.
