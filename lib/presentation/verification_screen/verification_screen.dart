@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/app_export.dart';
 import '../../core/services/location_service.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import './bloc/verification_bloc.dart';
 
 class VerificationScreen extends StatelessWidget {
@@ -29,8 +30,9 @@ class VerificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0000FF),
-      body: BlocConsumer<verificationBloc, verificationState>(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+        child: BlocConsumer<verificationBloc, verificationState>(
         listener: (context, state) {
           if (state.isVerified) {
             LocationService.shouldShowLocationPrompt().then((show) {
@@ -72,24 +74,14 @@ class VerificationScreen extends StatelessWidget {
                   // Titolo
                   Text(
                     'Grazie\nper esserti registrato!',
-                    style: GoogleFonts.inter(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                      height: 1.2,
-                    ),
+                    style: OnlistTextStyles.title32Medium.copyWith(height: 1.2),
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 24),
                   // Sottotitolo
                   Text(
                     'A BREVE TI ARRIVERÀ UN EMAIL DI CONFERMA',
-                    style: GoogleFonts.inter(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                      letterSpacing: 0.5,
-                    ),
+                    style: OnlistTextStyles.caption12Medium,
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 16),
@@ -102,7 +94,8 @@ class VerificationScreen extends StatelessWidget {
                             .add(ResendEmailEvent()),
                     child: Text(
                       "Non hai ricevuto l'email? Clicca qui",
-                      style: GoogleFonts.inter(
+                      style: const TextStyle(
+                        fontFamily: 'HelveticaNeue',
                         fontSize: 14,
                         color: Colors.white,
                         decoration: TextDecoration.underline,
@@ -113,29 +106,23 @@ class VerificationScreen extends StatelessWidget {
                   const SizedBox(height: 24),
                   // Bottone Accedi
                   state.isLoading
-                      ? const CircularProgressIndicator(color: Colors.white)
+                      ? const CircularProgressIndicator(color: OnlistColors.white)
                       : SizedBox(
-                          width: 160,
-                          height: 48,
+                          width: 150,
+                          height: 40,
                           child: ElevatedButton(
                             onPressed: () => context
                                 .read<verificationBloc>()
                                 .add(CheckVerificationEvent()),
                             style: ElevatedButton.styleFrom(
-                              backgroundColor: Colors.black,
-                              foregroundColor: Colors.white,
+                              backgroundColor: OnlistColors.white,
+                              foregroundColor: OnlistColors.black,
                               elevation: 0,
+                              padding: EdgeInsets.zero,
                               shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(30)),
+                                  borderRadius: BorderRadius.circular(10)),
                             ),
-                            child: Text(
-                              'Accedi',
-                              style: GoogleFonts.inter(
-                                fontSize: 16,
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                              ),
-                            ),
+                            child: Text('Accedi', style: OnlistTextStyles.button16Bold),
                           ),
                         ),
                   const Spacer(),
@@ -143,10 +130,12 @@ class VerificationScreen extends StatelessWidget {
                   TextButton(
                     onPressed: () => NavigatorService.pushNamedAndRemoveUntil(
                         AppRoutes.authenticationScreen),
-                    child: Text(
+                    child: const Text(
                       'Torna al login',
-                      style: GoogleFonts.inter(
-                          fontSize: 14, color: Colors.white70),
+                      style: TextStyle(
+                          fontFamily: 'HelveticaNeue',
+                          fontSize: 14,
+                          color: Colors.white70),
                     ),
                   ),
                   const SizedBox(height: 20),
@@ -155,6 +144,7 @@ class VerificationScreen extends StatelessWidget {
             ),
           );
         },
+        ),
       ),
     );
   }
