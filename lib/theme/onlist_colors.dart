@@ -25,6 +25,7 @@ class OnlistColors {
   static const Color blueGradientEnd = Color(0xFF0015FF);
   static const Color blueDeepNear = Color(0xFF020011);
   static const Color blueIOS = Color(0xFF007AFF);
+  static const Color blueButtonPrimary = Color(0xFF000599); // Controls/Buttons/Primary (Figma)
 
   // Grigi neutri
   static const Color textSecondary = Color(0xFF8E8E93);

@@ -1,7 +1,8 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/app_export.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import 'bloc/location_permission_bloc.dart';
 
 class LocationPermissionScreen extends StatefulWidget {
@@ -26,145 +27,150 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0000FF),
-      body: BlocConsumer<LocationPermissionBloc, LocationPermissionState>(
-        listener: (context, state) {
-          if (state.isPermissionGranted) {
-            NavigatorService.pushNamedAndRemoveUntil(
-                AppRoutes.eventDetailScreen);
-          }
-          if (state.goToManualEntry) {
-            NavigatorService.pushNamedAndRemoveUntil(
-                AppRoutes.locationManualScreen);
-          }
-          if (state.errorMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage!)),
-            );
-          }
-        },
-        builder: (context, state) {
-          return SafeArea(
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 32),
-              child: Column(
-                children: [
-                  const Spacer(flex: 3),
-                  Container(
-                    width: 88,
-                    height: 88,
-                    decoration: const BoxDecoration(
-                      color: Color(0xFF0A0066),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.location_on,
-                      color: Colors.white,
-                      size: 44,
-                    ),
-                  ),
-                  const SizedBox(height: 32),
-                  Text(
-                    'Abilita la posizione precisa',
-                    style: GoogleFonts.inter(
-                      fontSize: 26,
-                      fontWeight: FontWeight.w800,
-                      color: Colors.white,
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  Text(
-                    'La tua posizione sarà usata per mostrarti\neventi e locali vicino a te.',
-                    style: GoogleFonts.inter(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.85),
-                    ),
-                    textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 40),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: ElevatedButton(
-                      onPressed: state.isLoading
-                          ? null
-                          : () => context
-                              .read<LocationPermissionBloc>()
-                              .add(const OpenSettingsEvent()),
-                      style: ElevatedButton.styleFrom(
-                        backgroundColor: const Color(0xFF0A0066),
-                        foregroundColor: Colors.white,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+        child: BlocConsumer<LocationPermissionBloc, LocationPermissionState>(
+          listener: (context, state) {
+            if (state.isPermissionGranted) {
+              NavigatorService.pushNamedAndRemoveUntil(
+                  AppRoutes.eventDetailScreen);
+            }
+            if (state.goToManualEntry) {
+              NavigatorService.pushNamedAndRemoveUntil(
+                  AppRoutes.locationManualScreen);
+            }
+            if (state.errorMessage != null) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                SnackBar(content: Text(state.errorMessage!)),
+              );
+            }
+          },
+          builder: (context, state) {
+            return SafeArea(
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 32),
+                child: Column(
+                  children: [
+                    const Spacer(flex: 3),
+                    Container(
+                      width: 96,
+                      height: 96,
+                      decoration: BoxDecoration(
+                        color: Colors.black.withValues(alpha: 0.18),
+                        borderRadius: BorderRadius.circular(16),
                       ),
-                      child: state.isLoading
-                          ? const SizedBox(
-                              width: 22,
-                              height: 22,
-                              child: CircularProgressIndicator(
-                                  color: Colors.white, strokeWidth: 2.5),
-                            )
-                          : Text(
-                              'Apri Impostazioni',
-                              style: GoogleFonts.inter(
-                                  fontSize: 16, fontWeight: FontWeight.w700),
-                            ),
-                    ),
-                  ),
-                  const SizedBox(height: 14),
-                  SizedBox(
-                    width: double.infinity,
-                    height: 52,
-                    child: OutlinedButton(
-                      onPressed: state.isLoading
-                          ? null
-                          : () => context
-                              .read<LocationPermissionBloc>()
-                              .add(const RemindLaterEvent()),
-                      style: OutlinedButton.styleFrom(
-                        backgroundColor: Colors.white,
-                        foregroundColor: Colors.black87,
-                        side: BorderSide.none,
-                        elevation: 0,
-                        shape: RoundedRectangleBorder(
-                            borderRadius: BorderRadius.circular(30)),
+                      child: const Icon(
+                        Icons.location_on,
+                        color: OnlistColors.white,
+                        size: 44,
                       ),
-                      child: Text(
-                        'Ricordamelo più tardi',
-                        style: GoogleFonts.inter(
-                          fontSize: 16,
-                          fontWeight: FontWeight.w600,
-                          color: Colors.black87,
+                    ),
+                    const SizedBox(height: 32),
+                    Text(
+                      'Abilita la posizione precisa',
+                      style: OnlistTextStyles.title36Bold.copyWith(fontSize: 24),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 12),
+                    const Text(
+                      'La tua posizione sarà usata per mostrarti\neventi e locali vicino a te.',
+                      style: TextStyle(
+                        fontFamily: 'HelveticaNeue',
+                        fontSize: 15,
+                        fontWeight: FontWeight.w400,
+                        color: OnlistColors.white,
+                      ),
+                      textAlign: TextAlign.center,
+                    ),
+                    const SizedBox(height: 40),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 49,
+                      child: ElevatedButton(
+                        onPressed: state.isLoading
+                            ? null
+                            : () => context
+                                .read<LocationPermissionBloc>()
+                                .add(const OpenSettingsEvent()),
+                        style: ElevatedButton.styleFrom(
+                          backgroundColor: OnlistColors.blueButtonPrimary,
+                          foregroundColor: OnlistColors.white,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: state.isLoading
+                            ? const SizedBox(
+                                width: 22,
+                                height: 22,
+                                child: CircularProgressIndicator(
+                                    color: Colors.white, strokeWidth: 2.5),
+                              )
+                            : const Text(
+                                'Apri Impostazioni',
+                                style: TextStyle(
+                                    fontFamily: 'HelveticaNeue',
+                                    fontSize: 15,
+                                    fontWeight: FontWeight.w600,
+                                    color: OnlistColors.white),
+                              ),
+                      ),
+                    ),
+                    const SizedBox(height: 14),
+                    SizedBox(
+                      width: double.infinity,
+                      height: 49,
+                      child: OutlinedButton(
+                        onPressed: state.isLoading
+                            ? null
+                            : () => context
+                                .read<LocationPermissionBloc>()
+                                .add(const RemindLaterEvent()),
+                        style: OutlinedButton.styleFrom(
+                          backgroundColor: OnlistColors.white,
+                          foregroundColor: OnlistColors.textSecondary,
+                          side: BorderSide.none,
+                          elevation: 0,
+                          shape: RoundedRectangleBorder(
+                              borderRadius: BorderRadius.circular(16)),
+                        ),
+                        child: const Text(
+                          'Ricordamelo più tardi',
+                          style: TextStyle(
+                            fontFamily: 'HelveticaNeue',
+                            fontSize: 15,
+                            fontWeight: FontWeight.w600,
+                            color: OnlistColors.textSecondary,
+                          ),
                         ),
                       ),
                     ),
-                  ),
-                  const Spacer(flex: 2),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      const Icon(Icons.lock_outline,
-                          color: Colors.white54, size: 14),
-                      const SizedBox(width: 6),
-                      Flexible(
-                        child: Text(
-                          'La tua posizione è protetta e non verrà condivisa con terzi.',
-                          style: GoogleFonts.inter(
-                              fontSize: 12, color: Colors.white54),
-                          textAlign: TextAlign.center,
+                    const Spacer(flex: 2),
+                    Row(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        const Icon(Icons.lock_outline,
+                            color: Colors.white54, size: 14),
+                        const SizedBox(width: 6),
+                        const Flexible(
+                          child: Text(
+                            'La tua posizione è protetta e non verrà condivisa con terzi.',
+                            style: TextStyle(
+                                fontFamily: 'HelveticaNeue',
+                                fontSize: 12,
+                                color: Colors.white54),
+                            textAlign: TextAlign.center,
+                          ),
                         ),
-                      ),
-                    ],
-                  ),
-                  const SizedBox(height: 24),
-                ],
+                      ],
+                    ),
+                    const SizedBox(height: 24),
+                  ],
+                ),
               ),
-            ),
-          );
-        },
+            );
+          },
+        ),
       ),
     );
   }
