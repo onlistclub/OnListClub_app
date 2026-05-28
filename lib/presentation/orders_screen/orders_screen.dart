@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/app_export.dart';
 import '../../core/services/orders_service.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
@@ -61,8 +62,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: SafeArea(
+          child: Column(
           children: [
             const CustomTopBar(),
             // Tab bar
@@ -76,8 +79,8 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 indicatorWeight: 2,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white38,
-                labelStyle: GoogleFonts.inter(fontWeight: FontWeight.bold, fontSize: 15),
-                unselectedLabelStyle: GoogleFonts.inter(fontWeight: FontWeight.w400, fontSize: 15),
+                labelStyle: OnlistTextStyles.hn(fontWeight: FontWeight.bold, fontSize: 15),
+                unselectedLabelStyle: OnlistTextStyles.hn(fontWeight: FontWeight.w400, fontSize: 15),
                 tabs: const [
                   Tab(text: 'Prevendite'),
                   Tab(text: 'Tavoli'),
@@ -96,6 +99,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     ),
             ),
           ],
+          ),
         ),
       ),
       bottomNavigationBar: const SharedFooter(currentIndex: 1),
@@ -107,7 +111,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
       return Center(
         child: Text(
           'Nessuna prevendita acquistata',
-          style: GoogleFonts.inter(color: Colors.white54, fontSize: 16),
+          style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 16),
         ),
       );
     }
@@ -123,7 +127,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
       return Center(
         child: Text(
           'Nessun tavolo prenotato',
-          style: GoogleFonts.inter(color: Colors.white54, fontSize: 16),
+          style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 16),
         ),
       );
     }
@@ -179,7 +183,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 Expanded(
                   child: Text(
                     nomeEvento.isNotEmpty ? nomeEvento : nomeClub,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -189,7 +193,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 if (prezzo != null)
                   Text(
                     '${prezzo}€',
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -200,7 +204,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             const SizedBox(height: 6),
             Text(
               nome.isNotEmpty ? nome : 'Ticket $tipo',
-              style: GoogleFonts.inter(color: Colors.white54, fontSize: 13),
+              style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 13),
             ),
             if (dataFormatted.isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -208,11 +212,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 children: [
                   const Icon(Icons.calendar_today, color: Colors.white38, size: 13),
                   const SizedBox(width: 5),
-                  Text(dataFormatted, style: GoogleFonts.inter(color: Colors.white38, fontSize: 13)),
+                  Text(dataFormatted, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: 13)),
                   const SizedBox(width: 10),
                   const Icon(Icons.location_on_outlined, color: Colors.white38, size: 13),
                   const SizedBox(width: 5),
-                  Text(nomeClub, style: GoogleFonts.inter(color: Colors.white38, fontSize: 13)),
+                  Text(nomeClub, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: 13)),
                 ],
               ),
             ],
@@ -267,7 +271,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 Expanded(
                   child: Text(
                     nomeEvento.isNotEmpty ? nomeEvento : nomeClub,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       color: Colors.white,
                       fontSize: 16,
                       fontWeight: FontWeight.bold,
@@ -277,7 +281,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 if (nomeTavolo.isNotEmpty)
                   Text(
                     'Tavolo $nomeTavolo',
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       color: Colors.white,
                       fontSize: 14,
                       fontWeight: FontWeight.w600,
@@ -288,7 +292,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             const SizedBox(height: 6),
             Text(
               nomeCliente,
-              style: GoogleFonts.inter(color: Colors.white54, fontSize: 13),
+              style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 13),
             ),
             if (dataFormatted.isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -296,11 +300,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 children: [
                   const Icon(Icons.calendar_today, color: Colors.white38, size: 13),
                   const SizedBox(width: 5),
-                  Text(dataFormatted, style: GoogleFonts.inter(color: Colors.white38, fontSize: 13)),
+                  Text(dataFormatted, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: 13)),
                   const SizedBox(width: 10),
                   const Icon(Icons.location_on_outlined, color: Colors.white38, size: 13),
                   const SizedBox(width: 5),
-                  Text(nomeClub, style: GoogleFonts.inter(color: Colors.white38, fontSize: 13)),
+                  Text(nomeClub, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: 13)),
                 ],
               ),
             ],
@@ -330,7 +334,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
       ),
       child: Text(
         _stateLabel(stato),
-        style: GoogleFonts.inter(
+        style: OnlistTextStyles.hn(
           color: Colors.white,
           fontSize: 13,
           fontWeight: FontWeight.w500,
