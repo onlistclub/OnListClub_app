@@ -4,6 +4,7 @@ import '../../core/services/navigator_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../routes/app_routes.dart';
+import '../../theme/onlist_colors.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
@@ -29,7 +30,7 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
   Future<void> _checkSession() async {
     await Future.delayed(const Duration(milliseconds: 1800));
     if (!mounted) return;
-    
+
     try {
       final session = Supabase.instance.client.auth.currentSession;
       if (session != null) {
@@ -43,42 +44,70 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
     }
   }
 
+  // Canvas Figma di riferimento per la 01 Prima pagina.
+  static const double _figmaW = 393;
+  static const double _figmaH = 852;
+  static const double _logoSize = 311;
+  static const double _logoLeft = 41;
+  static const double _logoTop = 270;
+  static const double _logoRadius = 77;
+  static const double _arrowSize = 48;
+  static const double _arrowLeft = 173;
+  static const double _arrowTop = 557;
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0000FF),
       body: GestureDetector(
         onTap: () => NavigatorService.pushNamedAndRemoveUntil(
           AppRoutes.authenticationScreen,
         ),
         behavior: HitTestBehavior.opaque,
-        child: SizedBox.expand(
-          child: Column(
-            mainAxisAlignment: MainAxisAlignment.center,
-            children: [
-              // Logo OnList
-              Image.asset(
-                ImageConstant.imgLogoOnlist,
-                width: 140,
-                height: 140,
-                fit: BoxFit.contain,
-              ),
-              const SizedBox(height: 48),
-              // Freccia cerchio
-              Container(
-                width: 44,
-                height: 44,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 1.5),
-                ),
-                child: const Icon(
-                  Icons.arrow_upward,
-                  color: Colors.white,
-                  size: 22,
-                ),
-              ),
-            ],
+        child: DecoratedBox(
+          decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+          child: LayoutBuilder(
+            builder: (context, constraints) {
+              final scaleX = constraints.maxWidth / _figmaW;
+              final scaleY = constraints.maxHeight / _figmaH;
+              return Stack(
+                children: [
+                  Positioned(
+                    left: _logoLeft * scaleX,
+                    top: _logoTop * scaleY,
+                    width: _logoSize * scaleX,
+                    height: _logoSize * scaleX, // square — uso scaleX per mantenere proporzioni
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(_logoRadius * scaleX),
+                      child: Image.asset(
+                        ImageConstant.imgLogoOnlist,
+                        fit: BoxFit.contain,
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    left: _arrowLeft * scaleX,
+                    top: _arrowTop * scaleY,
+                    width: _arrowSize * scaleX,
+                    height: _arrowSize * scaleX,
+                    child: Container(
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(
+                          color: OnlistColors.white,
+                          width: 4 * scaleX,
+                        ),
+                      ),
+                      alignment: Alignment.center,
+                      child: Icon(
+                        Icons.arrow_upward,
+                        color: OnlistColors.white,
+                        size: 28 * scaleX,
+                      ),
+                    ),
+                  ),
+                ],
+              );
+            },
           ),
         ),
       ),
