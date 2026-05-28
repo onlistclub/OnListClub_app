@@ -1,6 +1,5 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_export.dart';
@@ -8,6 +7,8 @@ import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
 import 'bloc/club_detail_bloc.dart';
@@ -207,8 +208,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
-      body: BlocConsumer<ClubDetailBloc, ClubDetailState>(
+      backgroundColor: Colors.black,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: BlocConsumer<ClubDetailBloc, ClubDetailState>(
         listenWhen: (prev, curr) =>
             prev.showFavoriteBadge != curr.showFavoriteBadge,
         listener: (context, state) => _syncBadgeAnimation(state.showFavoriteBadge),
@@ -229,6 +232,14 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   child: FadeTransition(
                     opacity: _appBarFade,
                     child: const CustomTopBar(),
+                  ),
+                ),
+                // Torna indietro
+                SlideTransition(
+                  position: _appBarSlide,
+                  child: FadeTransition(
+                    opacity: _appBarFade,
+                    child: _buildBackRow(),
                   ),
                 ),
                 // Body
@@ -306,8 +317,27 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             ),
           );
         },
+        ),
       ),
       bottomNavigationBar: const SharedFooter(currentIndex: 0),
+    );
+  }
+
+  // ── Torna indietro ───────────────────────────────────────────────────────
+  Widget _buildBackRow() {
+    return GestureDetector(
+      onTap: () => NavigatorService.goBack(),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+        child: Row(
+          children: [
+            const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
+            const SizedBox(width: 6),
+            Text('Torna indietro', style: OnlistTextStyles.title32Light),
+          ],
+        ),
+      ),
     );
   }
 
@@ -382,7 +412,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                     ),
                     child: Text(
                       'Club aggiunto ai preferiti',
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -404,7 +434,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       padding: const EdgeInsets.fromLTRB(13, 25, 13, 0),
       child: Text(
         name,
-        style: GoogleFonts.inter(
+        style: OnlistTextStyles.hn(
           fontSize: 36,
           fontWeight: FontWeight.w700,
           color: Colors.white,
@@ -420,7 +450,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       padding: const EdgeInsets.fromLTRB(13, 14, 13, 0),
       child: Text(
         address,
-        style: GoogleFonts.inter(
+        style: OnlistTextStyles.hn(
           fontSize: 16,
           fontWeight: FontWeight.w400,
           color: Colors.white.withValues(alpha: 0.6),
@@ -452,7 +482,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   const SizedBox(width: 6),
                   Text(
                     orario,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.7),
@@ -463,7 +493,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   const SizedBox(width: 12),
                   Text(
                     locale.prezzoString,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       fontSize: 14,
                       fontWeight: FontWeight.w500,
                       color: Colors.white.withValues(alpha: 0.7),
@@ -483,7 +513,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                 Expanded(
                   child: Text(
                     generi,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       fontSize: 14,
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.7),
@@ -525,7 +555,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             alignment: Alignment.center,
             child: Text(
               'RISERVA IL TUO POSTO ORA',
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 fontSize: 20,
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
@@ -578,7 +608,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         children: [
           Text(
             title,
-            style: GoogleFonts.inter(
+            style: OnlistTextStyles.hn(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -604,7 +634,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   alignment: Alignment.center,
                   child: Text(
                     buttonLabel,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       fontSize: 16,
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
@@ -629,7 +659,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
           padding: const EdgeInsets.fromLTRB(13, 0, 13, 14),
           child: Text(
             'Prossime serate',
-            style: GoogleFonts.inter(
+            style: OnlistTextStyles.hn(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -641,7 +671,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             padding: const EdgeInsets.symmetric(horizontal: 13),
             child: Text(
               'Nessuna serata in programma',
-              style: GoogleFonts.inter(fontSize: 14, color: Colors.white38),
+              style: OnlistTextStyles.hn(fontSize: 14, color: Colors.white38),
             ),
           )
         else
@@ -775,7 +805,7 @@ class _SerataCard extends StatelessWidget {
                   children: [
                     Text(
                       serata.nome,
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 14,
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
@@ -787,14 +817,14 @@ class _SerataCard extends StatelessWidget {
                     Text(
                       '${_formatData(serata.data)}'
                       '${serata.orarioString.isNotEmpty ? '  •  ${serata.orarioString}' : ''}',
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                           fontSize: 12, color: Colors.white54),
                     ),
                     if (serata.generiMusicali.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(
                         serata.generiMusicali.join(' · '),
-                        style: GoogleFonts.inter(
+                        style: OnlistTextStyles.hn(
                             fontSize: 11,
                             color: const Color(0xFF6680FF)),
                         maxLines: 1,
@@ -815,7 +845,7 @@ class _SerataCard extends StatelessWidget {
                         ),
                         child: Text(
                           status,
-                          style: GoogleFonts.inter(
+                          style: OnlistTextStyles.hn(
                             fontSize: 10,
                             fontWeight: FontWeight.w600,
                             color: status == 'Sold Out'
@@ -840,7 +870,7 @@ class _SerataCard extends StatelessWidget {
                   if (serata.prezzoIngresso != null)
                     Text(
                       '€${serata.prezzoIngresso!.toStringAsFixed(0)}',
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 13,
                         fontWeight: FontWeight.w700,
                         color: Colors.white70,
@@ -868,7 +898,7 @@ class _SerataCard extends StatelessWidget {
                       ),
                       child: Text(
                         status == 'Sold Out' ? 'Esaurito' : 'Prenota',
-                        style: GoogleFonts.inter(
+                        style: OnlistTextStyles.hn(
                           fontSize: 12,
                           fontWeight: FontWeight.w600,
                           color: status == 'Sold Out'

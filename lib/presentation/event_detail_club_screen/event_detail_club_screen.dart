@@ -1,11 +1,12 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_export.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
 import 'bloc/event_detail_club_bloc.dart';
 
@@ -183,8 +184,10 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
-      body: BlocConsumer<EventDetailClubBloc, EventDetailClubState>(
+      backgroundColor: Colors.black,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: BlocConsumer<EventDetailClubBloc, EventDetailClubState>(
         listener: (_, state) => _syncBadge(state.showFavoriteBadge),
         builder: (context, state) {
           return SafeArea(
@@ -195,6 +198,29 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                   position: _appBarSlide,
                   child: FadeTransition(
                       opacity: _appBarFade, child: const CustomTopBar()),
+                ),
+                // Torna indietro
+                SlideTransition(
+                  position: _appBarSlide,
+                  child: FadeTransition(
+                    opacity: _appBarFade,
+                    child: GestureDetector(
+                      onTap: () => NavigatorService.goBack(),
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                        child: Row(
+                          children: [
+                            const Icon(Icons.arrow_back,
+                                color: OnlistColors.white, size: 28),
+                            const SizedBox(width: 6),
+                            Text('Torna indietro',
+                                style: OnlistTextStyles.title32Light),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
                 ),
                 // Content
                 Expanded(
@@ -260,6 +286,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
             ),
           );
         },
+        ),
       ),
     );
   }
@@ -346,7 +373,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                     ),
                     child: Text(
                       'Club aggiunto ai preferiti',
-                      style: GoogleFonts.inter(
+                      style: OnlistTextStyles.hn(
                         fontSize: 13,
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
@@ -369,7 +396,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
       padding: const EdgeInsets.fromLTRB(13, 25, 13, 0),
       child: Text(
         nome,
-        style: GoogleFonts.inter(
+        style: OnlistTextStyles.hn(
           fontSize: 36,
           fontWeight: FontWeight.w700,
           color: Colors.white,
@@ -386,7 +413,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
       padding: const EdgeInsets.fromLTRB(13, 10, 13, 0),
       child: Text(
         nomeClub,
-        style: GoogleFonts.inter(
+        style: OnlistTextStyles.hn(
           fontSize: 16,
           fontWeight: FontWeight.w400,
           color: Colors.white.withValues(alpha: 0.6),
@@ -419,7 +446,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                   const SizedBox(width: 6),
                   Text(
                     orario,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.7)),
                   ),
@@ -428,7 +455,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                   const SizedBox(width: 12),
                   Text(
                     club.prezzoString,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
                         color: Colors.white.withValues(alpha: 0.7)),
@@ -446,7 +473,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                 Expanded(
                   child: Text(
                     generi,
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                         fontSize: 14,
                         color: Colors.white.withValues(alpha: 0.7)),
                   ),
@@ -485,7 +512,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
           alignment: Alignment.center,
           child: Text(
             'RISERVA IL TUO POSTO ORA',
-            style: GoogleFonts.inter(
+            style: OnlistTextStyles.hn(
               fontSize: 20,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -538,7 +565,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
         children: [
           Text(
             title,
-            style: GoogleFonts.inter(
+            style: OnlistTextStyles.hn(
               fontSize: 18,
               fontWeight: FontWeight.w700,
               color: Colors.white,
@@ -563,7 +590,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                 alignment: Alignment.center,
                 child: Text(
                   buttonLabel,
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     fontSize: 16,
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
