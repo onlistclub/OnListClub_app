@@ -84,6 +84,18 @@ class OrdersService {
     }
   }
 
+  /// Annulla una prevendita impostando lo stato della prenotazione a
+  /// 'annullata' (soft delete: in MVP conserviamo i dati per analisi).
+  static Future<void> annullaPrevendita(String idPrenotazione) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('Utente non autenticato');
+    await _client
+        .from('prenotazioni')
+        .update({'stato': 'annullata'})
+        .eq('id', idPrenotazione)
+        .eq('id_utente', user.id);
+  }
+
   // ─────────────────────────────────────────────────────────────────────────────
   // TAVOLI
   // ─────────────────────────────────────────────────────────────────────────────

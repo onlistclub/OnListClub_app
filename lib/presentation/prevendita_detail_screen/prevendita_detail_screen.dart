@@ -1,39 +1,99 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/app_export.dart';
-import '../../core/services/club_service.dart';
+import '../../core/services/orders_service.dart';
 import '../../core/utils/date_formatter.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
+import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
 
-/// Dettaglio di una singola prevendita acquistata.
+/// Dettaglio di una singola prevendita acquistata (18 — con QR).
 /// Riceve come arguments la Map proveniente da OrdersService.getPrevenditeOrdini().
-class PrevenditaDetailScreen extends StatelessWidget {
+class PrevenditaDetailScreen extends StatefulWidget {
   const PrevenditaDetailScreen({Key? key}) : super(key: key);
 
   static Widget builder(BuildContext context) => const PrevenditaDetailScreen();
 
   @override
+  State<PrevenditaDetailScreen> createState() => _PrevenditaDetailScreenState();
+}
+
+class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
+  bool _isAnnullando = false;
+  bool _annullata = false;
+
+  Future<void> _annulla(String? idPrenotazione) async {
+    if (idPrenotazione == null || idPrenotazione.isEmpty) return;
+    final conferma = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('Annulla prevendita',
+            style: TextStyle(color: Colors.white, fontFamily: 'HelveticaNeue')),
+        content: const Text(
+          'Sei sicuro di voler annullare questa prevendita? L\'operazione non è reversibile.',
+          style: TextStyle(color: Colors.white70, fontFamily: 'HelveticaNeue'),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('No', style: TextStyle(color: Colors.white70)),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Sì, annulla',
+                style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (conferma != true) return;
+
+    setState(() => _isAnnullando = true);
+    try {
+      await OrdersService.annullaPrevendita(idPrenotazione);
+      if (!mounted) return;
+      setState(() {
+        _isAnnullando = false;
+        _annullata = true;
+      });
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Prevendita annullata')),
+      );
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isAnnullando = false);
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Errore annullamento: $e')),
+      );
+    }
+  }
+
+  @override
   Widget build(BuildContext context) {
-    final item = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ?? {};
+    final item = ModalRoute.of(context)?.settings.arguments
+            as Map<String, dynamic>? ??
+        {};
 
     final prenotazione = item['prenotazioni'] as Map<String, dynamic>?;
     final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
-    final locale = evento?['locali'] as Map<String, dynamic>?;
     final prevendita = item['prevendite'] as Map<String, dynamic>?;
 
-    final nomeClub = locale?['nome'] ?? '';
     final nomeEvento = evento?['nome'] ?? '';
     final data = evento?['data'];
-    final tipo = prevendita?['tipo'] ?? 'Standard';
-    final stato = prenotazione?['stato'] ?? 'in_attesa';
+    final tipo = prevendita?['tipo'] ?? 'Normale';
+    final prezzo = prevendita?['prezzo'];
+    final stato = _annullata
+        ? 'annullata'
+        : (prenotazione?['stato'] ?? 'in_attesa');
     final nome = (item['nome'] ?? '').toString();
     final cognome = (item['cognome'] ?? '').toString();
     final nomeCognome = '$nome $cognome'.trim();
-
-    // QR code dati: id della prenotazione (univoco)
-    final qrData = prenotazione?['id'] ?? item['id'] ?? 'onlist-ticket';
+    final idPrenotazione = (prenotazione?['id'] ?? item['id'])?.toString();
+    final qrData = idPrenotazione ?? 'onlist-ticket';
+    final prezzoStr = prezzo != null ? '$prezzo€' : '10€';
 
     String dataFormatted = '';
     if (data != null) {
@@ -46,266 +106,179 @@ class PrevenditaDetailScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            // ── "Torna indietro" ────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 4),
-              child: GestureDetector(
-                onTap: () => NavigatorService.goBack(),
-                child: Row(
-                  children: [
-                    const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Torna indietro',
-                      style: GoogleFonts.inter(
-                        color: Colors.white,
-                        fontSize: 16,
-                        fontWeight: FontWeight.w500,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-            Expanded(
-              child: SingleChildScrollView(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    const SizedBox(height: 16),
-                    Center(
-                      child: Container(
-                        margin: const EdgeInsets.symmetric(horizontal: 12),
-                        width: 369,
-                        height: 363,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              const CustomTopBar(),
+              _buildBackRow(),
+              Expanded(
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // Card grande con tutto dentro (Figma 18)
+                      Container(
+                        width: double.infinity,
+                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
                         decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(27),
-                          gradient: const LinearGradient(
-                            begin: Alignment.centerLeft,
-                            end: Alignment.centerRight,
-                            colors: [Color(0xFF000000), Color(0xFF1900D8)],
-                            stops: [0.0, 0.8173],
-                          ),
-                          boxShadow: const [
-                            BoxShadow(
-                              color: Colors.black,
-                              offset: Offset(16, 27),
-                              blurRadius: 25.4,
+                          gradient: OnlistColors.cardSummary,
+                          borderRadius: BorderRadius.circular(10),
+                        ),
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Ticket x 1',
+                                    style: OnlistTextStyles.ticketLabel),
+                                const SizedBox(width: 8),
+                                Padding(
+                                  padding: const EdgeInsets.only(top: 14),
+                                  child: Text('Ticket $tipo',
+                                      style: OnlistTextStyles.ticketSubtitleXs),
+                                ),
+                              ],
                             ),
-                          ],
-                        ),
-                        child: Center(
-                          child: QrImageView(
-                            data: qrData.toString(),
-                            version: QrVersions.auto,
-                            size: 258,
-                            backgroundColor: Colors.white,
-                            padding: const EdgeInsets.all(10),
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 24),
-                    // Info row
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 13),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Column(
-                            crossAxisAlignment: CrossAxisAlignment.start,
-                            children: [
-                              Text(
-                                'Data',
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w400,
-                                  height: 32 / 28,
-                                  letterSpacing: -0.1 * 28,
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.end,
+                              children: [
+                                Text(prezzoStr, style: OnlistTextStyles.price96),
+                                const SizedBox(width: 10),
+                                Padding(
+                                  padding: const EdgeInsets.only(bottom: 18),
+                                  child: Text('+ 2 drink omaggio',
+                                      style: OnlistTextStyles.body24Regular),
+                                ),
+                              ],
+                            ),
+                            const SizedBox(height: 16),
+                            // QR
+                            Center(
+                              child: Container(
+                                padding: const EdgeInsets.all(10),
+                                color: Colors.white,
+                                child: QrImageView(
+                                  data: qrData,
+                                  version: QrVersions.auto,
+                                  size: 238,
+                                  backgroundColor: Colors.white,
                                 ),
                               ),
-                              const SizedBox(height: 2),
-                              Text(
-                                dataFormatted,
-                                style: GoogleFonts.inter(
-                                  color: Colors.white,
-                                  fontSize: 28,
-                                  fontWeight: FontWeight.w400,
-                                  height: 28 / 28,
-                                  letterSpacing: -0.1 * 28,
+                            ),
+                            const SizedBox(height: 20),
+                            // ANNULLA PREVENDITA (pill)
+                            if (stato.toString().toLowerCase() != 'annullata')
+                              Center(
+                                child: GestureDetector(
+                                  onTap: _isAnnullando
+                                      ? null
+                                      : () => _annulla(idPrenotazione),
+                                  child: Container(
+                                    width: 219,
+                                    height: 35,
+                                    decoration: BoxDecoration(
+                                      color: Colors.white.withValues(alpha: 0.13),
+                                      borderRadius: BorderRadius.circular(10),
+                                    ),
+                                    alignment: Alignment.center,
+                                    child: _isAnnullando
+                                        ? const SizedBox(
+                                            width: 18,
+                                            height: 18,
+                                            child: CircularProgressIndicator(
+                                                color: Colors.white,
+                                                strokeWidth: 2),
+                                          )
+                                        : Text('ANNULLA PREVENDITA',
+                                            style: OnlistTextStyles.button20Bold),
+                                  ),
                                 ),
+                              )
+                            else
+                              Center(
+                                child: Text('PREVENDITA ANNULLATA',
+                                    style: OnlistTextStyles.button20Bold
+                                        .copyWith(color: Colors.redAccent)),
+                              ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 16),
+                      // Info aggiuntive
+                      if (dataFormatted.isNotEmpty)
+                        Text('Data: $dataFormatted',
+                            style: OnlistTextStyles.hn(
+                                color: Colors.white,
+                                fontSize: 16,
+                                fontWeight: FontWeight.w500)),
+                      if (nomeCognome.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(nomeCognome,
+                            style: OnlistTextStyles.hn(
+                                color: Colors.white70, fontSize: 14)),
+                      ] else if (nomeEvento.isNotEmpty) ...[
+                        const SizedBox(height: 4),
+                        Text(nomeEvento,
+                            style: OnlistTextStyles.hn(
+                                color: Colors.white70, fontSize: 14)),
+                      ],
+                      const SizedBox(height: 20),
+                      // Chiudi QR Code
+                      Center(
+                        child: GestureDetector(
+                          onTap: () => NavigatorService.goBack(),
+                          behavior: HitTestBehavior.opaque,
+                          child: Column(
+                            children: [
+                              Text('Chiudi QR Code',
+                                  style: OnlistTextStyles.link15),
+                              const SizedBox(height: 6),
+                              Container(
+                                width: 28,
+                                height: 28,
+                                decoration: BoxDecoration(
+                                  shape: BoxShape.circle,
+                                  border: Border.all(
+                                      color: Colors.white, width: 2),
+                                ),
+                                child: const Icon(Icons.keyboard_arrow_down,
+                                    color: Colors.white, size: 18),
                               ),
                             ],
                           ),
-                          GestureDetector(
-                            onTap: () async {
-                              final localeId = locale?['id'] as String?;
-                              if (localeId == null || localeId.isEmpty) return;
-                              try {
-                                final localeModel = await ClubService.getLocaleById(localeId);
-                                if (localeModel == null) return;
-                                NavigatorService.pushNamed(
-                                  AppRoutes.clubDetailScreen,
-                                  arguments: localeModel,
-                                );
-                              } catch (_) {}
-                            },
-                            child: Text(
-                              nomeClub,
-                              style: GoogleFonts.inter(
-                                color: const Color(0xFF0009FF),
-                                fontSize: 28,
-                                fontWeight: FontWeight.w400,
-                                height: 32 / 28,
-                                letterSpacing: -0.1 * 28,
-                                decoration: TextDecoration.underline,
-                                decorationColor: const Color(0xFF0009FF),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Nome Cognome
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 13),
-                      child: Text(
-                        nomeCognome.isNotEmpty ? nomeCognome : nomeEvento,
-                        style: GoogleFonts.inter(
-                          color: Colors.white,
-                          fontSize: 28,
-                          fontWeight: FontWeight.w400,
-                          height: 28 / 28,
-                          letterSpacing: -0.1 * 28,
                         ),
                       ),
-                    ),
-                    const SizedBox(height: 16),
-                    Padding(
-                      padding: const EdgeInsets.only(right: 13),
-                      child: Align(
-                        alignment: Alignment.centerRight,
-                        child: Text(
-                          'Tipo di Prevendita: $tipo',
-                          textAlign: TextAlign.right,
-                          style: GoogleFonts.inter(
-                            color: Colors.white,
-                            fontSize: 28,
-                            fontWeight: FontWeight.w400,
-                            height: 28 / 28,
-                            letterSpacing: -0.1 * 28,
-                          ),
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 16),
-                    // Stato badge
-                    Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 13),
-                      child: Row(
-                        children: [
-                          Text(
-                            'Stato:',
-                            style: GoogleFonts.inter(
-                              color: Colors.white,
-                              fontSize: 28,
-                              fontWeight: FontWeight.w400,
-                              height: 28 / 28,
-                              letterSpacing: -0.1 * 28,
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          _buildStatoBadge(stato),
-                        ],
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                  ],
+                    ],
+                  ),
                 ),
               ),
-            ),
-            _buildBottomNav(),
+            ],
+          ),
+        ),
+      ),
+      bottomNavigationBar: const SharedFooter(currentIndex: 1),
+    );
+  }
+
+  Widget _buildBackRow() {
+    return GestureDetector(
+      onTap: () => NavigatorService.goBack(),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+        child: Row(
+          children: [
+            const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
+            const SizedBox(width: 6),
+            Text('Torna indietro', style: OnlistTextStyles.title32Light),
           ],
         ),
       ),
     );
   }
-
-  Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Image.asset(
-              ImageConstant.imgLogoOnlist,
-              height: 60,
-              width: 60,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Row(
-            children: const [
-              Icon(Icons.search, color: Colors.white, size: 28),
-              SizedBox(width: 12),
-              Icon(Icons.person_outline, color: Colors.white, size: 28),
-              SizedBox(width: 4),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatoBadge(String stato) {
-    String label;
-    switch (stato.toLowerCase()) {
-      case 'confermata':
-        label = 'Confermato';
-        break;
-      case 'usato':
-        label = 'Usato';
-        break;
-      case 'annullata':
-        label = 'Annullato';
-        break;
-      default:
-        label = stato;
-    }
-    return Container(
-      width: 160,
-      height: 29,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.centerLeft,
-          end: Alignment.centerRight,
-          colors: [Color(0xFF000000), Color(0xFF1900D8)],
-          stops: [0.0, 0.8173],
-        ),
-        borderRadius: BorderRadius.circular(10),
-      ),
-      alignment: Alignment.center,
-      child: Text(
-        label,
-        style: GoogleFonts.inter(
-          color: Colors.white,
-          fontSize: 22,
-          fontWeight: FontWeight.w400,
-          height: 22 / 22,
-          letterSpacing: -0.1 * 22,
-        ),
-      ),
-    );
-  }
-
-  Widget _buildBottomNav() => const SharedFooter(currentIndex: 1);
 }
