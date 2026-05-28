@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 
 import '../../core/models/locale_model.dart';
@@ -9,9 +8,12 @@ import '../../core/utils/analytics_mixin.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/booking_service.dart';
 import '../../routes/app_routes.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
+import '../../widgets/onlist_primary_button.dart';
 
-enum BookingStep { selection, ticketList, tableConfig, bottles }
+enum BookingStep { selection, ticketList, ticketDetail, tableConfig, bottles }
 
 class BookingScreen extends StatefulWidget {
   const BookingScreen({Key? key}) : super(key: key);
@@ -53,6 +55,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   String? _selectedTableId;
   int _participants = 10;
   int _bottleQuantity = 1;
+  Map<String, dynamic>? _selectedTicket;
 
   @override
   void initState() {
@@ -165,31 +168,34 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
 
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            Expanded(
-              child: _isLoading 
-                ? const AppLoadingIndicator()
-                : AnimatedSwitcher(
-                    duration: const Duration(milliseconds: 400),
-                    transitionBuilder: (Widget child, Animation<double> animation) {
-                      return FadeTransition(
-                        opacity: animation,
-                        child: SlideTransition(
-                          position: Tween<Offset>(
-                            begin: const Offset(0.1, 0),
-                            end: Offset.zero,
-                          ).animate(animation),
-                          child: child,
-                        ),
-                      );
-                    },
-                    child: _buildBody(locale, serata),
-                  ),
-            ),
-          ],
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: SafeArea(
+          child: Column(
+            children: [
+              _buildTopBar(),
+              Expanded(
+                child: _isLoading
+                  ? const AppLoadingIndicator()
+                  : AnimatedSwitcher(
+                      duration: const Duration(milliseconds: 400),
+                      transitionBuilder: (Widget child, Animation<double> animation) {
+                        return FadeTransition(
+                          opacity: animation,
+                          child: SlideTransition(
+                            position: Tween<Offset>(
+                              begin: const Offset(0.1, 0),
+                              end: Offset.zero,
+                            ).animate(animation),
+                            child: child,
+                          ),
+                        );
+                      },
+                      child: _buildBody(locale, serata),
+                    ),
+              ),
+            ],
+          ),
         ),
       ),
     );
@@ -207,7 +213,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             Text(
               "Nessuna serata selezionata.\nImpossibile procedere.",
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 18),
+              style: OnlistTextStyles.hn(color: Colors.white, fontSize: 18),
             ),
             const SizedBox(height: 30),
             ElevatedButton(
@@ -230,6 +236,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           } else if (_currentStep == BookingStep.ticketList ||
               _currentStep == BookingStep.tableConfig) {
             setState(() => _currentStep = BookingStep.selection);
+          } else if (_currentStep == BookingStep.ticketDetail) {
+            setState(() => _currentStep = BookingStep.ticketList);
           } else if (_currentStep == BookingStep.bottles) {
             setState(() => _currentStep = BookingStep.tableConfig);
           }
@@ -240,7 +248,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             const SizedBox(width: 6),
             Text(
               'Torna indietro',
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 color: Colors.white,
                 fontSize: 16,
                 fontWeight: FontWeight.w500,
@@ -258,6 +266,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         return _buildSelectionStep(locale, serata);
       case BookingStep.ticketList:
         return _buildTicketListStep(serata);
+      case BookingStep.ticketDetail:
+        return _buildTicketDetailStep(serata);
       case BookingStep.tableConfig:
         return _buildTableConfigStep(locale, serata);
       case BookingStep.bottles:
@@ -310,7 +320,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           children: [
             Text(
               serata?.nome ?? locale?.nome ?? 'Amnesia Club',
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 color: Colors.white,
                 fontSize: 32,
                 fontWeight: FontWeight.bold,
@@ -318,7 +328,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             ),
             Text(
               locale?.indirizzoCompleto ?? 'Milano - Via Alfonso Gatto',
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 color: Colors.white,
                 fontSize: 16,
               ),
@@ -328,7 +338,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               serata != null
                   ? '${DateFormat('MMMM d').format(serata.data)} - ${serata.orarioString}'
                   : 'Agosto 22 - 22:00 - 04:00',
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 color: Colors.white70,
                 fontSize: 14,
               ),
@@ -353,7 +363,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         alignment: Alignment.center,
         child: Text(
           text,
-          style: GoogleFonts.inter(
+          style: OnlistTextStyles.hn(
             color: Colors.white,
             fontSize: 42,
             fontWeight: FontWeight.bold,
@@ -372,7 +382,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         const SizedBox(height: 20),
         Expanded(
           child: _prevendite.isEmpty 
-          ? Center(child: Text("Nessuna prevendita disponibile", style: GoogleFonts.inter(color: Colors.white54)))
+          ? Center(child: Text("Nessuna prevendita disponibile", style: OnlistTextStyles.hn(color: Colors.white54)))
           : ListView.builder(
             padding: const EdgeInsets.symmetric(horizontal: 15),
             itemCount: _prevendite.length,
@@ -417,7 +427,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             children: [
               Text(
                 "Ticket",
-                style: GoogleFonts.inter(
+                style: OnlistTextStyles.hn(
                   color: Colors.white,
                   fontSize: 40,
                   fontWeight: FontWeight.w400,
@@ -427,7 +437,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               ),
               Text(
                 type,
-                style: GoogleFonts.inter(
+                style: OnlistTextStyles.hn(
                   color: Colors.white,
                   fontSize: 24,
                   fontWeight: FontWeight.w300,
@@ -440,7 +450,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 width: 160,
                 child: Text(
                   validity,
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
@@ -459,7 +469,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               children: [
                 Text(
                   price,
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontSize: 96,
                     fontWeight: FontWeight.w400,
@@ -470,7 +480,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 Text(
                   description,
                   textAlign: TextAlign.right,
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
@@ -486,29 +496,30 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             bottom: 0,
             child: GestureDetector(
               onTap: () {
-                 NavigatorService.pushNamed(AppRoutes.cartScreen, arguments: {
-                   'type': 'ticket',
-                   'ticketType': type,
-                   'price': price,
-                   'ticketId': ticketId, 
-                   'id_evento': serataId,
-                 });
+                // Va al dettaglio del singolo ticket (12/13) prima del carrello
+                setState(() {
+                  _selectedTicket = {
+                    'type': type,
+                    'price': price,
+                    'description': description,
+                    'validity': validity,
+                    'ticketId': ticketId,
+                    'serataId': serataId,
+                  };
+                  _currentStep = BookingStep.ticketDetail;
+                });
               },
               child: Container(
-                width: 133,
-                height: 58,
+                width: 161,
+                height: 68,
                 decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Color(0xFF1500B3), Color(0xFF201064)],
-                  ),
+                  gradient: OnlistColors.bookButton,
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
                 child: Text(
                   "PRENOTA",
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     fontSize: 24,
@@ -521,6 +532,77 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           ),
         ],
       ),
+    );
+  }
+
+  // ── 12/13 — Dettaglio singolo ticket (Normale/Vip) ──────────────────────────
+  Widget _buildTicketDetailStep(SerataModel? serata) {
+    final t = _selectedTicket ?? const {};
+    final String type = t['type']?.toString() ?? 'Normale';
+    final String price = t['price']?.toString() ?? '10€';
+    final String description = t['description']?.toString() ?? '+ 2 drink omaggio';
+    final String validity = t['validity']?.toString() ??
+        'Entrata valida per questo ticket entro le 00:00 am';
+
+    return Column(
+      key: const ValueKey("ticketDetail"),
+      children: [
+        const SizedBox(height: 8),
+        Expanded(
+          child: Container(
+            margin: const EdgeInsets.symmetric(horizontal: 12),
+            padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
+            decoration: BoxDecoration(
+              gradient: OnlistColors.cardSingleTicket,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text("Ticket", style: OnlistTextStyles.ticketTitleLg),
+                Padding(
+                  padding: const EdgeInsets.only(left: 12),
+                  child: Text(type, style: OnlistTextStyles.ticketSubtitleLg),
+                ),
+                const Spacer(),
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Text(price, style: OnlistTextStyles.price192),
+                ),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: Text(description,
+                      textAlign: TextAlign.right,
+                      style: OnlistTextStyles.body24Regular),
+                ),
+                const Spacer(),
+                Center(
+                  child: Text(validity,
+                      textAlign: TextAlign.center,
+                      style: OnlistTextStyles.body24Regular),
+                ),
+                const Spacer(),
+              ],
+            ),
+          ),
+        ),
+        Padding(
+          padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+          child: OnlistPrimaryButton(
+            label: 'AGGIUNGI AL CARRELLO',
+            onPressed: () {
+              NavigatorService.pushNamed(AppRoutes.cartScreen, arguments: {
+                'type': 'ticket',
+                'ticketType': type,
+                'price': price,
+                'ticketId': t['ticketId'],
+                'id_evento': t['serataId'] ?? serata?.id,
+              });
+            },
+          ),
+        ),
+      ],
     );
   }
 
@@ -542,7 +624,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     content: Center(
                       child: Text(
                         "$_participants",
-                        style: GoogleFonts.inter(
+                        style: OnlistTextStyles.hn(
                           color: Colors.white,
                           fontSize: 48,
                         ),
@@ -557,7 +639,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     content: Center(
                       child: Text(
                         _selectedTable == "Seleziona" ? "---" : _selectedTable,
-                        style: GoogleFonts.inter(
+                        style: OnlistTextStyles.hn(
                           color: Colors.white,
                           fontSize: 32,
                           fontWeight: FontWeight.bold,
@@ -575,7 +657,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Text(
               "Scegli il tuo tavolo",
-              style: GoogleFonts.inter(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: OnlistTextStyles.hn(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 10),
@@ -583,7 +665,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             height: 150, // Altezza fissa per la griglia o Wrap
             child: _tavoli.isEmpty 
-              ? Center(child: Text("Nessun tavolo disponibile per questo evento", style: GoogleFonts.inter(color: Colors.white54)))
+              ? Center(child: Text("Nessun tavolo disponibile per questo evento", style: OnlistTextStyles.hn(color: Colors.white54)))
               : GridView.builder(
                   shrinkWrap: true,
                   gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
@@ -618,7 +700,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                         child: Center(
                           child: Text(
                             name,
-                            style: GoogleFonts.inter(
+                            style: OnlistTextStyles.hn(
                               color: isSelected ? const Color(0xFF1D00FF) : Colors.white,
                               fontWeight: FontWeight.bold,
                               fontSize: 16,
@@ -640,7 +722,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 children: [
                   Text(
                     "Quante persone sarete?",
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: OnlistTextStyles.hn(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -651,7 +733,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       const SizedBox(width: 20),
                       Text(
                         "$_participants",
-                        style: GoogleFonts.inter(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold),
+                        style: OnlistTextStyles.hn(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 20),
                       _buildCircBtn(Icons.add, () {
@@ -677,7 +759,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                             return 10;
                           }
                         })()})",
-                        style: GoogleFonts.inter(color: Colors.white54, fontSize: 16),
+                        style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 16),
                       ),
                     ],
                   ),
@@ -708,7 +790,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 alignment: Alignment.center,
                 child: Text(
                   "PRENOTA",
-                  style: GoogleFonts.inter(
+                  style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontSize: 22,
                     fontWeight: FontWeight.bold,
@@ -727,7 +809,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title,
-            style: GoogleFonts.inter(color: Colors.white, fontSize: 13)),
+            style: OnlistTextStyles.hn(color: Colors.white, fontSize: 13)),
         const SizedBox(height: 4),
         Container(
           height: 100,
@@ -774,7 +856,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   padding: const EdgeInsets.all(20),
                   child: Text(
                     "Bottiglie",
-                    style: GoogleFonts.inter(
+                    style: OnlistTextStyles.hn(
                       color: Colors.white,
                       fontSize: 32,
                       fontWeight: FontWeight.bold,
@@ -839,7 +921,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             Text(
               b['nome']?.toString().toUpperCase().replaceAll(" ", "\n") ?? "VODKA",
               textAlign: TextAlign.center,
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 color: Colors.white,
                 fontSize: 22,
                 fontWeight: FontWeight.bold,
@@ -848,7 +930,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             const SizedBox(height: 10),
             Text(
               "70CL",
-              style: GoogleFonts.inter(
+              style: OnlistTextStyles.hn(
                 color: Colors.white70,
                 fontSize: 14,
               ),
