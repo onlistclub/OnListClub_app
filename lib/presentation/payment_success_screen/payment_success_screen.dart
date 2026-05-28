@@ -1,8 +1,11 @@
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import '../../core/services/navigator_service.dart';
 import '../../routes/app_routes.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
+import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
+import '../../widgets/onlist_primary_button.dart';
 
 class PaymentSuccessScreen extends StatelessWidget {
   const PaymentSuccessScreen({Key? key}) : super(key: key);
@@ -13,74 +16,43 @@ class PaymentSuccessScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            _buildTopBar(),
-            const Spacer(),
-            Center(
-              child: Text(
-                "Ordine effettuato",
-                style: GoogleFonts.inter(
-                  color: Colors.white,
-                  fontSize: 32,
-                  fontWeight: FontWeight.bold,
-                ),
-                textAlign: TextAlign.center,
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: SafeArea(
+          bottom: false,
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const CustomTopBar(),
+              const Spacer(flex: 3),
+              // Titolo "a cascata" sfasato a destra (Figma)
+              Padding(
+                padding: const EdgeInsets.only(left: 40),
+                child: Text('ORDINE', style: OnlistTextStyles.display64Light),
               ),
-            ),
-            const SizedBox(height: 30),
-            // Bottone per andare agli ordini
-            GestureDetector(
-              onTap: () => NavigatorService.pushNamed(AppRoutes.ordersScreen),
-              child: Container(
-                margin: const EdgeInsets.symmetric(horizontal: 40),
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF1D00FF),
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'Vedi i tuoi ordini',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 18,
-                    fontWeight: FontWeight.bold,
-                  ),
+              Padding(
+                padding: const EdgeInsets.only(left: 163),
+                child: Text('EFFETTUATO', style: OnlistTextStyles.title36Light),
+              ),
+              const SizedBox(height: 8),
+              Padding(
+                padding: const EdgeInsets.only(left: 163),
+                child: Text('Buon divertimento!', style: OnlistTextStyles.body20Light),
+              ),
+              const Spacer(flex: 4),
+              Padding(
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                child: OnlistPrimaryButton(
+                  label: 'TORNA NELLA HOME',
+                  onPressed: () => NavigatorService.pushNamedAndRemoveUntil(
+                      AppRoutes.homeScreen),
                 ),
               ),
-            ),
-            const Spacer(),
-          ],
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: const SharedFooter(currentIndex: 2),
     );
   }
-
-
-  Widget _buildTopBar() {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: GestureDetector(
-        onTap: () => NavigatorService.goBack(),
-        child: Row(
-          children: [
-            const Icon(Icons.arrow_back, color: Colors.white, size: 20),
-            const SizedBox(width: 6),
-            Text(
-              'Torna indietro',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 16,
-                fontWeight: FontWeight.w500,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
 }
