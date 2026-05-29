@@ -25,19 +25,30 @@ class PaymentSuccessScreen extends StatelessWidget {
             children: [
               const CustomTopBar(),
               const Spacer(flex: 3),
-              // Titolo "a cascata" sfasato a destra (Figma)
-              Padding(
-                padding: const EdgeInsets.only(left: 40),
-                child: Text('ORDINE', style: OnlistTextStyles.display64Light),
-              ),
-              Padding(
-                padding: const EdgeInsets.only(left: 163),
-                child: Text('EFFETTUATO', style: OnlistTextStyles.title36Light),
-              ),
-              const SizedBox(height: 8),
-              Padding(
-                padding: const EdgeInsets.only(left: 163),
-                child: Text('Buon divertimento!', style: OnlistTextStyles.body20Light),
+              // Titolo "a cascata" sfasato a destra (Figma). Il blocco intero è
+              // scalato per non sforare sui telefoni stretti, mantenendo le
+              // proporzioni esatte fra testo e indentazioni.
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    const Padding(
+                      padding: EdgeInsets.only(left: 40),
+                      child: Text('ORDINE', style: OnlistTextStyles.display64Light),
+                    ),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 163),
+                      child: Text('EFFETTUATO', style: OnlistTextStyles.title36Light),
+                    ),
+                    const SizedBox(height: 8),
+                    const Padding(
+                      padding: EdgeInsets.only(left: 163),
+                      child: Text('Buon divertimento!', style: OnlistTextStyles.body20Light),
+                    ),
+                  ],
+                ),
               ),
               const Spacer(flex: 4),
               Padding(

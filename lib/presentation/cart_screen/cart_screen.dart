@@ -4,6 +4,7 @@ import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../routes/app_routes.dart';
 import '../../core/services/booking_service.dart';
+import '../../core/utils/responsive.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
@@ -119,31 +120,41 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text("Ticket x $_ticketQuantity",
-                        style: OnlistTextStyles.ticketLabel),
-                    const SizedBox(width: 8),
-                    Padding(
-                      padding: const EdgeInsets.only(top: 14),
-                      child: Text("Ticket $ticketType",
-                          style: OnlistTextStyles.ticketSubtitleXs),
-                    ),
-                  ],
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text("Ticket x $_ticketQuantity",
+                          style: OnlistTextStyles.ticketLabel),
+                      const SizedBox(width: 8),
+                      Padding(
+                        padding: const EdgeInsets.only(top: 14),
+                        child: Text("Ticket $ticketType",
+                            style: OnlistTextStyles.ticketSubtitleXs),
+                      ),
+                    ],
+                  ),
                 ),
                 const SizedBox(height: 4),
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    Text("$total€", style: OnlistTextStyles.price96),
-                    const SizedBox(width: 10),
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 18),
-                      child: Text("+ 2 drink omaggio",
-                          style: OnlistTextStyles.body24Regular),
-                    ),
-                  ],
+                FittedBox(
+                  fit: BoxFit.scaleDown,
+                  alignment: Alignment.centerLeft,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    crossAxisAlignment: CrossAxisAlignment.end,
+                    children: [
+                      Text("$total€", style: OnlistTextStyles.price96),
+                      const SizedBox(width: 10),
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 18),
+                        child: Text("+ 2 drink omaggio",
+                            style: OnlistTextStyles.body24Regular),
+                      ),
+                    ],
+                  ),
                 ),
               ],
             ),
@@ -158,7 +169,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
             children: [
               Text("Quantità",
                   style: OnlistTextStyles.hn(
-                      color: Colors.white, fontSize: 18, fontWeight: FontWeight.w500)),
+                      color: Colors.white, fontSize: R.sp(18), fontWeight: FontWeight.w500)),
               Row(
                 children: [
                   GestureDetector(
@@ -176,7 +187,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                     child: Text("$_ticketQuantity",
                         style: OnlistTextStyles.hn(
                             color: Colors.black,
-                            fontSize: 18,
+                            fontSize: R.sp(18),
                             fontWeight: FontWeight.w700)),
                   ),
                   const SizedBox(width: 16),
@@ -225,7 +236,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                       "Ordine",
                       style: OnlistTextStyles.hn(
                         color: Colors.white,
-                        fontSize: 36,
+                        fontSize: R.sp(36),
                         fontWeight: FontWeight.w400,
                         height: 41 / 36,
                         letterSpacing: -0.07 * 36,
@@ -267,7 +278,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
             "Il carrello è vuoto",
             style: OnlistTextStyles.hn(
               color: Colors.white.withValues(alpha: 0.6),
-              fontSize: 22,
+              fontSize: R.sp(22),
               fontWeight: FontWeight.w600,
             ),
           ),
@@ -277,7 +288,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
             textAlign: TextAlign.center,
             style: OnlistTextStyles.hn(
               color: Colors.white.withValues(alpha: 0.35),
-              fontSize: 15,
+              fontSize: R.sp(15),
             ),
           ),
         ],
@@ -300,7 +311,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                 "Tavolo n:",
                 style: OnlistTextStyles.hn(
                   color: Colors.white,
-                  fontSize: 38,
+                  fontSize: R.sp(38),
                   fontWeight: FontWeight.w400,
                   letterSpacing: -0.07 * 38,
                 ),
@@ -312,7 +323,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                   overflow: TextOverflow.ellipsis,
                   style: OnlistTextStyles.hn(
                       color: Colors.white,
-                      fontSize: 60,
+                      fontSize: R.sp(60),
                       fontWeight: FontWeight.w400,
                       letterSpacing: -0.07 * 60),
                 ),
@@ -332,7 +343,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                       bottleName.toUpperCase().replaceAll(" ", "\n"),
                       style: OnlistTextStyles.hn(
                           color: Colors.white,
-                          fontSize: 23,
+                          fontSize: R.sp(23),
                           fontWeight: FontWeight.w400,
                           letterSpacing: -0.07 * 23),
                     ),
@@ -341,7 +352,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                     "150€",
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
-                      fontSize: 44,
+                      fontSize: R.sp(44),
                       fontWeight: FontWeight.w400,
                       letterSpacing: -0.07 * 44,
                     ),
@@ -363,7 +374,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                       "Quantità: $bottleQuantity",
                       style: OnlistTextStyles.hn(
                           color: Colors.black,
-                          fontSize: 23,
+                          fontSize: R.sp(23),
                           fontWeight: FontWeight.w400,
                           letterSpacing: -0.07 * 23),
                     ),

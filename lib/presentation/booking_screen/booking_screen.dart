@@ -7,6 +7,7 @@ import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/booking_service.dart';
+import '../../core/utils/responsive.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
@@ -213,7 +214,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             Text(
               "Nessuna serata selezionata.\nImpossibile procedere.",
               textAlign: TextAlign.center,
-              style: OnlistTextStyles.hn(color: Colors.white, fontSize: 18),
+              style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(18)),
             ),
             const SizedBox(height: 30),
             ElevatedButton(
@@ -250,7 +251,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               'Torna indietro',
               style: OnlistTextStyles.hn(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: R.sp(16),
                 fontWeight: FontWeight.w500,
               ),
             ),
@@ -322,7 +323,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               serata?.nome ?? locale?.nome ?? 'Amnesia Club',
               style: OnlistTextStyles.hn(
                 color: Colors.white,
-                fontSize: 32,
+                fontSize: R.sp(32),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -330,7 +331,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               locale?.indirizzoCompleto ?? 'Milano - Via Alfonso Gatto',
               style: OnlistTextStyles.hn(
                 color: Colors.white,
-                fontSize: 16,
+                fontSize: R.sp(16),
               ),
             ),
             const SizedBox(height: 4),
@@ -340,7 +341,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   : 'Agosto 22 - 22:00 - 04:00',
               style: OnlistTextStyles.hn(
                 color: Colors.white70,
-                fontSize: 14,
+                fontSize: R.sp(14),
               ),
             ),
           ],
@@ -365,7 +366,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           text,
           style: OnlistTextStyles.hn(
             color: Colors.white,
-            fontSize: 42,
+            fontSize: R.sp(42),
             fontWeight: FontWeight.bold,
             letterSpacing: -0.07 * 42,
           ),
@@ -429,7 +430,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 "Ticket",
                 style: OnlistTextStyles.hn(
                   color: Colors.white,
-                  fontSize: 40,
+                  fontSize: R.sp(40),
                   fontWeight: FontWeight.w400,
                   height: 45 / 40,
                   letterSpacing: -0.1 * 40,
@@ -439,7 +440,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 type,
                 style: OnlistTextStyles.hn(
                   color: Colors.white,
-                  fontSize: 24,
+                  fontSize: R.sp(24),
                   fontWeight: FontWeight.w300,
                   height: 29 / 24,
                   letterSpacing: -0.06 * 24,
@@ -452,7 +453,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   validity,
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: R.sp(16),
                     fontWeight: FontWeight.w400,
                     height: 18 / 16,
                     letterSpacing: -0.1 * 16,
@@ -471,7 +472,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   price,
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
-                    fontSize: 96,
+                    fontSize: R.sp(96),
                     fontWeight: FontWeight.w400,
                     height: 110 / 96,
                     letterSpacing: -0.08 * 96,
@@ -482,7 +483,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   textAlign: TextAlign.right,
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
-                    fontSize: 16,
+                    fontSize: R.sp(16),
                     fontWeight: FontWeight.w400,
                     height: 18 / 16,
                     letterSpacing: -0.1 * 16,
@@ -522,7 +523,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
-                    fontSize: 24,
+                    fontSize: R.sp(24),
                     height: 28 / 24,
                     letterSpacing: -0.1 * 24,
                   ),
@@ -626,7 +627,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                         "$_participants",
                         style: OnlistTextStyles.hn(
                           color: Colors.white,
-                          fontSize: 48,
+                          fontSize: R.sp(48),
                         ),
                       ),
                     ),
@@ -641,7 +642,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                         _selectedTable == "Seleziona" ? "---" : _selectedTable,
                         style: OnlistTextStyles.hn(
                           color: Colors.white,
-                          fontSize: 32,
+                          fontSize: R.sp(32),
                           fontWeight: FontWeight.bold,
                         ),
                       ),
@@ -657,7 +658,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Text(
               "Scegli il tuo tavolo",
-              style: OnlistTextStyles.hn(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+              style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(18), fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 10),
@@ -703,7 +704,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                             style: OnlistTextStyles.hn(
                               color: isSelected ? const Color(0xFF1D00FF) : Colors.white,
                               fontWeight: FontWeight.bold,
-                              fontSize: 16,
+                              fontSize: R.sp(16),
                             ),
                           ),
                         ),
@@ -722,7 +723,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 children: [
                   Text(
                     "Quante persone sarete?",
-                    style: OnlistTextStyles.hn(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
+                    style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(18), fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -733,7 +734,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       const SizedBox(width: 20),
                       Text(
                         "$_participants",
-                        style: OnlistTextStyles.hn(color: Colors.white, fontSize: 42, fontWeight: FontWeight.bold),
+                        style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(42), fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 20),
                       _buildCircBtn(Icons.add, () {
@@ -759,7 +760,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                             return 10;
                           }
                         })()})",
-                        style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 16),
+                        style: OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(16)),
                       ),
                     ],
                   ),
@@ -792,7 +793,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   "PRENOTA",
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
-                    fontSize: 22,
+                    fontSize: R.sp(22),
                     fontWeight: FontWeight.bold,
                   ),
                 ),
@@ -809,7 +810,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title,
-            style: OnlistTextStyles.hn(color: Colors.white, fontSize: 13)),
+            style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(13))),
         const SizedBox(height: 4),
         Container(
           height: 100,
@@ -858,7 +859,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     "Bottiglie",
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
-                      fontSize: 32,
+                      fontSize: R.sp(32),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -923,7 +924,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               textAlign: TextAlign.center,
               style: OnlistTextStyles.hn(
                 color: Colors.white,
-                fontSize: 22,
+                fontSize: R.sp(22),
                 fontWeight: FontWeight.bold,
               ),
             ),
@@ -932,7 +933,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               "70CL",
               style: OnlistTextStyles.hn(
                 color: Colors.white70,
-                fontSize: 14,
+                fontSize: R.sp(14),
               ),
             ),
             const SizedBox(height: 20),

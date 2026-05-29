@@ -131,30 +131,40 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Ticket x 1',
-                                    style: OnlistTextStyles.ticketLabel),
-                                const SizedBox(width: 8),
-                                Padding(
-                                  padding: const EdgeInsets.only(top: 14),
-                                  child: Text('Ticket $tipo',
-                                      style: OnlistTextStyles.ticketSubtitleXs),
-                                ),
-                              ],
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  Text('Ticket x 1',
+                                      style: OnlistTextStyles.ticketLabel),
+                                  const SizedBox(width: 8),
+                                  Padding(
+                                    padding: const EdgeInsets.only(top: 14),
+                                    child: Text('Ticket $tipo',
+                                        style: OnlistTextStyles.ticketSubtitleXs),
+                                  ),
+                                ],
+                              ),
                             ),
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.end,
-                              children: [
-                                Text(prezzoStr, style: OnlistTextStyles.price96),
-                                const SizedBox(width: 10),
-                                Padding(
-                                  padding: const EdgeInsets.only(bottom: 18),
-                                  child: Text('+ 2 drink omaggio',
-                                      style: OnlistTextStyles.body24Regular),
-                                ),
-                              ],
+                            FittedBox(
+                              fit: BoxFit.scaleDown,
+                              alignment: Alignment.centerLeft,
+                              child: Row(
+                                mainAxisSize: MainAxisSize.min,
+                                crossAxisAlignment: CrossAxisAlignment.end,
+                                children: [
+                                  Text(prezzoStr, style: OnlistTextStyles.price96),
+                                  const SizedBox(width: 10),
+                                  Padding(
+                                    padding: const EdgeInsets.only(bottom: 18),
+                                    child: Text('+ 2 drink omaggio',
+                                        style: OnlistTextStyles.body24Regular),
+                                  ),
+                                ],
+                              ),
                             ),
                             const SizedBox(height: 16),
                             // QR
@@ -165,7 +175,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                 child: QrImageView(
                                   data: qrData,
                                   version: QrVersions.auto,
-                                  size: 238,
+                                  size: (R.width * 0.62).clamp(160.0, 238.0),
                                   backgroundColor: Colors.white,
                                 ),
                               ),
@@ -214,18 +224,18 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                         Text('Data: $dataFormatted',
                             style: OnlistTextStyles.hn(
                                 color: Colors.white,
-                                fontSize: 16,
+                                fontSize: R.sp(16),
                                 fontWeight: FontWeight.w500)),
                       if (nomeCognome.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(nomeCognome,
                             style: OnlistTextStyles.hn(
-                                color: Colors.white70, fontSize: 14)),
+                                color: Colors.white70, fontSize: R.sp(14))),
                       ] else if (nomeEvento.isNotEmpty) ...[
                         const SizedBox(height: 4),
                         Text(nomeEvento,
                             style: OnlistTextStyles.hn(
-                                color: Colors.white70, fontSize: 14)),
+                                color: Colors.white70, fontSize: R.sp(14))),
                       ],
                       const SizedBox(height: 20),
                       // Chiudi QR Code
