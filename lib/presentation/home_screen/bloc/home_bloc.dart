@@ -93,15 +93,20 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         }
       }
 
+      int bookingsCount = 0;
       if (state.isGpsForced) {
         debugPrint('[HomeBloc] 🎯 GPS forzato dall\'utente');
         await tryGps();
       } else {
-        // 2. Se > 5 prenotazioni, usa lo storico
-        final bookingsCount = await OrdersService.getTotalBookingsCount();
+        // 2. Se > 5 prenotazioni, usa lo storico.
+        // Calcoliamo gli ID club dell'utente UNA sola volta e li riusiamo per
+        // conteggio e coordinate: evita di rieseguire le query su prenotazioni.
+        final clubIds = await OrdersService.getUtenteClubIds();
+        bookingsCount = clubIds.length;
         debugPrint('[HomeBloc] 📊 Prenotazioni totali: $bookingsCount');
         if (bookingsCount >= 5) {
-          final freqLoc = await OrdersService.getMostFrequentClubCoordinates();
+          final freqLoc = await OrdersService.getMostFrequentClubCoordinates(
+              precomputedIds: clubIds);
           debugPrint('[HomeBloc] ⭐ Coordinate club frequentato: $freqLoc');
           if (freqLoc != null) {
             lat = freqLoc['lat'];
@@ -165,7 +170,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         source: analyticsSource,
         lat: lat,
         lng: lng,
-        bookingsCount: state.isGpsForced ? 0 : await OrdersService.getTotalBookingsCount(),
+        bookingsCount: bookingsCount,
         clubId: locale.id,
         clubName: locale.nome,
       );

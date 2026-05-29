@@ -200,10 +200,13 @@ class OrdersService {
   // HISTORY / BOOKING STATS
   // ─────────────────────────────────────────────────────────────────────────────
 
-  static Future<List<String>> _getUtenteClubIds() async {
+  /// Restituisce gli ID dei locali in cui l'utente ha prenotazioni
+  /// (prevendite + tavoli). Pubblico così la Home può calcolarli una volta
+  /// sola e riusarli per conteggio e coordinate, evitando query duplicate.
+  static Future<List<String>> getUtenteClubIds() async {
     final user = _client.auth.currentUser;
     if (user == null) {
-      debugPrint('[OrdersService] ❌ _getUtenteClubIds: utente non loggato');
+      debugPrint('[OrdersService] ❌ getUtenteClubIds: utente non loggato');
       return [];
     }
 
@@ -226,19 +229,23 @@ class OrdersService {
       debugPrint('[OrdersService] 🏛️ Club IDs da storico: $clubIds');
       return clubIds;
     } catch (e) {
-      debugPrint('[OrdersService] ❌ _getUtenteClubIds errore: $e');
+      debugPrint('[OrdersService] ❌ getUtenteClubIds errore: $e');
       return [];
     }
   }
 
-  static Future<int> getTotalBookingsCount() async {
-    final ids = await _getUtenteClubIds();
+  /// Numero di locali distinti prenotati. Se [precomputedIds] è passato non
+  /// rilegge dal DB (riuso del risultato di [getUtenteClubIds]).
+  static Future<int> getTotalBookingsCount({List<String>? precomputedIds}) async {
+    final ids = precomputedIds ?? await getUtenteClubIds();
     debugPrint('[OrdersService] 📊 getTotalBookingsCount: ${ids.length}');
     return ids.length;
   }
 
-  static Future<Map<String, double>?> getMostFrequentClubCoordinates() async {
-    final clubIds = await _getUtenteClubIds();
+  /// Coordinate del locale più frequentato dall'utente. Se [precomputedIds] è
+  /// passato non rilegge gli ID dal DB (riuso del risultato di [getUtenteClubIds]).
+  static Future<Map<String, double>?> getMostFrequentClubCoordinates({List<String>? precomputedIds}) async {
+    final clubIds = precomputedIds ?? await getUtenteClubIds();
     debugPrint('[OrdersService] 🗺️ getMostFrequentClubCoordinates clubIds=$clubIds');
     if (clubIds.isEmpty) return null;
 
