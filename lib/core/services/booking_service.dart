@@ -24,7 +24,7 @@ class BookingService {
 
     final response = await _client
         .from('tavoli')
-        .select('*, prenotazioni_tavolo(*)')
+        .select('*, prenotazioni_tavolo(id_evento, stato)')
         .eq('id_locale', clubId);
     
     final allTavoli = List<Map<String, dynamic>>.from(response);
@@ -47,7 +47,7 @@ class BookingService {
 
     final response = await _client
         .from('tavoli')
-        .select('*, prenotazioni_tavolo(*)')
+        .select('*, prenotazioni_tavolo(id_evento, stato)')
         .eq('id_locale', clubId);
     
     final data = List<Map<String, dynamic>>.from(response);

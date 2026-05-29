@@ -6,7 +6,12 @@ import '../models/serata_model.dart';
 
 /// SELECT con JOIN verso citta per ottenere nome_citta e coordinate città.
 /// Le coordinate città servono come fallback per locali senza lat/lng propri.
-const _localiSelect = '*, citta(nome_citta, lat, lng)';
+/// Colonne esplicite (solo quelle lette da LocaleModel.fromMap) invece di `*`:
+/// evita di scaricare campi inutili (telefono, email, created_at) sulle liste.
+const _localiSelect =
+    'id, nome, indirizzo, id_citta, logo_url, foto_url, famosita, '
+    'generi_musicali, prezzo_indicativo, link_tripadvisor, descrizione, '
+    'lat, lng, citta(nome_citta, lat, lng)';
 
 /// Accesso a `locali` ed `eventi` su Supabase.
 ///
