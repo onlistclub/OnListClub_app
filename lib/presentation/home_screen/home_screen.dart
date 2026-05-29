@@ -174,7 +174,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                                   'Nessun locale trovato.\nProva a cambiare raggio o cercare in un\'altra città.',
                                   textAlign: TextAlign.center,
                                   style: OnlistTextStyles.hn(
-                                    fontSize: 16,
+                                    fontSize: R.sp(16),
                                     color: Colors.white54,
                                   ),
                                 ),
@@ -275,7 +275,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     child: Text(
                       state.locationSourceLabel,
                       style: OnlistTextStyles.hn(
-                        fontSize: 12,
+                        fontSize: R.sp(12),
                         color: Colors.white70,
                         fontWeight: FontWeight.w500,
                       ),
@@ -310,7 +310,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     Text(
                       'Usa GPS',
                       style: OnlistTextStyles.hn(
-                        fontSize: 10,
+                        fontSize: R.sp(10),
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -338,7 +338,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     Text(
                       'Rimuovi GPS',
                       style: OnlistTextStyles.hn(
-                        fontSize: 10,
+                        fontSize: R.sp(10),
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -402,7 +402,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             child: Text(
               state.localeVicino?.nome ?? '',
               style: OnlistTextStyles.hn(
-                fontSize: 36,
+                fontSize: R.sp(36),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 height: 41 / 36,
@@ -455,7 +455,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             child: Text(
               addr,
               style: OnlistTextStyles.hn(
-                fontSize: 16,
+                fontSize: R.sp(16),
                 color: Colors.white,
                 fontWeight: FontWeight.w700,
                 height: 18 / 16,
@@ -479,7 +479,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 child: Text(
                   orario,
                   style: OnlistTextStyles.hn(
-                    fontSize: 16,
+                    fontSize: R.sp(16),
                     color: Colors.white,
                     fontWeight: FontWeight.w700,
                     height: 18 / 16,
@@ -493,7 +493,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     TextSpan(
                       text: priceStr,
                       style: OnlistTextStyles.hn(
-                        fontSize: 16,
+                        fontSize: R.sp(16),
                         color: Colors.white,
                         fontWeight: FontWeight.w500,
                         height: 22 / 16,
@@ -502,7 +502,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                     TextSpan(
                       text: emptyPrice,
                       style: OnlistTextStyles.hn(
-                        fontSize: 16,
+                        fontSize: R.sp(16),
                         color: Colors.white.withValues(alpha: 0.3),
                         fontWeight: FontWeight.w500,
                         height: 22 / 16,
@@ -529,7 +529,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   child: Text(
                     locale.generiString.isNotEmpty ? locale.generiString : 'Tutti i generi',
                     style: OnlistTextStyles.hn(
-                      fontSize: 16,
+                      fontSize: R.sp(16),
                       color: Colors.white,
                       fontWeight: FontWeight.w700,
                       height: 18 / 16,
@@ -577,7 +577,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           child: Text(
             'RISERVA IL TUO POSTO ORA',
             style: OnlistTextStyles.hn(
-              fontSize: 20,
+              fontSize: R.sp(20),
               fontWeight: FontWeight.w700,
               color: OnlistColors.white,
               height: 23 / 20,
@@ -598,7 +598,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       child: Text(
         'Prossime serate',
         style: OnlistTextStyles.hn(
-          fontSize: 32,
+          fontSize: R.sp(32),
           fontWeight: FontWeight.w700,
           color: Colors.white,
           height: 37 / 32,
@@ -621,12 +621,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           if (i == 0)
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
-              child: _buildProminentEventCard(context, state.upcomingEventi[i], club),
+              child: _scaleToWidth(
+                designW: 369,
+                designH: 132,
+                child: _buildProminentEventCard(context, state.upcomingEventi[i], club),
+              ),
             )
           else
             Padding(
               padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
-              child: _buildEventCard(context, state.upcomingEventi[i], club),
+              child: _scaleToWidth(
+                designW: 369,
+                designH: 108,
+                child: _buildEventCard(context, state.upcomingEventi[i], club),
+              ),
             ),
       ],
     );
@@ -940,6 +948,34 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
 }
 
+// ── Scala-a-larghezza ────────────────────────────────────────────────────────
+// Scala un contenuto progettato a dimensione fissa (designW×designH) per
+// riempire la larghezza disponibile mantenendo le proporzioni esatte del Figma.
+// Su telefoni stretti rimpicciolisce per non sforare; su schermi larghi (tablet)
+// il fattore è limitato a 1.15× e la card resta centrata con margini.
+Widget _scaleToWidth({
+  required double designW,
+  required double designH,
+  required Widget child,
+}) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final ratio = constraints.maxWidth / designW;
+      final scale = ratio < 1.15 ? ratio : 1.15;
+      return Center(
+        child: SizedBox(
+          width: designW * scale,
+          height: designH * scale,
+          child: FittedBox(
+            fit: BoxFit.fill,
+            child: SizedBox(width: designW, height: designH, child: child),
+          ),
+        ),
+      );
+    },
+  );
+}
+
 // ── Animated press button ──────────────────────────────────────────────────────
 
 class _AnimatedPressButton extends StatefulWidget {
@@ -1035,7 +1071,7 @@ class _FavoritePillState extends State<_FavoritePill> {
       child: Text(
         'Il tuo club preferito',
         style: OnlistTextStyles.hn(
-          fontSize: 14,
+          fontSize: R.sp(14),
           fontWeight: FontWeight.w700,
           color: OnlistColors.white,
         ),
