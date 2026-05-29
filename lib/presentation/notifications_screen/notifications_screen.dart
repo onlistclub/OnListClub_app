@@ -54,7 +54,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
                       return Center(
                         child: Text('Errore nel caricamento',
                             style: OnlistTextStyles.hn(
-                                color: Colors.white54, fontSize: 16)),
+                                color: Colors.white54, fontSize: R.sp(16))),
                       );
                     }
                     final notifications = snapshot.data ?? [];
@@ -87,7 +87,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
           const Icon(Icons.notifications_none, size: 80, color: Colors.white10),
           const SizedBox(height: 16),
           Text('Nessuna notifica',
-              style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 18)),
+              style: OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(18))),
         ],
       ),
     );

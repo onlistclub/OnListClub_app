@@ -374,7 +374,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                     child: Text(
                       'Club aggiunto ai preferiti',
                       style: OnlistTextStyles.hn(
-                        fontSize: 13,
+                        fontSize: R.sp(13),
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -396,8 +396,10 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
       padding: const EdgeInsets.fromLTRB(13, 25, 13, 0),
       child: Text(
         nome,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: OnlistTextStyles.hn(
-          fontSize: 36,
+          fontSize: R.sp(36),
           fontWeight: FontWeight.w700,
           color: Colors.white,
           letterSpacing: -0.08 * 36,
@@ -414,7 +416,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
       child: Text(
         nomeClub,
         style: OnlistTextStyles.hn(
-          fontSize: 16,
+          fontSize: R.sp(16),
           fontWeight: FontWeight.w400,
           color: Colors.white.withValues(alpha: 0.6),
         ),
@@ -447,7 +449,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                   Text(
                     orario,
                     style: OnlistTextStyles.hn(
-                        fontSize: 14,
+                        fontSize: R.sp(14),
                         color: Colors.white.withValues(alpha: 0.7)),
                   ),
                 ],
@@ -456,7 +458,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                   Text(
                     club.prezzoString,
                     style: OnlistTextStyles.hn(
-                        fontSize: 14,
+                        fontSize: R.sp(14),
                         fontWeight: FontWeight.w500,
                         color: Colors.white.withValues(alpha: 0.7)),
                   ),
@@ -474,7 +476,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                   child: Text(
                     generi,
                     style: OnlistTextStyles.hn(
-                        fontSize: 14,
+                        fontSize: R.sp(14),
                         color: Colors.white.withValues(alpha: 0.7)),
                   ),
                 ),
@@ -513,7 +515,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
           child: Text(
             'RISERVA IL TUO POSTO ORA',
             style: OnlistTextStyles.hn(
-              fontSize: 20,
+              fontSize: R.sp(20),
               fontWeight: FontWeight.w700,
               color: Colors.white,
               letterSpacing: -0.08 * 20,
@@ -566,7 +568,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
           Text(
             title,
             style: OnlistTextStyles.hn(
-              fontSize: 18,
+              fontSize: R.sp(18),
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -591,7 +593,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                 child: Text(
                   buttonLabel,
                   style: OnlistTextStyles.hn(
-                    fontSize: 16,
+                    fontSize: R.sp(16),
                     fontWeight: FontWeight.w600,
                     color: Colors.white,
                   ),

@@ -79,8 +79,8 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 indicatorWeight: 2,
                 labelColor: Colors.white,
                 unselectedLabelColor: Colors.white38,
-                labelStyle: OnlistTextStyles.hn(fontWeight: FontWeight.bold, fontSize: 15),
-                unselectedLabelStyle: OnlistTextStyles.hn(fontWeight: FontWeight.w400, fontSize: 15),
+                labelStyle: OnlistTextStyles.hn(fontWeight: FontWeight.bold, fontSize: R.sp(15)),
+                unselectedLabelStyle: OnlistTextStyles.hn(fontWeight: FontWeight.w400, fontSize: R.sp(15)),
                 tabs: const [
                   Tab(text: 'Prevendite'),
                   Tab(text: 'Tavoli'),
@@ -111,7 +111,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
       return Center(
         child: Text(
           'Nessuna prevendita acquistata',
-          style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 16),
+          style: OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(16)),
         ),
       );
     }
@@ -127,7 +127,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
       return Center(
         child: Text(
           'Nessun tavolo prenotato',
-          style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 16),
+          style: OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(16)),
         ),
       );
     }
@@ -185,7 +185,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     nomeEvento.isNotEmpty ? nomeEvento : nomeClub,
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: R.sp(16),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -195,7 +195,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     '${prezzo}€',
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: R.sp(16),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -204,7 +204,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             const SizedBox(height: 6),
             Text(
               nome.isNotEmpty ? nome : 'Ticket $tipo',
-              style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 13),
+              style: OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(13)),
             ),
             if (dataFormatted.isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -212,11 +212,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 children: [
                   const Icon(Icons.calendar_today, color: Colors.white38, size: 13),
                   const SizedBox(width: 5),
-                  Text(dataFormatted, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: 13)),
+                  Text(dataFormatted, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: R.sp(13))),
                   const SizedBox(width: 10),
                   const Icon(Icons.location_on_outlined, color: Colors.white38, size: 13),
                   const SizedBox(width: 5),
-                  Text(nomeClub, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: 13)),
+                  Text(nomeClub, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: R.sp(13))),
                 ],
               ),
             ],
@@ -273,7 +273,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     nomeEvento.isNotEmpty ? nomeEvento : nomeClub,
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
-                      fontSize: 16,
+                      fontSize: R.sp(16),
                       fontWeight: FontWeight.bold,
                     ),
                   ),
@@ -283,7 +283,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                     'Tavolo $nomeTavolo',
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
-                      fontSize: 14,
+                      fontSize: R.sp(14),
                       fontWeight: FontWeight.w600,
                     ),
                   ),
@@ -292,7 +292,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             const SizedBox(height: 6),
             Text(
               nomeCliente,
-              style: OnlistTextStyles.hn(color: Colors.white54, fontSize: 13),
+              style: OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(13)),
             ),
             if (dataFormatted.isNotEmpty) ...[
               const SizedBox(height: 4),
@@ -300,11 +300,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                 children: [
                   const Icon(Icons.calendar_today, color: Colors.white38, size: 13),
                   const SizedBox(width: 5),
-                  Text(dataFormatted, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: 13)),
+                  Text(dataFormatted, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: R.sp(13))),
                   const SizedBox(width: 10),
                   const Icon(Icons.location_on_outlined, color: Colors.white38, size: 13),
                   const SizedBox(width: 5),
-                  Text(nomeClub, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: 13)),
+                  Text(nomeClub, style: OnlistTextStyles.hn(color: Colors.white38, fontSize: R.sp(13))),
                 ],
               ),
             ],
@@ -336,7 +336,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
         _stateLabel(stato),
         style: OnlistTextStyles.hn(
           color: Colors.white,
-          fontSize: 13,
+          fontSize: R.sp(13),
           fontWeight: FontWeight.w500,
           letterSpacing: -0.1 * 13,
         ),

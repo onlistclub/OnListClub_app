@@ -413,7 +413,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                     child: Text(
                       'Club aggiunto ai preferiti',
                       style: OnlistTextStyles.hn(
-                        fontSize: 13,
+                        fontSize: R.sp(13),
                         fontWeight: FontWeight.w600,
                         color: Colors.white,
                       ),
@@ -434,8 +434,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       padding: const EdgeInsets.fromLTRB(13, 25, 13, 0),
       child: Text(
         name,
+        maxLines: 2,
+        overflow: TextOverflow.ellipsis,
         style: OnlistTextStyles.hn(
-          fontSize: 36,
+          fontSize: R.sp(36),
           fontWeight: FontWeight.w700,
           color: Colors.white,
           letterSpacing: -0.08 * 36,
@@ -451,7 +453,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       child: Text(
         address,
         style: OnlistTextStyles.hn(
-          fontSize: 16,
+          fontSize: R.sp(16),
           fontWeight: FontWeight.w400,
           color: Colors.white.withValues(alpha: 0.6),
         ),
@@ -483,7 +485,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   Text(
                     orario,
                     style: OnlistTextStyles.hn(
-                      fontSize: 14,
+                      fontSize: R.sp(14),
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.7),
                     ),
@@ -494,7 +496,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   Text(
                     locale.prezzoString,
                     style: OnlistTextStyles.hn(
-                      fontSize: 14,
+                      fontSize: R.sp(14),
                       fontWeight: FontWeight.w500,
                       color: Colors.white.withValues(alpha: 0.7),
                     ),
@@ -514,7 +516,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   child: Text(
                     generi,
                     style: OnlistTextStyles.hn(
-                      fontSize: 14,
+                      fontSize: R.sp(14),
                       fontWeight: FontWeight.w400,
                       color: Colors.white.withValues(alpha: 0.7),
                     ),
@@ -556,7 +558,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             child: Text(
               'RISERVA IL TUO POSTO ORA',
               style: OnlistTextStyles.hn(
-                fontSize: 20,
+                fontSize: R.sp(20),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
                 letterSpacing: -0.08 * 20,
@@ -609,7 +611,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
           Text(
             title,
             style: OnlistTextStyles.hn(
-              fontSize: 18,
+              fontSize: R.sp(18),
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -635,7 +637,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   child: Text(
                     buttonLabel,
                     style: OnlistTextStyles.hn(
-                      fontSize: 16,
+                      fontSize: R.sp(16),
                       fontWeight: FontWeight.w600,
                       color: Colors.white,
                     ),
@@ -660,7 +662,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
           child: Text(
             'Prossime serate',
             style: OnlistTextStyles.hn(
-              fontSize: 20,
+              fontSize: R.sp(20),
               fontWeight: FontWeight.w700,
               color: Colors.white,
             ),
@@ -671,7 +673,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             padding: const EdgeInsets.symmetric(horizontal: 13),
             child: Text(
               'Nessuna serata in programma',
-              style: OnlistTextStyles.hn(fontSize: 14, color: Colors.white38),
+              style: OnlistTextStyles.hn(fontSize: R.sp(14), color: Colors.white38),
             ),
           )
         else
@@ -806,7 +808,7 @@ class _SerataCard extends StatelessWidget {
                     Text(
                       serata.nome,
                       style: OnlistTextStyles.hn(
-                        fontSize: 14,
+                        fontSize: R.sp(14),
                         fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
@@ -818,14 +820,14 @@ class _SerataCard extends StatelessWidget {
                       '${_formatData(serata.data)}'
                       '${serata.orarioString.isNotEmpty ? '  •  ${serata.orarioString}' : ''}',
                       style: OnlistTextStyles.hn(
-                          fontSize: 12, color: Colors.white54),
+                          fontSize: R.sp(12), color: Colors.white54),
                     ),
                     if (serata.generiMusicali.isNotEmpty) ...[
                       const SizedBox(height: 3),
                       Text(
                         serata.generiMusicali.join(' · '),
                         style: OnlistTextStyles.hn(
-                            fontSize: 11,
+                            fontSize: R.sp(11),
                             color: const Color(0xFF6680FF)),
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
@@ -846,7 +848,7 @@ class _SerataCard extends StatelessWidget {
                         child: Text(
                           status,
                           style: OnlistTextStyles.hn(
-                            fontSize: 10,
+                            fontSize: R.sp(10),
                             fontWeight: FontWeight.w600,
                             color: status == 'Sold Out'
                                 ? Colors.red
@@ -871,7 +873,7 @@ class _SerataCard extends StatelessWidget {
                     Text(
                       '€${serata.prezzoIngresso!.toStringAsFixed(0)}',
                       style: OnlistTextStyles.hn(
-                        fontSize: 13,
+                        fontSize: R.sp(13),
                         fontWeight: FontWeight.w700,
                         color: Colors.white70,
                       ),
@@ -899,7 +901,7 @@ class _SerataCard extends StatelessWidget {
                       child: Text(
                         status == 'Sold Out' ? 'Esaurito' : 'Prenota',
                         style: OnlistTextStyles.hn(
-                          fontSize: 12,
+                          fontSize: R.sp(12),
                           fontWeight: FontWeight.w600,
                           color: status == 'Sold Out'
                               ? Colors.white38
