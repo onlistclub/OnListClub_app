@@ -18,63 +18,33 @@ class OrdersService {
     if (user == null) return [];
 
     try {
+      // Una sola query con embedding PostgREST al posto di 5 round-trip:
+      // prenotazioni_prevendite → prenotazioni → eventi → locali, più prevendite.
+      // Le FK sono univoche, quindi le relazioni risolvono a oggetti singoli.
       final items = await _client
           .from('prenotazioni_prevendite')
-          .select('id, nome, cognome, data_nascita, id_prenotazione, id_prevendita')
+          .select(
+            'id, nome, cognome, data_nascita, id_prenotazione, id_prevendita, '
+            'prenotazioni(id, stato, created_at, id_evento, '
+            'eventi(id, nome, inizio_evento, club_id, '
+            'locali(id, nome, foto_url))), '
+            'prevendite(id_prevendita, tipo, prezzo, descrizione)',
+          )
           .eq('id_utente', user.id)
           .order('id', ascending: false);
 
-      if (items.isEmpty) return [];
-
-      final prenIds = items.map((e) => e['id_prenotazione']).whereType<String>().toSet().toList();
-      final prenotazioni = prenIds.isNotEmpty
-          ? await _client.from('prenotazioni').select('id, stato, created_at, id_evento').inFilter('id', prenIds)
-          : <Map<String, dynamic>>[];
-
-      final eventoIds = prenotazioni.map((e) => e['id_evento']).whereType<String>().toSet().toList();
-      final eventi = eventoIds.isNotEmpty
-          ? await _client.from('eventi').select('id, nome, inizio_evento, club_id').inFilter('id', eventoIds)
-          : <Map<String, dynamic>>[];
-
-      final localeIds = eventi.map((e) => e['club_id']).whereType<String>().toSet().toList();
-      final locali = localeIds.isNotEmpty
-          ? await _client.from('locali').select('id, nome, foto_url').inFilter('id', localeIds)
-          : <Map<String, dynamic>>[];
-
-      final prevIds = items.map((e) => e['id_prevendita']).whereType<String>().toSet().toList();
-      final prevendite = prevIds.isNotEmpty
-          ? await _client.from('prevendite').select('id_prevendita, tipo, prezzo, descrizione').inFilter('id_prevendita', prevIds)
-          : <Map<String, dynamic>>[];
-
-      final localiMap = {for (final l in locali) l['id'] as String: l};
-      final eventiMap = {
-        for (final e in eventi)
-          e['id'] as String: {
-            ...e, 
-            'data': e['inizio_evento'], // Mappiamo manualmente per il UI
-            'locali': localiMap[e['club_id']]
-          }
-      };
-      final prenotazioniMap = {
-        for (final p in prenotazioni)
-          p['id'] as String: {...p, 'eventi': eventiMap[p['id_evento']]}
-      };
-      final prevenditeMap = {for (final p in prevendite) p['id_prevendita'] as String: p};
-
       return items
           .map((item) {
-            final pren = prenotazioniMap[item['id_prenotazione']];
-            final prev = prevenditeMap[item['id_prevendita']];
+            final pren = item['prenotazioni'] as Map<String, dynamic>?;
             if (pren == null) {
               debugPrint(
                   '[OrdersService] getPrevenditeOrdini: FK prenotazione mancante per item ${item['id']}');
               return null;
             }
-            return {
-              ...item,
-              'prenotazioni': pren,
-              'prevendite': prev,
-            };
+            // La UI si aspetta eventi['data'] (= inizio_evento).
+            final evento = pren['eventi'] as Map<String, dynamic>?;
+            if (evento != null) evento['data'] = evento['inizio_evento'];
+            return item;
           })
           .whereType<Map<String, dynamic>>()
           .toList();
@@ -105,63 +75,32 @@ class OrdersService {
     if (user == null) return [];
 
     try {
-      // Usiamo 'quantita' invece di 'quantita_drink' come visto in BookingService
+      // Una sola query con embedding PostgREST al posto di 5 round-trip:
+      // prenotazioni_tavolo → eventi → locali, più tavoli e drink.
       final items = await _client
           .from('prenotazioni_tavolo')
-          .select('id, nome_cliente, n_persone, stato, id_drink, quantita, id_tavolo, id_evento')
+          .select(
+            'id, nome_cliente, n_persone, stato, id_drink, quantita, id_tavolo, id_evento, '
+            'eventi(id, nome, inizio_evento, club_id, locali(id, nome, foto_url)), '
+            'tavoli(id_tavolo, nome_tavolo), '
+            'drink(id_drink, nome, prezzo)',
+          )
           .eq('id_utente', user.id)
           .order('id', ascending: false);
 
-      if (items.isEmpty) return [];
-
-      final eventoIds = items.map((e) => e['id_evento']).whereType<String>().toSet().toList();
-      final eventi = eventoIds.isNotEmpty
-          ? await _client.from('eventi').select('id, nome, inizio_evento, club_id').inFilter('id', eventoIds)
-          : <Map<String, dynamic>>[];
-
-      final localeIds = eventi.map((e) => e['club_id']).whereType<String>().toSet().toList();
-      final locali = localeIds.isNotEmpty
-          ? await _client.from('locali').select('id, nome, foto_url').inFilter('id', localeIds)
-          : <Map<String, dynamic>>[];
-
-      final tavoloIds = items.map((e) => e['id_tavolo']).whereType<String>().toSet().toList();
-      final tavoli = tavoloIds.isNotEmpty
-          ? await _client.from('tavoli').select('id_tavolo, nome_tavolo').inFilter('id_tavolo', tavoloIds)
-          : <Map<String, dynamic>>[];
-
-      final drinkIds = items.map((e) => e['id_drink']).whereType<String>().toSet().toList();
-      final drinks = drinkIds.isNotEmpty
-          ? await _client.from('drink').select('id_drink, nome, prezzo').inFilter('id_drink', drinkIds)
-          : <Map<String, dynamic>>[];
-
-      final localiMap = {for (final l in locali) l['id'] as String: l};
-      final eventiMap = {
-        for (final e in eventi)
-          e['id'] as String: {
-            ...e, 
-            'data': e['inizio_evento'], // Mappiamo manualmente per il UI
-            'locali': localiMap[e['club_id']]
-          }
-      };
-      final tavoliMap = {for (final t in tavoli) t['id_tavolo'] as String: t};
-      final drinkMap = {for (final d in drinks) d['id_drink'] as String: d};
-
       return items
           .map((item) {
-            final evento = eventiMap[item['id_evento']];
-            final tavolo = tavoliMap[item['id_tavolo']];
+            final evento = item['eventi'] as Map<String, dynamic>?;
+            final tavolo = item['tavoli'] as Map<String, dynamic>?;
             if (evento == null || tavolo == null) {
               debugPrint(
                   '[OrdersService] getTavoliOrdini: FK mancante (evento=${evento != null}, tavolo=${tavolo != null}) per item ${item['id']}');
               return null;
             }
-            return {
-              ...item,
-              'quantita_drink': item['quantita'],
-              'eventi': evento,
-              'tavoli': tavolo,
-              'drink': drinkMap[item['id_drink']],
-            };
+            // La UI si aspetta eventi['data'] (= inizio_evento) e quantita_drink.
+            evento['data'] = evento['inizio_evento'];
+            item['quantita_drink'] = item['quantita'];
+            return item;
           })
           .whereType<Map<String, dynamic>>()
           .toList();
