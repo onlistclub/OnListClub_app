@@ -11,4 +11,5 @@ export '../theme/theme_helper.dart';
 export '../theme/text_style_helper.dart';
 export 'constants/image_constant.dart';
 export 'utils/size_utils.dart';
+export 'utils/responsive.dart';
 export '../widgets/custom_image_view.dart';
