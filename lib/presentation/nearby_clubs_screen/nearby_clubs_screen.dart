@@ -14,16 +14,11 @@ import '../../core/services/user_profile_manager.dart';
 import '../../routes/app_routes.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/shimmer_loading.dart';
+import '../../widgets/image_fallback.dart';
+import '../../theme/onlist_colors.dart';
 
 enum _SortMode { distanza, popolarita }
-
-// Stock images fallback (placed in assets/images/)
-const List<String> _kStockImages = [
-  'assets/images/stock_club_1.jpg',
-  'assets/images/stock_club_2.jpg',
-  'assets/images/stock_club_3.jpg',
-  'assets/images/stock_club_4.jpg',
-];
 
 class NearbyClubsScreen extends StatefulWidget {
   const NearbyClubsScreen({Key? key}) : super(key: key);
@@ -226,9 +221,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Dialog(
-          backgroundColor: const Color(0xFF1A1A1A),
+          backgroundColor: OnlistColors.black,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           // Dialog + ConstrainedBox avoids AlertDialog's IntrinsicWidth,
           // which crashes when FlutterMap is inside (no intrinsic width impl).
           child: ConstrainedBox(
@@ -276,9 +271,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                   point: LatLng(lat, lng),
                                   radius: tempRaggio * 1000.0,
                                   useRadiusInMeter: true,
-                                  color: const Color(0xFF0009FF)
+                                  color: OnlistColors.blueElectric
                                       .withValues(alpha: 0.18),
-                                  borderColor: const Color(0xFF0009FF)
+                                  borderColor: OnlistColors.blueElectric
                                       .withValues(alpha: 0.7),
                                   borderStrokeWidth: 2,
                                 ),
@@ -292,7 +287,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                   height: 24,
                                   child: const Icon(
                                     Icons.location_on,
-                                    color: Color(0xFF0009FF),
+                                    color: OnlistColors.blueElectric,
                                     size: 24,
                                   ),
                                 ),
@@ -317,11 +312,11 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                   ),
                   SliderTheme(
                     data: SliderTheme.of(ctx).copyWith(
-                      activeTrackColor: const Color(0xFF0009FF),
-                      inactiveTrackColor: const Color(0xFF333333),
-                      thumbColor: const Color(0xFF0009FF),
+                      activeTrackColor: OnlistColors.blueElectric,
+                      inactiveTrackColor: Colors.white24,
+                      thumbColor: OnlistColors.blueElectric,
                       overlayColor:
-                          const Color(0xFF0009FF).withValues(alpha: 0.1),
+                          OnlistColors.blueElectric.withValues(alpha: 0.1),
                       trackHeight: 3,
                     ),
                     child: Slider(
@@ -374,9 +369,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                       ElevatedButton(
                         onPressed: () => Navigator.pop(ctx, true),
                         style: ElevatedButton.styleFrom(
-                          backgroundColor: const Color(0xFF0009FF),
+                          backgroundColor: OnlistColors.blueElectric,
                           shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(8)),
+                              borderRadius: BorderRadius.circular(7)),
                         ),
                         child: Text('Applica',
                             style: TextStyle(
@@ -417,9 +412,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       context: context,
       builder: (ctx) => StatefulBuilder(
         builder: (ctx, setS) => Dialog(
-          backgroundColor: const Color(0xFF1A1A1A),
+          backgroundColor: OnlistColors.black,
           shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           child: ConstrainedBox(
             constraints: const BoxConstraints(maxWidth: 360, maxHeight: 440),
             child: Padding(
@@ -453,7 +448,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                       prefixIcon: const Icon(Icons.search,
                           color: Colors.white38, size: 20),
                       filled: true,
-                      fillColor: const Color(0xFF2A2A2A),
+                      fillColor: OnlistColors.blueDeep,
                       border: OutlineInputBorder(
                         borderRadius: BorderRadius.circular(10),
                         borderSide: BorderSide.none,
@@ -505,7 +500,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                               child: Row(
                                 children: [
                                   const Icon(Icons.location_city,
-                                      color: Color(0xFF6680FF), size: 18),
+                                      color: OnlistColors.blueElectric, size: 18),
                                   const SizedBox(width: 10),
                                   Expanded(
                                     child: Text(
@@ -569,9 +564,12 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     final isGpsForced = LocationService.isGpsForced;
 
     return Scaffold(
-      backgroundColor: const Color(0xFF0D0D0D),
-      body: SafeArea(
-        child: Column(
+      backgroundColor: OnlistColors.black,
+      body: DecoratedBox(
+        decoration:
+            const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: SafeArea(
+          child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── CustomTopBar ──
@@ -609,11 +607,11 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 10, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF0009FF)
+                                    color: OnlistColors.blueElectric
                                         .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(20),
+                                    borderRadius: BorderRadius.circular(7),
                                     border: Border.all(
-                                      color: const Color(0xFF0009FF)
+                                      color: OnlistColors.blueElectric
                                           .withValues(alpha: 0.5),
                                       width: 1,
                                     ),
@@ -627,12 +625,12 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                           fontFamily: 'Helvetica',
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
-                                          color: const Color(0xFF6680FF),
+                                          color: OnlistColors.blueElectric,
                                         ),
                                       ),
                                       const SizedBox(width: 4),
                                       const Icon(Icons.tune,
-                                          color: Color(0xFF6680FF), size: 12),
+                                          color: OnlistColors.blueElectric, size: 12),
                                     ],
                                   ),
                                 ),
@@ -644,10 +642,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                   padding: const EdgeInsets.symmetric(
                                       horizontal: 8, vertical: 5),
                                   decoration: BoxDecoration(
-                                    color: const Color(0xFF1A1A1A),
-                                    borderRadius: BorderRadius.circular(20),
+                                    color: OnlistColors.blueDeep,
+                                    borderRadius: BorderRadius.circular(7),
                                     border: Border.all(
-                                        color: const Color(0xFF2A2A2A)),
+                                        color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
                                   ),
                                   child: Row(
                                     mainAxisSize: MainAxisSize.min,
@@ -684,10 +682,11 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                     padding: const EdgeInsets.symmetric(
                                         horizontal: 8, vertical: 4),
                                     decoration: BoxDecoration(
-                                      color: const Color(0xFF2A2A2A),
-                                      borderRadius: BorderRadius.circular(20),
+                                      color: OnlistColors.blueDeep,
+                                      borderRadius: BorderRadius.circular(7),
                                       border: Border.all(
-                                          color: const Color(0xFF444444)),
+                                          color: OnlistColors.blueElectric
+                                              .withValues(alpha: 0.35)),
                                     ),
                                     child: Row(
                                       children: [
@@ -724,9 +723,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
               child: Container(
                 height: 44,
                 decoration: BoxDecoration(
-                  color: const Color(0xFF1A1A1A),
-                  borderRadius: BorderRadius.circular(12),
-                  border: Border.all(color: const Color(0xFF2A2A2A)),
+                  color: OnlistColors.blueDeep,
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
                 ),
                 child: TextField(
                   style: TextStyle(
@@ -778,7 +777,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                             horizontal: 10, vertical: 7),
                         decoration: BoxDecoration(
                           color: const Color(0xFF2A1A1A),
-                          borderRadius: BorderRadius.circular(20),
+                          borderRadius: BorderRadius.circular(7),
                           border: Border.all(
                               color: Colors.redAccent.withValues(alpha: 0.5),
                               width: 1),
@@ -812,13 +811,13 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                   height: 40,
                   decoration: BoxDecoration(
                     color: _customCity != null
-                        ? const Color(0xFF0009FF).withValues(alpha: 0.12)
-                        : const Color(0xFF1A1A1A),
+                        ? OnlistColors.blueElectric.withValues(alpha: 0.12)
+                        : OnlistColors.blueDeep,
                     borderRadius: BorderRadius.circular(10),
                     border: Border.all(
                       color: _customCity != null
-                          ? const Color(0xFF0009FF).withValues(alpha: 0.5)
-                          : const Color(0xFF2A2A2A),
+                          ? OnlistColors.blueElectric.withValues(alpha: 0.5)
+                          : OnlistColors.blueElectric.withValues(alpha: 0.35),
                     ),
                   ),
                   child: Row(
@@ -827,7 +826,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                       Icon(
                         Icons.location_city,
                         color: _customCity != null
-                            ? const Color(0xFF6680FF)
+                            ? OnlistColors.blueElectric
                             : Colors.white38,
                         size: 16,
                       ),
@@ -878,10 +877,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                 future: _future,
                 builder: (context, snap) {
                   if (snap.connectionState != ConnectionState.done) {
-                    return const Center(
-                      child:
-                          CircularProgressIndicator(color: Color(0xFF0009FF)),
-                    );
+                    return const _NearbySkeleton();
                   }
                   if (snap.hasError || snap.data == null) {
                     return Center(
@@ -902,7 +898,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                               'Riprova',
                               style: TextStyle(
                                   fontFamily: 'Helvetica',
-                                  color: Color(0xFF0009FF)),
+                                  color: OnlistColors.blueElectric),
                             ),
                           ),
                         ],
@@ -927,10 +923,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                           padding: const EdgeInsets.symmetric(
                               horizontal: 12, vertical: 10),
                           decoration: BoxDecoration(
-                            color: const Color(0xFF1A1A1A),
+                            color: OnlistColors.blueDeep,
                             borderRadius: BorderRadius.circular(10),
                             border: Border.all(
-                                color: const Color(0xFF2A2A2A), width: 0.5),
+                                color: OnlistColors.blueElectric.withValues(alpha: 0.35), width: 0.5),
                           ),
                           child: Row(
                             children: [
@@ -957,7 +953,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                   style: TextStyle(
                                     fontFamily: 'Helvetica',
                                     fontSize: 12,
-                                    color: Color(0xFF0009FF),
+                                    color: OnlistColors.blueElectric,
                                   ),
                                 ),
                               ),
@@ -1025,13 +1021,12 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                             itemCount: filtered.length,
                             separatorBuilder: (_, __) => Container(
                               height: 0.5,
-                              color: const Color(0xFF2A2A2A),
+                              color: Colors.white.withValues(alpha: 0.08),
                               margin: const EdgeInsets.symmetric(vertical: 2),
                             ),
                             itemBuilder: (context, i) {
                               return _ClubListTile(
                                 club: filtered[i],
-                                index: i,
                                 userLat: data.lat,
                                 userLng: data.lng,
                               );
@@ -1044,6 +1039,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
               ),
             ),
           ],
+        ),
         ),
       ),
     );
@@ -1070,13 +1066,13 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: sel
-                        ? const Color(0xFF0009FF).withValues(alpha: 0.18)
-                        : const Color(0xFF1A1A1A),
-                    borderRadius: BorderRadius.circular(20),
+                        ? OnlistColors.blueElectric.withValues(alpha: 0.18)
+                        : OnlistColors.blueDeep,
+                    borderRadius: BorderRadius.circular(7),
                     border: Border.all(
                       color: sel
-                          ? const Color(0xFF0009FF)
-                          : const Color(0xFF2A2A2A),
+                          ? OnlistColors.blueElectric
+                          : OnlistColors.blueElectric.withValues(alpha: 0.35),
                       width: sel ? 1.5 : 0.5,
                     ),
                   ),
@@ -1121,13 +1117,13 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                       const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
                   decoration: BoxDecoration(
                     color: sel
-                        ? const Color(0xFF0009FF).withValues(alpha: 0.18)
-                        : const Color(0xFF1A1A1A),
-                    borderRadius: BorderRadius.circular(20),
+                        ? OnlistColors.blueElectric.withValues(alpha: 0.18)
+                        : OnlistColors.blueDeep,
+                    borderRadius: BorderRadius.circular(7),
                     border: Border.all(
                       color: sel
-                          ? const Color(0xFF0009FF)
-                          : const Color(0xFF2A2A2A),
+                          ? OnlistColors.blueElectric
+                          : OnlistColors.blueElectric.withValues(alpha: 0.35),
                       width: sel ? 1.5 : 0.5,
                     ),
                   ),
@@ -1137,7 +1133,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                       Icon(icon,
                           size: 13,
                           color:
-                              sel ? const Color(0xFF6680FF) : Colors.white38),
+                              sel ? OnlistColors.blueElectric : Colors.white38),
                       const SizedBox(width: 5),
                       Text(
                         item,
@@ -1184,11 +1180,11 @@ class _SortChip extends StatelessWidget {
         padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
         decoration: BoxDecoration(
           color: selected
-              ? const Color(0xFF0009FF).withValues(alpha: 0.18)
-              : const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(20),
+              ? OnlistColors.blueElectric.withValues(alpha: 0.18)
+              : OnlistColors.blueDeep,
+          borderRadius: BorderRadius.circular(7),
           border: Border.all(
-            color: selected ? const Color(0xFF0009FF) : const Color(0xFF2A2A2A),
+            color: selected ? OnlistColors.blueElectric : OnlistColors.blueElectric.withValues(alpha: 0.35),
             width: selected ? 1.5 : 0.5,
           ),
         ),
@@ -1197,7 +1193,7 @@ class _SortChip extends StatelessWidget {
           children: [
             Icon(icon,
                 size: 14,
-                color: selected ? const Color(0xFF6680FF) : Colors.white38),
+                color: selected ? OnlistColors.blueElectric : Colors.white38),
             const SizedBox(width: 5),
             Text(
               label,
@@ -1215,17 +1211,60 @@ class _SortChip extends StatelessWidget {
   }
 }
 
+// ── Skeleton di caricamento ──────────────────────────────────────────────────
+// Scheletro della lista locali (thumbnail + due/tre righe) mentre i dati e la
+// posizione vengono risolti. Un solo controller via `Shimmer`.
+class _NearbySkeleton extends StatelessWidget {
+  const _NearbySkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: ListView.separated(
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        itemCount: 7,
+        separatorBuilder: (_, __) => const SizedBox(height: 8),
+        itemBuilder: (_, __) => Row(
+          children: const [
+            ShimmerBox(width: 64, height: 64, radius: 10),
+            SizedBox(width: 14),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  ShimmerBox(width: 150, height: 16, radius: 6),
+                  SizedBox(height: 8),
+                  ShimmerBox(width: 200, height: 12, radius: 6),
+                  SizedBox(height: 6),
+                  ShimmerBox(width: 110, height: 11, radius: 6),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
 // ── Club list tile ───────────────────────────────────────────────────────────
+
+/// Avvolge [child] in un `Hero` solo se [enabled] (es. esiste una foto reale),
+/// così le card senza foto non "volano" uno stock placeholder verso un'icona.
+Widget _heroWrap({
+  required String tag,
+  required bool enabled,
+  required Widget child,
+}) =>
+    enabled ? Hero(tag: tag, child: child) : child;
 
 class _ClubListTile extends StatelessWidget {
   final LocaleModel club;
-  final int index;
   final double? userLat;
   final double? userLng;
 
   const _ClubListTile({
     required this.club,
-    required this.index,
     required this.userLat,
     required this.userLng,
   });
@@ -1254,37 +1293,25 @@ class _ClubListTile extends StatelessWidget {
         padding: const EdgeInsets.symmetric(vertical: 10),
         child: Row(
           children: [
-            // Club image
-            ClipRRect(
-              borderRadius: BorderRadius.circular(8),
-              child: SizedBox(
-                width: 64,
-                height: 64,
-                child: club.fotoUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: club.fotoUrl!,
-                        fit: BoxFit.cover,
-                        memCacheWidth: 192,
-                        memCacheHeight: 192,
-                        errorWidget: (_, __, ___) => Image.asset(
-                          _kStockImages[index % _kStockImages.length],
+            // Club image: morph Hero verso il dettaglio (solo se c'è una foto reale)
+            _heroWrap(
+              tag: 'club-img-${club.id}',
+              enabled: club.fotoUrl != null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(10),
+                child: SizedBox(
+                  width: 64,
+                  height: 64,
+                  child: club.fotoUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: club.fotoUrl!,
                           fit: BoxFit.cover,
-                          errorBuilder: (_, __, ___) => Container(
-                            color: const Color(0xFF2A2A2A),
-                            child: const Icon(Icons.nightlife,
-                                color: Color(0xFF666666)),
-                          ),
-                        ),
-                      )
-                    : Image.asset(
-                        _kStockImages[index % _kStockImages.length],
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, __, ___) => Container(
-                          color: const Color(0xFF2A2A2A),
-                          child: const Icon(Icons.nightlife,
-                              color: Color(0xFF666666)),
-                        ),
-                      ),
+                          memCacheWidth: 192,
+                          memCacheHeight: 192,
+                          errorWidget: (_, __, ___) => const ImageFallback(),
+                        )
+                      : const ImageFallback(),
+                ),
               ),
             ),
             const SizedBox(width: 14),
@@ -1321,7 +1348,7 @@ class _ClubListTile extends StatelessWidget {
                       style: TextStyle(
                           fontFamily: 'Helvetica',
                           fontSize: 11,
-                          color: const Color(0xFF6680FF)),
+                          color: OnlistColors.blueElectric),
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                     ),
@@ -1338,10 +1365,11 @@ class _ClubListTile extends StatelessWidget {
                     padding:
                         const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                     decoration: BoxDecoration(
-                      color: const Color(0xFF1A1A1A),
-                      borderRadius: BorderRadius.circular(6),
+                      color: OnlistColors.blueDeep,
+                      borderRadius: BorderRadius.circular(7),
                       border: Border.all(
-                          color: const Color(0xFF333333), width: 0.5),
+                          color: OnlistColors.blueElectric.withValues(alpha: 0.35),
+                          width: 0.5),
                     ),
                     child: Text(
                       distLabel,

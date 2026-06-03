@@ -8,6 +8,8 @@ import '../../core/models/serata_model.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/image_fallback.dart';
+import '../../widgets/animated_press.dart';
 import 'bloc/event_detail_club_bloc.dart';
 
 class EventDetailClubScreen extends StatefulWidget {
@@ -313,20 +315,16 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
                   ? CachedNetworkImage(
                       imageUrl: imgUrl,
                       fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => const Icon(
-                          Icons.nightlife,
-                          color: Color(0xFF666666),
-                          size: 48),
+                      errorWidget: (_, __, ___) => const ImageFallback(),
                     )
-                  : const Icon(Icons.nightlife,
-                      color: Color(0xFF666666), size: 48),
+                  : const ImageFallback(),
             ),
           ),
           // Bookmark button
           Positioned(
             top: 10,
             right: 10,
-            child: _AnimatedPressButton(
+            child: AnimatedPress(
               onPressed: () => context
                   .read<EventDetailClubBloc>()
                   .add(EventDetailClubToggleFavoriteEvent()),
@@ -494,7 +492,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
       BuildContext context, EventDetailClubState state) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(11, 15, 11, 0),
-      child: _AnimatedPressButton(
+      child: AnimatedPress(
         onPressed: () => NavigatorService.pushNamed(
           AppRoutes.bookingScreen,
           arguments: {'serata': state.serata, 'club': state.club},
@@ -575,7 +573,7 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
           ),
           if (buttonLabel != null) ...[
             const SizedBox(height: 10),
-            _AnimatedPressButton(
+            AnimatedPress(
               onPressed: onTap ?? () {},
               child: Container(
                 width: double.infinity,
@@ -614,48 +612,3 @@ class _EventDetailClubScreenState extends State<EventDetailClubScreen>
 
 }
 
-// ── Animated press button ──────────────────────────────────────────────────────
-
-class _AnimatedPressButton extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onPressed;
-
-  const _AnimatedPressButton({
-    required this.child,
-    required this.onPressed,
-  });
-
-  @override
-  State<_AnimatedPressButton> createState() => _AnimatedPressButtonState();
-}
-
-class _AnimatedPressButtonState extends State<_AnimatedPressButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 150),
-  );
-  late final Animation<double> _scale =
-      Tween<double>(begin: 1.0, end: 0.95).animate(
-    CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-  );
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onPressed();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(scale: _scale, child: widget.child),
-    );
-  }
-}

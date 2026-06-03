@@ -1,17 +1,18 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:intl/intl.dart';
 
 import '../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/club_service.dart';
 import '../../core/models/locale_model.dart';
-import '../../core/models/serata_model.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/shimmer_loading.dart';
+import '../../widgets/animated_press.dart';
+import '../../widgets/image_fallback.dart';
 import '../../core/services/notification_service.dart';
 import 'bloc/home_bloc.dart';
 
@@ -103,26 +104,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   // ── Navigation helpers ─────────────────────────────────────────────────────
 
-  void _navigateToEventDetailClub(
-      BuildContext context, SerataModel serata, LocaleModel club) {
+  /// Naviga al dettaglio club (schermata 10). Usato da:
+  /// - tap sulla card hero "Il tuo club preferito"
+  /// - tap su "RISERVA IL TUO POSTO ORA"
+  /// - tap su una card della lista "Club consigliati"
+  void _navigateToClubDetail(BuildContext context, LocaleModel club) {
     NavigatorService.pushNamed(
-      AppRoutes.eventDetailClubScreen,
-      arguments: {'serata': serata, 'club': club},
+      AppRoutes.clubDetailScreen,
+      arguments: club,
     );
-  }
-
-  static final DateFormat _eventDateFormat = DateFormat('EEE d MMM', 'it_IT');
-
-  String _formatDate(DateTime d) {
-    final oggi = DateTime.now();
-    if (d.year == oggi.year && d.month == oggi.month && d.day == oggi.day) {
-      return 'Oggi';
-    }
-    final domani = oggi.add(const Duration(days: 1));
-    if (d.year == domani.year && d.month == domani.month && d.day == domani.day) {
-      return 'Domani';
-    }
-    return _eventDateFormat.format(d);
   }
 
   // ── Build ──────────────────────────────────────────────────────────────────
@@ -137,6 +127,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         buildWhen: (prev, curr) =>
             prev.localeVicino != curr.localeVicino ||
             prev.upcomingEventi != curr.upcomingEventi ||
+            prev.recommendedClubs != curr.recommendedClubs ||
             prev.isLoading != curr.isLoading ||
             prev.isGpsForced != curr.isGpsForced ||
             prev.locationSourceLabel != curr.locationSourceLabel ||
@@ -165,9 +156,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   // Scrollable content
                   Expanded(
                     child: state.isLoading
-                        ? const Center(
-                            child: CircularProgressIndicator(
-                                color: Color(0xFF0009FF)))
+                        ? const _HomeSkeleton()
                         : state.localeVicino == null
                             ? Center(
                                 child: Text(
@@ -184,12 +173,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                                 child: Column(
                                   crossAxisAlignment: CrossAxisAlignment.start,
                                   children: [
-                                    // Hero image
+                                    // Hero image (tap → schermata 10 club detail)
                                     FadeTransition(
                                       opacity: _heroFade,
                                       child: ScaleTransition(
                                         scale: _heroScale,
-                                        child: _buildHeroImage(state),
+                                        child: _buildHeroImage(context, state),
                                       ),
                                     ),
                                     // Club name
@@ -208,29 +197,28 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                                         child: _buildClubDetails(state),
                                       ),
                                     ),
-                                    // CTA "RISERVA IL TUO POSTO ORA" → booking serata in evidenza
-                                    if (state.upcomingEventi.isNotEmpty)
-                                      SlideTransition(
-                                        position: _subtitleSlide,
-                                        child: FadeTransition(
-                                          opacity: _subtitleFade,
-                                          child: _buildReserveButton(context, state),
-                                        ),
+                                    // CTA "RISERVA IL TUO POSTO ORA" → schermata 10 (club detail)
+                                    SlideTransition(
+                                      position: _subtitleSlide,
+                                      child: FadeTransition(
+                                        opacity: _subtitleFade,
+                                        child: _buildReserveButton(context, state),
                                       ),
-                                    // Events section
-                                    if (state.upcomingEventi.isNotEmpty) ...[
+                                    ),
+                                    // Club consigliati (altri club vicini)
+                                    if (state.recommendedClubs.isNotEmpty) ...[
                                       SlideTransition(
                                         position: _sectionSlide,
                                         child: FadeTransition(
                                           opacity: _sectionFade,
-                                          child: _buildSectionTitle(state),
+                                          child: _buildSectionTitle(),
                                         ),
                                       ),
                                       SlideTransition(
                                         position: _cardsSlide,
                                         child: FadeTransition(
                                           opacity: _cardsFade,
-                                          child: _buildEventCards(context, state),
+                                          child: _buildRecommendedCards(context, state),
                                         ),
                                       ),
                                     ],
@@ -353,40 +341,52 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   }
 
   // ── Hero image ─────────────────────────────────────────────────────────────
+  // Tap → schermata 10 (club detail).
 
-  Widget _buildHeroImage(HomeState state) {
-    final fotoUrl = state.localeVicino?.fotoUrl;
-    return Padding(
+  Widget _buildHeroImage(BuildContext context, HomeState state) {
+    final club = state.localeVicino;
+    final fotoUrl = club?.fotoUrl;
+    final hero = Padding(
       padding: const EdgeInsets.symmetric(horizontal: 9),
       child: Stack(
         children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: double.infinity,
-              height: 217,
-              color: const Color(0xFF1A1A2E),
-              child: fotoUrl != null
-                  ? CustomImageView(
-                      imagePath: fotoUrl,
-                      width: MediaQuery.of(context).size.width,
-                      height: 217,
-                      fit: BoxFit.cover,
-                      placeHolder: ImageConstant.imgImageNotFound,
-                    )
-                  : const Icon(Icons.nightlife,
-                      color: Color(0xFF666666), size: 48),
+          // Morph Hero verso il dettaglio club (tag = club id, solo con foto).
+          _heroWrap(
+            tag: 'club-img-${club?.id ?? ''}',
+            enabled: club != null && fotoUrl != null,
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: double.infinity,
+                height: 217,
+                color: const Color(0xFF1A1A2E),
+                child: fotoUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: fotoUrl,
+                        width: MediaQuery.of(context).size.width,
+                        height: 217,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => const ImageFallback(),
+                      )
+                    : const ImageFallback(),
+              ),
             ),
           ),
           // Pill "Il tuo club preferito" — solo se il club è nei preferiti
-          if (state.localeVicino != null)
+          if (club != null)
             Positioned(
               top: 12,
               left: 12,
-              child: _FavoritePill(clubId: state.localeVicino!.id),
+              child: _FavoritePill(clubId: club.id),
             ),
         ],
       ),
+    );
+    if (club == null) return hero;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => _navigateToClubDetail(context, club),
+      child: hero,
     );
   }
 
@@ -546,22 +546,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
-  // ── Reserve CTA ──────────────────────────────────────────────────────────
+  // ── Reserve CTA → schermata 10 (club detail) ────────────────────────────
 
   Widget _buildReserveButton(BuildContext context, HomeState state) {
-    final serata = state.upcomingEventi.isNotEmpty
-        ? state.upcomingEventi.first
-        : null;
     final club = state.localeVicino;
-    if (serata == null || club == null) return const SizedBox.shrink();
+    if (club == null) return const SizedBox.shrink();
 
     return Padding(
       padding: const EdgeInsets.fromLTRB(11, 13, 11, 4),
-      child: _AnimatedPressButton(
-        onPressed: () => NavigatorService.pushNamed(
-          AppRoutes.bookingScreen,
-          arguments: {'serata': serata, 'club': club},
-        ),
+      child: AnimatedPress(
+        onPressed: () => _navigateToClubDetail(context, club),
         child: Container(
           width: double.infinity,
           height: 49,
@@ -589,14 +583,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
-  // ── Section title ──────────────────────────────────────────────────────────
+  // ── Section title "Club consigliati" ───────────────────────────────────────
 
-  Widget _buildSectionTitle(HomeState state) {
-    if (state.upcomingEventi.isEmpty) return const SizedBox.shrink();
+  Widget _buildSectionTitle() {
     return Padding(
       padding: const EdgeInsets.fromLTRB(10, 12, 10, 9),
       child: Text(
-        'Prossime serate',
+        'Club consigliati',
         style: OnlistTextStyles.hn(
           fontSize: R.sp(32),
           fontWeight: FontWeight.w700,
@@ -608,197 +601,30 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
-  // ── Event cards ────────────────────────────────────────────────────────────
+  // ── Club consigliati: lista altri locali vicini ──────────────────────────
 
-  Widget _buildEventCards(BuildContext context, HomeState state) {
-    if (state.upcomingEventi.isEmpty) return const SizedBox.shrink();
-    
-    final club = state.localeVicino!;
-    
+  Widget _buildRecommendedCards(BuildContext context, HomeState state) {
+    if (state.recommendedClubs.isEmpty) return const SizedBox.shrink();
     return Column(
       children: [
-        for (int i = 0; i < state.upcomingEventi.length; i++)
-          if (i == 0)
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
-              child: _scaleToWidth(
-                designW: 369,
-                designH: 132,
-                child: _buildProminentEventCard(context, state.upcomingEventi[i], club),
-              ),
-            )
-          else
-            Padding(
-              padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
-              child: _scaleToWidth(
-                designW: 369,
-                designH: 108,
-                child: _buildEventCard(context, state.upcomingEventi[i], club),
-              ),
+        for (final club in state.recommendedClubs)
+          Padding(
+            padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
+            child: _scaleToWidth(
+              designW: 369,
+              designH: 108,
+              child: _buildRecommendedClubCard(context, club),
             ),
+          ),
       ],
     );
   }
 
-  Widget _buildProminentEventCard(BuildContext context, SerataModel serata, LocaleModel club) {
-    final now = DateTime.now();
-    final isToday = serata.data.year == now.year && serata.data.month == now.month && serata.data.day == now.day;
-    
-    return _AnimatedPressButton(
-      onPressed: () => _navigateToEventDetailClub(context, serata, club),
-      child: Container(
-        width: 369,
-        height: 132,
-        decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF000000), Color(0xFF0004D4)],
-            stops: [0.274, 0.7067],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Stack(
-          children: [
-            // Event image
-            Positioned(
-              left: 6,
-              top: 6,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 95,
-                  height: 119,
-                  color: const Color(0xFF2A2A2A),
-                  child: serata.locandinaUrl != null
-                      ? CustomImageView(
-                          imagePath: serata.locandinaUrl!,
-                          width: 95,
-                          height: 119,
-                          fit: BoxFit.cover,
-                          placeHolder: ImageConstant.imgImageNotFound,
-                        )
-                      : const Icon(Icons.music_note, color: Color(0xFF666666), size: 32),
-                ),
-              ),
-            ),
-            // Event info
-            Positioned(
-              left: 106,
-              top: 6,
-              child: Text(
-                serata.nome.isNotEmpty ? serata.nome : 'Spring Party',
-                style: OnlistTextStyles.hn(
-                  fontSize: 20,
-                  fontWeight: FontWeight.w700,
-                  color: Colors.white,
-                  height: 23 / 20,
-                  letterSpacing: -0.08 * 20,
-                ),
-              ),
-            ),
-            if (isToday)
-              Positioned(
-                left: 106,
-                top: 39,
-                child: Text(
-                  'OGGI',
-                  style: OnlistTextStyles.hn(
-                    fontSize: 22.22,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 26 / 22.22,
-                    letterSpacing: -0.08 * 22.22,
-                  ),
-                ),
-              ),
-            Positioned(
-              left: 110,
-              top: 74,
-              child: Text(
-                _formatDate(serata.data),
-                style: OnlistTextStyles.hn(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                  height: 12 / 12,
-                ),
-              ),
-            ),
-            Positioned(
-              left: 110,
-              top: 86.31,
-              child: Text(
-                serata.orarioString,
-                style: OnlistTextStyles.hn(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                  height: 12 / 12,
-                ),
-              ),
-            ),
-            Positioned(
-              left: 106,
-              top: 109,
-              child: Opacity(
-                opacity: 0.5,
-                child: Text(
-                  serata.generiMusicali.isNotEmpty ? serata.generiMusicali.join(' - ') : club.generiString,
-                  style: OnlistTextStyles.hn(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 13 / 13,
-                  ),
-                ),
-              ),
-            ),
-            // PRENOTA Button
-            Positioned(
-              left: 274,
-              top: 47,
-              child: Container(
-                width: 86,
-                height: 38,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1500B3), Color(0xFF201064)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(6.48),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      offset: const Offset(0, 4),
-                      blurRadius: 4,
-                    ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'PRENOTA',
-                  style: OnlistTextStyles.hn(
-                    fontSize: 15.55,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 18 / 15.55,
-                    letterSpacing: -0.1 * 15.55,
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildEventCard(
-      BuildContext context, SerataModel serata, LocaleModel club) {
-    return _AnimatedPressButton(
-      onPressed: () => _navigateToEventDetailClub(context, serata, club),
+  Widget _buildRecommendedClubCard(BuildContext context, LocaleModel club) {
+    // Riusa il layout della card Figma "Club consigliati" (07-aggiornato):
+    // immagine sinistra, nome + generi + città a destra, bottone PRENOTA.
+    return AnimatedPress(
+      onPressed: () => _navigateToClubDetail(context, club),
       child: Container(
         width: 369,
         height: 108,
@@ -813,89 +639,80 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         ),
         child: Stack(
           children: [
-            // Event image
+            // Foto del club
             Positioned(
               left: 15,
-              top: 7, // 672 - 665
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  width: 165,
-                  height: 95,
-                  color: const Color(0xFF2A2A2A),
-                  child: serata.locandinaUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: serata.locandinaUrl!,
-                          fit: BoxFit.cover,
-                          memCacheWidth: 495,
-                          memCacheHeight: 285,
-                          errorWidget: (_, __, ___) => const Icon(
-                            Icons.music_note,
-                            color: Color(0xFF666666),
-                            size: 32,
-                          ),
-                        )
-                      : const Icon(Icons.music_note,
-                          color: Color(0xFF666666), size: 32),
+              top: 7,
+              child: _heroWrap(
+                tag: 'club-img-${club.id}',
+                enabled: club.fotoUrl != null,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(10),
+                  child: Container(
+                    width: 165,
+                    height: 95,
+                    color: const Color(0xFF2A2A2A),
+                    child: club.fotoUrl != null
+                        ? CachedNetworkImage(
+                            imageUrl: club.fotoUrl!,
+                            fit: BoxFit.cover,
+                            memCacheWidth: 495,
+                            memCacheHeight: 285,
+                            errorWidget: (_, __, ___) => const ImageFallback(),
+                          )
+                        : const ImageFallback(),
+                  ),
                 ),
               ),
             ),
-            // Event name
+            // Nome del club
             Positioned(
               left: 189,
               top: 7,
               child: SizedBox(
                 width: 159,
                 child: Text(
-                  serata.nome,
+                  club.nome,
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: OnlistTextStyles.hn(
-                    fontSize: 32,
+                    fontSize: 28,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
-                    height: 37 / 32,
-                    letterSpacing: -0.08 * 32,
+                    height: 33 / 28,
+                    letterSpacing: -0.08 * 28,
                   ),
                 ),
               ),
             ),
-            // Date
-            Positioned(
-              left: 193,
-              top: 49, // 714 - 665
-              child: Text(
-                _formatDate(serata.data),
-                style: OnlistTextStyles.hn(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                  height: 12 / 12,
+            // Generi musicali
+            if (club.generiString.isNotEmpty)
+              Positioned(
+                left: 193,
+                top: 54,
+                child: SizedBox(
+                  width: 159,
+                  child: Text(
+                    club.generiString,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: OnlistTextStyles.hn(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                      height: 12 / 12,
+                    ),
+                  ),
                 ),
               ),
-            ),
-            // Hours
-            Positioned(
-              left: 193,
-              top: 60, // 725 - 665
-              child: Text(
-                serata.orarioString,
-                style: OnlistTextStyles.hn(
-                  fontSize: 12,
-                  fontWeight: FontWeight.w400,
-                  color: Colors.white,
-                  height: 12 / 12,
-                ),
-              ),
-            ),
-            // Location
+            // Città
             Positioned(
               left: 189,
-              top: 90, // 755 - 665
+              top: 90,
               child: Opacity(
                 opacity: 0.8,
                 child: Text(
-                  club.nomeCitta ?? 'Milano (MI)',
+                  club.nomeCitta ?? '',
                   style: OnlistTextStyles.hn(
                     fontSize: 12,
                     fontWeight: FontWeight.w700,
@@ -905,37 +722,40 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 ),
               ),
             ),
-            // PRENOTA Button
+            // PRENOTA → schermata 10 (club detail)
             Positioned(
-              left: 283, // 283
-              top: 62,  // 727 - 665
-              child: Container(
-                width: 86,
-                height: 38,
-                decoration: BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0xFF1500B3), Color(0xFF201064)],
-                    begin: Alignment.centerLeft,
-                    end: Alignment.centerRight,
-                  ),
-                  borderRadius: BorderRadius.circular(6.48),
-                  boxShadow: [
-                    BoxShadow(
-                      color: Colors.black.withValues(alpha: 0.25),
-                      offset: const Offset(0, 4),
-                      blurRadius: 4,
+              left: 283,
+              top: 62,
+              child: GestureDetector(
+                onTap: () => _navigateToClubDetail(context, club),
+                child: Container(
+                  width: 86,
+                  height: 38,
+                  decoration: BoxDecoration(
+                    gradient: const LinearGradient(
+                      colors: [Color(0xFF1500B3), Color(0xFF201064)],
+                      begin: Alignment.centerLeft,
+                      end: Alignment.centerRight,
                     ),
-                  ],
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  'PRENOTA',
-                  style: OnlistTextStyles.hn(
-                    fontSize: 15.55,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 18 / 15.55,
-                    letterSpacing: -0.1 * 15.55,
+                    borderRadius: BorderRadius.circular(6.48),
+                    boxShadow: [
+                      BoxShadow(
+                        color: Colors.black.withValues(alpha: 0.25),
+                        offset: const Offset(0, 4),
+                        blurRadius: 4,
+                      ),
+                    ],
+                  ),
+                  alignment: Alignment.center,
+                  child: Text(
+                    'PRENOTA',
+                    style: OnlistTextStyles.hn(
+                      fontSize: 15.55,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 18 / 15.55,
+                      letterSpacing: -0.1 * 15.55,
+                    ),
                   ),
                 ),
               ),
@@ -946,6 +766,85 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
+}
+
+// ── Hero wrap ────────────────────────────────────────────────────────────────
+/// Avvolge [child] in un `Hero` solo se [enabled] (es. esiste una foto reale),
+/// così l'immagine si "espande" verso il dettaglio club senza far volare un
+/// placeholder quando il locale non ha foto.
+Widget _heroWrap({
+  required String tag,
+  required bool enabled,
+  required Widget child,
+}) =>
+    enabled ? Hero(tag: tag, child: child) : child;
+
+// ── Skeleton di caricamento ──────────────────────────────────────────────────
+// Scheletro che ricalca il layout della home (hero + titolo + dettagli + CTA +
+// card consigliate) mentre i dati arrivano da Supabase. Un solo controller via
+// `Shimmer`. Non scrolla: è uno stato transitorio.
+class _HomeSkeleton extends StatelessWidget {
+  const _HomeSkeleton();
+
+  @override
+  Widget build(BuildContext context) {
+    return Shimmer(
+      child: const SingleChildScrollView(
+        physics: NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.only(bottom: 80),
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Hero
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 9),
+              child: ShimmerBox(width: double.infinity, height: 217),
+            ),
+            SizedBox(height: 14),
+            // Nome club
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: ShimmerBox(width: 220, height: 34, radius: 8),
+            ),
+            SizedBox(height: 12),
+            // Righe info
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: ShimmerBox(width: 180, height: 14, radius: 6),
+            ),
+            SizedBox(height: 10),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 14),
+              child: ShimmerBox(width: 140, height: 14, radius: 6),
+            ),
+            SizedBox(height: 16),
+            // CTA
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 11),
+              child: ShimmerBox(width: double.infinity, height: 49),
+            ),
+            SizedBox(height: 20),
+            // Titolo sezione
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: ShimmerBox(width: 200, height: 30, radius: 8),
+            ),
+            SizedBox(height: 14),
+            // Card consigliate
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: ShimmerBox(width: double.infinity, height: 108),
+            ),
+            SizedBox(height: 8),
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: 10),
+              child: ShimmerBox(width: double.infinity, height: 108),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
 }
 
 // ── Scala-a-larghezza ────────────────────────────────────────────────────────
@@ -974,52 +873,6 @@ Widget _scaleToWidth({
       );
     },
   );
-}
-
-// ── Animated press button ──────────────────────────────────────────────────────
-
-class _AnimatedPressButton extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onPressed;
-
-  const _AnimatedPressButton({
-    required this.child,
-    required this.onPressed,
-  });
-
-  @override
-  State<_AnimatedPressButton> createState() => _AnimatedPressButtonState();
-}
-
-class _AnimatedPressButtonState extends State<_AnimatedPressButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 150),
-  );
-  late final Animation<double> _scale =
-      Tween<double>(begin: 1.0, end: 0.95).animate(
-    CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-  );
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onPressed();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(scale: _scale, child: widget.child),
-    );
-  }
 }
 
 // ── Favorite pill ───────────────────────────────────────────────────────────

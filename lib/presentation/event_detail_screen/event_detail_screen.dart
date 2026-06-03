@@ -4,6 +4,8 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../widgets/custom_top_bar.dart';
+import '../../widgets/image_fallback.dart';
 import './bloc/event_detail_bloc.dart';
 import './models/event_detail_model.dart';
 
@@ -220,27 +222,9 @@ class _EventDetailScreenState extends State<EventDetailScreen>
   }
 
   Widget _buildAppBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Image.asset(
-              ImageConstant.imgLogoOnlist,
-              height: 60,
-              width: 60,
-              fit: BoxFit.cover,
-            ),
-          ),
-          const Padding(
-            padding: EdgeInsets.only(right: 10),
-            child: Icon(Icons.search, color: Colors.white, size: 34),
-          ),
-        ],
-      ),
-    );
+    // Navbar fissa condivisa: stesso logo (wordmark) e stesse icone
+    // (logo + ricerca + persona) di tutte le altre schermate con navbar.
+    return const CustomTopBar();
   }
 
   Widget _buildHeroImage(EventDetailState state) {
@@ -257,9 +241,9 @@ class _EventDetailScreenState extends State<EventDetailScreen>
               ? CachedNetworkImage(
                   imageUrl: fotoUrl,
                   fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
+                  errorWidget: (_, __, ___) => const ImageFallback(),
                 )
-              : const SizedBox.shrink(),
+              : const ImageFallback(),
         ),
       ),
     );
@@ -378,17 +362,9 @@ class _EventDetailScreenState extends State<EventDetailScreen>
                         fit: BoxFit.cover,
                         memCacheWidth: 495,
                         memCacheHeight: 285,
-                        errorWidget: (_, __, ___) => const Icon(
-                          Icons.music_note,
-                          color: Color(0xFF666666),
-                          size: 32,
-                        ),
+                        errorWidget: (_, __, ___) => const ImageFallback(),
                       )
-                    : const Icon(
-                        Icons.music_note,
-                        color: Color(0xFF666666),
-                        size: 32,
-                      ),
+                    : const ImageFallback(),
               ),
             ),
             const SizedBox(width: 9),

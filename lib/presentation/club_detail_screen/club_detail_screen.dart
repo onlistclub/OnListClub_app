@@ -10,7 +10,10 @@ import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/animated_press.dart';
+import '../../widgets/reservation_choice_sheet.dart';
 import '../../widgets/shared_footer.dart';
+import '../../widgets/image_fallback.dart';
 import 'bloc/club_detail_bloc.dart';
 
 class ClubDetailScreen extends StatefulWidget {
@@ -59,8 +62,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   late Animation<Offset> _subtitleSlide;
   late Animation<double> _infoFade;
   late Animation<Offset> _infoSlide;
-  late Animation<double> _buttonFade;
-  late Animation<double> _buttonScale;
   late Animation<double> _sectionsFade;
   late Animation<Offset> _sectionsSlide;
 
@@ -113,14 +114,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     // Info rows 420–850ms
     _infoFade = _tween(0.30, 0.61);
     _infoSlide = _slideTween(Offset(0, 0.3), 0.30, 0.61);
-
-    // Button 450–900ms
-    _buttonFade = _tween(0.32, 0.64);
-    _buttonScale = Tween<double>(begin: 0.9, end: 1).animate(
-      CurvedAnimation(
-          parent: _staggerCtrl,
-          curve: const Interval(0.32, 0.64, curve: Curves.easeOutBack)),
-    );
 
     // Sections 600–1100ms
     _sectionsFade = _tween(0.43, 0.78);
@@ -197,13 +190,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     }
   }
 
-  Future<void> _openUrl(String url) async {
-    final uri = Uri.parse(url);
-    if (await canLaunchUrl(uri)) {
-      await launchUrl(uri, mode: LaunchMode.externalApplication);
-    }
-  }
-
   // ── Build ───────────────────────────────────────────────────────────────────
   @override
   Widget build(BuildContext context) {
@@ -256,23 +242,23 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                             child: _buildHeroWithBadge(context, state),
                           ),
                         ),
-                        // Club name
+                        // Title row: nome club + bookmark a destra (Figma 10).
                         SlideTransition(
                           position: _titleSlide,
                           child: FadeTransition(
                             opacity: _titleFade,
-                            child: _buildTitle(state.locale.nome),
+                            child: _buildTitleRow(context, state),
                           ),
                         ),
-                        // Address
+                        // Indirizzo (tappable → apre Google Maps)
                         SlideTransition(
                           position: _subtitleSlide,
                           child: FadeTransition(
                             opacity: _subtitleFade,
-                            child: _buildSubtitle(state.locale.indirizzoCompleto),
+                            child: _buildSubtitle(state.locale),
                           ),
                         ),
-                        // Info rows (time + price, genre)
+                        // Info rows: orario evento + generi musicali (no prezzo)
                         SlideTransition(
                           position: _infoSlide,
                           child: FadeTransition(
@@ -280,25 +266,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                             child: _buildInfoRows(state.locale, state.eventoOggi),
                           ),
                         ),
-                        // CTA Button
-                        FadeTransition(
-                          opacity: _buttonFade,
-                          child: ScaleTransition(
-                            scale: _buttonScale,
-                            child: _buildReserveButton(state.locale),
-                          ),
-                        ),
                         const SizedBox(height: 20),
-                        // Info sections
-                        SlideTransition(
-                          position: _sectionsSlide,
-                          child: FadeTransition(
-                            opacity: _sectionsFade,
-                            child: _buildInfoSections(state.locale),
-                          ),
-                        ),
-                        const SizedBox(height: 24),
-                        // Prossime serate
+                        // Prossime serate (la PRENOTA serata apre choice T/P
+                        // tramite ReservationChoiceSheet — niente CTA globale)
                         if (state.serate.isNotEmpty || !state.isLoading)
                           SlideTransition(
                             position: _sectionsSlide,
@@ -347,53 +317,26 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Stack(
         children: [
-          // Hero image
-          ClipRRect(
-            borderRadius: BorderRadius.circular(10),
-            child: Container(
-              width: double.infinity,
-              height: 217,
-              color: const Color(0xFF1A1A2E),
-              child: state.locale.fotoUrl != null
-                  ? CachedNetworkImage(
-                      imageUrl: state.locale.fotoUrl!,
-                      fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) =>
-                          const Icon(Icons.nightlife, color: Color(0xFF666666), size: 48),
-                    )
-                  : const Icon(Icons.nightlife, color: Color(0xFF666666), size: 48),
-            ),
-          ),
-          // Bookmark icon (top-right)
-          Positioned(
-            top: 10,
-            right: 10,
-            child: _AnimatedPressButton(
-              onPressed: () => context.read<ClubDetailBloc>().add(ToggleFavoriteEvent()),
-              child: AnimatedBuilder(
-                animation: _bookmarkScale,
-                builder: (_, child) => Transform.scale(
-                  scale: _bookmarkScale.value,
-                  child: child,
-                ),
-                child: Container(
-                  width: 36,
-                  height: 36,
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.55),
-                    borderRadius: BorderRadius.circular(8),
-                  ),
-                  child: Icon(
-                    state.isPreferito ? Icons.bookmark : Icons.bookmark_border,
-                    color: state.isPreferito
-                        ? const Color(0xFF0009FF)
-                        : Colors.white,
-                    size: 20,
-                  ),
-                ),
+          // Hero image: morph condiviso dalla lista/home (tag = club id).
+          Hero(
+            tag: 'club-img-${state.locale.id}',
+            child: ClipRRect(
+              borderRadius: BorderRadius.circular(10),
+              child: Container(
+                width: double.infinity,
+                height: 217,
+                color: const Color(0xFF1A1A2E),
+                child: state.locale.fotoUrl != null
+                    ? CachedNetworkImage(
+                        imageUrl: state.locale.fotoUrl!,
+                        fit: BoxFit.cover,
+                        errorWidget: (_, __, ___) => const ImageFallback(),
+                      )
+                    : const ImageFallback(),
               ),
             ),
           ),
+          // Bookmark spostato nel title row (Figma 10).
           // "Club aggiunto ai preferiti" badge
           Positioned(
             top: 10,
@@ -428,40 +371,68 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     );
   }
 
-  // ── Title ───────────────────────────────────────────────────────────────────
-  Widget _buildTitle(String name) {
+  // ── Title row: nome club + bookmark a destra (Figma 10) ─────────────────────
+  Widget _buildTitleRow(BuildContext context, ClubDetailState state) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(13, 25, 13, 0),
-      child: Text(
-        name,
-        maxLines: 2,
-        overflow: TextOverflow.ellipsis,
-        style: OnlistTextStyles.hn(
-          fontSize: R.sp(36),
-          fontWeight: FontWeight.w700,
-          color: Colors.white,
-          letterSpacing: -0.08 * 36,
-        ),
+      child: Row(
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          Expanded(
+            child: Text(
+              state.locale.nome,
+              maxLines: 2,
+              overflow: TextOverflow.ellipsis,
+              style: OnlistTextStyles.hn(
+                fontSize: R.sp(36),
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                letterSpacing: -0.08 * 36,
+              ),
+            ),
+          ),
+          const SizedBox(width: 8),
+          AnimatedPress(
+            onPressed: () =>
+                context.read<ClubDetailBloc>().add(ToggleFavoriteEvent()),
+            child: AnimatedBuilder(
+              animation: _bookmarkScale,
+              builder: (_, child) => Transform.scale(
+                scale: _bookmarkScale.value,
+                child: child,
+              ),
+              child: Icon(
+                state.isPreferito ? Icons.bookmark : Icons.bookmark_border,
+                color: Colors.white,
+                size: R.sp(32),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
 
-  // ── Subtitle (address) ──────────────────────────────────────────────────────
-  Widget _buildSubtitle(String address) {
+  // ── Subtitle (indirizzo) — tap → Google Maps ────────────────────────────────
+  Widget _buildSubtitle(LocaleModel locale) {
     return Padding(
       padding: const EdgeInsets.fromLTRB(13, 14, 13, 0),
-      child: Text(
-        address,
-        style: OnlistTextStyles.hn(
-          fontSize: R.sp(16),
-          fontWeight: FontWeight.w400,
-          color: Colors.white.withValues(alpha: 0.6),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _openMaps(locale.indirizzoCompleto),
+        child: Text(
+          locale.indirizzoCompleto,
+          style: OnlistTextStyles.hn(
+            fontSize: R.sp(16),
+            fontWeight: FontWeight.w400,
+            color: Colors.white.withValues(alpha: 0.6),
+          ),
         ),
       ),
     );
   }
 
-  // ── Info rows: time (dall'evento) + price, genre ───────────────────────────
+  // ── Info rows: orario evento + generi musicali (Figma 10 — niente prezzo) ──
   Widget _buildInfoRows(LocaleModel locale, SerataModel? evento) {
     final orario = evento?.orarioString ?? '';
     // generi: preferenza all'evento, fallback al locale
@@ -474,37 +445,22 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Row 1: clock + orario evento + prezzo locale
-          if (orario.isNotEmpty || locale.prezzoString.isNotEmpty)
+          if (orario.isNotEmpty)
             Row(
               children: [
-                if (orario.isNotEmpty) ...[
-                  Icon(Icons.access_time_rounded,
-                      color: Colors.white.withValues(alpha: 0.7), size: 16),
-                  const SizedBox(width: 6),
-                  Text(
-                    orario,
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(14),
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
+                Icon(Icons.access_time_rounded,
+                    color: Colors.white.withValues(alpha: 0.7), size: 16),
+                const SizedBox(width: 6),
+                Text(
+                  orario,
+                  style: OnlistTextStyles.hn(
+                    fontSize: R.sp(14),
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withValues(alpha: 0.7),
                   ),
-                ],
-                if (locale.prezzoString.isNotEmpty) ...[
-                  const SizedBox(width: 12),
-                  Text(
-                    locale.prezzoString,
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(14),
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white.withValues(alpha: 0.7),
-                    ),
-                  ),
-                ],
+                ),
               ],
             ),
-          // Row 2: music note + generi
           if (generi.isNotEmpty) ...[
             const SizedBox(height: 6),
             Row(
@@ -523,127 +479,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   ),
                 ),
               ],
-            ),
-          ],
-        ],
-      ),
-    );
-  }
-
-  // ── CTA button ──────────────────────────────────────────────────────────────
-  Widget _buildReserveButton(LocaleModel locale) {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(11, 15, 11, 0),
-      child: SizedBox(
-        width: double.infinity,
-        height: 49,
-        child: _AnimatedPressButton(
-          onPressed: () => NavigatorService.pushNamed(
-            '/booking_screen',
-            arguments: locale,
-          ),
-          child: Container(
-            width: double.infinity,
-            height: 49,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                colors: [Color(0xFF0009FF), Color(0xFF000599)],
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                stops: [0.0, 0.8173],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              'RISERVA IL TUO POSTO ORA',
-              style: OnlistTextStyles.hn(
-                fontSize: R.sp(20),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                letterSpacing: -0.08 * 20,
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  // ── Info sections: Come arrivare / Recensioni / Trasporti ──────────────────
-  Widget _buildInfoSections(LocaleModel locale) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        _buildSection(
-          title: 'Come arrivare',
-          buttonLabel: 'Mappe',
-          onButtonTap: () => _openMaps(locale.indirizzoCompleto),
-        ),
-        _buildDivider(),
-        _buildSection(
-          title: 'Recensioni',
-          buttonLabel: 'TripAdvisor',
-          onButtonTap: locale.linkTripadvisor != null
-              ? () => _openUrl(locale.linkTripadvisor!)
-              : null,
-        ),
-        _buildDivider(),
-        _buildSection(
-          title: 'Trasporti',
-          buttonLabel: null,
-          onButtonTap: null,
-        ),
-      ],
-    );
-  }
-
-  Widget _buildSection({
-    required String title,
-    required String? buttonLabel,
-    required VoidCallback? onButtonTap,
-  }) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 14),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(
-            title,
-            style: OnlistTextStyles.hn(
-              fontSize: R.sp(18),
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-            ),
-          ),
-          if (buttonLabel != null) ...[
-            const SizedBox(height: 10),
-            SizedBox(
-              width: double.infinity,
-              height: 44,
-              child: _AnimatedPressButton(
-                onPressed: onButtonTap ?? () {},
-                child: Container(
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF0009FF), Color(0xFF000599)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                      stops: [0.0, 0.8173],
-                    ),
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    buttonLabel,
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(16),
-                      fontWeight: FontWeight.w600,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
             ),
           ],
         ],
@@ -685,235 +520,189 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     );
   }
 
-  Widget _buildDivider() {
-    return Container(
-      height: 0.5,
-      color: const Color(0xFF2A2A2A),
-      margin: const EdgeInsets.symmetric(horizontal: 13),
-    );
-  }
-
 }
 
-// ── Animated press button (shared) ────────────────────────────────────────────
-class _AnimatedPressButton extends StatefulWidget {
-  final Widget child;
-  final VoidCallback onPressed;
-
-  const _AnimatedPressButton({
-    required this.child,
-    required this.onPressed,
-  });
-
-  @override
-  State<_AnimatedPressButton> createState() => _AnimatedPressButtonState();
-}
-
-class _AnimatedPressButtonState extends State<_AnimatedPressButton>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _ctrl = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 150),
-  );
-  late final Animation<double> _scale =
-      Tween<double>(begin: 1.0, end: 0.95).animate(
-    CurvedAnimation(parent: _ctrl, curve: Curves.easeInOut),
-  );
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTapDown: (_) => _ctrl.forward(),
-      onTapUp: (_) {
-        _ctrl.reverse();
-        widget.onPressed();
-      },
-      onTapCancel: () => _ctrl.reverse(),
-      child: ScaleTransition(scale: _scale, child: widget.child),
-    );
-  }
-}
-
-// ── Serata card ────────────────────────────────────────────────────────────────
+// ── Serata card (Figma 10-aggiornato) ──────────────────────────────────────────
+// Card con gradiente blu cardSummary: locandina a sinistra, titolo + "OGGI"
+// (se evento di oggi) + data + orario + generi a destra, bottone PRENOTA.
 class _SerataCard extends StatelessWidget {
   final SerataModel serata;
   final LocaleModel locale;
 
   const _SerataCard({required this.serata, required this.locale});
 
-  String _formatData(DateTime d) {
-    const giorni = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-    const mesi = [
-      'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
-      'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
-    ];
-    return '${giorni[d.weekday - 1]} ${d.day} ${mesi[d.month - 1]}';
+  static const _giorniLunghi = [
+    'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'
+  ];
+  static const _mesiLunghi = [
+    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
+    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+  ];
+
+  String _formatData(DateTime d) =>
+      '${_giorniLunghi[d.weekday - 1]} ${d.day} ${_mesiLunghi[d.month - 1]}';
+
+  bool get _isToday {
+    final now = DateTime.now();
+    return serata.data.year == now.year &&
+        serata.data.month == now.month &&
+        serata.data.day == now.day;
   }
 
   @override
   Widget build(BuildContext context) {
     final status = serata.statusPosti;
+    final isSoldOut = status == 'Sold Out';
+    final generi = serata.generiMusicali.isNotEmpty
+        ? serata.generiMusicali.join(' - ')
+        : locale.generiString;
+
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
-      child: Container(
-        decoration: BoxDecoration(
-          color: const Color(0xFF1A1A1A),
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(color: const Color(0xFF2A2A2A), width: 0.5),
+      // Tap sulla card serata → schermata 19 (pop-up info serata).
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => NavigatorService.pushNamed(
+          AppRoutes.eventInfoPopupScreen,
+          arguments: {'serata': serata, 'club': locale},
         ),
-        child: Row(
-          children: [
-            // Locandina / fallback icon
-            ClipRRect(
-              borderRadius: const BorderRadius.only(
-                topLeft: Radius.circular(10),
-                bottomLeft: Radius.circular(10),
-              ),
-              child: SizedBox(
-                width: 72,
-                height: 88,
+        child: Container(
+          height: 140,
+          clipBehavior: Clip.hardEdge,
+          decoration: BoxDecoration(
+            gradient: OnlistColors.cardSummary,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // Locandina serata (sx)
+              SizedBox(
+                width: 130,
                 child: serata.locandinaUrl != null
                     ? CachedNetworkImage(
                         imageUrl: serata.locandinaUrl!,
                         fit: BoxFit.cover,
-                        memCacheWidth: 216,
-                        memCacheHeight: 264,
-                        errorWidget: (_, __, ___) => Container(
-                          color: const Color(0xFF2A2A2A),
-                          child: const Icon(Icons.event,
-                              color: Color(0xFF555555), size: 28),
-                        ),
+                        memCacheWidth: 390,
+                        errorWidget: (_, __, ___) => const ImageFallback(),
                       )
-                    : Container(
-                        color: const Color(0xFF2A2A2A),
-                        child: const Icon(Icons.event,
-                            color: Color(0xFF555555), size: 28),
-                      ),
+                    : const ImageFallback(),
               ),
-            ),
-            const SizedBox(width: 12),
-            // Info
-            Expanded(
-              child: Padding(
-                padding: const EdgeInsets.symmetric(vertical: 10),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      serata.nome,
-                      style: OnlistTextStyles.hn(
-                        fontSize: R.sp(14),
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 3),
-                    Text(
-                      '${_formatData(serata.data)}'
-                      '${serata.orarioString.isNotEmpty ? '  •  ${serata.orarioString}' : ''}',
-                      style: OnlistTextStyles.hn(
-                          fontSize: R.sp(12), color: Colors.white54),
-                    ),
-                    if (serata.generiMusicali.isNotEmpty) ...[
-                      const SizedBox(height: 3),
-                      Text(
-                        serata.generiMusicali.join(' · '),
-                        style: OnlistTextStyles.hn(
-                            fontSize: R.sp(11),
-                            color: const Color(0xFF6680FF)),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                      ),
-                    ],
-                    if (status != null) ...[
-                      const SizedBox(height: 4),
-                      Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 2),
-                        decoration: BoxDecoration(
-                          color: status == 'Sold Out'
-                              ? Colors.red.withValues(alpha: 0.2)
-                              : const Color(0xFFFF6B35)
-                                  .withValues(alpha: 0.2),
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        child: Text(
-                          status,
-                          style: OnlistTextStyles.hn(
-                            fontSize: R.sp(10),
-                            fontWeight: FontWeight.w600,
-                            color: status == 'Sold Out'
-                                ? Colors.red
-                                : const Color(0xFFFF6B35),
+              // Info (dx)
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      // Blocco superiore: titolo + OGGI + data + orario
+                      Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            serata.nome,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: OnlistTextStyles.hn(
+                              fontSize: R.sp(22),
+                              fontWeight: FontWeight.w700,
+                              color: Colors.white,
+                              height: 22 / 22,
+                              letterSpacing: -0.04 * 22,
+                            ),
                           ),
-                        ),
+                          if (_isToday) ...[
+                            const SizedBox(height: 2),
+                            Text(
+                              'OGGI',
+                              style: OnlistTextStyles.hn(
+                                fontSize: R.sp(20),
+                                fontWeight: FontWeight.w700,
+                                color: Colors.white,
+                                height: 22 / 20,
+                                letterSpacing: -0.06 * 20,
+                              ),
+                            ),
+                          ],
+                          const SizedBox(height: 4),
+                          Text(
+                            _formatData(serata.data),
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: OnlistTextStyles.hn(
+                              fontSize: R.sp(12),
+                              fontWeight: FontWeight.w400,
+                              color: Colors.white,
+                            ),
+                          ),
+                          if (serata.orarioString.isNotEmpty)
+                            Text(
+                              serata.orarioString,
+                              style: OnlistTextStyles.hn(
+                                fontSize: R.sp(12),
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white,
+                              ),
+                            ),
+                        ],
+                      ),
+                      // Blocco inferiore: generi + bottone PRENOTA
+                      Row(
+                        crossAxisAlignment: CrossAxisAlignment.end,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              generi,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: OnlistTextStyles.hn(
+                                fontSize: R.sp(11),
+                                fontWeight: FontWeight.w500,
+                                color: Colors.white.withValues(alpha: 0.65),
+                              ),
+                            ),
+                          ),
+                          const SizedBox(width: 8),
+                          GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: isSoldOut
+                                ? null
+                                : () => ReservationChoiceSheet.show(
+                                      context,
+                                      serata: serata,
+                                      club: locale,
+                                    ),
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                  horizontal: 16, vertical: 8),
+                              decoration: BoxDecoration(
+                                color: isSoldOut
+                                    ? Colors.white.withValues(alpha: 0.18)
+                                    : Colors.white,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                isSoldOut ? 'ESAURITO' : 'PRENOTA',
+                                style: OnlistTextStyles.hn(
+                                  fontSize: R.sp(13),
+                                  fontWeight: FontWeight.w700,
+                                  color: isSoldOut
+                                      ? Colors.white60
+                                      : OnlistColors.blueIntense2,
+                                  letterSpacing: -0.04 * 13,
+                                ),
+                              ),
+                            ),
+                          ),
+                        ],
                       ),
                     ],
-                  ],
+                  ),
                 ),
               ),
-            ),
-            const SizedBox(width: 8),
-            // Prenota button + prezzo
-            Padding(
-              padding: const EdgeInsets.only(right: 12),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.end,
-                children: [
-                  if (serata.prezzoIngresso != null)
-                    Text(
-                      '€${serata.prezzoIngresso!.toStringAsFixed(0)}',
-                      style: OnlistTextStyles.hn(
-                        fontSize: R.sp(13),
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  const SizedBox(height: 6),
-                  GestureDetector(
-                    onTap: status == 'Sold Out'
-                        ? null
-                        : () => NavigatorService.pushNamed(
-                              AppRoutes.bookingScreen,
-                              arguments: {
-                                'locale': locale,
-                                'serata': serata,
-                              },
-                            ),
-                    child: Container(
-                      padding: const EdgeInsets.symmetric(
-                          horizontal: 12, vertical: 7),
-                      decoration: BoxDecoration(
-                        color: status == 'Sold Out'
-                            ? const Color(0xFF333333)
-                            : const Color(0xFF0009FF),
-                        borderRadius: BorderRadius.circular(8),
-                      ),
-                      child: Text(
-                        status == 'Sold Out' ? 'Esaurito' : 'Prenota',
-                        style: OnlistTextStyles.hn(
-                          fontSize: R.sp(12),
-                          fontWeight: FontWeight.w600,
-                          color: status == 'Sold Out'
-                              ? Colors.white38
-                              : Colors.white,
-                        ),
-                      ),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
+            ],
+          ),
         ),
       ),
     );
