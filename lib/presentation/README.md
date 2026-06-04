@@ -46,19 +46,19 @@ elencate qui sotto senza link non hanno (ancora) un README dedicato.
 
 ### Home & scoperta
 - `splash_screen/` — entry point, decide la rotta in base allo stato auth
-- `home_screen/` — feed locali vicini + serate in evidenza
-- `nearby_clubs_screen/` — lista locali filtrati per raggio + mappa
+- [`home_screen/`](home_screen/README.md) — feed locali vicini + serate in evidenza
+- [`nearby_clubs_screen/`](nearby_clubs_screen/README.md) — lista locali filtrati per raggio + mappa
 - [`club_detail_screen/`](club_detail_screen/README.md) — scheda club
-- [`event_detail_club_screen`](event_detail_club_screen) — scheda singola serata
+- `event_info_popup_screen/` — pop-up info serata (Figma 19), aperto dal tap su una serata nel club
 - `main_layout_screen/` — layout con bottom nav usato come shell delle tab
 
 ### Acquisto & ordini
 - [`booking_screen/`](booking_screen/README.md) — prevendite/tavoli + carrello
-- `cart_screen/` — riepilogo carrello
-- `payment_success_screen/` — conferma post-checkout
-- `orders_screen/` — storico ordini dell'utente
-- `prevendita_detail_screen/` — dettaglio singola prevendita (con QR)
-- `tavolo_detail_screen/` — dettaglio singolo tavolo prenotato
+- [`cart_screen/`](cart_screen/README.md) — riepilogo carrello e checkout
+- [`payment_success_screen/`](payment_success_screen/README.md) — conferma post-checkout
+- [`orders_screen/`](orders_screen/README.md) — storico ordini dell'utente
+- [`prevendita_detail_screen/`](prevendita_detail_screen/README.md) — dettaglio singola prevendita (con QR + annullamento)
+- [`tavolo_detail_screen/`](tavolo_detail_screen/README.md) — dettaglio singolo tavolo prenotato
 
 ### Profilo & sistema
 - `profile_screen/` — dati utente, raggio km, logout

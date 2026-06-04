@@ -6,6 +6,7 @@
 library;
 
 import 'package:flutter/material.dart';
+import 'page_transitions.dart';
 import '../presentation/splash_screen/splash_screen.dart';
 import '../presentation/authentication_screen/authentication_screen.dart';
 import '../presentation/sign_up_screen/sign_up_screen.dart';
@@ -17,7 +18,6 @@ import '../presentation/location_permission_screen/location_permission_screen.da
 import '../presentation/location_manual_screen/location_manual_screen.dart';
 import '../presentation/club_detail_screen/club_detail_screen.dart';
 import '../presentation/booking_screen/booking_screen.dart';
-import '../presentation/event_detail_club_screen/event_detail_club_screen.dart';
 import '../presentation/nearby_clubs_screen/nearby_clubs_screen.dart';
 import '../presentation/profile_screen/profile_screen.dart';
 import '../presentation/notifications_screen/notifications_screen.dart';
@@ -26,6 +26,7 @@ import '../presentation/orders_screen/orders_screen.dart';
 import '../presentation/payment_success_screen/payment_success_screen.dart';
 import '../presentation/prevendita_detail_screen/prevendita_detail_screen.dart';
 import '../presentation/tavolo_detail_screen/tavolo_detail_screen.dart';
+import '../presentation/event_info_popup_screen/event_info_popup_screen.dart';
 
 class AppRoutes {
   static const String splashScreen             = '/splash_screen';
@@ -46,9 +47,6 @@ class AppRoutes {
   static const String clubDetailScreen         = '/club_detail_screen';
   static const String bookingScreen            = '/booking_screen';
 
-  /// Dettaglio di una singola serata (event name + club name).
-  static const String eventDetailClubScreen    = '/event_detail_club_screen';
-
   /// Lista locali vicini all'utente filtrati per raggio.
   static const String nearbyClubsScreen        = '/nearby_clubs_screen';
 
@@ -60,7 +58,33 @@ class AppRoutes {
   static const String prevenditaDetailScreen   = '/prevendita_detail_screen';
   static const String tavoloDetailScreen       = '/tavolo_detail_screen';
 
+  /// Pop-up info serata (Figma `off/19`). Riceve {serata, club} come args.
+  static const String eventInfoPopupScreen     = '/event_info_popup_screen';
+
   static const String initialRoute = splashScreen;
+
+  /// Rotte che usano la transizione `fade` (ingressi atmosferici / pari livello):
+  /// gli avanzamenti gerarchici (dettagli, booking, cart…) usano invece lo
+  /// shared-axis orizzontale. Vedi `page_transitions.dart`.
+  static const Set<String> _fadeRoutes = {
+    splashScreen,
+    authenticationScreen,
+    homeScreen,
+    verificationFailureScreen,
+    paymentSuccessScreen,
+  };
+
+  /// Genera ogni rotta applicando la transizione unica dell'app. Sostituisce la
+  /// mappa `routes:` di `MaterialApp` per dare a TUTTE le schermate lo stesso
+  /// linguaggio di movimento (vedi `main.dart`).
+  static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
+    final builder = routes[settings.name];
+    if (builder == null) return null;
+    final transition = _fadeRoutes.contains(settings.name)
+        ? AppTransition.fade
+        : AppTransition.sharedAxis;
+    return buildAppRoute(settings, builder, transition);
+  }
 
   static Map<String, WidgetBuilder> get routes => {
         splashScreen:              SplashScreen.builder,
@@ -74,7 +98,6 @@ class AppRoutes {
         locationManualScreen:      LocationManualScreen.builder,
         clubDetailScreen:          ClubDetailScreen.builder,
         bookingScreen:             BookingScreen.builder,
-        eventDetailClubScreen:     EventDetailClubScreen.builder,
         nearbyClubsScreen:         NearbyClubsScreen.builder,
         profileScreen:             ProfileScreen.builder,
         notificationsScreen:       NotificationsScreen.builder,
@@ -83,5 +106,6 @@ class AppRoutes {
         paymentSuccessScreen:       PaymentSuccessScreen.builder,
         prevenditaDetailScreen:     PrevenditaDetailScreen.builder,
         tavoloDetailScreen:         TavoloDetailScreen.builder,
+        eventInfoPopupScreen:       EventInfoPopupScreen.builder,
       };
 }
