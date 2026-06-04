@@ -64,12 +64,15 @@ class AppRoutes {
   static const String initialRoute = splashScreen;
 
   /// Rotte che usano la transizione `fade` (ingressi atmosferici / pari livello):
-  /// gli avanzamenti gerarchici (dettagli, booking, cart…) usano invece lo
-  /// shared-axis orizzontale. Vedi `page_transitions.dart`.
+  /// gli avanzamenti gerarchici (booking, cart…) usano invece lo shared-axis
+  /// orizzontale. `clubDetailScreen` è qui perché è destinazione di un `Hero`
+  /// (immagine del locale): con il fade la pagina non scivola e il morph
+  /// dell'immagine resta il protagonista del movimento. Vedi `page_transitions.dart`.
   static const Set<String> _fadeRoutes = {
     splashScreen,
     authenticationScreen,
     homeScreen,
+    clubDetailScreen,
     verificationFailureScreen,
     paymentSuccessScreen,
   };
