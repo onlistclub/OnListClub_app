@@ -15,6 +15,7 @@ import '../../routes/app_routes.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shimmer_loading.dart';
+import '../../widgets/staggered_item.dart';
 import '../../widgets/image_fallback.dart';
 import '../../theme/onlist_colors.dart';
 
@@ -1025,10 +1026,13 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                               margin: const EdgeInsets.symmetric(vertical: 2),
                             ),
                             itemBuilder: (context, i) {
-                              return _ClubListTile(
-                                club: filtered[i],
-                                userLat: data.lat,
-                                userLng: data.lng,
+                              return StaggeredItem(
+                                index: i,
+                                child: _ClubListTile(
+                                  club: filtered[i],
+                                  userLat: data.lat,
+                                  userLng: data.lng,
+                                ),
                               );
                             },
                           ),

@@ -13,6 +13,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 // Assicurati che 'core/app_export.dart' non contenga logica bloccante sincrona.
 import 'core/app_export.dart';
+import 'core/services/auth_service.dart';
 import 'core/services/location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'dart:convert';
@@ -33,98 +34,88 @@ const _kGoogleWebClientIdDefine =
 /// token Google tramite Supabase Auth.
 String? googleWebClientId;
 
-void main() {
-  // 1. Assicura che l'ambiente Flutter sia inizializzato prima di qualsiasi altra cosa.
+Future<void> main() async {
+  // Assicura che il binding Flutter sia pronto: serve per chiamate native
+  // (orientamento, rootBundle, secure storage) prima di runApp.
   WidgetsFlutterBinding.ensureInitialized();
-  
-  // Avvia l'app immediatamente. Tutta la logica di inizializzazione va nel FutureBuilder.
-  runApp(MyApp());
-}
 
-class MyApp extends StatefulWidget {
-  @override
-  _MyAppState createState() => _MyAppState();
-}
+  debugPrint('[Startup] Initializing orientation...');
+  await SystemChrome.setPreferredOrientations([
+    DeviceOrientation.portraitUp,
+  ]);
 
-class _MyAppState extends State<MyApp> {
+  debugPrint('[Startup] Loading env...');
+  // Priorità: --dart-define (sicuro, non finisce negli asset).
+  // Fallback: env.json (dev locale, da rimuovere prima della release).
+  String supabaseUrl = _kSupabaseUrlDefine;
+  String supabaseAnonKey = _kSupabaseAnonKeyDefine;
+  String? googleClientId =
+      _kGoogleWebClientIdDefine.isEmpty ? null : _kGoogleWebClientIdDefine;
 
-  @override
-  void initState() {
-    super.initState();
-    debugPrint('[Startup] Starting app initialization...');
-    _initializeApp();
-  }
-
-  Future<void> _initializeApp() async {
-    try {
-      debugPrint('[Startup] Initializing orientation...');
-      await SystemChrome.setPreferredOrientations([
-        DeviceOrientation.portraitUp,
-      ]);
-
-      debugPrint('[Startup] Loading env...');
-      // Priorità: --dart-define (sicuro, non finisce negli asset).
-      // Fallback: env.json (dev locale, da rimuovere prima della release).
-      String supabaseUrl = _kSupabaseUrlDefine;
-      String supabaseAnonKey = _kSupabaseAnonKeyDefine;
-      String? googleClientId =
-          _kGoogleWebClientIdDefine.isEmpty ? null : _kGoogleWebClientIdDefine;
-
-      if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-        debugPrint(
-            '[Startup] ⚠️ --dart-define non impostate, fallback a env.json');
-        final env = await _loadEnvSafe();
-        if (supabaseUrl.isEmpty) {
-          supabaseUrl = (env['SUPABASE_URL'] as String?) ?? '';
-        }
-        if (supabaseAnonKey.isEmpty) {
-          supabaseAnonKey = (env['SUPABASE_ANON_KEY'] as String?) ?? '';
-        }
-        googleClientId ??= env['GOOGLE_WEB_CLIENT_ID'] as String?;
-      }
-
-      googleWebClientId = googleClientId;
-      if (googleWebClientId == null ||
-          googleWebClientId!.contains('SOSTITUIRE')) {
-        debugPrint(
-            '[Startup] ⚠️ GOOGLE_WEB_CLIENT_ID non configurato — Google Sign-In non funzionerà.');
-        googleWebClientId = null;
-      }
-
-      debugPrint('[Startup] Initializing Supabase...');
-      await Supabase.initialize(
-        url: supabaseUrl,
-        anonKey: supabaseAnonKey,
-      );
-
-      // Ripristina i flag persistenti che vengono letti sincronicamente
-      // a runtime (es. LocationService.isGpsForced).
-      await LocationService.loadGpsForcedFromPrefs();
-      debugPrint('[Startup] Initialization complete.');
-    } catch (e) {
-      debugPrint('[Startup] Initialization error: $e');
+  if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
+    debugPrint(
+        '[Startup] ⚠️ --dart-define non impostate, fallback a env.json');
+    final env = await _loadEnvSafe();
+    if (supabaseUrl.isEmpty) {
+      supabaseUrl = (env['SUPABASE_URL'] as String?) ?? '';
     }
+    if (supabaseAnonKey.isEmpty) {
+      supabaseAnonKey = (env['SUPABASE_ANON_KEY'] as String?) ?? '';
+    }
+    googleClientId ??= env['GOOGLE_WEB_CLIENT_ID'] as String?;
   }
 
-  Future<Map<String, dynamic>> _loadEnvSafe() async {
+  googleWebClientId = googleClientId;
+  if (googleWebClientId == null ||
+      googleWebClientId!.contains('SOSTITUIRE')) {
+    debugPrint(
+        '[Startup] ⚠️ GOOGLE_WEB_CLIENT_ID non configurato — Google Sign-In non funzionerà.');
+    googleWebClientId = null;
+  }
+
+  debugPrint('[Startup] Initializing Supabase...');
+  // Atteso esplicitamente prima di runApp: garantisce che la sessione
+  // persistente venga ripristinata dallo storage sicuro (Keychain/EncryptedSP)
+  // prima che lo SplashScreen legga currentSession. Senza questo await,
+  // SplashScreen può leggere null per race condition e mandare al login
+  // anche utenti già autenticati.
+  await Supabase.initialize(
+    url: supabaseUrl,
+    anonKey: supabaseAnonKey,
+  );
+
+  // Listener globale auth: reagisce a logout/scadenza in tempo reale ovunque.
+  await AuthService.instance.init();
+
+  // Ripristina i flag persistenti che vengono letti sincronicamente
+  // a runtime (es. LocationService.isGpsForced).
+  await LocationService.loadGpsForcedFromPrefs();
+  debugPrint('[Startup] Initialization complete.');
+
+  runApp(const MyApp());
+}
+
+Future<Map<String, dynamic>> _loadEnvSafe() async {
+  try {
+    final raw = await rootBundle.loadString('env.json');
+    return jsonDecode(raw) as Map<String, dynamic>;
+  } catch (_) {
     try {
-      final raw = await rootBundle.loadString('env.json');
+      final raw = await rootBundle.loadString('assets/env.json');
       return jsonDecode(raw) as Map<String, dynamic>;
     } catch (_) {
-      try {
-        final raw = await rootBundle.loadString('assets/env.json');
-        return jsonDecode(raw) as Map<String, dynamic>;
-      } catch (_) {
-        return {};
-      }
+      return {};
     }
   }
+}
+
+class MyApp extends StatelessWidget {
+  const MyApp({Key? key}) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
     return Sizer(
       builder: (context, orientation, deviceType) {
-        
         return MaterialApp(
           title: 'OnList',
           // 🚨 CRITICAL: NEVER REMOVE OR MODIFY
@@ -162,7 +153,8 @@ class _MyAppState extends State<MyApp> {
           ],
           supportedLocales: [Locale('en', 'US')],
           initialRoute: AppRoutes.initialRoute,
-          routes: AppRoutes.routes,
+          // Transizioni unificate per tutte le rotte (vedi page_transitions.dart).
+          onGenerateRoute: AppRoutes.onGenerateRoute,
         );
       },
     );

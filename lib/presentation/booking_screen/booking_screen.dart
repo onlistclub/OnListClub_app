@@ -13,6 +13,7 @@ import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/onlist_primary_button.dart';
+import '../../widgets/animated_press.dart';
 
 enum BookingStep { selection, ticketList, ticketDetail, tableConfig, bottles }
 
@@ -31,21 +32,9 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
 
   BookingStep _currentStep = BookingStep.selection;
 
-  // Database Data (Initialized with samples)
-  List<Map<String, dynamic>> _prevendite = [
-    {
-      'tipo': 'Normale',
-      'prezzo': 10,
-      'descrizione': '+ 2 drink omaggio',
-      'validita': 'Entrata valida per questo ticket entro le 00:00 am'
-    },
-    {
-      'tipo': 'Vip',
-      'prezzo': 25,
-      'descrizione': '+ 2 drink omaggio\n+ Salta fila\n+ Ticket guarda roba omaggio',
-      'validita': 'Entrata valida per questo ticket entro le 00:00 am'
-    }
-  ];
+  // Dati letti SEMPRE dal DB (Supabase). Nessun sample/placeholder: se il DB
+  // non restituisce nulla la UI mostra l'empty state, non dati finti.
+  List<Map<String, dynamic>> _prevendite = [];
   List<Map<String, dynamic>> _tavoli = [];
   List<Map<String, dynamic>> _bottiglie = [];
   bool _isLoading = true;
@@ -85,18 +74,12 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
 
       if (!mounted) return;
       setState(() {
-        if (prevendite.isNotEmpty) _prevendite = prevendite;
-        if (tavoli.isNotEmpty) _tavoli = tavoli;
-        if (bottiglie.isNotEmpty) _bottiglie = bottiglie;
+        // Assegnazione diretta: il DB è l'unica fonte. Se è vuoto, le liste
+        // restano vuote e la UI mostra l'empty state corretto.
+        _prevendite = prevendite;
+        _tavoli = tavoli;
+        _bottiglie = bottiglie;
         _isLoading = false;
-        // Se il fetch non ha trovato prevendite reali, segnala che quello che
-        // l'utente sta vedendo sono dati di esempio (per non far credere che
-        // si possa effettivamente prenotare). NON è un errore tecnico ma serve
-        // a evitare prenotazioni su dati finti.
-        if (prevendite.isEmpty) {
-          _loadError =
-              'Nessuna prevendita trovata per questo evento. La selezione mostrata è solo di esempio.';
-        }
       });
     } catch (e) {
       debugPrint("Errore nel caricamento dati booking: $e");
@@ -351,8 +334,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   }
 
   Widget _buildSelectionButton(String text, VoidCallback onTap) {
-    return GestureDetector(
-      onTap: onTap,
+    return AnimatedPress(
+      onPressed: onTap,
       child: Container(
         width: double.infinity,
         height: 130,
@@ -392,10 +375,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               return Padding(
                 padding: const EdgeInsets.only(bottom: 15),
                 child: _buildTicketCard(
-                  type: p['tipo']?.toString() ?? "Normale",
-                  price: "${p['prezzo'] ?? 10}€",
-                  description: p['descrizione']?.toString() ?? "+ 2 drink omaggio",
-                  validity: p['validita']?.toString() ?? "Entrata valida entro le 00:00 am",
+                  type: p['tipo']?.toString() ?? '',
+                  price: p['prezzo'] != null ? "${p['prezzo']}€" : "—",
+                  description: p['descrizione']?.toString() ?? '',
+                  validity: p['validita']?.toString() ?? '',
                   ticketId: (p['id_prevendita'] ?? p['id'])?.toString(),
                   serataId: serata?.id,
                 ),
@@ -495,8 +478,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           Positioned(
             right: 0,
             bottom: 0,
-            child: GestureDetector(
-              onTap: () {
+            child: AnimatedPress(
+              onPressed: () {
                 // Va al dettaglio del singolo ticket (12/13) prima del carrello
                 setState(() {
                   _selectedTicket = {
@@ -539,11 +522,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   // ── 12/13 — Dettaglio singolo ticket (Normale/Vip) ──────────────────────────
   Widget _buildTicketDetailStep(SerataModel? serata) {
     final t = _selectedTicket ?? const {};
-    final String type = t['type']?.toString() ?? 'Normale';
-    final String price = t['price']?.toString() ?? '10€';
-    final String description = t['description']?.toString() ?? '+ 2 drink omaggio';
-    final String validity = t['validity']?.toString() ??
-        'Entrata valida per questo ticket entro le 00:00 am';
+    final String type = t['type']?.toString() ?? '';
+    final String price = t['price']?.toString() ?? '—';
+    final String description = t['description']?.toString() ?? '';
+    final String validity = t['validity']?.toString() ?? '';
 
     return Column(
       key: const ValueKey("ticketDetail"),
@@ -771,8 +753,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           const SizedBox(height: 40),
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
-            child: GestureDetector(
-              onTap: (_selectedTableId == null || _selectedTable == "Seleziona") 
+            child: AnimatedPress(
+              onPressed: (_selectedTableId == null || _selectedTable == "Seleziona")
                 ? () {
                     ScaffoldMessenger.of(context).showSnackBar(
                       const SnackBar(content: Text("Per favore, seleziona prima un tavolo")),
@@ -896,8 +878,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   }
 
   Widget _buildBottleCard(Map<String, dynamic> b, String? serataId) {
-    return GestureDetector(
-      onTap: () {
+    return AnimatedPress(
+      onPressed: () {
         NavigatorService.pushNamed(AppRoutes.cartScreen, arguments: {
           'type': 'table',
           'table': _selectedTable,
