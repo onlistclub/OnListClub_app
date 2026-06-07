@@ -14,6 +14,7 @@ import '../../core/services/user_profile_manager.dart';
 import '../../routes/app_routes.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/shared_footer.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/staggered_item.dart';
 import '../../widgets/image_fallback.dart';
@@ -566,10 +567,12 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
 
     return Scaffold(
       backgroundColor: OnlistColors.black,
+      bottomNavigationBar: const SharedFooter(currentIndex: -1),
       body: DecoratedBox(
         decoration:
             const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
+          bottom: false,
           child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [

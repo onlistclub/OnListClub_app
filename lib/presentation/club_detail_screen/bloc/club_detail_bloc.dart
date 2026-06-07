@@ -25,18 +25,23 @@ class ClubDetailBloc extends Bloc<ClubDetailEvent, ClubDetailState> {
     final userId = Supabase.instance.client.auth.currentUser?.id;
 
     final results = await Future.wait([
+      ClubService.getLocaleById(clubId),
       ClubService.getEventoOggi(clubId),
       ClubService.getUpcomingEventi(clubId),
       if (userId != null) ClubService.isPreferito(userId, clubId),
     ]);
 
-    final evento = results[0] as SerataModel?;
-    final serate = results[1] as List<SerataModel>;
-    final isPreferito = (userId != null && results.length > 2)
-        ? results[2] as bool
+    // Dati completi del locale: entrando dai preferiti lo state.locale è un
+    // placeholder (solo id), qui lo rimpiazziamo. Fallback se la fetch è null.
+    final localeFull = results[0] as LocaleModel?;
+    final evento = results[1] as SerataModel?;
+    final serate = results[2] as List<SerataModel>;
+    final isPreferito = (userId != null && results.length > 3)
+        ? results[3] as bool
         : false;
 
     emit(state.copyWith(
+      locale: localeFull ?? state.locale,
       eventoOggi: evento,
       serate: serate,
       isPreferito: isPreferito,

@@ -4,14 +4,18 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/sign_up_model.dart';
 import 'package:intl/intl.dart';
-import '../../../core/utils/phone_utils.dart';
 import '../../../core/services/register_service.dart';
-import '../../../core/utils/age_calculator.dart';
-// phone_numbers_parser non usato nel flusso ripristinato
 
 part 'sign_up_event.dart';
 part 'sign_up_state.dart';
 
+/// BLoC della schermata di registrazione.
+///
+/// Gestisce lo stato del form (nome, cognome, email, data di nascita,
+/// telefono, paese), valida l'input e al submit chiama `RegisterService`
+/// che invoca la RPC `register_user_transaction` per scrivere in modo
+/// atomico in `utenti` + `utenti_numeri_telefono`. Il telefono arriva già in
+/// formato E.164 dal widget `InternationalPhoneNumberInput`.
 class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
   SignUpBloc(SignUpState initialState) : super(initialState) {
     on<SignUpInitialEvent>(_onInitialize);
@@ -104,15 +108,14 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
     PhoneChangedEvent event,
     Emitter<SignUpState> emit,
   ) {
-    final normalized = PhoneUtils.normalize(
-      countryIso: event.countryIso,
-      nationalNumber: event.nationalNumber,
-      completeNumber: event.phone,
-    );
+    // Il widget InternationalPhoneNumberInput fornisce già il numero completo in
+    // formato E.164 (es. "+393331234567"). Lo salviamo così com'è; nationalNumber
+    // serve solo a validare che l'utente abbia digitato delle cifre.
+    final e164 = event.phone.replaceAll(' ', '');
     final nnDigits = (event.nationalNumber ?? '').replaceAll(RegExp(r'\D'), '');
     emit(state.copyWith(
       signUpModel: state.signUpModel?.copyWith(
-        phone: normalized,
+        phone: e164,
         phoneCountryIso: event.countryIso ?? state.signUpModel?.phoneCountryIso,
         nationalNumber: nnDigits,
       ),
@@ -167,35 +170,25 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
           emit(state.copyWith(isLoading: false, errorMessage: 'Dati telefono/paese mancanti'));
           return;
         }
-        final isAdult = AgeCalculator.isAdult(dob);
         try {
-          debugPrint('[SignUpBloc] iso=$iso nn_raw=${model.nationalNumber}');
-          final cleaned = nn.replaceAll(RegExp(r'\D'), '');
-          final countryId = await RegisterService().resolveCountryIdFromIso(iso);
-          debugPrint('[SignUpBloc] country_id=$countryId nn_clean=$cleaned');
-          await Supabase.instance.client.from('utenti').upsert({
-            'id': user.id,
-            'nome': model.firstName,
-            'cognome': model.lastName,
-            'email': model.email,
-            'data_nascita': dob.toIso8601String(),
-            'maggiorenne': isAdult,
-          });
-          await Supabase.instance.client.from('utenti_numeri_telefono').upsert({
-            'id_utente': user.id,
-            'country_id': countryId,
-            'telefono': cleaned,
-            'is_primary': true,
-            'is_verified': false,
-          }, onConflict: 'id_utente,telefono');
-          debugPrint('[SignUpBloc] utenti_numeri_telefono upserted payload: {id_utente:${user.id}, country_id:$countryId, telefono:$cleaned}');
+          // Scrittura atomica di utente + telefono (E.164) in un'unica transazione
+          // via RPC SECURITY DEFINER: niente righe orfane e maggiorenne calcolato
+          // lato DB.
+          await RegisterService().registerAtomic(
+            userId: user.id,
+            email: model.email,
+            nome: model.firstName,
+            cognome: model.lastName,
+            dataNascita: dob,
+            telefono: model.phone,
+            countryIso: iso,
+          );
           emit(state.copyWith(isLoading: false, isSuccess: true));
         } catch (e) {
-          debugPrint('[SignUpBloc] Insert error: $e');
+          debugPrint('[SignUpBloc] registerAtomic error: $e');
           emit(state.copyWith(isLoading: false, errorMessage: 'Errore salvataggio telefono: $e'));
           return;
         }
-        // Check if session is null, which usually implies email confirmation is required
         // La navigazione è gestita da isSuccess
       } else {
          // Should throw error if failed usually, but just in case

@@ -160,7 +160,6 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                       InternationalPhoneNumberInput(
                         textFieldController: state.phoneController,
                         initialValue: PhoneNumber(isoCode: 'IT'),
-                        countries: const ['IT', 'CH', 'FR', 'DE', 'ES'],
                         locale: 'it_IT',
                         selectorConfig: const SelectorConfig(
                           selectorType: PhoneInputSelectorType.DIALOG,

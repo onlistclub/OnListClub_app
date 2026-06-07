@@ -156,7 +156,6 @@ class CompleteProfileScreen extends StatelessWidget {
                         InternationalPhoneNumberInput(
                           textFieldController: state.phoneController,
                           initialValue: PhoneNumber(isoCode: 'IT'),
-                          countries: const ['IT', 'CH', 'FR', 'DE', 'ES'],
                           locale: 'it_IT',
                           selectorConfig: const SelectorConfig(
                             selectorType: PhoneInputSelectorType.DIALOG,

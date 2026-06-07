@@ -74,8 +74,9 @@ class ClubService {
         .toList();
   }
 
-  /// Recupera il locale più vicino alle coordinate utente (Haversine).
-  /// Se lat/lng sono null o nessun locale ha coordinate, fallback su famosità.
+  /// Recupera il locale più vicino alle coordinate utente.
+  /// Usa la RPC PostGIS `nearby_clubs` (server-side, indice spaziale).
+  /// Se lat/lng sono null o la RPC fallisce, fallback su famosità.
   static Future<LocaleModel?> getLocaleVicino(
     double? lat,
     double? lng,
@@ -84,33 +85,16 @@ class ClubService {
       final clubs = await getLocaliByFamosita(limit: 1);
       return clubs.isEmpty ? null : clubs.first;
     }
-
-    final response = await _client
-        .from('locali')
-        .select(_localiSelect);
-
-    final locali = (response as List<dynamic>)
-        .whereType<Map<String, dynamic>>()
-        .map((m) => LocaleModel.fromMap(m))
-        .where((l) => l.lat != null && l.lng != null)
-        .toList();
-
-    if (locali.isEmpty) {
-      final clubs = await getLocaliByFamosita(limit: 1);
-      return clubs.isEmpty ? null : clubs.first;
-    }
-
-    locali.sort((a, b) {
-      final da = _haversineKm(lat, lng, a.lat!, a.lng!);
-      final db = _haversineKm(lat, lng, b.lat!, b.lng!);
-      return da.compareTo(db);
-    });
-    return locali.first;
+    // Raggio largo per "il più vicino in assoluto", senza limitarsi.
+    final list = await _rpcNearbyClubs(lat: lat, lng: lng, raggioKm: 500);
+    if (list != null && list.isNotEmpty) return list.first;
+    final clubs = await getLocaliByFamosita(limit: 1);
+    return clubs.isEmpty ? null : clubs.first;
   }
 
-  /// Recupera tutti i locali ordinati per distanza (Haversine) dall'utente.
-  /// Se lat/lng sono null, fallback su famosità.
-  /// I locali senza coordinate proprie usano le coordinate della città (via JOIN).
+  /// Recupera tutti i locali ordinati per distanza dall'utente.
+  /// Usa la RPC PostGIS `nearby_clubs` (filtra per raggio + ordina lato server).
+  /// Se lat/lng sono null o la RPC fallisce, fallback su famosità.
   static Future<List<LocaleModel>> getLocaliVicini(
     double? lat,
     double? lng, {
@@ -119,35 +103,64 @@ class ClubService {
     if (lat == null || lng == null) {
       return getLocaliByFamosita(limit: 50);
     }
+    final list = await _rpcNearbyClubs(
+      lat: lat,
+      lng: lng,
+      raggioKm: raggioKm ?? 50,
+    );
+    if (list != null) return list;
+    // Fallback robusto: se la RPC non è disponibile, mostriamo almeno i popolari.
+    return getLocaliByFamosita(limit: 50);
+  }
 
+  /// Chiama la RPC `nearby_clubs(user_lat, user_lng, raggio_km)` e mappa il
+  /// risultato in `LocaleModel`. Ritorna null se la chiamata fallisce
+  /// (es. RPC non deployata): i chiamanti devono gestire il fallback.
+  static Future<List<LocaleModel>?> _rpcNearbyClubs({
+    required double lat,
+    required double lng,
+    required double raggioKm,
+  }) async {
     try {
-      final response = await _client
-          .from('locali')
-          .select(_localiSelect);
-
-      var locali = (response as List<dynamic>)
+      final response = await _client.rpc(
+        'nearby_clubs',
+        params: {
+          'user_lat': lat,
+          'user_lng': lng,
+          'raggio_km': raggioKm,
+        },
+      );
+      final rows = (response as List<dynamic>?) ?? const [];
+      return rows
           .whereType<Map<String, dynamic>>()
-          .map((m) => LocaleModel.fromMap(m))
-          .where((l) => l.lat != null && l.lng != null)
-          .toList();
-
-      if (raggioKm != null) {
-        locali = locali
-            .where((l) => _haversineKm(lat, lng, l.lat!, l.lng!) <= raggioKm)
-            .toList();
-      }
-
-      locali.sort((a, b) {
-        final da = _haversineKm(lat, lng, a.lat!, a.lng!);
-        final db = _haversineKm(lat, lng, b.lat!, b.lng!);
-        return da.compareTo(db);
-      });
-      return locali;
-    } catch (e, stacktrace) {
-      debugPrint("[DEBUG] ERRORE MENTRE CARICO I LOCALI: $e\n$stacktrace");
-      return [];
+          .map(_localeFromRpcRow)
+          .toList(growable: false);
+    } catch (e) {
+      debugPrint('[ClubService] RPC nearby_clubs fallita: $e');
+      return null;
     }
+  }
 
+  /// La RPC ritorna `citta` come stringa (nome città) e `lat`/`lng` già
+  /// COALESCE-ati con la città. Riformiamo lo shape atteso da
+  /// `LocaleModel.fromMap` (che vuole `citta` come oggetto nidificato).
+  static LocaleModel _localeFromRpcRow(Map<String, dynamic> m) {
+    return LocaleModel.fromMap({
+      'id': m['id'],
+      'nome': m['nome'],
+      'indirizzo': m['indirizzo'],
+      'id_citta': m['id_citta'],
+      'logo_url': m['logo_url'],
+      'foto_url': m['foto_url'],
+      'famosita': m['famosita'],
+      'generi_musicali': m['generi_musicali'],
+      'prezzo_indicativo': m['prezzo_indicativo'],
+      'link_tripadvisor': m['link_tripadvisor'],
+      'descrizione': m['descrizione'],
+      'lat': m['lat'],
+      'lng': m['lng'],
+      'citta': {'nome_citta': m['citta']},
+    });
   }
 
   /// Controlla se un locale è nei preferiti dell'utente.

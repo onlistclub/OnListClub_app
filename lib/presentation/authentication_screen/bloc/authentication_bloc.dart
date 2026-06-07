@@ -13,6 +13,13 @@ import '../../../../main.dart' show googleWebClientId;
 part 'authentication_event.dart';
 part 'authentication_state.dart';
 
+/// BLoC della schermata di login.
+///
+/// Orchestra i tre flussi di autenticazione (email/password, Google, Apple)
+/// e l'esito post-login: chiama `UserProfileManager.ensureProfileExists()`
+/// per garantire la riga in `public.utenti`, poi emette lo state che la UI
+/// usa per navigare. Dipende dal client Supabase, da `google_sign_in`,
+/// `sign_in_with_apple` e dal `googleWebClientId` letto da `main.dart`.
 class AuthenticationBloc
     extends Bloc<AuthenticationEvent, AuthenticationState> {
   AuthenticationBloc(AuthenticationState initialState) : super(initialState) {

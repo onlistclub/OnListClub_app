@@ -45,20 +45,18 @@ class SharedFooter extends StatelessWidget {
                   width: 1,
                 ),
               ),
-              child: Center(
-                child: Row(
-                  mainAxisSize: MainAxisSize.min,
-                  children: [
-                    _buildNavItem(ImageConstant.imgHome, 0, AppRoutes.homeScreen),
-                    const SizedBox(width: 60),
-                    _buildNavItem(null, 1, AppRoutes.ordersScreen,
-                        iconData: Icons.shopping_bag_outlined),
-                    const SizedBox(width: 60),
-                    _buildNavItem(ImageConstant.imgShoppingCart, 2, AppRoutes.cartScreen),
-                    const SizedBox(width: 60),
-                    _buildNavItem(ImageConstant.imgBell, 3, AppRoutes.notificationsScreen),
-                  ],
-                ),
+              // spaceEvenly: i 4 item (pill 73px l'uno) si distribuiscono nei
+              // 312px della capsula senza overflow. I vecchi gap fissi da 60px
+              // davano 4×73 + 3×60 = 472px > 312px → RenderFlex overflow ~160px.
+              child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+                children: [
+                  _buildNavItem(ImageConstant.imgHome, 0, AppRoutes.homeScreen),
+                  _buildNavItem(null, 1, AppRoutes.ordersScreen,
+                      iconData: Icons.shopping_bag_outlined),
+                  _buildNavItem(ImageConstant.imgShoppingCart, 2, AppRoutes.cartScreen),
+                  _buildNavItem(ImageConstant.imgBell, 3, AppRoutes.notificationsScreen),
+                ],
               ),
             ),
           ),

@@ -1,11 +1,11 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/image_constant.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/onlist_colors.dart';
-import 'package:supabase_flutter/supabase_flutter.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({Key? key}) : super(key: key);
@@ -28,15 +28,24 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
   }
 
   Future<void> _checkSession() async {
-    await Future.delayed(const Duration(milliseconds: 1800));
+    // Delay puramente estetico: Supabase è già inizializzato (vedi main.dart)
+    // quindi non c'è race condition; teniamo lo splash visibile abbastanza
+    // da far riconoscere il brand.
+    await Future.delayed(const Duration(milliseconds: 700));
     if (!mounted) return;
 
     try {
-      final session = Supabase.instance.client.auth.currentSession;
-      if (session != null) {
+      if (AuthService.instance.isLoggedIn) {
         NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
       } else {
-        NavigatorService.pushNamedAndRemoveUntil(AppRoutes.authenticationScreen);
+        // Sessione assente o scaduta non-rinnovabile: si forza il logout
+        // per pulire eventuale stato residuo e si manda al login.
+        if (AuthService.instance.currentSession != null) {
+          await AuthService.instance.signOut();
+          return; // il listener naviga ad authenticationScreen
+        }
+        NavigatorService.pushNamedAndRemoveUntil(
+            AppRoutes.authenticationScreen);
       }
     } catch (e) {
       debugPrint('[Splash] Session check error: $e');
@@ -58,14 +67,13 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: GestureDetector(
-        onTap: () => NavigatorService.pushNamedAndRemoveUntil(
-          AppRoutes.authenticationScreen,
-        ),
-        behavior: HitTestBehavior.opaque,
-        child: DecoratedBox(
-          decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
-          child: LayoutBuilder(
+      // Niente GestureDetector qui: il tap NON deve bypassare il check
+      // sessione, altrimenti un utente loggato che tocca lo splash finisce
+      // comunque al login.
+      body: DecoratedBox(
+        decoration:
+            const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+        child: LayoutBuilder(
             builder: (context, constraints) {
               final scaleX = constraints.maxWidth / _figmaW;
               final scaleY = constraints.maxHeight / _figmaH;
@@ -110,7 +118,6 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
             },
           ),
         ),
-      ),
     );
   }
 }

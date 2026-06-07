@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
 import '../../widgets/app_loading_indicator.dart';
+import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
 
 /// Dettaglio prenotazione tavolo — design Figma "Notifiche x tavolo.png"
@@ -152,31 +153,9 @@ class TavoloDetailScreen extends StatelessWidget {
   }
 
   Widget _buildTopBar(BuildContext context) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(30),
-            child: Image.asset(
-              ImageConstant.imgLogoOnlist,
-              height: 60,
-              width: 60,
-              fit: BoxFit.cover,
-            ),
-          ),
-          Row(
-            children: const [
-              Icon(Icons.search, color: Colors.white, size: 28),
-              SizedBox(width: 12),
-              Icon(Icons.person_outline, color: Colors.white, size: 28),
-              SizedBox(width: 4),
-            ],
-          ),
-        ],
-      ),
-    );
+    // Navbar fissa condivisa: stesso logo (wordmark) e stesse icone di
+    // tutte le altre schermate con navbar.
+    return const CustomTopBar();
   }
 
   Widget _buildBottomNav() => const SharedFooter(currentIndex: 1);

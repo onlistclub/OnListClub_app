@@ -1,14 +1,13 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../utils/age_calculator.dart';
-import '../utils/phone_utils.dart';
 
-/// Registrazione utente: insert atomico su `utenti` + `users_phones` via RPC.
+/// Registrazione utente: insert atomico su `utenti` + `utenti_numeri_telefono` via RPC.
 ///
 /// Chiama la funzione Postgres `register_user_transaction` per garantire che
 /// utente e telefono siano scritti nella stessa transazione (no orfani in caso
-/// di errore). Dipende da `AgeCalculator` per il flag `maggiorenne` e da
-/// `PhoneUtils` per la normalizzazione del prefisso.
+/// di errore). La RPC è `SECURITY DEFINER`, verifica `auth.uid()`, calcola il
+/// flag `maggiorenne` e risolve il paese da ISO: alla UI basta passare il numero
+/// già in formato E.164 (fornito dal widget) e il codice ISO del paese.
 class RegisterService {
   final SupabaseClient _client = Supabase.instance.client;
 
@@ -24,14 +23,10 @@ class RegisterService {
     if (nome.trim().isEmpty || cognome.trim().isEmpty) {
       throw ArgumentError('Nome e cognome sono obbligatori');
     }
-    final normalizedPhone = PhoneUtils.normalize(
-      countryIso: countryIso,
-      completeNumber: telefono,
-    );
-    if (normalizedPhone.length < 7) {
+    final e164 = telefono.replaceAll(' ', '');
+    if (e164.length < 7) {
       throw ArgumentError('Telefono non valido');
     }
-    final isAdult = AgeCalculator.isAdult(dataNascita);
     try {
       final result = await _client.rpc('register_user_transaction', params: {
         'p_id_utente': userId,
@@ -39,11 +34,11 @@ class RegisterService {
         'p_cognome': cognome,
         'p_email': email,
         'p_data_nascita': dataNascita.toIso8601String().substring(0, 10),
-        'p_telefono': normalizedPhone,
+        'p_telefono': e164,
         'p_country_iso': countryIso,
       }) as Map<String, dynamic>?;
 
-      debugPrint('[RegisterService] RPC register_user_transaction result: $result, isAdult: $isAdult');
+      debugPrint('[RegisterService] RPC register_user_transaction result: $result');
       return result;
     } on PostgrestException catch (e) {
       debugPrint('[RegisterService] RPC error: ${e.message}');
@@ -52,52 +47,5 @@ class RegisterService {
       debugPrint('[RegisterService] Unexpected error: $e');
       rethrow;
     }
-  }
-Future<String> resolveCountryIdFromIso(String isoCode) async {
-  final iso = isoCode.trim().toUpperCase();
-
-  final row = await _client
-      .from('paesi')
-      .select('id, iso_code')
-      .eq('iso_code', iso)
-      .maybeSingle();
-
-  debugPrint('[resolveCountryIdFromIso] iso=$iso row=$row');
-
-  final id = row?['id'];
-  if (id == null) throw StateError('Paese non trovato per ISO $iso');
-  return id as String;
-}
-
-
-  Future<void> insertImmediate({
-    required String userId,
-    required String email,
-    required String nome,
-    required String cognome,
-    required DateTime dataNascita,
-    required bool maggiorenne,
-    required String isoCode,
-    required String nationalNumber,
-  }) async {
-    if (nationalNumber.isEmpty || nationalNumber.length < 6) {
-      throw ArgumentError('Numero di telefono troppo corto');
-    }
-    final countryId = await resolveCountryIdFromIso(isoCode);
-    await _client.from('utenti').upsert({
-      'id': userId,
-      'nome': nome,
-      'cognome': cognome,
-      'email': email,
-      'data_nascita': dataNascita.toIso8601String(),
-      'maggiorenne': maggiorenne,
-    });
-    await _client.from('utenti_numeri_telefono').upsert({
-      'id_utente': userId,
-      'country_id': countryId,
-      'telefono': nationalNumber,
-      'is_primary': true,
-      'is_verified': false,
-    }, onConflict: 'id_utente,telefono');
   }
 }

@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/complete_profile_model.dart';
-import '../../../core/utils/phone_utils.dart';
 import '../../../core/services/register_service.dart';
 
 part 'complete_profile_event.dart';
@@ -78,15 +77,13 @@ class CompleteProfileBloc
     CompleteProfilePhoneChangedEvent event,
     Emitter<CompleteProfileState> emit,
   ) {
-    final normalized = PhoneUtils.normalize(
-      countryIso: event.countryIso,
-      nationalNumber: event.nationalNumber,
-      completeNumber: event.phone,
-    );
+    // Il widget fornisce già il numero in E.164; nationalNumber serve solo a
+    // validare che l'utente abbia digitato delle cifre.
+    final e164 = event.phone.replaceAll(' ', '');
     final nnDigits = (event.nationalNumber ?? '').replaceAll(RegExp(r'\D'), '');
     emit(state.copyWith(
       model: state.model?.copyWith(
-        phone: normalized,
+        phone: e164,
         phoneCountryIso: event.countryIso ?? state.model?.phoneCountryIso,
         nationalNumber: nnDigits,
       ),
@@ -122,50 +119,16 @@ class CompleteProfileBloc
         return;
       }
 
-      final cleaned = nn.replaceAll(RegExp(r'\D'), '');
-      final countryId = await RegisterService().resolveCountryIdFromIso(iso);
-
-      // Upsert profilo utente: chiediamo l'eco della riga inserita per
-      // verificare che l'operazione abbia davvero scritto (potrebbe non farlo
-      // silenziosamente in caso di RLS policy negativa).
-      final utenteRows = await Supabase.instance.client
-          .from('utenti')
-          .upsert({
-            'id': user.id,
-            'nome': model.firstName,
-            'cognome': model.lastName,
-            'email': user.email,
-            'data_nascita': dob.toIso8601String(),
-            'maggiorenne': DateTime.now().difference(dob).inDays >= 365 * 18,
-          })
-          .select();
-      if ((utenteRows as List).isEmpty) {
-        emit(state.copyWith(
-          isLoading: false,
-          errorMessage:
-              'Impossibile salvare il profilo. Riprova fra qualche secondo.',
-        ));
-        return;
-      }
-
-      final telefonoRows = await Supabase.instance.client
-          .from('utenti_numeri_telefono')
-          .upsert({
-            'id_utente': user.id,
-            'country_id': countryId,
-            'telefono': cleaned,
-            'is_primary': true,
-            'is_verified': false,
-          }, onConflict: 'id_utente,telefono')
-          .select();
-      if ((telefonoRows as List).isEmpty) {
-        emit(state.copyWith(
-          isLoading: false,
-          errorMessage:
-              'Impossibile salvare il numero di telefono. Riprova.',
-        ));
-        return;
-      }
+      // Scrittura atomica di utente + telefono (E.164) via RPC SECURITY DEFINER.
+      await RegisterService().registerAtomic(
+        userId: user.id,
+        email: user.email ?? '',
+        nome: model.firstName,
+        cognome: model.lastName,
+        dataNascita: dob,
+        telefono: model.phone,
+        countryIso: iso,
+      );
 
       emit(state.copyWith(isLoading: false, isSuccess: true));
     } catch (e) {

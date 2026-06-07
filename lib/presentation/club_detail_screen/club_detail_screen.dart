@@ -11,7 +11,6 @@ import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/animated_press.dart';
-import '../../widgets/reservation_choice_sheet.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/image_fallback.dart';
 import 'bloc/club_detail_bloc.dart';
@@ -26,7 +25,14 @@ class ClubDetailScreen extends StatefulWidget {
     if (args is LocaleModel) {
       locale = args;
     } else if (args is Map<String, dynamic>) {
-      locale = LocaleModel.fromMap(args);
+      final id = args['id'] as String?;
+      // Dai preferiti arriva solo {'id': ...} (senza 'nome'): costruiamo un
+      // placeholder, il bloc carica poi i dati completi via getLocaleById.
+      if (id != null && args['nome'] == null) {
+        locale = LocaleModel(id: id, nome: '');
+      } else {
+        locale = LocaleModel.fromMap(args);
+      }
     }
 
     if (locale == null) {
@@ -267,8 +273,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                           ),
                         ),
                         const SizedBox(height: 20),
-                        // Prossime serate (la PRENOTA serata apre choice T/P
-                        // tramite ReservationChoiceSheet — niente CTA globale)
+                        // Prossime serate (la PRENOTA serata naviga alla
+                        // bookingScreen, pagina di scelta Tavolo/Prevendita)
                         if (state.serate.isNotEmpty || !state.isLoading)
                           SlideTransition(
                             position: _sectionsSlide,
@@ -668,10 +674,12 @@ class _SerataCard extends StatelessWidget {
                             behavior: HitTestBehavior.opaque,
                             onTap: isSoldOut
                                 ? null
-                                : () => ReservationChoiceSheet.show(
-                                      context,
-                                      serata: serata,
-                                      club: locale,
+                                : () => NavigatorService.pushNamed(
+                                      AppRoutes.bookingScreen,
+                                      arguments: {
+                                        'serata': serata,
+                                        'club': locale,
+                                      },
                                     ),
                             child: Container(
                               padding: const EdgeInsets.symmetric(

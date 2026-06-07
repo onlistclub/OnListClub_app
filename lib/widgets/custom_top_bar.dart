@@ -24,11 +24,14 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Spec Figma `docs/figma_screen/off/nav-bar.png`: contenitore nero con
+    // wordmark OnList prominente a sinistra e search/persona a destra.
     return Container(
       color: Colors.transparent,
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 8),
+      padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: isHome ? null : () => NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen),
@@ -36,12 +39,13 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               tag: 'app_logo',
               child: Image.asset(
                 ImageConstant.imgLogoOnlist,
-                height: 65,
+                height: 92,
                 fit: BoxFit.contain,
               ),
             ),
           ),
           Row(
+            mainAxisSize: MainAxisSize.min,
             children: [
               if (showSearch)
                 GestureDetector(
@@ -52,7 +56,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
               if (showProfile) ...[
-                const SizedBox(width: 4),
+                const SizedBox(width: 8),
                 GestureDetector(
                   onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
                   child: const Padding(
@@ -61,7 +65,6 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                   ),
                 ),
               ],
-              const SizedBox(width: 4),
             ],
           ),
         ],
@@ -69,6 +72,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
+  // Logo 92 + padding verticale 10+10 = 112.
   @override
-  Size get preferredSize => const Size.fromHeight(76);
+  Size get preferredSize => const Size.fromHeight(112);
 }

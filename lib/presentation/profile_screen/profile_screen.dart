@@ -1,13 +1,15 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
-import 'package:google_fonts/google_fonts.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_export.dart';
+import '../../core/services/auth_service.dart';
 import '../../core/services/orders_service.dart';
 import '../../core/services/notification_service.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../theme/onlist_colors.dart';
+import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
@@ -128,10 +130,10 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         return Theme(
           data: ThemeData.dark().copyWith(
             colorScheme: const ColorScheme.dark(
-              primary: Color(0xFF1D00FF),
-              onPrimary: Colors.white,
+              primary: OnlistColors.blueElectric,
+              onPrimary: OnlistColors.white,
               surface: Color(0xFF1A1A1A),
-              onSurface: Colors.white,
+              onSurface: OnlistColors.white,
             ),
             dialogBackgroundColor: const Color(0xFF1A1A1A),
           ),
@@ -176,12 +178,12 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: Colors.white, size: 20),
+                const Icon(Icons.check_circle, color: OnlistColors.white, size: 20),
                 const SizedBox(width: 10),
-                Text('Profilo aggiornato!', style: GoogleFonts.inter(color: Colors.white)),
+                Text('Profilo aggiornato!', style: OnlistTextStyles.hn(color: OnlistColors.white)),
               ],
             ),
-            backgroundColor: const Color(0xFF1D00FF),
+            backgroundColor: OnlistColors.blueElectric,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -191,7 +193,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
-            content: Text('Errore: $e', style: GoogleFonts.inter(color: Colors.white)),
+            content: Text('Errore: $e', style: OnlistTextStyles.hn(color: OnlistColors.white)),
             backgroundColor: Colors.redAccent,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
@@ -210,18 +212,18 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(email);
       await NotificationService.sendPasswordChangeNotification();
-      
+
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.email_outlined, color: Colors.white, size: 20),
+                const Icon(Icons.email_outlined, color: OnlistColors.white, size: 20),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Email di reset inviata a $email', style: GoogleFonts.inter(color: Colors.white))),
+                Expanded(child: Text('Email di reset inviata a $email', style: OnlistTextStyles.hn(color: OnlistColors.white))),
               ],
             ),
-            backgroundColor: const Color(0xFF1D00FF),
+            backgroundColor: OnlistColors.blueElectric,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
@@ -236,372 +238,228 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     }
   }
 
+  Future<void> _confirmLogout() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text('Disconnetti', style: OnlistTextStyles.hn(color: OnlistColors.white, fontWeight: FontWeight.bold)),
+        content: Text('Sei sicuro di voler uscire dal tuo account?', style: OnlistTextStyles.hn(color: OnlistColors.white.withValues(alpha: 0.7))),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Annulla', style: OnlistTextStyles.hn(color: OnlistColors.white.withValues(alpha: 0.54))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Esci', style: OnlistTextStyles.hn(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+    if (confirm == true) {
+      // La navigazione ad authenticationScreen viene gestita dal listener
+      // onAuthStateChange in AuthService.
+      await AuthService.instance.signOut();
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      body: SafeArea(
-        child: Column(
-          children: [
-            const CustomTopBar(showProfile: false),
-            Expanded(
-              child: _isLoading
-                  ? const AppLoadingIndicator()
-                  : SingleChildScrollView(
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          const SizedBox(height: 16),
-                          // ── Avatar + Intestazione ──
-                          _buildHeader(),
-                          const SizedBox(height: 28),
-                          // ── Sezione dati personali ──
-                          _buildSectionTitle('Dati Personali'),
-                          const SizedBox(height: 8),
-                          _buildEditableCard(),
-                          const SizedBox(height: 24),
-                          // ── Sezione account ──
-                          _buildSectionTitle('Account'),
-                          const SizedBox(height: 8),
-                          _buildAccountCard(),
-                          const SizedBox(height: 24),
-                          // ── Preferiti ──
-                          if (_preferiti.isNotEmpty) ...[
-                            _buildSectionTitle('I Tuoi Preferiti'),
-                            const SizedBox(height: 8),
-                            ..._preferiti.map((p) {
-                              final locale = p['locali'] as Map<String, dynamic>?;
-                              if (locale == null) return const SizedBox.shrink();
-                              return _buildPreferitoCard(locale);
-                            }),
+      backgroundColor: OnlistColors.black,
+      body: Container(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: SafeArea(
+          child: Column(
+            children: [
+              // Navbar fissa condivisa (logo + ricerca + persona) — come Figma.
+              // Tap "persona" no-op: si è già sulla pagina Account.
+              CustomTopBar(onProfileTap: () {}),
+              Expanded(
+                child: _isLoading
+                    ? const AppLoadingIndicator()
+                    : SingleChildScrollView(
+                        child: Column(
+                          crossAxisAlignment: CrossAxisAlignment.start,
+                          children: [
+                            SizedBox(height: R.sp(8)),
+                            // ── Campi dati personali (sottolineati, stile Figma) ──
+                            _buildField(label: 'Nome', controller: _nomeCtrl),
+                            _buildField(label: 'Cognome', controller: _cognomeCtrl),
+                            _buildField(
+                              label: 'Data di nascita',
+                              controller: _dataNascitaCtrl,
+                              readOnly: true,
+                              onTap: _pickDate,
+                            ),
+                            _buildField(label: 'Email', controller: _emailCtrl, readOnly: true),
+                            // Pulsante salva (appare solo se ci sono modifiche)
+                            _buildSaveButton(),
+                            SizedBox(height: R.sp(24)),
+                            // ── Salvati (preferiti) — sezione SEMPRE visibile ──
+                            _buildSectionTitle('Salvati'),
+                            SizedBox(height: R.sp(8)),
+                            if (_preferiti.isEmpty)
+                              Padding(
+                                padding: const EdgeInsets.symmetric(horizontal: 24),
+                                child: Text(
+                                  'Non hai preferiti',
+                                  style: OnlistTextStyles.hn(
+                                    fontSize: R.sp(16),
+                                    fontWeight: FontWeight.w400,
+                                    color: OnlistColors.white.withValues(alpha: 0.6),
+                                  ),
+                                ),
+                              )
+                            else
+                              ..._preferiti.map((p) {
+                                final locale = p['locali'] as Map<String, dynamic>?;
+                                if (locale == null) return const SizedBox.shrink();
+                                return _buildPreferitoCard(locale);
+                              }),
+                            SizedBox(height: R.sp(20)),
+                            // ── Azioni account (mantenute, restyle minimale) ──
+                            _buildAccountActions(),
+                            SizedBox(height: R.sp(24)),
                           ],
-                          const SizedBox(height: 30),
-                        ],
+                        ),
                       ),
-                    ),
-            ),
-          ],
+              ),
+            ],
+          ),
         ),
       ),
       bottomNavigationBar: const SharedFooter(currentIndex: -1),
     );
   }
 
-  // ── Header con avatar e nome ──
-  Widget _buildHeader() {
-    final nome = _nomeCtrl.text;
-    final cognome = _cognomeCtrl.text;
-    final initials = [
-      if (nome.isNotEmpty) nome[0].toUpperCase(),
-      if (cognome.isNotEmpty) cognome[0].toUpperCase(),
-    ].join();
-
+  // ── Campo dato sottolineato: label piccola + valore + linea bianca ──
+  Widget _buildField({
+    required String label,
+    required TextEditingController controller,
+    bool readOnly = false,
+    VoidCallback? onTap,
+  }) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
-      child: Row(
+      padding: EdgeInsets.fromLTRB(24, R.sp(14), 24, 0),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Avatar circolare con gradiente
-          Container(
-            width: 64,
-            height: 64,
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              gradient: const LinearGradient(
-                colors: [Color(0xFF1D00FF), Color(0xFF7B2FFF)],
-                begin: Alignment.topLeft,
-                end: Alignment.bottomRight,
-              ),
-              boxShadow: [
-                BoxShadow(
-                  color: const Color(0xFF1D00FF).withValues(alpha: 0.35),
-                  blurRadius: 16,
-                  offset: const Offset(0, 4),
-                ),
-              ],
-            ),
-            alignment: Alignment.center,
-            child: Text(
-              initials.isNotEmpty ? initials : '?',
-              style: GoogleFonts.inter(
-                color: Colors.white,
-                fontSize: 22,
-                fontWeight: FontWeight.bold,
-              ),
+          Text(
+            label,
+            style: OnlistTextStyles.hn(
+              fontSize: R.sp(14),
+              fontWeight: FontWeight.w400,
+              color: OnlistColors.white.withValues(alpha: 0.6),
             ),
           ),
-          const SizedBox(width: 16),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  [nome, cognome].where((s) => s.isNotEmpty).join(' ').isNotEmpty
-                      ? [nome, cognome].where((s) => s.isNotEmpty).join(' ')
-                      : 'Il tuo profilo',
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  _emailCtrl.text,
-                  style: GoogleFonts.inter(color: Colors.white54, fontSize: 14),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-              ],
+          TextField(
+            controller: controller,
+            readOnly: readOnly,
+            onTap: onTap,
+            style: OnlistTextStyles.hn(
+              fontSize: R.sp(16),
+              fontWeight: FontWeight.w400,
+              color: OnlistColors.white,
+            ),
+            cursorColor: OnlistColors.white,
+            decoration: const InputDecoration(
+              isDense: true,
+              contentPadding: EdgeInsets.only(top: 6, bottom: 8),
+              enabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: OnlistColors.white, width: 1),
+              ),
+              focusedBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: OnlistColors.white, width: 1),
+              ),
+              disabledBorder: UnderlineInputBorder(
+                borderSide: BorderSide(color: OnlistColors.white, width: 1),
+              ),
             ),
           ),
         ],
       ),
+    );
+  }
+
+  Widget _buildSaveButton() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 250),
+      curve: Curves.easeOut,
+      child: _hasChanges
+          ? Padding(
+              padding: EdgeInsets.fromLTRB(24, R.sp(20), 24, 0),
+              child: GestureDetector(
+                onTap: _isSaving ? null : _saveProfile,
+                child: Container(
+                  width: double.infinity,
+                  padding: EdgeInsets.symmetric(vertical: R.sp(14)),
+                  decoration: BoxDecoration(
+                    gradient: OnlistColors.primaryCTA,
+                    borderRadius: BorderRadius.circular(10),
+                  ),
+                  alignment: Alignment.center,
+                  child: _isSaving
+                      ? const SizedBox(
+                          height: 20,
+                          width: 20,
+                          child: CircularProgressIndicator(color: OnlistColors.white, strokeWidth: 2),
+                        )
+                      : Text(
+                          'Salva Modifiche',
+                          style: OnlistTextStyles.hn(
+                            fontSize: R.sp(16),
+                            fontWeight: FontWeight.w700,
+                            color: OnlistColors.white,
+                          ),
+                        ),
+                ),
+              ),
+            )
+          : const SizedBox.shrink(),
     );
   }
 
   Widget _buildSectionTitle(String title) {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 20),
+      padding: const EdgeInsets.symmetric(horizontal: 24),
       child: Text(
         title,
-        style: GoogleFonts.inter(
-          color: Colors.white70,
-          fontSize: 13,
-          fontWeight: FontWeight.w600,
-          letterSpacing: 1.1,
+        style: OnlistTextStyles.hn(
+          fontSize: R.sp(26),
+          fontWeight: FontWeight.w700,
+          color: OnlistColors.white,
+          letterSpacing: -0.08 * 26,
         ),
       ),
     );
   }
 
-  // ── Card dati personali editabili ──
-  Widget _buildEditableCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        children: [
-          _buildCardField(
-            icon: Icons.person_outline,
-            label: 'Nome',
-            controller: _nomeCtrl,
-          ),
-          _divider(),
-          _buildCardField(
-            icon: Icons.person_outline,
-            label: 'Cognome',
-            controller: _cognomeCtrl,
-          ),
-          _divider(),
-          _buildCardField(
-            icon: Icons.cake_outlined,
-            label: 'Data di nascita',
-            controller: _dataNascitaCtrl,
-            readOnly: true,
-            onTap: _pickDate,
-            suffix: const Icon(Icons.calendar_today, color: Colors.white38, size: 18),
-          ),
-          _divider(),
-          // Email (read-only con icona di conferma)
-          _buildCardField(
-            icon: Icons.email_outlined,
-            label: 'Email',
-            controller: _emailCtrl,
-            readOnly: true,
-            suffix: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-                  decoration: BoxDecoration(
-                    color: Colors.green.withValues(alpha: 0.15),
-                    borderRadius: BorderRadius.circular(6),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.verified, color: Colors.greenAccent, size: 14),
-                      const SizedBox(width: 4),
-                      Text(
-                        'Verificata',
-                        style: GoogleFonts.inter(color: Colors.greenAccent, fontSize: 11, fontWeight: FontWeight.w600),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-          ),
-          // Pulsante salva (appare solo se ci sono modifiche)
-          AnimatedSize(
-            duration: const Duration(milliseconds: 250),
-            curve: Curves.easeOut,
-            child: _hasChanges
-                ? Column(
-                    children: [
-                      _divider(),
-                      InkWell(
-                        onTap: _isSaving ? null : _saveProfile,
-                        borderRadius: const BorderRadius.only(
-                          bottomLeft: Radius.circular(14),
-                          bottomRight: Radius.circular(14),
-                        ),
-                        child: Container(
-                          width: double.infinity,
-                          padding: const EdgeInsets.symmetric(vertical: 14),
-                          decoration: BoxDecoration(
-                            gradient: const LinearGradient(
-                              colors: [Color(0xFF1D00FF), Color(0xFF4D2FFF)],
-                            ),
-                            borderRadius: const BorderRadius.only(
-                              bottomLeft: Radius.circular(14),
-                              bottomRight: Radius.circular(14),
-                            ),
-                          ),
-                          alignment: Alignment.center,
-                          child: _isSaving
-                              ? const SizedBox(
-                                  height: 20,
-                                  width: 20,
-                                  child: CircularProgressIndicator(color: Colors.white, strokeWidth: 2),
-                                )
-                              : Row(
-                                  mainAxisAlignment: MainAxisAlignment.center,
-                                  children: [
-                                    const Icon(Icons.save_rounded, color: Colors.white, size: 18),
-                                    const SizedBox(width: 8),
-                                    Text(
-                                      'Salva Modifiche',
-                                      style: GoogleFonts.inter(
-                                        color: Colors.white,
-                                        fontSize: 15,
-                                        fontWeight: FontWeight.w700,
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                        ),
-                      ),
-                    ],
-                  )
-                : const SizedBox.shrink(),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildCardField({
-    required IconData icon,
-    required String label,
-    required TextEditingController controller,
-    bool readOnly = false,
-    VoidCallback? onTap,
-    Widget? suffix,
-  }) {
-    return InkWell(
-      onTap: onTap,
-      child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
-        child: Row(
-          children: [
-            Icon(icon, color: const Color(0xFF1D00FF), size: 20),
-            const SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    label,
-                    style: GoogleFonts.inter(color: Colors.white38, fontSize: 11, fontWeight: FontWeight.w500),
-                  ),
-                  const SizedBox(height: 2),
-                  TextField(
-                    controller: controller,
-                    readOnly: readOnly,
-                    onTap: onTap,
-                    style: GoogleFonts.inter(color: Colors.white, fontSize: 15),
-                    decoration: const InputDecoration(
-                      isDense: true,
-                      border: InputBorder.none,
-                      contentPadding: EdgeInsets.zero,
-                    ),
-                    cursorColor: const Color(0xFF1D00FF),
-                  ),
-                ],
-              ),
-            ),
-            if (suffix != null) suffix,
-          ],
+  // ── Azioni account: righe minimali (logica invariata) ──
+  Widget _buildAccountActions() {
+    return Column(
+      children: [
+        const Divider(height: 1, color: Colors.white10, indent: 24, endIndent: 24),
+        _buildActionTile(
+          icon: Icons.receipt_long_outlined,
+          label: 'Riepilogo Ordini',
+          onTap: () => NavigatorService.pushNamed(AppRoutes.ordersScreen),
         ),
-      ),
-    );
-  }
-
-  Widget _divider() => const Divider(height: 1, color: Colors.white10, indent: 50);
-
-  // ── Card account (password, ordini, logout) ──
-  Widget _buildAccountCard() {
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(14),
-        border: Border.all(color: Colors.white10),
-      ),
-      child: Column(
-        children: [
-          _buildActionTile(
-            icon: Icons.receipt_long_outlined,
-            label: 'Riepilogo Ordini',
-            onTap: () => NavigatorService.pushNamed(AppRoutes.ordersScreen),
-          ),
-          _divider(),
-          _buildActionTile(
-            icon: Icons.lock_outline,
-            label: 'Cambia Password',
-            subtitle: 'Ricevi email di reset',
-            onTap: _changePassword,
-          ),
-          _divider(),
-          _buildActionTile(
-            icon: Icons.logout,
-            label: 'Disconnetti',
-            color: Colors.redAccent,
-            onTap: () async {
-              final confirm = await showDialog<bool>(
-                context: context,
-                builder: (ctx) => AlertDialog(
-                  backgroundColor: const Color(0xFF1A1A1A),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-                  title: Text('Disconnetti', style: GoogleFonts.inter(color: Colors.white, fontWeight: FontWeight.bold)),
-                  content: Text('Sei sicuro di voler uscire dal tuo account?', style: GoogleFonts.inter(color: Colors.white70)),
-                  actions: [
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, false),
-                      child: Text('Annulla', style: GoogleFonts.inter(color: Colors.white54)),
-                    ),
-                    TextButton(
-                      onPressed: () => Navigator.pop(ctx, true),
-                      child: Text('Esci', style: GoogleFonts.inter(color: Colors.redAccent, fontWeight: FontWeight.bold)),
-                    ),
-                  ],
-                ),
-              );
-              if (confirm == true) {
-                await Supabase.instance.client.auth.signOut();
-                NavigatorService.pushNamedAndRemoveUntil(AppRoutes.authenticationScreen);
-              }
-            },
-          ),
-        ],
-      ),
+        _buildActionTile(
+          icon: Icons.lock_outline,
+          label: 'Cambia Password',
+          subtitle: 'Ricevi email di reset',
+          onTap: _changePassword,
+        ),
+        _buildActionTile(
+          icon: Icons.logout,
+          label: 'Disconnetti',
+          color: Colors.redAccent,
+          onTap: _confirmLogout,
+        ),
+      ],
     );
   }
 
@@ -609,28 +467,28 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     required IconData icon,
     required String label,
     String? subtitle,
-    Color color = Colors.white,
+    Color color = OnlistColors.white,
     required VoidCallback onTap,
   }) {
     return InkWell(
       onTap: onTap,
       child: Padding(
-        padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: R.sp(14)),
         child: Row(
           children: [
-            Icon(icon, color: color == Colors.white ? const Color(0xFF1D00FF) : color, size: 20),
-            const SizedBox(width: 14),
+            Icon(icon, color: color == OnlistColors.white ? OnlistColors.blueElectric : color, size: R.sp(22)),
+            SizedBox(width: R.sp(14)),
             Expanded(
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  Text(label, style: GoogleFonts.inter(color: color, fontSize: 15, fontWeight: FontWeight.w500)),
+                  Text(label, style: OnlistTextStyles.hn(fontSize: R.sp(16), fontWeight: FontWeight.w400, color: color)),
                   if (subtitle != null)
-                    Text(subtitle, style: GoogleFonts.inter(color: Colors.white38, fontSize: 12)),
+                    Text(subtitle, style: OnlistTextStyles.hn(fontSize: R.sp(12), fontWeight: FontWeight.w400, color: OnlistColors.white.withValues(alpha: 0.4))),
                 ],
               ),
             ),
-            Icon(Icons.chevron_right, color: color.withValues(alpha: 0.4), size: 20),
+            Icon(Icons.chevron_right, color: color.withValues(alpha: 0.4), size: R.sp(20)),
           ],
         ),
       ),
@@ -647,7 +505,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         arguments: {'id': locale['id']},
       ),
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 5),
+        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
         height: 120,
         width: double.infinity,
         decoration: BoxDecoration(
@@ -682,10 +540,10 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                 bottom: 14,
                 child: Text(
                   nome,
-                  style: GoogleFonts.inter(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
+                  style: OnlistTextStyles.hn(
+                    fontSize: R.sp(24),
+                    fontWeight: FontWeight.w700,
+                    color: OnlistColors.white,
                   ),
                 ),
               ),

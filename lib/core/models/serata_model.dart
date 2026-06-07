@@ -15,6 +15,12 @@ class SerataModel extends Equatable {
   final List<String> generiMusicali;
   final String stato;
   final double? prezzoIngresso;
+  // Campi info serata (Figma 19) — opzionali, null se non popolati nel DB.
+  final String? dressCode;
+  final String? etaMinima;
+  final String? soundSystem;
+  final String? parcheggio;
+  final List<LineupDj> lineup;
 
   const SerataModel({
     required this.id,
@@ -29,6 +35,11 @@ class SerataModel extends Equatable {
     this.generiMusicali = const [],
     this.stato = 'attivo',
     this.prezzoIngresso,
+    this.dressCode,
+    this.etaMinima,
+    this.soundSystem,
+    this.parcheggio,
+    this.lineup = const [],
   });
 
   int? get postiDisponibili =>
@@ -91,6 +102,15 @@ class SerataModel extends Equatable {
           [],
       stato: (m['stato'] as String?) ?? 'attivo',
       prezzoIngresso: (m['prezzo_ingresso'] as num?)?.toDouble(),
+      dressCode: m['dress_code'] as String?,
+      etaMinima: m['eta_minima'] as String?,
+      soundSystem: m['sound_system'] as String?,
+      parcheggio: m['parcheggio'] as String?,
+      lineup: (m['lineup'] as List<dynamic>?)
+              ?.whereType<Map<String, dynamic>>()
+              .map(LineupDj.fromMap)
+              .toList() ??
+          const [],
     );
   }
 
@@ -100,5 +120,45 @@ class SerataModel extends Equatable {
         oraApertura, oraChiusura,
         ingressiPrevisti, postiPrenotati,
         locandinaUrl, generiMusicali, stato, prezzoIngresso,
+        dressCode, etaMinima, soundSystem, parcheggio, lineup,
       ];
+}
+
+/// Singolo DJ del line-up di una serata (Figma 19).
+class LineupDj extends Equatable {
+  final String nome;
+  final String? iniziali;
+  final String? stage;
+  final String? oraInizio;
+  final String? oraFine;
+  final bool headliner;
+
+  const LineupDj({
+    required this.nome,
+    this.iniziali,
+    this.stage,
+    this.oraInizio,
+    this.oraFine,
+    this.headliner = false,
+  });
+
+  String get orarioString {
+    if (oraInizio != null && oraFine != null) return '$oraInizio - $oraFine';
+    if (oraInizio != null) return oraInizio!;
+    return '';
+  }
+
+  factory LineupDj.fromMap(Map<String, dynamic> m) {
+    return LineupDj(
+      nome: (m['nome'] ?? '') as String,
+      iniziali: m['iniziali'] as String?,
+      stage: m['stage'] as String?,
+      oraInizio: m['ora_inizio'] as String?,
+      oraFine: m['ora_fine'] as String?,
+      headliner: (m['headliner'] as bool?) ?? false,
+    );
+  }
+
+  @override
+  List<Object?> get props => [nome, iniziali, stage, oraInizio, oraFine, headliner];
 }

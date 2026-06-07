@@ -14,6 +14,8 @@ import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/onlist_primary_button.dart';
 import '../../widgets/animated_press.dart';
+import '../../widgets/custom_top_bar.dart';
+import '../../widgets/shared_footer.dart';
 
 enum BookingStep { selection, ticketList, ticketDetail, tableConfig, bottles }
 
@@ -30,6 +32,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   @override
   String get screenName => 'booking_selection';
 
+  // La schermata parte dalla pagina di selezione Tavolo/Prevendita.
   BookingStep _currentStep = BookingStep.selection;
 
   // Dati letti SEMPRE dal DB (Supabase). Nessun sample/placeholder: se il DB
@@ -152,11 +155,14 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      bottomNavigationBar: const SharedFooter(currentIndex: 0),
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
+              const CustomTopBar(),
               _buildTopBar(),
               Expanded(
                 child: _isLoading
@@ -259,33 +265,61 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     }
   }
 
-
+  /// Pagina di scelta Tavolo / Prevendita (la "pagina grossa").
   Widget _buildSelectionStep(LocaleModel? locale, SerataModel? serata) {
-    return Column(
+    return SingleChildScrollView(
       key: const ValueKey("selection"),
-      children: [
-        _buildClubHeader(locale, serata),
-        const SizedBox(height: 30),
-        _buildSelectionButton("Tavolo", () {
-          AnalyticsService.log(event: 'booking_funnel_start', metadata: {'type': 'table'});
-          setState(() {
-            _currentStep = BookingStep.tableConfig;
-          });
-        }),
-        const SizedBox(height: 15),
-        _buildSelectionButton("Prevendita", () {
-          AnalyticsService.log(event: 'booking_funnel_start', metadata: {'type': 'ticket'});
-          setState(() {
-            _currentStep = BookingStep.ticketList;
-          });
-        }),
-      ],
+      padding: const EdgeInsets.only(bottom: 24),
+      child: Column(
+        children: [
+          _buildClubHeader(locale, serata),
+          const SizedBox(height: 30),
+          _buildSelectionButton("Tavolo", () {
+            AnalyticsService.log(
+                event: 'booking_funnel_start', metadata: {'type': 'table'});
+            setState(() => _currentStep = BookingStep.tableConfig);
+          }),
+          const SizedBox(height: 15),
+          _buildSelectionButton("Prevendita", () {
+            AnalyticsService.log(
+                event: 'booking_funnel_start', metadata: {'type': 'ticket'});
+            setState(() => _currentStep = BookingStep.ticketList);
+          }),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildSelectionButton(String text, VoidCallback onTap) {
+    return AnimatedPress(
+      onPressed: onTap,
+      child: Container(
+        width: double.infinity,
+        height: 130,
+        margin: const EdgeInsets.symmetric(horizontal: 20),
+        decoration: BoxDecoration(
+          color: const Color(0xFF1900D8),
+          borderRadius: BorderRadius.circular(10),
+        ),
+        alignment: Alignment.center,
+        child: Text(
+          text,
+          style: OnlistTextStyles.hn(
+            color: Colors.white,
+            fontSize: R.sp(42),
+            fontWeight: FontWeight.bold,
+            letterSpacing: -0.07 * 42,
+          ),
+        ),
+      ),
     );
   }
 
   Widget _buildClubHeader(LocaleModel? locale, SerataModel? serata) {
     return Container(
-      height: 200,
+      // minHeight (non height fissa): se il titolo va a capo su 2 righe il box
+      // cresce invece di andare in overflow (il vecchio height:200 tagliava 18px).
+      constraints: const BoxConstraints(minHeight: 200),
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 15),
       decoration: BoxDecoration(
@@ -328,31 +362,6 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               ),
             ),
           ],
-        ),
-      ),
-    );
-  }
-
-  Widget _buildSelectionButton(String text, VoidCallback onTap) {
-    return AnimatedPress(
-      onPressed: onTap,
-      child: Container(
-        width: double.infinity,
-        height: 130,
-        margin: const EdgeInsets.symmetric(horizontal: 20),
-        decoration: BoxDecoration(
-          color: const Color(0xFF1900D8),
-          borderRadius: BorderRadius.circular(10),
-        ),
-        alignment: Alignment.center,
-        child: Text(
-          text,
-          style: OnlistTextStyles.hn(
-            color: Colors.white,
-            fontSize: R.sp(42),
-            fontWeight: FontWeight.bold,
-            letterSpacing: -0.07 * 42,
-          ),
         ),
       ),
     );

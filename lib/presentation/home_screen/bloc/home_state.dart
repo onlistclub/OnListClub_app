@@ -6,6 +6,7 @@ class HomeState extends Equatable {
   final int selectedBottomNavIndex;
   final LocaleModel? localeVicino;
   final List<SerataModel> upcomingEventi;
+  final List<LocaleModel> recommendedClubs;
   final int raggioKm;
   final bool isGpsForced;
   final String locationSourceLabel;
@@ -16,6 +17,7 @@ class HomeState extends Equatable {
     this.selectedBottomNavIndex = 0,
     this.localeVicino,
     this.upcomingEventi = const [],
+    this.recommendedClubs = const [],
     this.raggioKm = 20,
     this.isGpsForced = false,
     this.locationSourceLabel = '',
@@ -28,6 +30,7 @@ class HomeState extends Equatable {
         selectedBottomNavIndex,
         localeVicino,
         upcomingEventi,
+        recommendedClubs,
         raggioKm,
         isGpsForced,
         locationSourceLabel,
@@ -39,6 +42,7 @@ class HomeState extends Equatable {
     int? selectedBottomNavIndex,
     LocaleModel? localeVicino,
     List<SerataModel>? upcomingEventi,
+    List<LocaleModel>? recommendedClubs,
     int? raggioKm,
     bool? isGpsForced,
     String? locationSourceLabel,
@@ -50,6 +54,7 @@ class HomeState extends Equatable {
           selectedBottomNavIndex ?? this.selectedBottomNavIndex,
       localeVicino: localeVicino ?? this.localeVicino,
       upcomingEventi: upcomingEventi ?? this.upcomingEventi,
+      recommendedClubs: recommendedClubs ?? this.recommendedClubs,
       raggioKm: raggioKm ?? this.raggioKm,
       isGpsForced: isGpsForced ?? this.isGpsForced,
       locationSourceLabel: locationSourceLabel ?? this.locationSourceLabel,

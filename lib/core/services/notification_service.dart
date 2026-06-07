@@ -15,24 +15,36 @@ class NotificationService {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return [];
 
+    // Mostra solo le notifiche "dovute": quelle senza schedulazione
+    // (programmata_per IS NULL) o la cui ora è già passata. Le future restano
+    // nascoste in-app finché non scatta `programmata_per`.
+    final nowIso = DateTime.now().toUtc().toIso8601String();
     final response = await _client
         .from('notifiche')
         .select()
         .eq('utente_id', userId)
+        .or('programmata_per.is.null,programmata_per.lte.$nowIso')
         .order('created_at', ascending: false);
 
     return (response as List).map((e) => NotificationModel.fromMap(e)).toList();
   }
 
   static Future<void> markAsRead(String id) async {
-    await _client.from('notifiche').update({'letto': true}).eq('id', id);
+    await _client.from('notifiche').update({'letta': true}).eq('id', id);
   }
 
+  /// Crea una notifica.
+  ///
+  /// Se [programmataPer] è valorizzato la notifica è schedulata: comparirà
+  /// in-app solo da quell'istante e la push verrà inviata dal cron server-side
+  /// (vedi STEP 6.2). [linkTipo]/[relatedId] alimentano il deep-link al tap.
   static Future<void> createNotification({
     required String titolo,
     required String messaggio,
     required String tipo,
     String? relatedId,
+    String? linkTipo,
+    DateTime? programmataPer,
   }) async {
     final userId = _client.auth.currentUser?.id;
     if (userId == null) return;
@@ -42,7 +54,10 @@ class NotificationService {
       'titolo': titolo,
       'messaggio': messaggio,
       'tipo': tipo,
-      'related_id': relatedId,
+      'link_id': relatedId,
+      if (linkTipo != null) 'link_tipo': linkTipo,
+      if (programmataPer != null)
+        'programmata_per': programmataPer.toUtc().toIso8601String(),
     });
   }
 

@@ -12,7 +12,14 @@ class NotificationModel extends Equatable {
   final String messaggio;
   final String tipo;
   final String? relatedId;
+  /// Tipo di risorsa puntata dal deep-link (es. 'club', 'ordine').
+  final String? linkTipo;
   final bool letto;
+  /// Se valorizzato, la notifica è "dovuta" solo a partire da questo istante
+  /// (scheduling lato server). Le notifiche future non vengono mostrate in-app.
+  final DateTime? programmataPer;
+  /// True quando la push è già stata inviata dal cron server-side.
+  final bool inviata;
   final DateTime createdAt;
 
   const NotificationModel({
@@ -22,7 +29,10 @@ class NotificationModel extends Equatable {
     required this.messaggio,
     required this.tipo,
     this.relatedId,
+    this.linkTipo,
     this.letto = false,
+    this.programmataPer,
+    this.inviata = false,
     required this.createdAt,
   });
 
@@ -33,8 +43,11 @@ class NotificationModel extends Equatable {
       titolo: map['titolo'] as String,
       messaggio: map['messaggio'] as String,
       tipo: map['tipo'] as String,
-      relatedId: map['related_id'] as String?,
-      letto: map['letto'] as bool? ?? false,
+      relatedId: map['link_id'] as String?,
+      linkTipo: map['link_tipo'] as String?,
+      letto: map['letta'] as bool? ?? false,
+      programmataPer: DateTime.tryParse(map['programmata_per'] as String? ?? ''),
+      inviata: map['inviata'] as bool? ?? false,
       createdAt: DateTime.tryParse(map['created_at'] as String? ?? '') ??
           DateTime.now(),
     );
@@ -46,11 +59,16 @@ class NotificationModel extends Equatable {
       'titolo': titolo,
       'messaggio': messaggio,
       'tipo': tipo,
-      'related_id': relatedId,
-      'letto': letto,
+      'link_id': relatedId,
+      'link_tipo': linkTipo,
+      'letta': letto,
+      'programmata_per': programmataPer?.toIso8601String(),
+      'inviata': inviata,
     };
   }
 
   @override
-  List<Object?> get props => [id, utenteId, titolo, messaggio, tipo, relatedId, letto, createdAt];
+  List<Object?> get props =>
+      [id, utenteId, titolo, messaggio, tipo, relatedId, linkTipo, letto,
+       programmataPer, inviata, createdAt];
 }

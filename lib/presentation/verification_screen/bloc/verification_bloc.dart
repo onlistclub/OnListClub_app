@@ -8,6 +8,16 @@ import '../../../core/services/user_profile_manager.dart';
 part 'verification_event.dart';
 part 'verification_state.dart';
 
+/// BLoC della schermata di verifica email.
+///
+/// Mantiene il timer di countdown per il pulsante "Invia di nuovo" e
+/// controlla periodicamente se la sessione Supabase ha un `email_confirmed_at`
+/// valorizzato (segno che l'utente ha cliccato il link nell'email). Quando la
+/// verifica passa, chiama `UserProfileManager` per finalizzare il profilo.
+///
+/// Nota: il nome `verificationBloc` (minuscolo) è un anti-pattern Dart —
+/// dovrebbe essere `VerificationBloc`. Non rinominato qui per non rompere
+/// le import esistenti; refactor da pianificare.
 class verificationBloc extends Bloc<verificationEvent, verificationState> {
   Timer? _timer;
 

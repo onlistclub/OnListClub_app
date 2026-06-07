@@ -161,9 +161,19 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         return;
       }
 
-      // 4. Serate future del locale
-      final eventi = await ClubService.getUpcomingEventi(locale.id);
+      // 4. Serate future del locale + altri club vicini (per "Club consigliati")
+      final results = await Future.wait([
+        ClubService.getUpcomingEventi(locale.id),
+        ClubService.getLocaliVicini(lat, lng, raggioKm: raggio.toDouble()),
+      ]);
+      final eventi = results[0] as List<SerataModel>;
+      final allNearby = results[1] as List<LocaleModel>;
+      final recommended = allNearby
+          .where((c) => c.id != locale.id)
+          .take(8)
+          .toList(growable: false);
       debugPrint('[HomeBloc] 📅 Eventi trovati: ${eventi.length} per ${locale.nome}');
+      debugPrint('[HomeBloc] 🏟️ Club consigliati: ${recommended.length}');
 
       // Analytics: log completo con club trovato
       AnalyticsService.logLocationResolved(
@@ -179,6 +189,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         isLoading: false,
         localeVicino: locale,
         upcomingEventi: eventi,
+        recommendedClubs: recommended,
         raggioKm: raggio,
         locationSourceLabel: sourceLabel,
       ));

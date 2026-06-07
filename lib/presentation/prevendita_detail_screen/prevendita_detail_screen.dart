@@ -3,7 +3,6 @@ import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/app_export.dart';
 import '../../core/services/orders_service.dart';
-import '../../core/utils/date_formatter.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
@@ -81,28 +80,18 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
     final prevendita = item['prevendite'] as Map<String, dynamic>?;
 
-    final nomeEvento = evento?['nome'] ?? '';
-    final data = evento?['data'];
     final tipo = prevendita?['tipo'] ?? 'Normale';
     final prezzo = prevendita?['prezzo'];
     final stato = _annullata
         ? 'annullata'
         : (prenotazione?['stato'] ?? 'in_attesa');
-    final nome = (item['nome'] ?? '').toString();
-    final cognome = (item['cognome'] ?? '').toString();
-    final nomeCognome = '$nome $cognome'.trim();
     final idPrenotazione = (prenotazione?['id'] ?? item['id'])?.toString();
     final qrData = idPrenotazione ?? 'onlist-ticket';
-    final prezzoStr = prezzo != null ? '$prezzo€' : '10€';
-
-    String dataFormatted = '';
-    if (data != null) {
-      try {
-        dataFormatted = DateFormatter.formatLong(DateTime.parse(data));
-      } catch (_) {
-        dataFormatted = data.toString();
-      }
-    }
+    final prezzoStr = prezzo != null ? '$prezzo€' : '—';
+    // Quantità e drink omaggio dai dati reali della prenotazione.
+    final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
+    final drinkOmaggio =
+        (prevendita?['drink_omaggio'] ?? evento?['drink_omaggio']) as int?;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -138,7 +127,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                 mainAxisSize: MainAxisSize.min,
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text('Ticket x 1',
+                                  Text('Ticket x $quantita',
                                       style: OnlistTextStyles.ticketLabel),
                                   const SizedBox(width: 8),
                                   Padding(
@@ -157,12 +146,15 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(prezzoStr, style: OnlistTextStyles.price96),
-                                  const SizedBox(width: 10),
-                                  Padding(
-                                    padding: const EdgeInsets.only(bottom: 18),
-                                    child: Text('+ 2 drink omaggio',
-                                        style: OnlistTextStyles.body24Regular),
-                                  ),
+                                  if (drinkOmaggio != null && drinkOmaggio > 0) ...[
+                                    const SizedBox(width: 10),
+                                    Padding(
+                                      padding: const EdgeInsets.only(bottom: 18),
+                                      child: Text(
+                                          '+ $drinkOmaggio drink omaggio',
+                                          style: OnlistTextStyles.body24Regular),
+                                    ),
+                                  ],
                                 ],
                               ),
                             ),
@@ -218,25 +210,6 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                           ],
                         ),
                       ),
-                      const SizedBox(height: 16),
-                      // Info aggiuntive
-                      if (dataFormatted.isNotEmpty)
-                        Text('Data: $dataFormatted',
-                            style: OnlistTextStyles.hn(
-                                color: Colors.white,
-                                fontSize: R.sp(16),
-                                fontWeight: FontWeight.w500)),
-                      if (nomeCognome.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(nomeCognome,
-                            style: OnlistTextStyles.hn(
-                                color: Colors.white70, fontSize: R.sp(14))),
-                      ] else if (nomeEvento.isNotEmpty) ...[
-                        const SizedBox(height: 4),
-                        Text(nomeEvento,
-                            style: OnlistTextStyles.hn(
-                                color: Colors.white70, fontSize: R.sp(14))),
-                      ],
                       const SizedBox(height: 20),
                       // Chiudi QR Code
                       Center(
