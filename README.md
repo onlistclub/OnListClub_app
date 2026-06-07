@@ -64,64 +64,120 @@ L'app distingue tre tipi di utente, con permessi diversi:
 - [Configurazione app](lib/main.dart) — Inizializzazione Supabase, orientamento, routing
 - [Rotte](lib/routes/app_routes.dart) — Tutte le rotte e la schermata iniziale
 - [Dipendenze](pubspec.yaml) — Tutti i pacchetti usati nel progetto
+- [ARCHITETTURA.md](docs/ARCHITETTURA.md) — Come è strutturato il flusso dell'app, auth, sessione e collegamento con Supabase
+
+### Database (Supabase)
+- [DATABASE.md](DATABASE.md) — Panoramica delle tabelle principali e della sicurezza, in linguaggio semplice
+- [docs/database/struttura_database.md](docs/database/struttura_database.md) — Riferimento tecnico completo: schema, RLS, trigger, view, flussi end-to-end
+
+### Regole di progetto
+- [.claude/CLAUDE.md](.claude/CLAUDE.md) — Design system, convenzioni di codice, regole di qualità. **Da leggere prima di contribuire.**
 
 ### Schermate (Presentation Layer)
 
-Ogni schermata ha il suo README con la spiegazione del codice e della logica.
+Ogni schermata vive in `lib/presentation/<nome>/`. Per le schermate dei flussi critici (login, registrazione, prenotazione, ordini) esiste un README dedicato con il dettaglio della logica.
 
-| Schermata | Descrizione | README |
+| Schermata | Descrizione | README dedicato |
 |---|---|---|
+| **Splash** | Bootstrap: legge la sessione persistente Supabase e decide se andare a login o home | — |
 | **Login** | Accesso con email/password, Google, Apple | [authentication_screen](lib/presentation/authentication_screen/README.md) |
 | **Registrazione** | Creazione account con dati personali | [sign_up_screen](lib/presentation/sign_up_screen/README.md) |
-| **Verifica email** | Attesa e controllo conferma email | [verification_screen](lib/presentation/verification_screen/README.md) |
-| **Completa profilo** | Dati aggiuntivi post-login OAuth | [complete_profile_screen](lib/presentation/complete_profile_screen/README.md) |
-| **Permesso posizione** | Richiesta accesso GPS | [location_permission_screen](lib/presentation/location_permission_screen/README.md) |
-| **Posizione manuale** | Selezione città manuale | [location_manual_screen](lib/presentation/location_manual_screen/README.md) |
-| **Home / Evento** | Schermata principale con club e evento | [event_detail_screen](lib/presentation/event_detail_screen/README.md) |
-| **Dettaglio club** | Informazioni complete su un club | [club_detail_screen](lib/presentation/club_detail_screen/README.md) |
-| **Prenotazione** | Schermata prenotazione (in sviluppo) | [booking_screen](lib/presentation/booking_screen/README.md) |
+| **Verifica email** | Attesa e controllo conferma email (con timer + resend) | [verification_screen](lib/presentation/verification_screen/README.md) |
+| **Errore verifica** | Schermata di errore se il link di verifica fallisce | — |
+| **Completa profilo** | Dati aggiuntivi post-login OAuth (Google/Apple) | [complete_profile_screen](lib/presentation/complete_profile_screen/README.md) |
+| **Permesso posizione** | Richiesta accesso GPS al primo avvio | [location_permission_screen](lib/presentation/location_permission_screen/README.md) |
+| **Posizione manuale** | Selezione città manuale se l'utente nega il GPS | [location_manual_screen](lib/presentation/location_manual_screen/README.md) |
+| **Home** | Schermata principale: club vicini e serate consigliate | — |
+| **Dettaglio club** | Informazioni complete su un club (foto, generi, contatti, serate) | [club_detail_screen](lib/presentation/club_detail_screen/README.md) |
+| **Dettaglio evento** | Pagina di una singola serata di un club | [event_detail_screen](lib/presentation/event_detail_screen/) |
+| **Pop-up info evento** | Pop-up rapido informativo su una serata | — |
+| **Locali vicini** | Lista club ordinati per distanza dall'utente | — |
+| **Dettaglio prevendita** | Selezione tipologia biglietto (Normale, VIP, Uomo, …) | — |
+| **Dettaglio tavolo** | Selezione tavolo e configurazione drink | — |
+| **Prenotazione** | Schermata generica di prenotazione | [booking_screen](lib/presentation/booking_screen/README.md) |
+| **Carrello** | Riepilogo articoli selezionati prima del checkout | — |
+| **Conferma pagamento** | Schermata di successo con QR code di ingresso | — |
+| **Ordini** | Storico ordini e prenotazioni dell'utente | — |
+| **Profilo** | Dati personali, preferiti, logout | — |
+| **Notifiche** | Lista notifiche utente con stato letto/non letto | — |
+
+I README delle schermate marcate "—" verranno aggiunti per i flussi critici (CLAUDE.md §1) man mano che si lavora sulle relative funzionalità.
 
 ### Servizi e logica core
 
 | File | Scopo |
 |---|---|
-| [register_service.dart](lib/core/services/register_service.dart) | Registrazione utente su Supabase |
-| [phone_service.dart](lib/core/services/phone_service.dart) | Gestione e normalizzazione numeri di telefono |
-| [club_service.dart](lib/core/services/club_service.dart) | Fetch dei club dal database |
-| [location_service.dart](lib/core/services/location_service.dart) | Rilevamento posizione GPS |
+| [auth_service.dart](lib/core/services/auth_service.dart) | Wrapper attorno a Supabase Auth: login, logout, listener globale sulla sessione |
+| [register_service.dart](lib/core/services/register_service.dart) | Registrazione utente (chiamata alla RPC `register_user_transaction`) |
 | [user_profile_manager.dart](lib/core/services/user_profile_manager.dart) | Creazione e lettura del profilo utente in `public.utenti` |
+| [club_service.dart](lib/core/services/club_service.dart) | Fetch dei locali dal database (con embed di eventi e prenotazioni) |
+| [booking_service.dart](lib/core/services/booking_service.dart) | Prenotazione tavoli: pre-check disponibilità + insert con gestione overbooking |
+| [orders_service.dart](lib/core/services/orders_service.dart) | Lettura unificata di ordini, prevendite e prenotazioni tavolo dell'utente |
+| [notification_service.dart](lib/core/services/notification_service.dart) | Lettura/aggiornamento notifiche utente |
+| [badge_service.dart](lib/core/services/badge_service.dart) | Conteggio notifiche non lette (badge sull'icona) |
+| [analytics_service.dart](lib/core/services/analytics_service.dart) | Logging eventi su `analytics_events` |
+| [location_service.dart](lib/core/services/location_service.dart) | Rilevamento posizione GPS + persistenza flag manuale/forzata |
+| [navigator_service.dart](lib/core/services/navigator_service.dart) | Navigazione centralizzata tra schermate (chiave globale per Navigator) |
 | [age_calculator.dart](lib/core/utils/age_calculator.dart) | Calcolo maggiore età |
-| [navigator_service.dart](lib/core/services/navigator_service.dart) | Navigazione centralizzata tra schermate |
 | [image_constant.dart](lib/core/constants/image_constant.dart) | Path statici degli asset immagine |
+
+Per il dettaglio dei pattern e dei file interni di ogni cartella, vedi i README in [lib/core/](lib/core/README.md), [lib/core/services/](lib/core/services/README.md), [lib/core/utils/](lib/core/utils/README.md), [lib/core/models/](lib/core/models/README.md).
 
 ---
 
 ## Flusso principale dell'app
 
 ```
-App avviata
-    |
-    v
-[Login Screen]
-    |-- credenziali ok --> verifica posizione GPS
-    |                           |-- prima volta --> [Location Permission]
-    |                           |-- già impostata --> [Home / Evento]
-    |-- nuovo utente --> [Sign Up] --> [Verifica Email] --> [Home / Evento]
-    |-- OAuth (Google/Apple) --> [Completa Profilo se mancano dati] --> [Home]
+[Splash]
+   |
+   |-- sessione Supabase valida + profilo completo --> [Home]
+   |-- sessione Supabase valida ma profilo incompleto (OAuth) --> [Completa profilo] --> [Home]
+   |-- nessuna sessione --> [Login]
+                              |
+                              |-- credenziali ok --> [Home]
+                              |-- "registrati" --> [Sign Up] --> [Verifica email] --> [Home]
+                              |-- Google / Apple --> [Completa profilo se mancano dati] --> [Home]
+
+[Home]
+   |-- club vicini? --> sì → mostra lista
+   |                   no  → [Permesso posizione] → [Permesso GPS o città manuale]
+   |
+   |-- tocca un club --> [Dettaglio club]
+                             |-- tocca una serata --> [Dettaglio evento]
+                                                          |-- "Prevendite" --> [Dettaglio prevendita] --> [Carrello] --> [Conferma pagamento + QR]
+                                                          |-- "Tavoli"     --> [Dettaglio tavolo]     --> [Carrello] --> [Conferma pagamento + QR]
 ```
+
+Per il dettaglio dei vari flussi (bootstrap della sessione, gestione auth, comunicazione con Supabase) vedi [docs/ARCHITETTURA.md](docs/ARCHITETTURA.md).
 
 ---
 
 ## Struttura del database (Supabase)
 
-- `users` — dati anagrafici (nome, cognome, data_nascita, maggiorenne)
-- `users_phones` — numeri di telefono dell'utente con prefisso paese
-- `countries` — paesi con codice ISO e prefisso telefonico
-- `locali` — club/locali con nome, indirizzo, foto, generi musicali
-- `serate` — eventi/serate collegate ai locali
+Le tabelle principali (schema `public`):
 
-La persistenza avviene tramite una funzione RPC transazionale:
-`register_user_transaction` — inserisce atomicamente utente + telefono dopo la verifica email.
+| Tabella | Cosa contiene |
+|---|---|
+| `utenti` | Dati anagrafici (nome, cognome, data_nascita, maggiorenne) |
+| `utenti_numeri_telefono` | Numeri di telefono dell'utente con prefisso paese |
+| `paesi`, `citta`, `cap`, `provincia` | Geografia di riferimento per indirizzi e prefissi |
+| `locali` | Club / discoteche (nome, indirizzo, foto, generi musicali, capienza) |
+| `eventi` | Serate collegate a un locale |
+| `prevendite` | Tipologie di biglietti vendibili per un evento (Normale, VIP, ecc.) |
+| `prenotazioni_prevendite` | Biglietti acquistati dagli utenti |
+| `tavoli`, `tavoli_eventi`, `prenotazioni_tavolo` | Tavoli, disponibilità per serata, prenotazioni |
+| `drink` | Catalogo bottiglie / drink |
+| `ordini` | Ordini drink (placeholder per integrazione Stripe futura) |
+| `preferiti` | Locali preferiti dell'utente |
+| `notifiche` | Notifiche utente |
+| `analytics_events` | Eventi di analytics |
+| `gestori`, `staff`, `ingressi_giornalieri` | Tabelle del gestionale (in sviluppo) |
+
+La persistenza dell'utente al termine della registrazione avviene tramite la RPC transazionale `register_user_transaction`, che inserisce atomicamente utente + telefono dopo la verifica email.
+
+La separazione dei dati tra app utente e gestionale è garantita dalla **Row Level Security** (RLS) di Postgres, con la function `my_club_id()` che identifica il club del gestore loggato. Per i dettagli (schema, policy RLS, trigger, view, flussi end-to-end):
+- 👉 [DATABASE.md](DATABASE.md) — riepilogo veloce
+- 👉 [docs/database/struttura_database.md](docs/database/struttura_database.md) — riferimento tecnico completo
 
 ---
 

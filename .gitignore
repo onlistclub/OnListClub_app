@@ -32,9 +32,14 @@ test/
 .pub-cache/
 .pub/
 /env.json
+/run_dev.bat
+/run_prod.bat
 /\.metadata
 /build/
 /coverage/
+
+# MCP config
+.mcp.json
 
 # Symbolication related
 app.*.symbols
