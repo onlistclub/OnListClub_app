@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
+import '../../core/services/location_service.dart';
 import '../../widgets/custom_button.dart';
 import '../../widgets/custom_edit_text.dart';
 import './bloc/complete_profile_bloc.dart';
@@ -44,9 +45,16 @@ class CompleteProfileScreen extends StatelessWidget {
         child: BlocConsumer<CompleteProfileBloc, CompleteProfileState>(
           listener: (context, state) {
             if (state.isSuccess) {
-              NavigatorService.pushNamedAndRemoveUntil(
-                AppRoutes.eventDetailScreen,
-              );
+              // Nuovo account OAuth appena completato: mostra la richiesta
+              // posizione come fanno le altre schermate post-login, salvo che
+              // permesso già concesso o "ricordamelo più tardi" recente.
+              LocationService.shouldShowLocationPrompt().then((show) {
+                NavigatorService.pushNamedAndRemoveUntil(
+                  show
+                      ? AppRoutes.locationPermissionScreen
+                      : AppRoutes.eventDetailScreen,
+                );
+              });
             }
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
               ScaffoldMessenger.of(context).showSnackBar(

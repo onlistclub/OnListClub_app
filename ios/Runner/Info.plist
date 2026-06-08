@@ -52,5 +52,20 @@
         <key>NSAllowsArbitraryLoads</key>
         <true />
     </dict>
+	<!-- Google Sign-In: iOS Client ID + URL scheme inverso per il redirect OAuth.
+	     Senza il CFBundleURLTypes il login Google nativo crasha/non torna all'app. -->
+	<key>GIDClientID</key>
+	<string>73394688512-kt2hojans7apksgvu1rs3d72ofmgistd.apps.googleusercontent.com</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>com.googleusercontent.apps.73394688512-kt2hojans7apksgvu1rs3d72ofmgistd</string>
+			</array>
+		</dict>
+	</array>
 </dict>
 </plist>

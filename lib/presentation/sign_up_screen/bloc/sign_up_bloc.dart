@@ -136,13 +136,14 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       final model = state.signUpModel;
       if (model == null) return;
 
-      // Guard di sicurezza: anche se la UI valida le password, il BLoC non si
-      // affida solo al form — un evento sparato a mano o controller fuori sync
-      // potrebbero arrivare qui con password e confirmPassword diverse.
-      if (model.password.isEmpty || model.password != model.confirmPassword) {
+      // Guard di sicurezza: il form valida già la password (min 8 caratteri),
+      // ma il BLoC non si affida solo alla UI. Non esiste un campo di conferma
+      // password in questa schermata, quindi qui verifichiamo solo che la
+      // password sia presente.
+      if (model.password.isEmpty) {
         emit(state.copyWith(
           isLoading: false,
-          errorMessage: 'Le password non coincidono',
+          errorMessage: 'Inserisci una password',
         ));
         return;
       }

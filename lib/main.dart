@@ -29,10 +29,17 @@ const _kSupabaseUrlDefine = String.fromEnvironment('SUPABASE_URL');
 const _kSupabaseAnonKeyDefine = String.fromEnvironment('SUPABASE_ANON_KEY');
 const _kGoogleWebClientIdDefine =
     String.fromEnvironment('GOOGLE_WEB_CLIENT_ID');
+const _kGoogleIosClientIdDefine =
+    String.fromEnvironment('GOOGLE_IOS_CLIENT_ID');
 
 /// Google Web Client ID — necessario come serverClientId per autenticare i
 /// token Google tramite Supabase Auth.
 String? googleWebClientId;
+
+/// Google iOS Client ID — obbligatorio su iOS per inizializzare l'SDK nativo
+/// GoogleSignIn. Senza, `signIn()` solleva un'eccezione nativa fatale (crash).
+/// Va ricavato da un OAuth Client ID di tipo iOS (bundle com.onlistclub.app).
+String? googleIosClientId;
 
 Future<void> main() async {
   // Assicura che il binding Flutter sia pronto: serve per chiamate native
@@ -51,6 +58,8 @@ Future<void> main() async {
   String supabaseAnonKey = _kSupabaseAnonKeyDefine;
   String? googleClientId =
       _kGoogleWebClientIdDefine.isEmpty ? null : _kGoogleWebClientIdDefine;
+  String? googleIosId =
+      _kGoogleIosClientIdDefine.isEmpty ? null : _kGoogleIosClientIdDefine;
 
   if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
     debugPrint(
@@ -63,6 +72,7 @@ Future<void> main() async {
       supabaseAnonKey = (env['SUPABASE_ANON_KEY'] as String?) ?? '';
     }
     googleClientId ??= env['GOOGLE_WEB_CLIENT_ID'] as String?;
+    googleIosId ??= env['GOOGLE_IOS_CLIENT_ID'] as String?;
   }
 
   googleWebClientId = googleClientId;
@@ -71,6 +81,15 @@ Future<void> main() async {
     debugPrint(
         '[Startup] ⚠️ GOOGLE_WEB_CLIENT_ID non configurato — Google Sign-In non funzionerà.');
     googleWebClientId = null;
+  }
+
+  googleIosClientId = googleIosId;
+  if (googleIosClientId == null ||
+      googleIosClientId!.isEmpty ||
+      googleIosClientId!.contains('SOSTITUIRE')) {
+    debugPrint(
+        '[Startup] ⚠️ GOOGLE_IOS_CLIENT_ID non configurato — Google Sign-In su iOS sarà disabilitato (no crash).');
+    googleIosClientId = null;
   }
 
   debugPrint('[Startup] Initializing Supabase...');

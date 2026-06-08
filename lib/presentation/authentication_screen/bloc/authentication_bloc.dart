@@ -1,3 +1,4 @@
+import 'dart:io' show Platform;
 import 'dart:math';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
@@ -8,7 +9,7 @@ import '../models/authentication_model.dart';
 import '../../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/user_profile_manager.dart';
-import '../../../../main.dart' show googleWebClientId;
+import '../../../../main.dart' show googleWebClientId, googleIosClientId;
 
 part 'authentication_event.dart';
 part 'authentication_state.dart';
@@ -174,10 +175,28 @@ class AuthenticationBloc
   ) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
     try {
+      // GUARD iOS: l'SDK nativo GoogleSignIn richiede un Client ID di tipo iOS.
+      // Se manca, `signIn()` solleva un'eccezione nativa fatale PRIMA che questo
+      // try/catch possa intercettarla → crash dell'app. Blocchiamo qui con un
+      // errore gestito finché GOOGLE_IOS_CLIENT_ID + URL scheme non sono configurati.
+      if (Platform.isIOS &&
+          (googleIosClientId == null || googleIosClientId!.isEmpty)) {
+        debugPrint(
+            '[AuthBloc] Google sign-in iOS: iOS Client ID mancante — abort per evitare crash nativo');
+        emit(state.copyWith(
+          isLoading: false,
+          errorMessage:
+              'Accesso con Google non ancora disponibile su iOS. Usa email o Apple.',
+        ));
+        return;
+      }
+
       // serverClientId è il Web Client ID di Google Cloud Console (type 3).
       // È obbligatorio affinché Supabase possa verificare l'idToken ricevuto.
-      // Configurabile via --dart-define=GOOGLE_WEB_CLIENT_ID=... (fallback env.json).
+      // clientId (iOS) è richiesto solo su iOS; su Android deve restare null.
+      // Configurabili via --dart-define=GOOGLE_WEB_CLIENT_ID / GOOGLE_IOS_CLIENT_ID.
       final googleSignIn = GoogleSignIn(
+        clientId: Platform.isIOS ? googleIosClientId : null,
         serverClientId: googleWebClientId,
       );
       final googleUser = await googleSignIn.signIn();

@@ -206,33 +206,49 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   }
 
   Future<void> _changePassword() async {
-    final email = _emailCtrl.text;
-    if (email.isEmpty) return;
+    final user = Supabase.instance.client.auth.currentUser;
+    if (user == null) return;
 
-    try {
-      await Supabase.instance.client.auth.resetPasswordForEmail(email);
-      await NotificationService.sendPasswordChangeNotification();
+    // Determina se l'utente ha già una password (registrazione via email) o se
+    // è entrato solo con Google/Apple. Nel secondo caso non c'è una password da
+    // verificare: gli si fa "impostare" una nuova password.
+    final providers = (user.appMetadata['providers'] as List?)
+            ?.map((e) => e.toString())
+            .toList() ??
+        const <String>[];
+    final hasPassword = providers.contains('email');
+    final email =
+        _emailCtrl.text.isNotEmpty ? _emailCtrl.text : (user.email ?? '');
 
+    final changed = await showDialog<bool>(
+      context: context,
+      builder: (_) =>
+          _ChangePasswordDialog(hasPassword: hasPassword, email: email),
+    );
+
+    if (changed == true) {
+      // La notifica non è critica: un suo errore non deve mascherare il
+      // successo del cambio password.
+      try {
+        await NotificationService.sendPasswordChangeNotification();
+      } catch (_) {}
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.email_outlined, color: OnlistColors.white, size: 20),
+                const Icon(Icons.check_circle, color: OnlistColors.white, size: 20),
                 const SizedBox(width: 10),
-                Expanded(child: Text('Email di reset inviata a $email', style: OnlistTextStyles.hn(color: OnlistColors.white))),
+                Text(
+                  hasPassword ? 'Password aggiornata!' : 'Password impostata!',
+                  style: OnlistTextStyles.hn(color: OnlistColors.white),
+                ),
               ],
             ),
             backgroundColor: OnlistColors.blueElectric,
             behavior: SnackBarBehavior.floating,
             shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
-        );
-      }
-    } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(content: Text('Errore: $e'), backgroundColor: Colors.redAccent),
         );
       }
     }
@@ -450,7 +466,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         _buildActionTile(
           icon: Icons.lock_outline,
           label: 'Cambia Password',
-          subtitle: 'Ricevi email di reset',
+          subtitle: 'Aggiorna la tua password',
           onTap: _changePassword,
         ),
         _buildActionTile(
@@ -550,6 +566,212 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Dialog di cambio password in-app.
+///
+/// Per gli utenti registrati via email (`hasPassword == true`) chiede la
+/// password attuale e la verifica con un re-login prima di aggiornarla
+/// (Supabase non espone un check diretto della password). Per gli utenti
+/// OAuth (Google/Apple) senza password, consente di impostarne una nuova così
+/// da poter accedere anche con email. Pop con `true` solo se l'aggiornamento
+/// va a buon fine.
+class _ChangePasswordDialog extends StatefulWidget {
+  const _ChangePasswordDialog({required this.hasPassword, required this.email});
+
+  final bool hasPassword;
+  final String email;
+
+  @override
+  State<_ChangePasswordDialog> createState() => _ChangePasswordDialogState();
+}
+
+class _ChangePasswordDialogState extends State<_ChangePasswordDialog> {
+  final _currentCtrl = TextEditingController();
+  final _newCtrl = TextEditingController();
+  final _confirmCtrl = TextEditingController();
+
+  bool _obscureCurrent = true;
+  bool _obscureNew = true;
+  bool _isSaving = false;
+  String? _error;
+
+  @override
+  void dispose() {
+    _currentCtrl.dispose();
+    _newCtrl.dispose();
+    _confirmCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _submit() async {
+    final current = _currentCtrl.text;
+    final newPwd = _newCtrl.text;
+    final confirm = _confirmCtrl.text;
+
+    if (widget.hasPassword && current.isEmpty) {
+      setState(() => _error = 'Inserisci la password attuale');
+      return;
+    }
+    if (newPwd.length < 8) {
+      setState(() => _error = 'La nuova password deve avere almeno 8 caratteri');
+      return;
+    }
+    if (newPwd != confirm) {
+      setState(() => _error = 'Le password non coincidono');
+      return;
+    }
+
+    setState(() {
+      _isSaving = true;
+      _error = null;
+    });
+
+    final client = Supabase.instance.client;
+    try {
+      // Verifica della password attuale via re-login: se le credenziali sono
+      // sbagliate signInWithPassword lancia AuthException.
+      if (widget.hasPassword) {
+        try {
+          await client.auth.signInWithPassword(
+            email: widget.email,
+            password: current,
+          );
+        } on AuthException {
+          setState(() {
+            _isSaving = false;
+            _error = 'Password attuale errata';
+          });
+          return;
+        }
+      }
+
+      await client.auth.updateUser(UserAttributes(password: newPwd));
+      if (mounted) Navigator.pop(context, true);
+    } on AuthException catch (e) {
+      setState(() {
+        _isSaving = false;
+        _error = e.message;
+      });
+    } catch (e) {
+      setState(() {
+        _isSaving = false;
+        _error = 'Errore: $e';
+      });
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: const Color(0xFF1A1A1A),
+      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+      title: Text(
+        widget.hasPassword ? 'Cambia Password' : 'Imposta Password',
+        style: OnlistTextStyles.hn(
+            color: OnlistColors.white, fontWeight: FontWeight.bold),
+      ),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          if (!widget.hasPassword)
+            Padding(
+              padding: const EdgeInsets.only(bottom: 12),
+              child: Text(
+                'Hai effettuato l\'accesso con Google o Apple. Imposta una '
+                'password per poter accedere anche con email.',
+                style: OnlistTextStyles.hn(
+                  color: OnlistColors.white.withValues(alpha: 0.6),
+                  fontSize: 13,
+                ),
+              ),
+            ),
+          if (widget.hasPassword) ...[
+            _field(
+              controller: _currentCtrl,
+              hint: 'Password attuale',
+              obscure: _obscureCurrent,
+              onToggle: () =>
+                  setState(() => _obscureCurrent = !_obscureCurrent),
+            ),
+            const SizedBox(height: 12),
+          ],
+          _field(
+            controller: _newCtrl,
+            hint: 'Nuova password',
+            obscure: _obscureNew,
+            onToggle: () => setState(() => _obscureNew = !_obscureNew),
+          ),
+          const SizedBox(height: 12),
+          _field(
+            controller: _confirmCtrl,
+            hint: 'Conferma nuova password',
+            obscure: _obscureNew,
+          ),
+          if (_error != null) ...[
+            const SizedBox(height: 12),
+            Text(
+              _error!,
+              style: OnlistTextStyles.hn(color: Colors.redAccent, fontSize: 13),
+            ),
+          ],
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: _isSaving ? null : () => Navigator.pop(context, false),
+          child: Text('Annulla',
+              style: OnlistTextStyles.hn(
+                  color: OnlistColors.white.withValues(alpha: 0.54))),
+        ),
+        TextButton(
+          onPressed: _isSaving ? null : _submit,
+          child: _isSaving
+              ? const SizedBox(
+                  height: 18,
+                  width: 18,
+                  child: CircularProgressIndicator(
+                      color: OnlistColors.blueElectric, strokeWidth: 2),
+                )
+              : Text('Salva',
+                  style: OnlistTextStyles.hn(
+                      color: OnlistColors.blueElectric,
+                      fontWeight: FontWeight.bold)),
+        ),
+      ],
+    );
+  }
+
+  Widget _field({
+    required TextEditingController controller,
+    required String hint,
+    required bool obscure,
+    VoidCallback? onToggle,
+  }) {
+    return TextField(
+      controller: controller,
+      obscureText: obscure,
+      style: OnlistTextStyles.hn(color: OnlistColors.white, fontSize: 15),
+      cursorColor: OnlistColors.white,
+      decoration: InputDecoration(
+        hintText: hint,
+        hintStyle: OnlistTextStyles.hn(
+            color: OnlistColors.white.withValues(alpha: 0.4), fontSize: 15),
+        isDense: true,
+        enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: Colors.white24)),
+        focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: OnlistColors.blueElectric)),
+        suffixIcon: onToggle == null
+            ? null
+            : IconButton(
+                icon: Icon(obscure ? Icons.visibility_off : Icons.visibility,
+                    color: Colors.white54, size: 20),
+                onPressed: onToggle,
+              ),
       ),
     );
   }

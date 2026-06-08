@@ -1,3 +1,4 @@
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 
@@ -12,6 +13,7 @@ import '../../routes/app_routes.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
+import '../../widgets/image_fallback.dart';
 import '../../widgets/onlist_primary_button.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/custom_top_bar.dart';
@@ -316,49 +318,72 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   }
 
   Widget _buildClubHeader(LocaleModel? locale, SerataModel? serata) {
+    // Immagine dal DB: priorità alla locandina della serata, poi alla foto del
+    // locale. Niente più sfondo hardcoded: se mancano entrambe si mostra il
+    // fallback unico, mai una foto finta.
+    final imageUrl = serata?.locandinaUrl ?? locale?.fotoUrl;
+
     return Container(
       // minHeight (non height fissa): se il titolo va a capo su 2 righe il box
       // cresce invece di andare in overflow (il vecchio height:200 tagliava 18px).
       constraints: const BoxConstraints(minHeight: 200),
       width: double.infinity,
       margin: const EdgeInsets.symmetric(horizontal: 15),
-      decoration: BoxDecoration(
+      child: ClipRRect(
         borderRadius: BorderRadius.circular(20),
-        image: const DecorationImage(
-          image: AssetImage('assets/images/club_bg.png'),
-          fit: BoxFit.cover,
-          colorFilter: ColorFilter.mode(Colors.black38, BlendMode.darken),
-        ),
-      ),
-      child: Padding(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          mainAxisAlignment: MainAxisAlignment.end,
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            Text(
-              serata?.nome ?? locale?.nome ?? 'Amnesia Club',
-              style: OnlistTextStyles.hn(
-                color: Colors.white,
-                fontSize: R.sp(32),
-                fontWeight: FontWeight.bold,
+            // Sfondo: immagine reale dal DB con fallback su errore/assenza.
+            Positioned.fill(
+              child: (imageUrl != null && imageUrl.isNotEmpty)
+                  ? CachedNetworkImage(
+                      imageUrl: imageUrl,
+                      fit: BoxFit.cover,
+                      placeholder: (_, __) =>
+                          const ColoredBox(color: OnlistColors.blueDeep),
+                      errorWidget: (_, __, ___) => const ImageFallback(),
+                    )
+                  : const ImageFallback(),
+            ),
+            // Overlay scuro per la leggibilità del testo.
+            const Positioned.fill(
+              child: DecoratedBox(
+                decoration: BoxDecoration(color: Colors.black38),
               ),
             ),
-            Text(
-              locale?.indirizzoCompleto ?? 'Milano - Via Alfonso Gatto',
-              style: OnlistTextStyles.hn(
-                color: Colors.white,
-                fontSize: R.sp(16),
-              ),
-            ),
-            const SizedBox(height: 4),
-            Text(
-              serata != null
-                  ? '${DateFormat('MMMM d').format(serata.data)} - ${serata.orarioString}'
-                  : 'Agosto 22 - 22:00 - 04:00',
-              style: OnlistTextStyles.hn(
-                color: Colors.white70,
-                fontSize: R.sp(14),
+            // Contenuto testuale (dimensiona lo Stack, da cui il minHeight cresce).
+            Padding(
+              padding: const EdgeInsets.all(20),
+              child: Column(
+                mainAxisAlignment: MainAxisAlignment.end,
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    serata?.nome ?? locale?.nome ?? '',
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white,
+                      fontSize: R.sp(32),
+                      fontWeight: FontWeight.bold,
+                    ),
+                  ),
+                  Text(
+                    locale?.indirizzoCompleto ?? '',
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white,
+                      fontSize: R.sp(16),
+                    ),
+                  ),
+                  const SizedBox(height: 4),
+                  Text(
+                    serata != null
+                        ? '${DateFormat('MMMM d').format(serata.data)} - ${serata.orarioString}'
+                        : '',
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white70,
+                      fontSize: R.sp(14),
+                    ),
+                  ),
+                ],
               ),
             ),
           ],

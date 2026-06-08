@@ -35,18 +35,24 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
     if (!mounted) return;
 
     try {
-      if (AuthService.instance.isLoggedIn) {
-        NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
-      } else {
-        // Sessione assente o scaduta non-rinnovabile: si forza il logout
-        // per pulire eventuale stato residuo e si manda al login.
-        if (AuthService.instance.currentSession != null) {
-          await AuthService.instance.signOut();
-          return; // il listener naviga ad authenticationScreen
-        }
+      final session = AuthService.instance.currentSession;
+      if (session == null) {
+        // Nessuna sessione persistita: utente non loggato → login.
         NavigatorService.pushNamedAndRemoveUntil(
             AppRoutes.authenticationScreen);
+        return;
       }
+      if (AuthService.instance.isLoggedIn) {
+        // Sessione valida (token non scaduto): entra diretto.
+        NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
+        return;
+      }
+      // Sessione presente ma access token scaduto (gli access token Supabase
+      // durano ~1h): NON fare logout — si tenta il refresh col refresh token.
+      // Se riesce, l'utente resta loggato e non deve rifare il login; se
+      // fallisce (refresh token revocato/utente eliminato) si ripiega sul login.
+      await AuthService.instance.refreshSession();
+      NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
     } catch (e) {
       debugPrint('[Splash] Session check error: $e');
       NavigatorService.pushNamedAndRemoveUntil(AppRoutes.authenticationScreen);

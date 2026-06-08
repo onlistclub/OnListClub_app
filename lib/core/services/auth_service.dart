@@ -64,6 +64,15 @@ class AuthService {
     return !s.isExpired;
   }
 
+  /// Forza il rinnovo dell'access token usando il refresh token persistito.
+  /// Da usare quando esiste una sessione il cui access token è scaduto: invece
+  /// di buttare via la sessione (logout), si tenta il refresh. Lancia
+  /// un'eccezione se il refresh token è revocato/non valido: in quel caso il
+  /// chiamante ripiega sul login.
+  Future<void> refreshSession() async {
+    await Supabase.instance.client.auth.refreshSession();
+  }
+
   /// Logout esplicito. La navigazione viene gestita dal listener.
   Future<void> signOut() async {
     try {
