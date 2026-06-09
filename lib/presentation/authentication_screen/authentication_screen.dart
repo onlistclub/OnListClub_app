@@ -110,7 +110,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                               label: 'Accedi',
                               onTap: () => _onTapAccedi(context, state),
                             ),
-                            const SizedBox(height: 16),
+                            const SizedBox(height: 22),
                             _WhiteButton(
                               label: 'Registrati',
                               onTap: () {
@@ -135,7 +135,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                                 .add(AppleSignInEvent());
                           },
                         ),
-                        const SizedBox(height: 12),
+                        const SizedBox(height: 22),
                         _GoogleButton(
                           onTap: () {
                             AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'google'});
@@ -180,9 +180,9 @@ InputDecoration _underlineDecoration({Widget? suffixIcon}) {
     filled: false,
     contentPadding: const EdgeInsets.only(top: 8, bottom: 6),
     enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: OnlistColors.white, width: 2)),
+        borderSide: BorderSide(color: OnlistColors.white, width: 3)),
     focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: OnlistColors.white, width: 2)),
+        borderSide: BorderSide(color: OnlistColors.white, width: 3)),
     errorBorder: const UnderlineInputBorder(
         borderSide: BorderSide(color: Colors.redAccent, width: 2)),
     focusedErrorBorder: const UnderlineInputBorder(
@@ -364,7 +364,7 @@ class _GoogleButton extends StatelessWidget {
 
 const TextStyle _kSocialLabel = TextStyle(
   fontFamily: 'HelveticaNeue',
-  fontSize: 16,
+  fontSize: 19.48, // Figma: SF Pro/Roboto 19.48px
   fontWeight: FontWeight.w500,
   color: Color(0xBD000000), // rgba(0,0,0,0.74)
 );

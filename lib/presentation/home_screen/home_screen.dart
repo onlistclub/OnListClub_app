@@ -428,120 +428,25 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     final locale = state.localeVicino;
     if (locale == null) return const SizedBox.shrink();
 
-    String orario = '23:00 - 05:00';
-    if (state.upcomingEventi.isNotEmpty) {
-      final p = state.upcomingEventi.first;
-      if (p.orarioString.isNotEmpty) {
-        orario = p.orarioString;
-      }
-    }
-
-    final priceStr = locale.prezzoString;
-    final emptyPrice = '€' * (5 - locale.prezzoIndicativo).clamp(0, 5);
-
     final addr = [
       if (locale.nomeCitta != null && locale.nomeCitta!.isNotEmpty) locale.nomeCitta!,
       if (locale.indirizzo != null && locale.indirizzo!.isNotEmpty) locale.indirizzo!,
     ].join(' - ');
 
+    // Figma 07-aggiornato: sotto l'hero c'è solo l'indirizzo (Helvetica Neue 500 24px).
+    // Le righe orario/prezzo/generi sono state rimosse per aderire al layout Figma.
     return Padding(
       padding: const EdgeInsets.fromLTRB(14, 3, 14, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Indirizzo
-          Opacity(
-            opacity: 0.6,
-            child: Text(
-              addr,
-              style: OnlistTextStyles.hn(
-                fontSize: R.sp(16),
-                color: Colors.white,
-                fontWeight: FontWeight.w700,
-                height: 18 / 16,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          const SizedBox(height: 11),
-          
-          // Orario e prezzo
-          Row(
-            children: [
-              const Opacity(
-                opacity: 0.6,
-                child: Icon(Icons.access_time, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 6),
-              Opacity(
-                opacity: 0.6,
-                child: Text(
-                  orario,
-                  style: OnlistTextStyles.hn(
-                    fontSize: R.sp(16),
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    height: 18 / 16,
-                  ),
-                ),
-              ),
-              const SizedBox(width: 14),
-              RichText(
-                text: TextSpan(
-                  children: [
-                    TextSpan(
-                      text: priceStr,
-                      style: OnlistTextStyles.hn(
-                        fontSize: R.sp(16),
-                        color: Colors.white,
-                        fontWeight: FontWeight.w500,
-                        height: 22 / 16,
-                      ),
-                    ),
-                    TextSpan(
-                      text: emptyPrice,
-                      style: OnlistTextStyles.hn(
-                        fontSize: R.sp(16),
-                        color: Colors.white.withValues(alpha: 0.3),
-                        fontWeight: FontWeight.w500,
-                        height: 22 / 16,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 13),
-
-          // Generi musicali
-          Row(
-            children: [
-              const Opacity(
-                opacity: 0.6,
-                child: Icon(Icons.music_note, color: Colors.white, size: 20),
-              ),
-              const SizedBox(width: 6),
-              Expanded(
-                child: Opacity(
-                  opacity: 0.6,
-                  child: Text(
-                    locale.generiString.isNotEmpty ? locale.generiString : 'Tutti i generi',
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(16),
-                      color: Colors.white,
-                      fontWeight: FontWeight.w700,
-                      height: 18 / 16,
-                    ),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                  ),
-                ),
-              ),
-            ],
-          ),
-        ],
+      child: Text(
+        addr,
+        style: OnlistTextStyles.hn(
+          fontSize: R.sp(24),
+          color: Colors.white,
+          fontWeight: FontWeight.w500,
+          height: 24 / 24,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -676,11 +581,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   maxLines: 1,
                   overflow: TextOverflow.ellipsis,
                   style: OnlistTextStyles.hn(
-                    fontSize: 28,
+                    fontSize: 32,
                     fontWeight: FontWeight.w700,
                     color: Colors.white,
-                    height: 33 / 28,
-                    letterSpacing: -0.08 * 28,
+                    height: 37 / 32,
+                    letterSpacing: -0.08 * 32,
                   ),
                 ),
               ),

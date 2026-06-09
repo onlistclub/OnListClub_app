@@ -410,7 +410,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
               child: Icon(
                 state.isPreferito ? Icons.bookmark : Icons.bookmark_border,
                 color: Colors.white,
-                size: R.sp(32),
+                size: R.sp(48),
               ),
             ),
           ),
@@ -429,9 +429,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         child: Text(
           locale.indirizzoCompleto,
           style: OnlistTextStyles.hn(
-            fontSize: R.sp(16),
-            fontWeight: FontWeight.w400,
-            color: Colors.white.withValues(alpha: 0.6),
+            fontSize: R.sp(23),
+            fontWeight: FontWeight.w500,
+            color: Colors.white.withValues(alpha: 0.8),
           ),
         ),
       ),
@@ -455,14 +455,14 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             Row(
               children: [
                 Icon(Icons.access_time_rounded,
-                    color: Colors.white.withValues(alpha: 0.7), size: 16),
+                    color: Colors.white.withValues(alpha: 0.6), size: 20),
                 const SizedBox(width: 6),
                 Text(
                   orario,
                   style: OnlistTextStyles.hn(
-                    fontSize: R.sp(14),
-                    fontWeight: FontWeight.w400,
-                    color: Colors.white.withValues(alpha: 0.7),
+                    fontSize: R.sp(18),
+                    fontWeight: FontWeight.w700,
+                    color: Colors.white.withValues(alpha: 0.6),
                   ),
                 ),
               ],
@@ -472,15 +472,15 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             Row(
               children: [
                 Icon(Icons.music_note_rounded,
-                    color: Colors.white.withValues(alpha: 0.7), size: 16),
+                    color: Colors.white.withValues(alpha: 0.6), size: 20),
                 const SizedBox(width: 6),
                 Expanded(
                   child: Text(
                     generi,
                     style: OnlistTextStyles.hn(
-                      fontSize: R.sp(14),
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white.withValues(alpha: 0.7),
+                      fontSize: R.sp(18),
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white.withValues(alpha: 0.6),
                     ),
                   ),
                 ),
@@ -557,14 +557,16 @@ class _SerataCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final status = serata.statusPosti;
-    final isSoldOut = status == 'Sold Out';
+    final isSoldOut = serata.statusPosti == 'Sold Out';
     final generi = serata.generiMusicali.isNotEmpty
         ? serata.generiMusicali.join(' - ')
         : locale.generiString;
 
+    // Card "Prossime serate" — layout Figma 10 (Frame 351, design 369×132):
+    // locandina 95×119 a sx, titolo/OGGI/data/orario/generi a dx, PRENOTA 86×38.
+    // Disegnata a dimensione fissa e scalata a larghezza, come le card della home.
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 13, vertical: 6),
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
       // Tap sulla card serata → schermata 19 (pop-up info serata).
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
@@ -572,147 +574,203 @@ class _SerataCard extends StatelessWidget {
           AppRoutes.eventInfoPopupScreen,
           arguments: {'serata': serata, 'club': locale},
         ),
-        child: Container(
-          height: 140,
-          clipBehavior: Clip.hardEdge,
-          decoration: BoxDecoration(
-            gradient: OnlistColors.cardSummary,
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Row(
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              // Locandina serata (sx)
-              SizedBox(
-                width: 130,
-                child: serata.locandinaUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: serata.locandinaUrl!,
-                        fit: BoxFit.cover,
-                        memCacheWidth: 390,
-                        errorWidget: (_, __, ___) => const ImageFallback(),
-                      )
-                    : const ImageFallback(),
+        child: _scaleToWidth(
+          designW: 369,
+          designH: 132,
+          child: Container(
+            width: 369,
+            height: 132,
+            decoration: BoxDecoration(
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFF000000), Color(0xFF000B83)],
+                stops: [0.2837, 0.7933],
               ),
-              // Info (dx)
-              Expanded(
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 10, 12, 10),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      // Blocco superiore: titolo + OGGI + data + orario
-                      Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(
-                            serata.nome,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: OnlistTextStyles.hn(
-                              fontSize: R.sp(22),
-                              fontWeight: FontWeight.w700,
-                              color: Colors.white,
-                              height: 22 / 22,
-                              letterSpacing: -0.04 * 22,
-                            ),
-                          ),
-                          if (_isToday) ...[
-                            const SizedBox(height: 2),
-                            Text(
-                              'OGGI',
-                              style: OnlistTextStyles.hn(
-                                fontSize: R.sp(20),
-                                fontWeight: FontWeight.w700,
-                                color: Colors.white,
-                                height: 22 / 20,
-                                letterSpacing: -0.06 * 20,
-                              ),
-                            ),
-                          ],
-                          const SizedBox(height: 4),
-                          Text(
-                            _formatData(serata.data),
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
-                            style: OnlistTextStyles.hn(
-                              fontSize: R.sp(12),
-                              fontWeight: FontWeight.w400,
-                              color: Colors.white,
-                            ),
-                          ),
-                          if (serata.orarioString.isNotEmpty)
-                            Text(
-                              serata.orarioString,
-                              style: OnlistTextStyles.hn(
-                                fontSize: R.sp(12),
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white,
-                              ),
-                            ),
-                        ],
-                      ),
-                      // Blocco inferiore: generi + bottone PRENOTA
-                      Row(
-                        crossAxisAlignment: CrossAxisAlignment.end,
-                        children: [
-                          Expanded(
-                            child: Text(
-                              generi,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: OnlistTextStyles.hn(
-                                fontSize: R.sp(11),
-                                fontWeight: FontWeight.w500,
-                                color: Colors.white.withValues(alpha: 0.65),
-                              ),
-                            ),
-                          ),
-                          const SizedBox(width: 8),
-                          GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: isSoldOut
-                                ? null
-                                : () => NavigatorService.pushNamed(
-                                      AppRoutes.bookingScreen,
-                                      arguments: {
-                                        'serata': serata,
-                                        'club': locale,
-                                      },
-                                    ),
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 16, vertical: 8),
-                              decoration: BoxDecoration(
-                                color: isSoldOut
-                                    ? Colors.white.withValues(alpha: 0.18)
-                                    : Colors.white,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                isSoldOut ? 'ESAURITO' : 'PRENOTA',
-                                style: OnlistTextStyles.hn(
-                                  fontSize: R.sp(13),
-                                  fontWeight: FontWeight.w700,
-                                  color: isSoldOut
-                                      ? Colors.white60
-                                      : OnlistColors.blueIntense2,
-                                  letterSpacing: -0.04 * 13,
-                                ),
-                              ),
-                            ),
-                          ),
-                        ],
-                      ),
-                    ],
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Stack(
+              children: [
+                // Locandina 95×119 @ (6,6)
+                Positioned(
+                  left: 6,
+                  top: 6,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 95,
+                      height: 119,
+                      child: serata.locandinaUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: serata.locandinaUrl!,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 285,
+                              errorWidget: (_, __, ___) => const ImageFallback(),
+                            )
+                          : const ImageFallback(),
+                    ),
                   ),
                 ),
-              ),
-            ],
+                // Titolo serata @ (106,2)
+                Positioned(
+                  left: 106,
+                  top: 2,
+                  right: 8,
+                  child: Text(
+                    serata.nome,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: OnlistTextStyles.hn(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 37 / 32,
+                      letterSpacing: -0.08 * 32,
+                    ),
+                  ),
+                ),
+                // OGGI @ (106,39) — solo se la serata è oggi
+                if (_isToday)
+                  Positioned(
+                    left: 106,
+                    top: 39,
+                    child: Text(
+                      'OGGI',
+                      style: OnlistTextStyles.hn(
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 28 / 24,
+                        letterSpacing: -0.08 * 24,
+                      ),
+                    ),
+                  ),
+                // Data @ (105,70)
+                Positioned(
+                  left: 105,
+                  top: 70,
+                  child: Text(
+                    _formatData(serata.data),
+                    style: OnlistTextStyles.hn(
+                      fontSize: 18,
+                      fontWeight: FontWeight.w400,
+                      color: Colors.white,
+                      height: 18 / 18,
+                    ),
+                  ),
+                ),
+                // Orario @ (106,90)
+                if (serata.orarioString.isNotEmpty)
+                  Positioned(
+                    left: 106,
+                    top: 90,
+                    child: Text(
+                      serata.orarioString,
+                      style: OnlistTextStyles.hn(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w400,
+                        color: Colors.white,
+                        height: 13 / 13,
+                      ),
+                    ),
+                  ),
+                // Generi @ (106,109)
+                Positioned(
+                  left: 106,
+                  top: 109,
+                  right: 100,
+                  child: Text(
+                    generi,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: OnlistTextStyles.hn(
+                      fontSize: 13,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 13 / 13,
+                    ),
+                  ),
+                ),
+                // PRENOTA @ (274,88) — 86×38
+                Positioned(
+                  left: 274,
+                  top: 88,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: isSoldOut
+                        ? null
+                        : () => NavigatorService.pushNamed(
+                              AppRoutes.bookingScreen,
+                              arguments: {'serata': serata, 'club': locale},
+                            ),
+                    child: Container(
+                      width: 86,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        gradient: isSoldOut
+                            ? null
+                            : const LinearGradient(
+                                begin: Alignment.centerLeft,
+                                end: Alignment.centerRight,
+                                colors: [Color(0xFF000000), Color(0xFF000B83)],
+                              ),
+                        color: isSoldOut
+                            ? Colors.white.withValues(alpha: 0.18)
+                            : null,
+                        borderRadius: BorderRadius.circular(6.48),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            offset: const Offset(0, 4),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        isSoldOut ? 'ESAURITO' : 'PRENOTA',
+                        style: OnlistTextStyles.hn(
+                          fontSize: 15.55,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 18 / 15.55,
+                          letterSpacing: -0.1 * 15.55,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+// ── Scala-a-larghezza ────────────────────────────────────────────────────────
+// Scala un contenuto progettato a dimensione fissa (designW×designH) per
+// riempire la larghezza disponibile mantenendo le proporzioni esatte del Figma.
+Widget _scaleToWidth({
+  required double designW,
+  required double designH,
+  required Widget child,
+}) {
+  return LayoutBuilder(
+    builder: (context, constraints) {
+      final ratio = constraints.maxWidth / designW;
+      final scale = ratio < 1.15 ? ratio : 1.15;
+      return Center(
+        child: SizedBox(
+          width: designW * scale,
+          height: designH * scale,
+          child: FittedBox(
+            fit: BoxFit.fill,
+            child: SizedBox(width: designW, height: designH, child: child),
+          ),
+        ),
+      );
+    },
+  );
 }
