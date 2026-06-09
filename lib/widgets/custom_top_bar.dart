@@ -39,7 +39,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               tag: 'app_logo',
               child: Image.asset(
                 ImageConstant.imgLogoOnlist,
-                height: 92,
+                height: 120, // più grande, vicino alla proporzione del Figma nav-bar
                 fit: BoxFit.contain,
               ),
             ),
@@ -52,7 +52,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                   onTap: onSearchTap ?? () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
                   child: const Padding(
                     padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.search, color: Colors.white, size: 28),
+                    child: Icon(Icons.search, color: Colors.white, size: 30),
                   ),
                 ),
               if (showProfile) ...[
@@ -61,7 +61,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                   onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
                   child: const Padding(
                     padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.person_outline, color: Colors.white, size: 28),
+                    child: Icon(Icons.person_outline, color: Colors.white, size: 30),
                   ),
                 ),
               ],
@@ -72,7 +72,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  // Logo 92 + padding verticale 10+10 = 112.
+  // Logo 120 + padding verticale 10+10 = 140.
   @override
-  Size get preferredSize => const Size.fromHeight(112);
+  Size get preferredSize => const Size.fromHeight(140);
 }

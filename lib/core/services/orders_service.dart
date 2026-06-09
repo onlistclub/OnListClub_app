@@ -47,6 +47,12 @@ class OrdersService {
             return item;
           })
           .whereType<Map<String, dynamic>>()
+          // Le prevendite annullate non compaiono più nel riepilogo ordini.
+          .where((item) =>
+              ((item['prenotazioni'] as Map<String, dynamic>?)?['stato']
+                      ?.toString()
+                      .toLowerCase()) !=
+                  'annullata')
           .toList();
     } catch (e) {
       debugPrint('[OrdersService] getPrevenditeOrdini errore: $e');
@@ -54,16 +60,19 @@ class OrdersService {
     }
   }
 
-  /// Annulla una prevendita impostando lo stato della prenotazione a
-  /// 'annullata' (soft delete: in MVP conserviamo i dati per analisi).
+  /// Annulla una prevendita.
+  ///
+  /// L'UPDATE diretto su `prenotazioni` è bloccato dalla RLS (non esiste una
+  /// policy UPDATE), quindi usiamo la RPC `annulla_prevendita` (SECURITY
+  /// DEFINER): imposta `stato='annullata'` per la prenotazione dell'utente, il
+  /// che fa scattare il trigger `trg_restore_prevendita_stock` → il posto torna
+  /// libero. La prenotazione annullata viene poi nascosta dalla lista ordini.
   static Future<void> annullaPrevendita(String idPrenotazione) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Utente non autenticato');
-    await _client
-        .from('prenotazioni')
-        .update({'stato': 'annullata'})
-        .eq('id', idPrenotazione)
-        .eq('id_utente', user.id);
+    await _client.rpc('annulla_prevendita', params: {
+      'p_id_prenotazione': idPrenotazione,
+    });
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

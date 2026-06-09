@@ -71,6 +71,8 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // Footer flottante: le liste scorrono dietro la capsula (non la oscura).
+      extendBody: true,
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
@@ -150,7 +152,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     }
     final sections = _groupByDate(_prevendite, _prevenditaDate);
     return ListView.builder(
-      padding: EdgeInsets.fromLTRB(16, R.sp(12), 16, R.sp(24)),
+      padding: EdgeInsets.fromLTRB(16, R.sp(12), 16, R.sp(24) + SharedFooter.height),
       itemCount: sections.length,
       itemBuilder: (context, i) {
         final section = sections[i];
@@ -181,7 +183,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     }
     final sections = _groupByDate(_tavoli, _tavoloDate);
     return ListView.builder(
-      padding: EdgeInsets.fromLTRB(16, R.sp(12), 16, R.sp(24)),
+      padding: EdgeInsets.fromLTRB(16, R.sp(12), 16, R.sp(24) + SharedFooter.height),
       itemCount: sections.length,
       itemBuilder: (context, i) {
         final section = sections[i];
@@ -283,7 +285,7 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                   children: [
                     if (prezzo != null)
                       Text(
-                        '$prezzo€',
+                        '${_fmtPrezzo(prezzo)}€',
                         style: OnlistTextStyles.hn(
                           color: Colors.white,
                           fontSize: R.sp(72),
@@ -516,10 +518,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
       buckets.putIfAbsent(key, () => _Bucket(d)).items.add(item);
     }
     final list = buckets.values.toList()
+      // Ordine decrescente: prima le date più recenti (dal più nuovo al più vecchio).
       ..sort((a, b) {
         if (a.date == null) return 1;
         if (b.date == null) return -1;
-        return a.date!.compareTo(b.date!);
+        return b.date!.compareTo(a.date!);
       });
     return list.map((b) => _DateSection(_dateLabel(b.date), b.items)).toList();
   }
@@ -538,6 +541,13 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
   String _capitalize(String s) {
     if (s.isEmpty) return s;
     return '${s[0].toUpperCase()}${s.substring(1)}';
+  }
+
+  // Prezzo senza decimali quando è un intero (10.0 → "10", 12.5 → "12.5").
+  String _fmtPrezzo(dynamic v) {
+    final n = v is num ? v : num.tryParse('$v');
+    if (n == null) return '$v';
+    return n % 1 == 0 ? n.toInt().toString() : n.toString();
   }
 }
 

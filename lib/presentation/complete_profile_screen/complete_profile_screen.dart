@@ -57,9 +57,7 @@ class CompleteProfileScreen extends StatelessWidget {
               });
             }
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!)),
-              );
+              showAppErrorDialog(context, state.errorMessage!);
             }
           },
           builder: (context, state) {

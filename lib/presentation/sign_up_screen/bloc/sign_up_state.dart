@@ -75,7 +75,9 @@ class SignUpState extends Equatable {
       formKey: formKey ?? this.formKey,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
-      errorMessage: errorMessage ?? this.errorMessage,
+      // Transitorio: non usiamo `?? this.errorMessage` così l'errore non
+      // persiste tra un emit e l'altro e il dialog non si ripete a ogni tasto.
+      errorMessage: errorMessage,
       signUpModel: signUpModel ?? this.signUpModel,
       // no custom countries state
     );

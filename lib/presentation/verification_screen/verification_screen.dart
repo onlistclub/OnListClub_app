@@ -50,10 +50,8 @@ class VerificationScreen extends StatelessWidget {
           if (state.errorMessage != null &&
               state.errorMessage == "Verifica prima l'email") {
             _showVerificationDialog(context);
-          } else if (state.errorMessage != null) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              SnackBar(content: Text(state.errorMessage!)),
-            );
+          } else if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+            showAppErrorDialog(context, state.errorMessage!);
           }
           if (state.emailResentMessage != null) {
             ScaffoldMessenger.of(context).showSnackBar(

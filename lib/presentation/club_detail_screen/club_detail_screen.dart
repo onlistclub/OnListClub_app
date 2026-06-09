@@ -201,6 +201,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+      extendBody: true,
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: BlocConsumer<ClubDetailBloc, ClubDetailState>(
@@ -237,6 +239,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                 // Body
                 Expanded(
                   child: SingleChildScrollView(
+                    padding: const EdgeInsets.only(bottom: SharedFooter.height),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

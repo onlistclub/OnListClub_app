@@ -34,6 +34,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Sfondo nero: evita la striscia bianca (scaffold di default) nella zona
+      // safe-area in basso, dove il gradiente termina comunque in nero.
+      backgroundColor: OnlistColors.black,
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
         child: BlocConsumer<AuthenticationBloc, AuthenticationState>(
@@ -61,9 +64,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
             }
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
               AnalyticsService.log(event: 'login_error', metadata: {'error': state.errorMessage});
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!)),
-              );
+              showAppErrorDialog(context, state.errorMessage!);
             }
           },
           builder: (context, state) {

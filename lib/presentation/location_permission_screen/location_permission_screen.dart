@@ -39,10 +39,8 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
               NavigatorService.pushNamedAndRemoveUntil(
                   AppRoutes.locationManualScreen);
             }
-            if (state.errorMessage != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!)),
-              );
+            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+              showAppErrorDialog(context, state.errorMessage!);
             }
           },
           builder: (context, state) {

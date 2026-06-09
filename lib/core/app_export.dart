@@ -13,3 +13,4 @@ export 'constants/image_constant.dart';
 export 'utils/size_utils.dart';
 export 'utils/responsive.dart';
 export '../widgets/custom_image_view.dart';
+export '../widgets/app_error_dialog.dart';

@@ -51,9 +51,7 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
             }
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
               AnalyticsService.log(event: 'registration_error', metadata: {'error': state.errorMessage});
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!)),
-              );
+              showAppErrorDialog(context, state.errorMessage!);
             }
           },
           builder: (context, state) {

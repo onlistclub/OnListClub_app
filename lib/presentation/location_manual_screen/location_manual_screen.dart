@@ -58,10 +58,8 @@ class _LocationManualScreenState extends State<LocationManualScreen> with Screen
               NavigatorService.pushNamedAndRemoveUntil(
                   AppRoutes.eventDetailScreen);
             }
-            if (state.errorMessage != null) {
-              ScaffoldMessenger.of(context).showSnackBar(
-                SnackBar(content: Text(state.errorMessage!)),
-              );
+            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
+              showAppErrorDialog(context, state.errorMessage!);
             }
             if (state.selectedCitta != null &&
                 _cittaCtrl.text != state.selectedCitta!.nomeCitta) {

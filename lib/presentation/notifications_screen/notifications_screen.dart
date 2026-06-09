@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
 import '../../core/app_export.dart';
 import '../../core/services/notification_service.dart';
-import '../../core/services/club_service.dart';
 import '../../core/models/notification_model.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
@@ -39,6 +38,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // Footer flottante: la lista scorre dietro la capsula (non la oscura).
+      extendBody: true,
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
@@ -63,14 +64,30 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
                     if (notifications.isEmpty) {
                       return _buildEmptyState();
                     }
-                    return ListView.separated(
-                      padding: const EdgeInsets.fromLTRB(12, 16, 12, 16),
-                      itemCount: notifications.length,
-                      separatorBuilder: (_, __) => const SizedBox(height: 16),
-                      itemBuilder: (context, index) => StaggeredItem(
-                        index: index,
-                        child: _buildNotificationCard(notifications[index]),
-                      ),
+                    // Raggruppa per data (la lista arriva già newest-first dal service):
+                    // una sola intestazione data, sotto tutte le notifiche di quel giorno.
+                    final sections = _groupByDate(notifications);
+                    return ListView.builder(
+                      padding: const EdgeInsets.fromLTRB(12, 16, 12, 16 + SharedFooter.height),
+                      itemCount: sections.length,
+                      itemBuilder: (context, index) {
+                        final section = sections[index];
+                        return StaggeredItem(
+                          index: index,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Padding(
+                                padding: EdgeInsets.only(
+                                    left: 4, top: index == 0 ? 0 : 12, bottom: 8),
+                                child: Text(section.label,
+                                    style: OnlistTextStyles.title28Regular),
+                              ),
+                              ...section.notifications.map(_buildNotificationCard),
+                            ],
+                          ),
+                        );
+                      },
                     );
                   },
                 ),
@@ -97,66 +114,111 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
     );
   }
 
-  // Layout minimal (Figma 16): label data + card gradiente con titolo grande.
+  // Card notifica cliccabile: titolo CENTRATO su gradiente (Figma 16).
   Widget _buildNotificationCard(NotificationModel n) {
     return GestureDetector(
-      onTap: () async {
-        switch (n.tipo) {
-          case 'prenotazione':
-          case 'promemoria_evento':
-            // Verso gli ordini (riepilogo prevendite/tavoli).
-            NavigatorService.pushNamed(AppRoutes.ordersScreen);
-            break;
-          case 'posizione_club':
-            // Apre la posizione/mappa del club: recupero il locale dall'id.
-            if (n.relatedId != null) {
-              final locale = await ClubService.getLocaleById(n.relatedId!);
-              if (locale != null) {
-                NavigatorService.pushNamed(
-                  AppRoutes.clubDetailScreen,
-                  arguments: locale,
-                );
-              }
-            }
-            break;
-        }
-        if (!n.letto) {
-          await NotificationService.markAsRead(n.id);
-          if (!mounted) return;
-          setState(() {
-            _future = NotificationService.getNotifications();
-          });
-        }
-      },
+      onTap: () => _onNotificationTap(n),
       behavior: HitTestBehavior.opaque,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Text(_dateFormat.format(n.createdAt),
-              style: OnlistTextStyles.title28Regular),
-          const SizedBox(height: 4),
-          Container(
-            width: double.infinity,
-            height: 66,
-            padding: const EdgeInsets.symmetric(horizontal: 16),
-            alignment: Alignment.centerLeft,
-            decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [Color(0x33FFFFFF), Color(0x331E00FF)],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Text(
-              n.titolo,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-              style: OnlistTextStyles.ticketLabel,
-            ),
+      child: Container(
+        width: double.infinity,
+        height: 66,
+        margin: const EdgeInsets.only(bottom: 12),
+        padding: const EdgeInsets.symmetric(horizontal: 16),
+        alignment: Alignment.center,
+        decoration: BoxDecoration(
+          gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0x33FFFFFF), Color(0x331E00FF)],
           ),
-        ],
+          borderRadius: BorderRadius.circular(10),
+        ),
+        child: Text(
+          n.titolo,
+          maxLines: 1,
+          textAlign: TextAlign.center,
+          overflow: TextOverflow.ellipsis,
+          style: OnlistTextStyles.ticketLabel,
+        ),
       ),
     );
   }
+
+  // ── Tap: naviga a una destinazione reale + marca come letta ────────────────
+  Future<void> _onNotificationTap(NotificationModel n) async {
+    _navigateFor(n);
+    if (!n.letto) {
+      await NotificationService.markAsRead(n.id);
+      if (!mounted) return;
+      setState(() {
+        _future = NotificationService.getNotifications();
+      });
+    }
+  }
+
+  void _navigateFor(NotificationModel n) {
+    final relatedId = n.relatedId;
+    // Deep-link verso un club specifico (posizione / nuova serata con id).
+    if (relatedId != null &&
+        relatedId.isNotEmpty &&
+        (n.linkTipo == 'club' ||
+            n.tipo == 'posizione_club' ||
+            n.tipo == 'nuova_serata')) {
+      NavigatorService.pushNamed(AppRoutes.clubDetailScreen,
+          arguments: {'id': relatedId});
+      return;
+    }
+    switch (n.tipo) {
+      case 'prenotazione':
+      case 'prevendita':
+      case 'promemoria_evento':
+        // Riepilogo ordini (prevendite/tavoli acquistati).
+        NavigatorService.pushNamed(AppRoutes.ordersScreen);
+        break;
+      case 'sistema':
+      case 'sicurezza':
+        // Avvisi account (es. "Sicurezza Account") → schermata profilo.
+        NavigatorService.pushNamed(AppRoutes.profileScreen);
+        break;
+      case 'consiglio':
+      case 'nuova_serata':
+        // Scoperta: porta in home a esplorare i locali.
+        NavigatorService.pushNamed(AppRoutes.homeScreen);
+        break;
+      default:
+        NavigatorService.pushNamed(AppRoutes.ordersScreen);
+    }
+  }
+
+  // ── Raggruppamento per data (preserva l'ordine newest-first del service) ───
+  List<_NotifSection> _groupByDate(List<NotificationModel> items) {
+    final map = <String, _NotifSection>{};
+    final order = <String>[];
+    for (final n in items) {
+      final d = n.createdAt;
+      final key = '${d.year}-${d.month}-${d.day}';
+      if (!map.containsKey(key)) {
+        map[key] = _NotifSection(_dateLabel(d), []);
+        order.add(key);
+      }
+      map[key]!.notifications.add(n);
+    }
+    return [for (final k in order) map[k]!];
+  }
+
+  String _dateLabel(DateTime d) {
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    final day = DateTime(d.year, d.month, d.day);
+    final diff = today.difference(day).inDays;
+    if (diff == 0) return 'Oggi';
+    if (diff == 1) return 'Ieri';
+    return _dateFormat.format(d);
+  }
+}
+
+class _NotifSection {
+  final String label;
+  final List<NotificationModel> notifications;
+  _NotifSection(this.label, this.notifications);
 }

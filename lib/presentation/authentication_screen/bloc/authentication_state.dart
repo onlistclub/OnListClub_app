@@ -70,7 +70,9 @@ class AuthenticationState extends Equatable {
       oauthNome: oauthNome ?? this.oauthNome,
       oauthCognome: oauthCognome ?? this.oauthCognome,
       oauthEmail: oauthEmail ?? this.oauthEmail,
-      errorMessage: errorMessage ?? this.errorMessage,
+      // Transitorio: non usiamo `?? this.errorMessage` così l'errore non
+      // persiste tra un emit e l'altro e il dialog non si ripete a ogni tasto.
+      errorMessage: errorMessage,
       authenticationModel: authenticationModel ?? this.authenticationModel,
     );
   }

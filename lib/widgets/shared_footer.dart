@@ -16,51 +16,61 @@ class SharedFooter extends StatelessWidget {
 
   const SharedFooter({Key? key, required this.currentIndex}) : super(key: key);
 
+  /// Altezza visiva del footer (capsula 49 + margini verticali).
+  /// Usata come padding di "clearance" nelle schermate con `extendBody: true`
+  /// così l'ultimo contenuto scrollabile può superare la capsula flottante.
+  static const double height = 65;
+
   @override
   Widget build(BuildContext context) {
-    // Figma (off/footer-bar.PNG): barra a CAPSULA con bordo chiaro sottile e
-    // fondo blu scuro tenue; 4 icone equispaziate; badge "tab attiva" 73x43
-    // rgba(255,255,255,~0.25) arrotondato sotto l'icona.
-    // Material trasparente: fornisce un DefaultTextStyle valido al sotto-albero.
-    // Senza, su Android vecchi (es. S7) il badge notifiche eredita lo stile di
-    // fallback di WidgetsApp (sottolineato giallo doppio). type: transparency
-    // non aggiunge colore/elevation, quindi la grafica resta invariata.
+    // Figma (off/footer-bar.PNG + CSS "Home"): barra 354×49 (≈ schermo−40),
+    // raggio 10, fondo bianco ~2% con bordo chiaro 1px; 4 icone ~30×31
+    // equispaziate; pill "tab attiva" 73×43 raggio 7 bianco ~31%.
+    // Sfondo TRASPARENTE: la capsula FLOTTA sul contenuto e non lo oscura —
+    // con `extendBody: true` le schermate scrollano dietro di essa.
+    // Material trasparente: fornisce un DefaultTextStyle valido al sotto-albero
+    // (evita lo stile di fallback sottolineato del badge su Android datati).
     return Material(
       type: MaterialType.transparency,
-      child: Container(
-        color: Colors.black,
-        child: SafeArea(
-          top: false,
+      child: SafeArea(
+        top: false,
         child: SizedBox(
-          height: 65,
-          child: Center(
-            child: Container(
-              width: 312,
-              height: 49,
-              decoration: BoxDecoration(
-                color: Colors.white.withValues(alpha: 0.05),
-                borderRadius: BorderRadius.circular(24),
-                border: Border.all(
-                  color: Colors.white.withValues(alpha: 0.12),
-                  width: 1,
+          height: height,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 20),
+            child: Center(
+              child: Container(
+                width: double.infinity,
+                height: 49,
+                decoration: BoxDecoration(
+                  color: Colors.white.withValues(alpha: 0.02),
+                  borderRadius: BorderRadius.circular(10),
+                  border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.12),
+                    width: 1,
+                  ),
                 ),
-              ),
-              // spaceEvenly: i 4 item (pill 73px l'uno) si distribuiscono nei
-              // 312px della capsula senza overflow. I vecchi gap fissi da 60px
-              // davano 4×73 + 3×60 = 472px > 312px → RenderFlex overflow ~160px.
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-                children: [
-                  _buildNavItem(ImageConstant.imgHome, 0, AppRoutes.homeScreen),
-                  _buildNavItem(null, 1, AppRoutes.ordersScreen,
-                      iconData: Icons.shopping_bag_outlined),
-                  _buildNavItem(ImageConstant.imgShoppingCart, 2, AppRoutes.cartScreen),
-                  _buildNavItem(ImageConstant.imgBell, 3, AppRoutes.notificationsScreen),
-                ],
+                // Expanded: 4 slot equispaziati che non vanno in overflow
+                // nemmeno su telefoni molto stretti (la pill 73px resta centrata).
+                child: Row(
+                  children: [
+                    Expanded(
+                        child: _buildNavItem(
+                            ImageConstant.imgHome, 0, AppRoutes.homeScreen)),
+                    Expanded(
+                        child: _buildNavItem(null, 1, AppRoutes.ordersScreen,
+                            iconData: Icons.shopping_bag_outlined)),
+                    Expanded(
+                        child: _buildNavItem(ImageConstant.imgShoppingCart, 2,
+                            AppRoutes.cartScreen)),
+                    Expanded(
+                        child: _buildNavItem(ImageConstant.imgBell, 3,
+                            AppRoutes.notificationsScreen)),
+                  ],
+                ),
               ),
             ),
           ),
-        ),
         ),
       ),
     );
@@ -89,8 +99,8 @@ class SharedFooter extends StatelessWidget {
             width: 73,
             height: 43,
             decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: isSelected ? 0.25 : 0),
-              borderRadius: BorderRadius.circular(10),
+              color: Colors.white.withValues(alpha: isSelected ? 0.31 : 0),
+              borderRadius: BorderRadius.circular(7),
             ),
           ),
           AnimatedOpacity(
@@ -101,12 +111,12 @@ class SharedFooter extends StatelessWidget {
                     imagePath: imagePath,
                     height: 30.93,
                     width: 30.29,
-                    color: isSelected ? Colors.white : const Color(0xFF888888),
+                    color: Colors.white, // Figma: icone bianche, dimming via opacity
                   )
                 : Icon(
                     iconData,
-                    size: 30,
-                    color: isSelected ? Colors.white : const Color(0xFF888888),
+                    size: 30.93,
+                    color: Colors.white,
                   ),
           ),
           if (index == 3) // Badge per le notifiche

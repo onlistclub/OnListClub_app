@@ -190,16 +190,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         );
       }
     } catch (e) {
-      if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text('Errore: $e', style: OnlistTextStyles.hn(color: OnlistColors.white)),
-            backgroundColor: Colors.redAccent,
-            behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          ),
-        );
-      }
+      if (mounted) showAppErrorDialog(context, 'Errore: $e');
     } finally {
       if (mounted) setState(() => _isSaving = false);
     }
@@ -285,6 +276,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: OnlistColors.black,
+      // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+      extendBody: true,
       body: Container(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
@@ -297,6 +290,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                 child: _isLoading
                     ? const AppLoadingIndicator()
                     : SingleChildScrollView(
+                        padding: const EdgeInsets.only(bottom: SharedFooter.height),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

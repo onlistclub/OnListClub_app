@@ -121,6 +121,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Colors.black,
+      // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+      extendBody: true,
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: BlocBuilder<HomeBloc, HomeState>(

@@ -10,6 +10,7 @@ import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/onlist_primary_button.dart';
+import '../../widgets/app_error_dialog.dart';
 import '../../core/services/badge_service.dart';
 
 class CartScreen extends StatefulWidget {
@@ -26,12 +27,6 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   String get screenName => 'cart';
 
   bool _isPaying = false;
-  int _ticketQuantity = 1;
-
-  void _incQty() => setState(() => _ticketQuantity++);
-  void _decQty() {
-    if (_ticketQuantity > 1) setState(() => _ticketQuantity--);
-  }
 
   Future<void> _processPayment(Map<String, dynamic>? args) async {
     setState(() => _isPaying = true);
@@ -43,7 +38,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
         drinkId: args?['drinkId'],
         bottleQuantity: args?['quantity'] ?? 1,
         eventoId: args?['id_evento'] ?? '',
-        nPersone: (args?['type'] == 'ticket') ? _ticketQuantity : args?['nPersone'],
+        nPersone: (args?['type'] == 'ticket') ? 1 : args?['nPersone'],
         ticketHolders: null,
       );
 
@@ -58,9 +53,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
       BadgeService().incrementNotificationBadge();
       NavigatorService.pushNamed(AppRoutes.paymentSuccessScreen);
     } catch (e) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text("Errore durante l'ordine: $e")),
-      );
+      if (mounted) showAppErrorDialog(context, "Errore durante l'ordine: $e");
     } finally {
       if (mounted) setState(() => _isPaying = false);
     }
@@ -103,7 +96,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
     final ticketType = args?['ticketType']?.toString() ?? "Normale";
     final priceStr = args?['price']?.toString() ?? "10€";
     final priceVal = double.tryParse(priceStr.replaceAll("€", "").trim()) ?? 10.0;
-    final total = (priceVal * _ticketQuantity).toStringAsFixed(0);
+    final total = priceVal.toStringAsFixed(0);
 
     return Column(
       children: [
@@ -127,7 +120,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                     mainAxisSize: MainAxisSize.min,
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      Text("Ticket x $_ticketQuantity",
+                      Text("Ticket x 1",
                           style: OnlistTextStyles.ticketLabel),
                       const SizedBox(width: 8),
                       Padding(
@@ -158,47 +151,6 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                 ),
               ],
             ),
-          ),
-        ),
-        const SizedBox(height: 20),
-        // Selettore quantità
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              Text("Quantità",
-                  style: OnlistTextStyles.hn(
-                      color: Colors.white, fontSize: R.sp(18), fontWeight: FontWeight.w500)),
-              Row(
-                children: [
-                  GestureDetector(
-                    onTap: _decQty,
-                    child: const Icon(Icons.remove_circle_outline,
-                        color: Colors.white, size: 28),
-                  ),
-                  const SizedBox(width: 16),
-                  Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(5),
-                    ),
-                    child: Text("$_ticketQuantity",
-                        style: OnlistTextStyles.hn(
-                            color: Colors.black,
-                            fontSize: R.sp(18),
-                            fontWeight: FontWeight.w700)),
-                  ),
-                  const SizedBox(width: 16),
-                  GestureDetector(
-                    onTap: _incQty,
-                    child: const Icon(Icons.add_circle_outline,
-                        color: Colors.white, size: 28),
-                  ),
-                ],
-              ),
-            ],
           ),
         ),
         const Spacer(),

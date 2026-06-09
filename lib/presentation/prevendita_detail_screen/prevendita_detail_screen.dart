@@ -64,9 +64,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isAnnullando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Errore annullamento: $e')),
-      );
+      showAppErrorDialog(context, 'Errore annullamento: $e');
     }
   }
 
@@ -86,8 +84,14 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
         ? 'annullata'
         : (prenotazione?['stato'] ?? 'in_attesa');
     final idPrenotazione = (prenotazione?['id'] ?? item['id'])?.toString();
-    final qrData = idPrenotazione ?? 'onlist-ticket';
-    final prezzoStr = prezzo != null ? '$prezzo€' : '—';
+    // QR scannerizzabile davvero: codifica un URL di verifica (il sito lo gestirà).
+    final qrData = idPrenotazione != null
+        ? 'https://onlist.club/verify/$idPrenotazione'
+        : 'onlist-ticket';
+    final prezzoNum = prezzo is num ? prezzo : num.tryParse('$prezzo');
+    final prezzoStr = prezzoNum == null
+        ? '—'
+        : '${prezzoNum % 1 == 0 ? prezzoNum.toInt() : prezzoNum}€';
     // Quantità e drink omaggio dai dati reali della prenotazione.
     final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
     final drinkOmaggio =
@@ -95,6 +99,8 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+      extendBody: true,
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
@@ -105,7 +111,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
               _buildBackRow(),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24),
+                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24 + SharedFooter.height),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -120,6 +126,22 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
+                            // ID prenotazione in alto (riferimento per staff/scansione,
+                            // non presente nel Figma).
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 10),
+                              child: Text(
+                                'ID: ${idPrenotazione ?? '—'}',
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: OnlistTextStyles.hn(
+                                  fontSize: 11,
+                                  fontWeight: FontWeight.w500,
+                                  color: Colors.white.withValues(alpha: 0.7),
+                                  letterSpacing: 0.5,
+                                ),
+                              ),
+                            ),
                             FittedBox(
                               fit: BoxFit.scaleDown,
                               alignment: Alignment.centerLeft,
