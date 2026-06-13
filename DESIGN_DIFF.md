@@ -13,7 +13,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 2 | Autenticazione | authentication_screen.dart | ✅ completata | `9c29441` |
 | 3 | Registrazione | sign_up_screen.dart | ⬜ da fare | — |
 | 4 | Conferma email | verification_screen.dart | ✅ completata | `392bcbf` |
-| 5 | Concedi posizione | location_permission_screen.dart | ⬜ da fare | — |
+| 5 | Concedi posizione | location_permission_screen.dart | ✅ completata | `da_commit5` |
 | 6 | Ricerca città | location_manual_screen.dart | ⬜ da fare | — |
 | 7 | Home | home_screen.dart | ⬜ da fare | — |
 | 8 | Carrello (vuoto+pieno) | cart_screen.dart | ⬜ da fare | — |
@@ -37,6 +37,11 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 - Logo Google `22`→`24` (coerente con icona Apple e CSS 24.21).
 - Icona occhio mostra/nascondi password: **mantenuta** su richiesta (utilità > fedeltà; il Figma non la mostra ma è un elemento funzionale).
 - Già corretti nel codice (verificato, nessun override nel tema): titolo "Accedi" w400, testo social `19.48/w500/grigio` → confermato su localhost dopo rebuild.
+
+### #5 Concedi posizione
+- Testo italiano mantenuto (l'inglese del Figma è solo placeholder).
+- **Testo in basso mantenuto** ("La tua posizione è protetta…") con font corretto: `HelveticaNeue` 12 + interlinea `16/12` (come CSS SF Pro Text → HelveticaNeue).
+- **Titolo non più schiacciato**: usava `title36Bold.copyWith(fontSize: 24)` che portava `letterSpacing -2.88` (per 36px) comprimendo il testo a 24px → ora `24/w700/line 28/letter-spacing +0.87` come CSS. Rimosso import `onlist_text_styles` non più usato.
 
 ### #4 Conferma email
 - **Linea bianca sul bordo rimossa**: lo Scaffold non impostava `backgroundColor` (default bianco) → aggiunto `backgroundColor: black` + gradiente in `Container` a piena pagina (`width/height: infinity`).

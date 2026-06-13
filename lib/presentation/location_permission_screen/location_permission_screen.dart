@@ -2,7 +2,6 @@ import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
-import '../../theme/onlist_text_styles.dart';
 import 'bloc/location_permission_bloc.dart';
 
 class LocationPermissionScreen extends StatefulWidget {
@@ -66,7 +65,17 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                     const SizedBox(height: 32),
                     Text(
                       'Abilita la posizione precisa',
-                      style: OnlistTextStyles.title36Bold.copyWith(fontSize: 24),
+                      // Figma: 24 / w700 / line 28 / letter-spacing +0.87.
+                      // NON usare title36Bold.copyWith: porterebbe il suo
+                      // letterSpacing negativo (-2.88) schiacciando il testo a 24px.
+                      style: const TextStyle(
+                        fontFamily: 'HelveticaNeue',
+                        fontSize: 24,
+                        fontWeight: FontWeight.w700,
+                        height: 28 / 24,
+                        letterSpacing: 0.87,
+                        color: OnlistColors.white,
+                      ),
                       textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
@@ -153,9 +162,12 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                         const Flexible(
                           child: Text(
                             'La tua posizione è protetta e non verrà condivisa con terzi.',
+                            // Font del design (SF Pro Text → HelveticaNeue), 12/line 16.
                             style: TextStyle(
                                 fontFamily: 'HelveticaNeue',
                                 fontSize: 12,
+                                height: 16 / 12,
+                                fontWeight: FontWeight.w400,
                                 color: Colors.white54),
                             textAlign: TextAlign.center,
                           ),
