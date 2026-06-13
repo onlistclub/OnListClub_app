@@ -70,7 +70,8 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
           builder: (context, state) {
             return SafeArea(
               child: SingleChildScrollView(
-                padding: const EdgeInsets.symmetric(horizontal: 32, vertical: 24),
+                // Margine laterale proporzionale (Figma: left 39 su 393 ≈ 9.9%)
+                padding: EdgeInsets.symmetric(horizontal: R.w(9.9), vertical: 24),
                 child: Form(
                   key: state.formKey,
                   child: Column(
@@ -95,7 +96,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                             .read<AuthenticationBloc>()
                             .add(EmailChangedEvent(email: v)),
                       ),
-                      const SizedBox(height: 28),
+                      const SizedBox(height: 40),
                       _UnderlinePasswordField(
                         controller: state.passwordController,
                         onChanged: (v) => context
@@ -175,11 +176,13 @@ const TextStyle _kInputStyle = TextStyle(
   color: OnlistColors.white,
 );
 
-InputDecoration _underlineDecoration({Widget? suffixIcon}) {
+InputDecoration _underlineDecoration() {
   return InputDecoration(
     isDense: true,
     filled: false,
-    contentPadding: const EdgeInsets.only(top: 8, bottom: 6),
+    // Campo compatto come nel Figma: la riga sta vicino alla label e il testo
+    // digitato si appoggia sulla riga (vedi textAlignVertical: bottom).
+    contentPadding: const EdgeInsets.only(top: 2, bottom: 2),
     enabledBorder: const UnderlineInputBorder(
         borderSide: BorderSide(color: OnlistColors.white, width: 3)),
     focusedBorder: const UnderlineInputBorder(
@@ -189,7 +192,6 @@ InputDecoration _underlineDecoration({Widget? suffixIcon}) {
     focusedErrorBorder: const UnderlineInputBorder(
         borderSide: BorderSide(color: Colors.redAccent, width: 2)),
     errorStyle: const TextStyle(color: Colors.white70),
-    suffixIcon: suffixIcon,
   );
 }
 
@@ -217,6 +219,7 @@ class _UnderlineField extends StatelessWidget {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
+          textAlignVertical: TextAlignVertical.bottom,
           style: _kInputStyle,
           decoration: _underlineDecoration(),
           validator: validator,
@@ -227,20 +230,12 @@ class _UnderlineField extends StatelessWidget {
   }
 }
 
-class _UnderlinePasswordField extends StatefulWidget {
+class _UnderlinePasswordField extends StatelessWidget {
   const _UnderlinePasswordField(
       {required this.onChanged, this.controller});
 
   final ValueChanged<String> onChanged;
   final TextEditingController? controller;
-
-  @override
-  State<_UnderlinePasswordField> createState() =>
-      _UnderlinePasswordFieldState();
-}
-
-class _UnderlinePasswordFieldState extends State<_UnderlinePasswordField> {
-  bool _obscure = true;
 
   @override
   Widget build(BuildContext context) {
@@ -249,24 +244,18 @@ class _UnderlinePasswordFieldState extends State<_UnderlinePasswordField> {
       children: [
         Text('Password', style: OnlistTextStyles.formLabel22),
         TextFormField(
-          controller: widget.controller,
-          obscureText: _obscure,
+          controller: controller,
+          // Password sempre nascosta: nel Figma non c'è l'icona mostra/nascondi.
+          obscureText: true,
+          textAlignVertical: TextAlignVertical.bottom,
           style: _kInputStyle,
-          decoration: _underlineDecoration(
-            suffixIcon: IconButton(
-              icon: Icon(
-                  _obscure ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white70,
-                  size: 20),
-              onPressed: () => setState(() => _obscure = !_obscure),
-            ),
-          ),
+          decoration: _underlineDecoration(),
           validator: (v) {
             if (v == null || v.isEmpty) return 'Inserisci la password';
             if (v.length < 6) return 'Minimo 6 caratteri';
             return null;
           },
-          onChanged: widget.onChanged,
+          onChanged: onChanged,
         ),
       ],
     );
@@ -349,7 +338,7 @@ class _GoogleButton extends StatelessWidget {
       height: 47,
       child: ElevatedButton.icon(
         onPressed: onTap,
-        icon: SvgPicture.string(_googleGSvg, width: 22, height: 22),
+        icon: SvgPicture.string(_googleGSvg, width: 24, height: 24),
         label: Text('Continua con Google', style: _kSocialLabel),
         style: ElevatedButton.styleFrom(
           backgroundColor: OnlistColors.white,
