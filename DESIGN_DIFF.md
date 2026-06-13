@@ -51,7 +51,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 #### #2 rifiniture (verifica su localhost)
 - **Bottoni social allineati a sinistra**: `ElevatedButton.icon` ora con `alignment: centerLeft` + `padding left 14` (Figma: icona left 13.9, testo left 49). Prima erano centrati.
 - **Campi Email/Password**: `contentPadding` `top2/bottom2` → `top6/bottom4` + `textAlignVertical.bottom`: il testo digitato si appoggia sulla riga staccato dalla label (niente sovrapposizioni mentre si scrive).
-- **Spazio Registrati → Continua con Apple**: `SizedBox(60)` → `R.h(14.3)` (Figma ≈122px su 852, ora proporzionale).
+- **Spazio Registrati → Continua con Apple**: mantenuto a `SizedBox(60)` come nel design ufficiale (un tentativo a `R.h(14.3)` risultava troppo distaccato → ripristinato).
 
 ---
 

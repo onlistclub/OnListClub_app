@@ -123,9 +123,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                           ],
                         ),
                       ),
-                      // Spazio tra "Registrati" e i bottoni social come nel Figma
-                      // off/02 (≈122px su 852 ≈ 14.3% altezza), responsivo.
-                      SizedBox(height: R.h(14.3)),
+                      // Spazio tra "Registrati" e i bottoni social, come nel
+                      // design ufficiale (off/02): contenuto, non distaccato.
+                      const SizedBox(height: 60),
                       if (state.isLoading)
                         const Center(
                           child: CircularProgressIndicator(color: OnlistColors.white),
