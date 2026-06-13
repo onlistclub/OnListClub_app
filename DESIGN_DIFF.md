@@ -35,7 +35,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 - Spazio Email→Password `SizedBox(28)`→`40` (ritmo label→label ≈ 87px del Figma).
 - Margine laterale: `padding fisso 32` → `R.w(9.9)` (Figma left 39/393 ≈ 9.9%, ora responsive).
 - Logo Google `22`→`24` (coerente con icona Apple e CSS 24.21).
-- Rimossa icona occhio mostra/nascondi password (assente nel Figma) → password sempre nascosta. *Reversibile in 1 riga se serve ripristinarla.*
+- Icona occhio mostra/nascondi password: **mantenuta** su richiesta (utilità > fedeltà; il Figma non la mostra ma è un elemento funzionale).
 - Già corretti nel codice (verificato, nessun override nel tema): titolo "Accedi" w400, testo social `19.48/w500/grigio` → si vedono dopo un rebuild.
 
 ---
