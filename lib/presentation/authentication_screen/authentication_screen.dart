@@ -123,7 +123,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                           ],
                         ),
                       ),
-                      const SizedBox(height: 60),
+                      // Spazio tra "Registrati" e i bottoni social come nel Figma
+                      // off/02 (≈122px su 852 ≈ 14.3% altezza), responsivo.
+                      SizedBox(height: R.h(14.3)),
                       if (state.isLoading)
                         const Center(
                           child: CircularProgressIndicator(color: OnlistColors.white),
@@ -180,9 +182,10 @@ InputDecoration _underlineDecoration({Widget? suffixIcon}) {
   return InputDecoration(
     isDense: true,
     filled: false,
-    // Campo compatto come nel Figma: la riga sta vicino alla label e il testo
-    // digitato si appoggia sulla riga (vedi textAlignVertical: bottom).
-    contentPadding: const EdgeInsets.only(top: 2, bottom: 2),
+    // Label sopra, poi spazio per scrivere: il testo digitato si appoggia sulla
+    // riga (textAlignVertical: bottom) restando staccato dalla label (top: 6),
+    // così non si sovrappone mentre si scrive.
+    contentPadding: const EdgeInsets.only(top: 6, bottom: 4),
     enabledBorder: const UnderlineInputBorder(
         borderSide: BorderSide(color: OnlistColors.white, width: 3)),
     focusedBorder: const UnderlineInputBorder(
@@ -324,6 +327,9 @@ class _AppleButton extends StatelessWidget {
           backgroundColor: OnlistColors.white,
           foregroundColor: OnlistColors.black,
           elevation: 0,
+          // Contenuto allineato a sinistra come nel Figma (icona a left ~14).
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: 14),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(11)),
         ),
@@ -360,6 +366,9 @@ class _GoogleButton extends StatelessWidget {
           backgroundColor: OnlistColors.white,
           foregroundColor: OnlistColors.black,
           elevation: 0,
+          // Contenuto allineato a sinistra come nel Figma (icona a left ~14).
+          alignment: Alignment.centerLeft,
+          padding: const EdgeInsets.only(left: 14),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(11)),
         ),
