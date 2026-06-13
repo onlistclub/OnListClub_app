@@ -106,16 +106,19 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
                     child: Container(
                       decoration: BoxDecoration(
                         shape: BoxShape.circle,
+                        // Tratto sottile come in Figma off/01 (l'anello era ~4px,
+                        // troppo spesso): ~1.8px sul canvas 393 → scalato.
                         border: Border.all(
                           color: OnlistColors.white,
-                          width: 4 * scaleX,
+                          width: 1.8 * scaleX,
                         ),
                       ),
                       alignment: Alignment.center,
                       child: Icon(
+                        // Freccia a linea sottile come nel Figma.
                         Icons.arrow_upward,
                         color: OnlistColors.white,
-                        size: 28 * scaleX,
+                        size: 26 * scaleX,
                       ),
                     ),
                   ),
