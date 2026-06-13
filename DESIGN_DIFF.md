@@ -10,7 +10,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | # | Schermata | File Flutter | Stato | Commit |
 |---|---|---|---|---|
 | 1 | Splash | splash_screen.dart | ✅ completata | `55139f8` |
-| 2 | Autenticazione | authentication_screen.dart | ✅ completata | `da_commit` |
+| 2 | Autenticazione | authentication_screen.dart | ✅ completata | `9c29441` |
 | 3 | Registrazione | sign_up_screen.dart | ⬜ da fare | — |
 | 4 | Conferma email | verification_screen.dart | ⬜ da fare | — |
 | 5 | Concedi posizione | location_permission_screen.dart | ⬜ da fare | — |
