@@ -16,6 +16,7 @@ import 'core/app_export.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:google_sign_in/google_sign_in.dart';
 import 'dart:convert';
 
 var globalMessengerKey = GlobalKey<ScaffoldMessengerState>();
@@ -102,6 +103,21 @@ Future<void> main() async {
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
   );
+
+  // Inizializza l'SDK Google una sola volta: la 7.x richiede initialize()
+  // prima di qualsiasi authenticate(). clientId solo su iOS (su Android la
+  // config arriva da serverClientId + SHA-1 registrato).
+  if (googleWebClientId != null) {
+    try {
+      await GoogleSignIn.instance.initialize(
+        clientId:
+            defaultTargetPlatform == TargetPlatform.iOS ? googleIosClientId : null,
+        serverClientId: googleWebClientId,
+      );
+    } catch (e) {
+      debugPrint('[Startup] GoogleSignIn.initialize fallita: $e');
+    }
+  }
 
   // Listener globale auth: reagisce a logout/scadenza in tempo reale ovunque.
   await AuthService.instance.init();

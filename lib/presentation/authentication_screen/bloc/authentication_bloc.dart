@@ -1,4 +1,3 @@
-import 'dart:io' show Platform;
 import 'dart:math';
 import 'dart:convert';
 import 'package:crypto/crypto.dart';
@@ -9,7 +8,8 @@ import '../models/authentication_model.dart';
 import '../../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/user_profile_manager.dart';
-import '../../../../main.dart' show googleWebClientId, googleIosClientId;
+// La config Google (client/server ID) è applicata una volta in main.dart via
+// GoogleSignIn.instance.initialize(): qui basta chiamare authenticate().
 
 part 'authentication_event.dart';
 part 'authentication_state.dart';
@@ -175,39 +175,26 @@ class AuthenticationBloc
   ) async {
     emit(state.copyWith(isLoading: true, errorMessage: null));
     try {
-      // GUARD iOS: l'SDK nativo GoogleSignIn richiede un Client ID di tipo iOS.
-      // Se manca, `signIn()` solleva un'eccezione nativa fatale PRIMA che questo
-      // try/catch possa intercettarla → crash dell'app. Blocchiamo qui con un
-      // errore gestito finché GOOGLE_IOS_CLIENT_ID + URL scheme non sono configurati.
-      if (Platform.isIOS &&
-          (googleIosClientId == null || googleIosClientId!.isEmpty)) {
+      final googleSignIn = GoogleSignIn.instance;
+      // L'inizializzazione (client/server ID) avviene una volta in main.dart.
+      // authenticate() apre il foglio nativo di selezione account.
+      if (!googleSignIn.supportsAuthenticate()) {
         debugPrint(
-            '[AuthBloc] Google sign-in iOS: iOS Client ID mancante — abort per evitare crash nativo');
+            '[AuthBloc] Google sign-in: authenticate() non supportato su questa piattaforma');
         emit(state.copyWith(
           isLoading: false,
           errorMessage:
-              'Accesso con Google non ancora disponibile su iOS. Usa email o Apple.',
+              'Accesso con Google non disponibile su questa piattaforma.',
         ));
         return;
       }
 
-      // serverClientId è il Web Client ID di Google Cloud Console (type 3).
-      // È obbligatorio affinché Supabase possa verificare l'idToken ricevuto.
-      // clientId (iOS) è richiesto solo su iOS; su Android deve restare null.
-      // Configurabili via --dart-define=GOOGLE_WEB_CLIENT_ID / GOOGLE_IOS_CLIENT_ID.
-      final googleSignIn = GoogleSignIn(
-        clientId: Platform.isIOS ? googleIosClientId : null,
-        serverClientId: googleWebClientId,
-      );
-      final googleUser = await googleSignIn.signIn();
-      if (googleUser == null) {
-        // L'utente ha annullato il popup di selezione account.
-        debugPrint('[AuthBloc] Google sign-in annullato dall\'utente');
-        emit(state.copyWith(isLoading: false));
-        return;
-      }
-      final auth = await googleUser.authentication;
-      final idToken = auth.idToken;
+      final account =
+          await googleSignIn.authenticate(scopeHint: const ['email', 'profile']);
+      // Nella 7.x `authentication` espone solo l'idToken (niente accessToken).
+      // A Supabase basta l'idToken: non passando più alcun nonce, l'idToken
+      // nativo non genera il mismatch che bloccava il login su iOS.
+      final idToken = account.authentication.idToken;
       if (idToken == null) {
         debugPrint(
             '[AuthBloc] Google sign-in: idToken assente (configurazione Web Client ID errata?)');
@@ -221,9 +208,21 @@ class AuthenticationBloc
       await Supabase.instance.client.auth.signInWithIdToken(
         provider: OAuthProvider.google,
         idToken: idToken,
-        accessToken: auth.accessToken,
       );
       await _handlePostOAuthLogin(emit);
+    } on GoogleSignInException catch (e) {
+      // canceled = l'utente ha chiuso il foglio: nessun errore da mostrare.
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        debugPrint('[AuthBloc] Google sign-in annullato dall\'utente');
+        emit(state.copyWith(isLoading: false));
+        return;
+      }
+      debugPrint(
+          '[AuthBloc] Google sign-in - GoogleSignInException: code=${e.code.name} desc=${e.description}');
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: 'Google login fallito (${e.code.name}).',
+      ));
     } on AuthException catch (e) {
       debugPrint('[AuthBloc] Google sign-in - AuthException: ${e.message}');
       emit(state.copyWith(isLoading: false, errorMessage: e.message));
