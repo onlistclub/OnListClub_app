@@ -30,7 +30,12 @@ class VerificationScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
+      // Sfondo nero: evita la striscia bianca dello scaffold di default sui bordi
+      // (stesso accorgimento dell'authentication_screen).
+      backgroundColor: OnlistColors.black,
+      body: Container(
+        width: double.infinity,
+        height: double.infinity,
         decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
         child: BlocConsumer<verificationBloc, verificationState>(
         listener: (context, state) {
@@ -66,9 +71,8 @@ class VerificationScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Spacer(),
+                  const Spacer(flex: 5),
                   // Titolo
                   Text(
                     'Grazie\nper esserti registrato!',
@@ -101,7 +105,8 @@ class VerificationScreen extends StatelessWidget {
                       ),
                     ),
                   ),
-                  const SizedBox(height: 24),
+                  // Spazio che porta il bottone "Accedi" più in basso (Figma top 632/852 ≈ 74%).
+                  const Spacer(flex: 2),
                   // Bottone Accedi
                   state.isLoading
                       ? const CircularProgressIndicator(color: OnlistColors.white)
@@ -123,7 +128,7 @@ class VerificationScreen extends StatelessWidget {
                             child: Text('Accedi', style: OnlistTextStyles.button16Bold),
                           ),
                         ),
-                  const Spacer(),
+                  const Spacer(flex: 1),
                   // Torna al login
                   TextButton(
                     onPressed: () => NavigatorService.pushNamedAndRemoveUntil(

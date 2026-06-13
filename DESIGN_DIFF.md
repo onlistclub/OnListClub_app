@@ -12,7 +12,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 1 | Splash | splash_screen.dart | ✅ completata | `55139f8` |
 | 2 | Autenticazione | authentication_screen.dart | ✅ completata | `9c29441` |
 | 3 | Registrazione | sign_up_screen.dart | ⬜ da fare | — |
-| 4 | Conferma email | verification_screen.dart | ⬜ da fare | — |
+| 4 | Conferma email | verification_screen.dart | ✅ completata | `da_commit4` |
 | 5 | Concedi posizione | location_permission_screen.dart | ⬜ da fare | — |
 | 6 | Ricerca città | location_manual_screen.dart | ⬜ da fare | — |
 | 7 | Home | home_screen.dart | ⬜ da fare | — |
@@ -37,6 +37,11 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 - Logo Google `22`→`24` (coerente con icona Apple e CSS 24.21).
 - Icona occhio mostra/nascondi password: **mantenuta** su richiesta (utilità > fedeltà; il Figma non la mostra ma è un elemento funzionale).
 - Già corretti nel codice (verificato, nessun override nel tema): titolo "Accedi" w400, testo social `19.48/w500/grigio` → confermato su localhost dopo rebuild.
+
+### #4 Conferma email
+- **Linea bianca sul bordo rimossa**: lo Scaffold non impostava `backgroundColor` (default bianco) → aggiunto `backgroundColor: black` + gradiente in `Container` a piena pagina (`width/height: infinity`).
+- **Bottone "Accedi" più in basso**: `Spacer` con pesi `5 / 2 / 1` (top / pre-Accedi / pre-Torna) → Accedi a ~74% come Figma (`top 632/852`), responsive e senza overflow.
+- Font bottone invariato (`button16Bold` = HelveticaNeue Bold 16, come login e CSS).
 
 #### #2 rifiniture (verifica su localhost)
 - **Bottoni social allineati a sinistra**: `ElevatedButton.icon` ora con `alignment: centerLeft` + `padding left 14` (Figma: icona left 13.9, testo left 49). Prima erano centrati.
