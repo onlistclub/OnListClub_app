@@ -12,7 +12,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 1 | Splash | splash_screen.dart | ✅ completata | `55139f8` |
 | 2 | Autenticazione | authentication_screen.dart | ✅ completata | `9c29441` |
 | 3 | Registrazione | sign_up_screen.dart | ⬜ da fare | — |
-| 4 | Conferma email | verification_screen.dart | ✅ completata | `da_commit4` |
+| 4 | Conferma email | verification_screen.dart | ✅ completata | `392bcbf` |
 | 5 | Concedi posizione | location_permission_screen.dart | ⬜ da fare | — |
 | 6 | Ricerca città | location_manual_screen.dart | ⬜ da fare | — |
 | 7 | Home | home_screen.dart | ⬜ da fare | — |
