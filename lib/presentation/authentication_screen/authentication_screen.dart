@@ -71,13 +71,14 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
             return SafeArea(
               child: SingleChildScrollView(
                 // Margine laterale proporzionale (Figma: left 39 su 393 ≈ 9.9%)
-                padding: EdgeInsets.symmetric(horizontal: R.w(9.9), vertical: 24),
+                padding: EdgeInsets.symmetric(horizontal: R.w(9.9)),
                 child: Form(
                   key: state.formKey,
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      const SizedBox(height: 72),
+                      // Spazio sopra il titolo (Figma: titolo a ~117/852 ≈ 13.5%).
+                      SizedBox(height: R.h(13.5)),
                       Text('Accedi', style: OnlistTextStyles.display40Regular),
                       const SizedBox(height: 40),
                       _UnderlineField(
@@ -123,9 +124,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                           ],
                         ),
                       ),
-                      // Spazio tra "Registrati" e i bottoni social, come nel
-                      // design ufficiale (off/02): contenuto, non distaccato.
-                      const SizedBox(height: 60),
+                      // Spazio tra "Registrati" e i social (Figma: social a
+                      // ~587/852, ≈14% di altezza), proporzionale come il resto.
+                      SizedBox(height: R.h(14)),
                       if (state.isLoading)
                         const Center(
                           child: CircularProgressIndicator(color: OnlistColors.white),
@@ -149,7 +150,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                           },
                         ),
                       ],
-                      const SizedBox(height: 32),
+                      // Spazio sotto i social (Figma: ~149/852 ≈ 17%) per non
+                      // ammassare tutto in alto: distribuzione come l'ufficiale.
+                      SizedBox(height: R.h(17)),
                     ],
                   ),
                 ),

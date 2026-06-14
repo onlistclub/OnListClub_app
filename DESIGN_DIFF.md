@@ -51,7 +51,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 #### #2 rifiniture (verifica su localhost)
 - **Bottoni social allineati a sinistra**: `ElevatedButton.icon` ora con `alignment: centerLeft` + `padding left 14` (Figma: icona left 13.9, testo left 49). Prima erano centrati.
 - **Campi Email/Password**: `contentPadding` `top2/bottom2` → `top6/bottom4` + `textAlignVertical.bottom`: il testo digitato si appoggia sulla riga staccato dalla label (niente sovrapposizioni mentre si scrive).
-- **Spazio Registrati → Continua con Apple**: mantenuto a `SizedBox(60)` come nel design ufficiale (un tentativo a `R.h(14.3)` risultava troppo distaccato → ripristinato).
+- **Distribuzione verticale resa identica al Figma**: il layout era "schiacciato" in alto (SizedBox fissi 72/60/32 in scroll top-aligned). Ora i tre vuoti grandi sono proporzionali: sopra il titolo `R.h(13.5)` (Figma ~117/852), tra Registrati e social `R.h(14)` (social ~587/852), sotto i social `R.h(17)` (~149/852). Distanze come l'ufficiale su qualsiasi altezza.
 
 ---
 

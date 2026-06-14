@@ -26,6 +26,9 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Stesso identico sfondo di login/registrazione: nero di base + gradiente
+      // radiale onboarding (evita anche eventuali bordi bianchi dello scaffold).
+      backgroundColor: OnlistColors.black,
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
         child: BlocConsumer<LocationPermissionBloc, LocationPermissionState>(
@@ -48,13 +51,15 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                 padding: const EdgeInsets.symmetric(horizontal: 32),
                 child: Column(
                   children: [
-                    const Spacer(flex: 3),
+                    // Distribuzione verticale come Figma off/05 (icona ~29%,
+                    // testo sicurezza ~82%): spacer proporzionali, non incollati.
+                    const Spacer(flex: 25),
                     Container(
                       width: 96,
                       height: 96,
                       decoration: BoxDecoration(
                         color: Colors.black.withValues(alpha: 0.18),
-                        borderRadius: BorderRadius.circular(16),
+                        shape: BoxShape.circle,
                       ),
                       child: const Icon(
                         Icons.location_on,
@@ -78,7 +83,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                       ),
                       textAlign: TextAlign.center,
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 16),
                     const Text(
                       'La tua posizione sarà usata per mostrarti\neventi e locali vicino a te.',
                       style: TextStyle(
@@ -91,7 +96,8 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                     ),
                     const SizedBox(height: 40),
                     SizedBox(
-                      width: double.infinity,
+                      // Bottoni più stretti come Figma off/05 (width 280/393 ≈ 71%).
+                      width: R.w(71),
                       height: 49,
                       child: ElevatedButton(
                         onPressed: state.isLoading
@@ -123,9 +129,10 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                               ),
                       ),
                     ),
-                    const SizedBox(height: 14),
+                    const SizedBox(height: 12),
                     SizedBox(
-                      width: double.infinity,
+                      // Bottoni più stretti come Figma off/05 (width 280/393 ≈ 71%).
+                      width: R.w(71),
                       height: 49,
                       child: OutlinedButton(
                         onPressed: state.isLoading
@@ -152,7 +159,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                         ),
                       ),
                     ),
-                    const Spacer(flex: 2),
+                    const Spacer(flex: 9),
                     Row(
                       mainAxisAlignment: MainAxisAlignment.center,
                       children: [
@@ -174,7 +181,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                         ),
                       ],
                     ),
-                    const SizedBox(height: 24),
+                    const Spacer(flex: 13),
                   ],
                 ),
               ),
