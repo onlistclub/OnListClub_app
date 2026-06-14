@@ -17,6 +17,13 @@ part 'sign_up_state.dart';
 /// atomico in `utenti` + `utenti_numeri_telefono`. Il telefono arriva già in
 /// formato E.164 dal widget `InternationalPhoneNumberInput`.
 class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
+  /// Messaggi dei "paletti" di registrazione. Pubblici perché la UI li usa per
+  /// distinguere il caso email-già-registrata (mostra l'azione "Accedi").
+  static const String emailTakenMessage =
+      'Questa email è già registrata. Accedi invece di registrarti.';
+  static const String phoneTakenMessage =
+      'Questo numero di telefono è già registrato.';
+
   SignUpBloc(SignUpState initialState) : super(initialState) {
     on<SignUpInitialEvent>(_onInitialize);
     on<FirstNameChangedEvent>(_onFirstNameChanged);
@@ -150,6 +157,32 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
 
       final client = Supabase.instance.client;
 
+      // Paletti: blocca subito se email o telefono risultano già registrati,
+      // con messaggio chiaro. La rete di sicurezza finale contro le race
+      // condition resta nei vincoli UNIQUE del DB (gestiti nei catch sotto).
+      // Fail-open: se la RPC non esiste ancora o fallisce, non blocchiamo la
+      // registrazione e lasciamo decidere ai vincoli DB.
+      try {
+        final avail = await client.rpc(
+          'check_registration_availability',
+          params: {'p_email': model.email, 'p_phone': model.phone},
+        ) as Map<String, dynamic>?;
+        if (avail != null) {
+          if (avail['email_taken'] == true) {
+            emit(state.copyWith(
+                isLoading: false, errorMessage: emailTakenMessage));
+            return;
+          }
+          if (avail['phone_taken'] == true) {
+            emit(state.copyWith(
+                isLoading: false, errorMessage: phoneTakenMessage));
+            return;
+          }
+        }
+      } catch (e) {
+        debugPrint('[SignUpBloc] check_registration_availability skip: $e');
+      }
+
       final response = await client.auth.signUp(
         email: model.email,
         password: model.password,
@@ -185,6 +218,16 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
             countryIso: iso,
           );
           emit(state.copyWith(isLoading: false, isSuccess: true));
+        } on PostgrestException catch (e) {
+          // 23505 = unique_violation: rete di sicurezza del telefono (l'email
+          // viene già intercettata prima/da signUp). Messaggio amichevole.
+          debugPrint('[SignUpBloc] registerAtomic PostgrestException: ${e.code} ${e.message}');
+          emit(state.copyWith(
+            isLoading: false,
+            errorMessage:
+                e.code == '23505' ? phoneTakenMessage : 'Errore salvataggio telefono: ${e.message}',
+          ));
+          return;
         } catch (e) {
           debugPrint('[SignUpBloc] registerAtomic error: $e');
           emit(state.copyWith(isLoading: false, errorMessage: 'Errore salvataggio telefono: $e'));
@@ -196,10 +239,20 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
          emit(state.copyWith(isLoading: false, errorMessage: "Registration failed"));
       }
 
+    } on AuthException catch (e) {
+      // Supabase può rispondere "User already registered" se l'email esiste già
+      // in auth.users: lo mappiamo sul messaggio amichevole con azione "Accedi".
+      final msg = e.message.toLowerCase();
+      final alreadyRegistered =
+          msg.contains('already registered') || msg.contains('already exists');
+      emit(state.copyWith(
+        isLoading: false,
+        errorMessage: alreadyRegistered ? emailTakenMessage : e.message,
+      ));
     } catch (e) {
       emit(state.copyWith(
         isLoading: false,
-        errorMessage: e is AuthException ? e.message : 'Registration failed: $e',
+        errorMessage: 'Registration failed: $e',
       ));
     }
   }

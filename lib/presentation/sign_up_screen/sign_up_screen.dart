@@ -51,7 +51,11 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
             }
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
               AnalyticsService.log(event: 'registration_error', metadata: {'error': state.errorMessage});
-              showAppErrorDialog(context, state.errorMessage!);
+              if (state.errorMessage == SignUpBloc.emailTakenMessage) {
+                _showEmailTakenDialog(context);
+              } else {
+                showAppErrorDialog(context, state.errorMessage!);
+              }
             }
           },
           builder: (context, state) {
@@ -256,6 +260,31 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
     if (picked != null && context.mounted) {
       context.read<SignUpBloc>().add(DobChangedEvent(dob: picked));
     }
+  }
+
+  /// Email già registrata: offre di andare al login invece di registrarsi.
+  void _showEmailTakenDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        title: const Text('Email già registrata'),
+        content: const Text(SignUpBloc.emailTakenMessage),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.pop(dialogContext);
+              // La schermata di registrazione è stata aperta dal login: torniamo lì.
+              NavigatorService.goBack();
+            },
+            child: const Text('Accedi'),
+          ),
+        ],
+      ),
+    );
   }
 }
 
