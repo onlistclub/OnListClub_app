@@ -181,17 +181,25 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                           hintText: 'Numero di telefono',
                         ),
                         onInputChanged: (phone) {
+                          // La bandiera del selettore è l'UNICA fonte di verità
+                          // per il paese: ricostruiamo l'E.164 da dialCode +
+                          // numero nazionale, senza fidarci di phone.phoneNumber
+                          // (che il widget può lasciare incoerente con isoCode
+                          // se l'utente digita un prefisso a mano). Così bandiera,
+                          // prefisso salvato e country_id restano sempre coerenti.
                           final iso = phone.isoCode;
-                          final dial = phone.dialCode ?? '';
-                          final full =
-                              (phone.phoneNumber ?? '').replaceAll(' ', '');
-                          final cleaned = full.replaceAll(RegExp(r'\D'), '');
-                          final dialClean = dial.replaceAll('+', '');
-                          final nn = cleaned.startsWith(dialClean)
-                              ? cleaned.substring(dialClean.length)
-                              : cleaned;
+                          final dialClean =
+                              (phone.dialCode ?? '').replaceAll(RegExp(r'\D'), '');
+                          // Numero nazionale: solo cifre del campo di testo; se
+                          // per errore inizia col prefisso, lo rimuoviamo.
+                          var nn = (state.phoneController?.text ?? '')
+                              .replaceAll(RegExp(r'\D'), '');
+                          if (dialClean.isNotEmpty && nn.startsWith(dialClean)) {
+                            nn = nn.substring(dialClean.length);
+                          }
+                          final e164 = '+$dialClean$nn';
                           context.read<SignUpBloc>().add(PhoneChangedEvent(
-                              phone: full,
+                              phone: e164,
                               countryIso: iso,
                               nationalNumber: nn));
                         },
