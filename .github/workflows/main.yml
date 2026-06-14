@@ -1,0 +1,48 @@
+name: Compila iOS per SideStore (Flutter)
+
+on:
+  push:
+    branches: [ main, MVP ] # Si attiva quando fai modifiche su main o sul branch MVP
+  workflow_dispatch: # Permette l'avvio manuale con il pulsante da GitHub
+
+jobs:
+  build:
+    runs-on: macos-latest
+
+    steps:
+      # 1. Scarica il codice dal repository
+      - name: Checkout del codice
+        uses: actions/checkout@v4
+
+      # 2. Configura l'ambiente Flutter sul server Mac
+      - name: Configura Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: 'stable'
+
+      # 3. Scarica i pacchetti e le dipendenze di Flutter
+      - name: Installa dipendenze
+        run: flutter pub get
+
+      # 4. INIEZIONE DEL FILE ENV.JSON REALE
+      # Crea il file env.json usando le credenziali reali salvate nei Secrets di GitHub
+      - name: Inietta il file env.json reale dai Segreti di GitHub
+        run: |
+          echo '${{ secrets.ENV_JSON_CONTENT }}' > env.json
+          echo "File env.json reale configurato con successo."
+      # 5. COMPILAZIONE FLUTTER SENZA FIRMA
+      - name: Compila progetto iOS (No Codesign)
+        run: flutter build ios --no-codesign --release
+
+      # 6. IMPACCHETTAMENTO IN FORMATO .IPA PER SIDESTORE
+      - name: Impacchetta in formato .ipa
+        run: |
+          mkdir -p Payload
+          mv build/ios/iphoneos/Runner.app Payload/
+          zip -r app.ipa Payload
+      # 7. CARICAMENTO DELL'ARTIFACT SU GITHUB
+      - name: Carica il file IPA
+        uses: actions/upload-artifact@v4
+        with:
+          name: app-ios-sidestore
+          path: app.ipa
