@@ -10,10 +10,20 @@ part 'verification_state.dart';
 
 /// BLoC della schermata di verifica email.
 ///
-/// Mantiene il timer di countdown per il pulsante "Invia di nuovo" e
-/// controlla periodicamente se la sessione Supabase ha un `email_confirmed_at`
-/// valorizzato (segno che l'utente ha cliccato il link nell'email). Quando la
-/// verifica passa, chiama `UserProfileManager` per finalizzare il profilo.
+/// Con "Confirm email" attivo, dopo la registrazione la sessione Supabase è
+/// `null` finché l'utente non clicca il link nell'email. Il link si apre nel
+/// browser e conferma lato server: senza un deep-link di ritorno l'app non
+/// riceve alcun evento, quindi NON ci si può affidare a `onAuthStateChange`.
+/// L'unico modo lato client di accorgersi della conferma è ritentare
+/// periodicamente `signInWithPassword`: finché non confermata torna
+/// "Email not confirmed"; appena confermata restituisce la sessione e si
+/// prosegue automaticamente alla schermata successiva.
+///
+/// Il polling (ogni 3s) è SILENZIOSO: niente spinner né dialog, così l'utente
+/// vede solo l'istruzione "controlla la tua email". Il bottone "Ho confermato"
+/// resta come fallback manuale, con feedback.
+///
+/// La scadenza/validità del link è configurata su Supabase Dashboard, NON qui.
 ///
 /// Nota: il nome `verificationBloc` (minuscolo) è un anti-pattern Dart —
 /// dovrebbe essere `VerificationBloc`. Non rinominato qui per non rompere
@@ -21,11 +31,15 @@ part 'verification_state.dart';
 class verificationBloc extends Bloc<verificationEvent, verificationState> {
   Timer? _timer;
 
+  /// Intervallo di polling. ~3s come richiesto; alzabile (4-5s) se si
+  /// incontrano rate limit sull'endpoint /token.
+  static const Duration _pollInterval = Duration(seconds: 3);
+
   verificationBloc(verificationState initialState) : super(initialState) {
     on<verificationInitialEvent>(_onInitialize);
+    on<PollVerificationEvent>(_onPollVerification);
     on<CheckVerificationEvent>(_onCheckVerification);
     on<ResendEmailEvent>(_onResendEmail);
-    on<TimerTickEvent>(_onTimerTick);
   }
 
   Future<void> _onInitialize(
@@ -38,35 +52,52 @@ class verificationBloc extends Bloc<verificationEvent, verificationState> {
       password: event.password,
     ));
 
-    _startTimer(event.registrationTime);
+    _startPolling();
   }
 
-  void _startTimer(DateTime registrationTime) {
+  void _startPolling() {
     _timer?.cancel();
-    _timer = Timer.periodic(const Duration(seconds: 1), (timer) {
+    _timer = Timer.periodic(_pollInterval, (timer) {
       if (isClosed) {
         timer.cancel();
         return;
       }
-      final now = DateTime.now();
-      final deadline = registrationTime.add(const Duration(hours: 4));
-      final remaining = deadline.difference(now);
-
-      if (remaining.isNegative) {
-        timer.cancel();
-        add(const TimerTickEvent(Duration.zero));
-      } else {
-        add(TimerTickEvent(remaining));
-      }
+      add(PollVerificationEvent());
     });
   }
 
-  void _onTimerTick(TimerTickEvent event, Emitter<verificationState> emit) {
-    if (event.remainingTime == Duration.zero) {
-      emit(state.copyWith(remainingTime: Duration.zero, isExpired: true));
-      debugPrint('[verificationBloc] Timer expired. Token invalidated.');
-    } else {
-      emit(state.copyWith(remainingTime: event.remainingTime));
+  /// Polling silenzioso: nessun effetto su `isLoading`, nessun dialog di errore.
+  /// Avanza solo quando la conferma è effettivamente avvenuta.
+  Future<void> _onPollVerification(
+    PollVerificationEvent event,
+    Emitter<verificationState> emit,
+  ) async {
+    if (state.isVerified) return;
+    final email = state.email;
+    final password = state.password;
+    if (email == null || password == null) return;
+
+    try {
+      final client = Supabase.instance.client;
+      final response = await client.auth.signInWithPassword(
+        email: email,
+        password: password,
+      );
+      if (response.session != null) {
+        _timer?.cancel();
+        debugPrint('[verificationBloc] Email confermata (polling). Accesso ok.');
+        try {
+          await UserProfileManager().ensureProfileExists();
+        } catch (e) {
+          debugPrint('[verificationBloc] ensureProfileExists error: $e');
+        }
+        emit(state.copyWith(isVerified: true));
+      }
+    } on AuthException catch (e) {
+      // Tipicamente "Email not confirmed": resta in attesa, nessun errore in UI.
+      debugPrint('[verificationBloc] poll (in attesa): ${e.message}');
+    } catch (e) {
+      debugPrint('[verificationBloc] poll error: $e');
     }
   }
 
@@ -74,20 +105,19 @@ class verificationBloc extends Bloc<verificationEvent, verificationState> {
     ResendEmailEvent event,
     Emitter<verificationState> emit,
   ) async {
-    if (state.isExpired) return;
     if (state.email == null) return;
 
     emit(state.copyWith(isLoading: true, errorMessage: null, emailResentMessage: null));
 
     try {
       final client = Supabase.instance.client;
-      // Note: Resend only works if not already verified. 
-      // Rate limits apply (usually once per minute).
+      // Nota: il resend funziona solo se non ancora verificata.
+      // Si applicano rate limit (di norma una volta al minuto).
       await client.auth.resend(
         type: OtpType.signup,
         email: state.email,
       );
-      
+
       emit(state.copyWith(
         isLoading: false,
         emailResentMessage: "Email inviata con successo! Controlla la tua casella.",
@@ -107,15 +137,12 @@ class verificationBloc extends Bloc<verificationEvent, verificationState> {
     }
   }
 
+  /// Controllo manuale (bottone): con feedback. Utile come fallback se il
+  /// polling non ha ancora intercettato la conferma.
   Future<void> _onCheckVerification(
     CheckVerificationEvent event,
     Emitter<verificationState> emit,
   ) async {
-    if (state.isExpired) {
-       debugPrint('[verificationBloc] Attempted login after expiration.');
-       return; 
-    }
-
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
     try {
@@ -131,33 +158,29 @@ class verificationBloc extends Bloc<verificationEvent, verificationState> {
         return;
       }
 
-      // Attempt login to check verification status
       final response = await client.auth.signInWithPassword(
         email: email,
         password: password,
       );
 
       if (response.user != null && response.session != null) {
+        _timer?.cancel();
         debugPrint('[verificationBloc] Verification successful. User logged in.');
-        
-        // Ensure profile exists in public.users table (post-verification check)
+
         await UserProfileManager().ensureProfileExists();
 
         emit(state.copyWith(isLoading: false, isVerified: true));
       } else {
-        // This block might not be reached if signIn throws on unverified email
-        // depending on Supabase config.
-         debugPrint('[verificationBloc] Login success but no session? Unusual.');
-         emit(state.copyWith(isLoading: false, isVerified: true));
+        debugPrint('[verificationBloc] Login success but no session? Unusual.');
+        emit(state.copyWith(isLoading: false, isVerified: true));
       }
-
     } on AuthException catch (e) {
       debugPrint('[verificationBloc] Login failed: ${e.message}');
-      if (e.message.toLowerCase().contains('email not confirmed') || 
-          e.message.toLowerCase().contains('login failed')) { // Generic message sometimes
+      if (e.message.toLowerCase().contains('email not confirmed') ||
+          e.message.toLowerCase().contains('login failed')) {
         emit(state.copyWith(
           isLoading: false,
-          errorMessage: "Verifica prima l'email", // Specific message for UI
+          errorMessage: "Verifica prima l'email",
         ));
       } else {
         emit(state.copyWith(

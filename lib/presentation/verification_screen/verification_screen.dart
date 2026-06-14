@@ -48,10 +48,6 @@ class VerificationScreen extends StatelessWidget {
               );
             });
           }
-          if (state.isExpired) {
-            NavigatorService.pushNamedAndRemoveUntil(
-                AppRoutes.verificationFailureScreen);
-          }
           if (state.errorMessage != null &&
               state.errorMessage == "Verifica prima l'email") {
             _showVerificationDialog(context);
@@ -125,7 +121,7 @@ class VerificationScreen extends StatelessWidget {
                               shape: RoundedRectangleBorder(
                                   borderRadius: BorderRadius.circular(10)),
                             ),
-                            child: Text('Accedi', style: OnlistTextStyles.button16Bold),
+                            child: Text('Ho confermato', style: OnlistTextStyles.button16Bold),
                           ),
                         ),
                   const Spacer(flex: 1),

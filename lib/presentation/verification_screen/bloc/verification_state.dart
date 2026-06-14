@@ -1,10 +1,8 @@
 part of 'verification_bloc.dart';
 
 class verificationState extends Equatable {
-  final Duration remainingTime;
   final bool isLoading;
   final bool isVerified;
-  final bool isExpired;
   final String? errorMessage;
   final String? emailResentMessage;
   final DateTime? registrationTime;
@@ -12,10 +10,8 @@ class verificationState extends Equatable {
   final String? password;
 
   const verificationState({
-    this.remainingTime = const Duration(hours: 4),
     this.isLoading = false,
     this.isVerified = false,
-    this.isExpired = false,
     this.errorMessage,
     this.emailResentMessage,
     this.registrationTime,
@@ -25,10 +21,8 @@ class verificationState extends Equatable {
 
   @override
   List<Object?> get props => [
-        remainingTime,
         isLoading,
         isVerified,
-        isExpired,
         errorMessage,
         emailResentMessage,
         registrationTime,
@@ -37,10 +31,8 @@ class verificationState extends Equatable {
       ];
 
   verificationState copyWith({
-    Duration? remainingTime,
     bool? isLoading,
     bool? isVerified,
-    bool? isExpired,
     String? errorMessage,
     String? emailResentMessage,
     DateTime? registrationTime,
@@ -48,11 +40,9 @@ class verificationState extends Equatable {
     String? password,
   }) {
     return verificationState(
-      remainingTime: remainingTime ?? this.remainingTime,
       isLoading: isLoading ?? this.isLoading,
       isVerified: isVerified ?? this.isVerified,
-      isExpired: isExpired ?? this.isExpired,
-      errorMessage: errorMessage, 
+      errorMessage: errorMessage,
       emailResentMessage: emailResentMessage,
       registrationTime: registrationTime ?? this.registrationTime,
       email: email ?? this.email,
