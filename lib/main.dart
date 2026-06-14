@@ -21,6 +21,14 @@ import 'dart:convert';
 
 var globalMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
+/// Status bar chiara: icone/orario/batteria/segnale BIANCHI su sfondo scuro
+/// (tutta l'app è dark). statusBarColor trasparente così traspare il gradiente.
+const SystemUiOverlayStyle _kLightStatusBar = SystemUiOverlayStyle(
+  statusBarColor: Colors.transparent,
+  statusBarIconBrightness: Brightness.light, // Android: icone bianche
+  statusBarBrightness: Brightness.dark, // iOS: sfondo scuro → contenuti chiari
+);
+
 // Chiavi lette a build-time da --dart-define. Esempio:
 //   flutter run --dart-define=SUPABASE_URL=... \
 //               --dart-define=SUPABASE_ANON_KEY=... \
@@ -51,6 +59,10 @@ Future<void> main() async {
   await SystemChrome.setPreferredOrientations([
     DeviceOrientation.portraitUp,
   ]);
+
+  // Status bar chiara su tutta l'app (sfondi scuri). Coperte anche le schermate
+  // con AppBar tramite theme.appBarTheme.systemOverlayStyle in MyApp.
+  SystemChrome.setSystemUIOverlayStyle(_kLightStatusBar);
 
   debugPrint('[Startup] Loading env...');
   // Priorità: --dart-define (sicuro, non finisce negli asset).
@@ -153,6 +165,11 @@ class MyApp extends StatelessWidget {
       builder: (context, orientation, deviceType) {
         return MaterialApp(
           title: 'OnList',
+          // Status bar chiara anche sulle schermate con AppBar (che altrimenti
+          // sovrascriverebbero lo stile globale impostato in main()).
+          theme: ThemeData(
+            appBarTheme: const AppBarTheme(systemOverlayStyle: _kLightStatusBar),
+          ),
           // 🚨 CRITICAL: NEVER REMOVE OR MODIFY
           builder: (context, child) {
             final isDesktop = kIsWeb ||

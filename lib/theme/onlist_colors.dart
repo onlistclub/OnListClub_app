@@ -46,12 +46,15 @@ class OnlistColors {
     colors: [black, blueDeep],
   );
 
-  /// Sfondo schermate onboarding (Splash, Login, Sign up, ecc.).
-  /// `radial-gradient(98% 98% at 3% 1%, #0107D6 0%, #000 100%)`
+  /// Sfondo schermate pre-home (Splash, Login, Sign up, Verifica, Permessi GPS,
+  /// Posizione manuale). Gradiente radiale ufficiale Figma:
+  /// `radial-gradient(98.88% 98.88% at 0% 1.12%, #0009FF 0%, #000000 100%)`.
+  /// Center/raggio frazionari → scala con lo schermo (sistema responsive).
   static const RadialGradient onboardingBackground = RadialGradient(
-    center: Alignment(-0.94, -0.98), // ≈ at 3% 1%
-    radius: 1.4, // copre 98% 98%
-    colors: [blueGradientStart, black],
+    center: Alignment(-1.0, -0.98), // 0% 1.12% (alto-sinistra)
+    radius: 0.99, // ≈ 98.88%
+    colors: [blueGradientStart2, black], // #0009FF → #000000
+    stops: [0.0, 1.0],
   );
 
   // ── Gradienti card ──────────────────────────────────────────────────────
