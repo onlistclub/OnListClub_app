@@ -137,7 +137,7 @@ class LocationService {
     try {
       final responseCitta = await Supabase.instance.client
           .from('citta')
-          .select('id_citta, nome_citta, lat, lng')
+          .select('id_citta, nome_citta, lat, lng, cap')
           .ilike('nome_citta', '$q%')
           .order('nome_citta')
           .limit(5);

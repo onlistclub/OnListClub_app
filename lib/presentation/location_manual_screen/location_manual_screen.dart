@@ -67,6 +67,10 @@ class _LocationManualScreenState extends State<LocationManualScreen> with Screen
               _cittaCtrl.selection = TextSelection.fromPosition(
                 TextPosition(offset: _cittaCtrl.text.length),
               );
+              // Auto-compilo il CAP SOLO quando cambia la città (qui), così
+              // un'eventuale modifica manuale del CAP non viene sovrascritta
+              // ai rebuild successivi (es. cambio raggio).
+              _capCtrl.text = state.selectedCitta!.cap ?? '';
             }
           },
           builder: (context, state) {
@@ -194,13 +198,16 @@ class _LocationManualScreenState extends State<LocationManualScreen> with Screen
                           ),
                           itemBuilder: (context, i) {
                             final c = state.cities[i];
+                            final label = (c.cap != null && c.cap!.isNotEmpty)
+                                ? '${c.cap} - ${c.nomeCitta}'
+                                : c.nomeCitta;
                             return InkWell(
                               onTap: () => bloc.add(SelectCittaEvent(c)),
                               child: Padding(
                                 padding: const EdgeInsets.symmetric(
                                     horizontal: 20, vertical: 14),
                                 child: Text(
-                                  c.nomeCitta,
+                                  label,
                                   style: const TextStyle(
                                     fontFamily: 'HelveticaNeue',
                                     fontSize: 15,

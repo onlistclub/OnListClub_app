@@ -8,12 +8,16 @@ class CittaModel {
   final String nomeCitta;
   final double? lat;
   final double? lng;
+  /// CAP (generico) della città dalla tabella `citta`. Null per i risultati che
+  /// non provengono da `citta` (es. posti_famosi / geocoding).
+  final String? cap;
 
   const CittaModel({
     required this.idCitta,
     required this.nomeCitta,
     this.lat,
     this.lng,
+    this.cap,
   });
 
   factory CittaModel.fromJson(Map<String, dynamic> json) {
@@ -22,6 +26,7 @@ class CittaModel {
       nomeCitta: json['nome_citta'] as String,
       lat: (json['lat'] as num?)?.toDouble(),
       lng: (json['lng'] as num?)?.toDouble(),
+      cap: json['cap'] as String?,
     );
   }
 
