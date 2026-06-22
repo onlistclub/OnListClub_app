@@ -1,0 +1,61 @@
+name: iOS build (unsigned IPA per Sideloadly)
+
+# Builda un .ipa NON firmato, da firmare/installare con Sideloadly (Apple ID
+# gratuito). Niente certificati Apple richiesti.
+#
+# La config runtime (Supabase, Google) viene iniettata a build-time via
+# --dart-define dai Secrets del repo (Settings → Secrets and variables → Actions):
+#   SUPABASE_URL, SUPABASE_ANON_KEY, GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID
+# SUPABASE_URL e la anon key sono chiavi pubbliche/publishable: ok nel client.
+
+on:
+  workflow_dispatch:        # avvio manuale dalla tab "Actions"
+  push:
+    branches:
+      - MVP                 # auto-build a ogni push su MVP (test)
+    tags:
+      - 'v*'                # oppure su tag versione (es. v1.0.0)
+
+jobs:
+  build-ios:
+    runs-on: macos-14
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Flutter
+        uses: subosito/flutter-action@v2
+        with:
+          channel: stable
+          cache: true
+
+      - name: Flutter pub get
+        run: flutter pub get
+
+      - name: Build iOS (release, unsigned)
+        run: |
+          flutter build ios --release --no-codesign \
+            --dart-define=SUPABASE_URL=${{ secrets.SUPABASE_URL }} \
+            --dart-define=SUPABASE_ANON_KEY=${{ secrets.SUPABASE_ANON_KEY }} \
+            --dart-define=GOOGLE_WEB_CLIENT_ID=${{ secrets.GOOGLE_WEB_CLIENT_ID }} \
+            --dart-define=GOOGLE_IOS_CLIENT_ID=${{ secrets.GOOGLE_IOS_CLIENT_ID }}
+
+      - name: Package unsigned IPA
+        # Flutter (con --no-codesign) produce build/ios/iphoneos/Runner.app
+        # senza firma. Lo impacchettiamo a mano in un .ipa: basta una cartella
+        # Payload/ con dentro il .app, zippata. Sideloadly poi lo rifirma.
+        run: |
+          cd build/ios/iphoneos
+          mkdir -p Payload
+          cp -r Runner.app Payload/
+          zip -qry OnListClub.ipa Payload
+          echo "IPA creato:"
+          ls -lh OnListClub.ipa
+
+      - name: Upload IPA artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: OnListClub-unsigned-ipa
+          path: build/ios/iphoneos/OnListClub.ipa
+          if-no-files-found: error
