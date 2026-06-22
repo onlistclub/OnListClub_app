@@ -23,8 +23,22 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 12 | Notifiche | notifications_screen.dart | ✅ già allineato (ciclo) | _vedi #12_ |
 | 13 | Riepilogo ordini | orders_screen.dart | 🔎 corretta (ciclo) | _vedi #13_ |
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ✅ già allineato (ciclo) | _vedi #14_ |
-| 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
+| 15 | Pop-up info serata | event_info_popup_screen.dart | 🔎 corretta (ciclo) | _vedi #15_ |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #15 Pop-up info serata (schermata 12, ciclo corrente)
+Fonti: `attuale_2/pop-up-info-serata.png` · `analisi/scheda-specifica-serata.png` + `pop-up-info-club.css` · `off/19`.
+La struttura c'era ma con stili più piccoli/tenui del CSS → **restyle ampio** sui valori esatti:
+- **Card**: gradiente `cardSummary` → CSS `#2600FF→#1500B2→#000` (3 stop); radius 14→24.
+- **Titolo serata** 36/-0.04 → **45**/w700/-0.08; indirizzo 13 → **16**/-0.08 white77.
+- **Date pill** 15/w600 white10 → **20**/w500/-0.08 su nero 27% r11.
+- **Label sezioni** (STILE MUSICALE/LINE-UP) 12 grigio → **16**/w500 bianco/-0.05.
+- **Chip generi**: pill r1000 13 → rettangoli **r11**, **16**/-0.08, primo attivo (blu) gli altri attenuati 50%.
+- **Info box**: bg → blu 0.16 r11; label su **pill gradiente** (grigio→blu r7); valore 14 → **20**/-0.05.
+- **Righe DJ**: bg blu 0.16 r19; avatar **gradiente** bianco→blu; iniziali/nome **16**/w500; sottotitolo **13**/w300; HEADLINER **gradiente** bianco→teal r9 13.
+- **CTA "Acquista il tuo ticket"** 18/w600 → **32**/w500/-0.05, gradiente blu 51% r15.
+- **Badge "QUESTA SERA"** gradiente teal→blu r10, 13; **X** cerchio outline 24 bordo 1px.
+- `flutter analyze`: pulito.
 
 ### #14 Prevendita acquistata + QR (schermata 11, ciclo corrente)
 Fonti: `attuale_2/specifica-prevenita-qr-code.jpeg` · `off/18` (il CSS `specifica-ticket-acquistato.css` è in realtà l'artboard "Account" col ticket nascosto → non affidabile, uso off).
