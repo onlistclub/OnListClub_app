@@ -15,8 +15,8 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 4 | Conferma email | verification_screen.dart | ✅ completata | `392bcbf` |
 | 5 | Concedi posizione | location_permission_screen.dart | ✅ completata | `2bd8063` |
 | 6 | Ricerca città | location_manual_screen.dart | ⬜ da fare | — |
-| 7 | Home | home_screen.dart (+ custom_top_bar.dart) | 🔎 corretta · attesa OK | _vedi #7_ |
-| 8 | Carrello (vuoto+pieno) | cart_screen.dart | ⬜ da fare | — |
+| 7 | Home | home_screen.dart (+ custom_top_bar.dart) | ✅ approvata | `bb31b27` |
+| 8 | Carrello (vuoto+pieno) | cart_screen.dart | 🔎 vuoto fatto · pieno da fare | _vedi #8_ |
 | 9 | Disco singola | club_detail_screen.dart | ⬜ da fare | — |
 | 10 | Selezione ticket | booking_screen.dart | ⬜ da fare | — |
 | 11 | Ordine effettuato | payment_success_screen.dart | ⬜ da fare | — |
@@ -25,6 +25,16 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ⬜ da fare | — |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #8 Carrello VUOTO (ciclo corrente)
+Fonti: `attuale_2/carrello-vuoto.png` · `off/08 - Carrello vuoto.png` (no analisi/CSS per il carrello → off + design system).
+- Schermata già allineata: top bar (logo già sistemato globalmente), "Torna indietro", footer (carrello attivo), sfondo gradiente.
+- **Unica differenza**: il Figma `off/08` ha il corpo **vuoto**; l'app mostrava icona carrello 80 + 2 testi.
+  **Deciso (utente): messaggio più discreto** → rimossa l'icona grande, testi ridotti e attenuati
+  ("Il carrello è vuoto" 22→16 alpha .6→.4; sottotitolo 15→13 alpha .35→.28). Compromesso tra
+  Figma pulito e CLAUDE.md §5.4 "mai schermate bianche". *(cart_screen.dart `_buildEmptyCart`)*
+- Stato "pieno" (#14 Carrello con qualcosa) **non toccato qui**: è una schermata successiva dell'ordine.
+- `flutter analyze`: pulito.
 
 ### #7 Home (ciclo corrente — correzioni applicate, attesa OK)
 Fonti: `attuale_2/home.jpeg` · `analisi/home.png` + `home.css` · `off/07 - Home-aggiornato.png`.

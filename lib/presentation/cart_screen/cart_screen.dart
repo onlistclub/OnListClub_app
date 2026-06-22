@@ -216,31 +216,27 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   }
 
   Widget _buildEmptyCart() {
+    // Figma off/08 ha il corpo vuoto; per non lasciare una schermata "bianca"
+    // (CLAUDE.md §5.4) teniamo un messaggio MINIMO e tenue, senza icona grande.
     return Center(
       child: Column(
         mainAxisAlignment: MainAxisAlignment.center,
         children: [
-          Icon(
-            Icons.shopping_cart_outlined,
-            color: Colors.white.withValues(alpha: 0.3),
-            size: 80,
-          ),
-          const SizedBox(height: 20),
           Text(
             "Il carrello è vuoto",
             style: OnlistTextStyles.hn(
-              color: Colors.white.withValues(alpha: 0.6),
-              fontSize: R.sp(22),
-              fontWeight: FontWeight.w600,
+              color: Colors.white.withValues(alpha: 0.4),
+              fontSize: R.sp(16),
+              fontWeight: FontWeight.w500,
             ),
           ),
-          const SizedBox(height: 10),
+          const SizedBox(height: 6),
           Text(
             "Seleziona un tavolo o un ticket\nper aggiungere un ordine",
             textAlign: TextAlign.center,
             style: OnlistTextStyles.hn(
-              color: Colors.white.withValues(alpha: 0.35),
-              fontSize: R.sp(15),
+              color: Colors.white.withValues(alpha: 0.28),
+              fontSize: R.sp(13),
             ),
           ),
         ],
