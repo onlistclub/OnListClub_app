@@ -37,10 +37,18 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
             onTap: isHome ? null : () => NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen),
             child: Hero(
               tag: 'app_logo',
-              child: Image.asset(
-                ImageConstant.imgLogoOnlist,
-                height: 120, // più grande, vicino alla proporzione del Figma nav-bar
-                fit: BoxFit.contain,
+              // L'asset logo è quadrato (1563×1563) col wordmark centrato e ampio
+              // padding trasparente. Riempiamo la LARGHEZZA (≈ proporzione Figma
+              // nav-bar: wordmark ~31% schermo) e ritagliamo il padding verticale,
+              // così il logo è grande ma la barra resta bassa. Misure responsive
+              // (proporzionali alla larghezza schermo), non pixel fissi.
+              child: SizedBox(
+                width: R.w(54),
+                height: R.w(12),
+                child: Image.asset(
+                  ImageConstant.imgLogoOnlist,
+                  fit: BoxFit.fitWidth,
+                ),
               ),
             ),
           ),
@@ -72,7 +80,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  // Logo 120 + padding verticale 10+10 = 140.
+  // Altezza barra = slot logo responsive (R.w(12)) + padding verticale (10+10).
   @override
-  Size get preferredSize => const Size.fromHeight(140);
+  Size get preferredSize => Size.fromHeight(R.w(12) + 20);
 }

@@ -15,7 +15,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 4 | Conferma email | verification_screen.dart | ✅ completata | `392bcbf` |
 | 5 | Concedi posizione | location_permission_screen.dart | ✅ completata | `2bd8063` |
 | 6 | Ricerca città | location_manual_screen.dart | ⬜ da fare | — |
-| 7 | Home | home_screen.dart | ⬜ da fare | — |
+| 7 | Home | home_screen.dart (+ custom_top_bar.dart) | 🔎 corretta · attesa OK | _vedi #7_ |
 | 8 | Carrello (vuoto+pieno) | cart_screen.dart | ⬜ da fare | — |
 | 9 | Disco singola | club_detail_screen.dart | ⬜ da fare | — |
 | 10 | Selezione ticket | booking_screen.dart | ⬜ da fare | — |
@@ -25,6 +25,22 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ⬜ da fare | — |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #7 Home (ciclo corrente — correzioni applicate, attesa OK)
+Fonti: `attuale_2/home.jpeg` · `analisi/home.png` + `home.css` · `off/07 - Home-aggiornato.png`.
+- **Card "Club consigliati" — gradiente**: da `[#000,#0009FF]` opaco stops .21/.82 →
+  brand `rgba(0,0,0,.8) → endColor` stops .0137/1.0; `endColor` alterna `#1500B3` (card
+  pari) / `#110091` (card dispari), entrambi `@0.8` (Figma Frame 352/351). *(home_screen.dart)*
+- **Logo top bar** (condiviso, vale per tutte): asset quadrato 1563×1563 con padding
+  trasparente → da `height:120 contain` (piccolo) a `SizedBox(R.w(54)×R.w(12)) + fitWidth`
+  che riempie la larghezza (wordmark ~31% schermo) e ritaglia il vuoto verticale.
+  `preferredSize` 140 → `R.w(12)+20`. Responsive, barra più bassa. *(custom_top_bar.dart)*
+- **Line-height titolo club** 41/36 → 36/36 (= CSS). *(home_screen.dart)*
+- **GPS toggle** mantenuto (funzionale) e ingrandito: icona 12→14, testo `R.sp(10)`→`R.sp(12)`,
+  padding 8/4→10/6. *(home_screen.dart)*
+- **Non toccato**: dati club/serate (dal DB, niente placeholder); data/ora nelle card
+  (appartengono alla scheda club); icona bookmark titolo (tenuta per ora, da decidere).
+- `flutter analyze`: pulito.
 
 ### #1 Splash (commit `55139f8`)
 - Anello freccia: bordo `4*scaleX` → `1.8*scaleX` (tratto sottile come `off/01`); icona `28`→`26`.

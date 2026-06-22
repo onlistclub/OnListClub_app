@@ -287,7 +287,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2A2A2A),
                   borderRadius: BorderRadius.circular(20),
@@ -295,12 +295,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.my_location, color: Colors.white, size: 12),
-                    const SizedBox(width: 4),
+                    const Icon(Icons.my_location, color: Colors.white, size: 14),
+                    const SizedBox(width: 6),
                     Text(
                       'Usa GPS',
                       style: OnlistTextStyles.hn(
-                        fontSize: R.sp(10),
+                        fontSize: R.sp(12),
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -315,7 +315,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 context.read<HomeBloc>().add(const HomeForceGpsEvent(false));
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
+                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0009FF).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -323,12 +323,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.close, color: Colors.white, size: 12),
-                    const SizedBox(width: 4),
+                    const Icon(Icons.close, color: Colors.white, size: 14),
+                    const SizedBox(width: 6),
                     Text(
                       'Rimuovi GPS',
                       style: OnlistTextStyles.hn(
-                        fontSize: R.sp(10),
+                        fontSize: R.sp(12),
                         color: Colors.white,
                         fontWeight: FontWeight.w600,
                       ),
@@ -407,7 +407,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 fontSize: R.sp(36),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
-                height: 41 / 36,
+                height: 36 / 36, // Figma: line-height 36px = font-size
                 letterSpacing: -0.08 * 36,
               ),
               maxLines: 1,
@@ -512,22 +512,35 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   Widget _buildRecommendedCards(BuildContext context, HomeState state) {
     if (state.recommendedClubs.isEmpty) return const SizedBox.shrink();
+    final clubs = state.recommendedClubs;
     return Column(
       children: [
-        for (final club in state.recommendedClubs)
+        for (int i = 0; i < clubs.length; i++)
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
             child: _scaleToWidth(
               designW: 369,
               designH: 108,
-              child: _buildRecommendedClubCard(context, club),
+              // Figma 07: il gradiente card alterna #1500B3 (card 1) e #110091
+              // (card 2), entrambi al 80% di opacità (rgba 0.8).
+              child: _buildRecommendedClubCard(
+                context,
+                clubs[i],
+                endColor: i.isEven
+                    ? const Color(0xCC1500B3)
+                    : const Color(0xCC110091),
+              ),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildRecommendedClubCard(BuildContext context, LocaleModel club) {
+  Widget _buildRecommendedClubCard(
+    BuildContext context,
+    LocaleModel club, {
+    required Color endColor,
+  }) {
     // Riusa il layout della card Figma "Club consigliati" (07-aggiornato):
     // immagine sinistra, nome + generi + città a destra, bottone PRENOTA.
     return AnimatedPress(
@@ -536,9 +549,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         width: 369,
         height: 108,
         decoration: BoxDecoration(
-          gradient: const LinearGradient(
-            colors: [Color(0xFF000000), Color(0xFF0009FF)],
-            stops: [0.2067, 0.8173],
+          // Figma 07 (Frame 352/351): linear-gradient(95deg,
+          // rgba(0,0,0,0.8) 1.37% → endColor 100%). endColor = #1500B3/#110091.
+          gradient: LinearGradient(
+            colors: [const Color(0xCC000000), endColor],
+            stops: const [0.0137, 1.0],
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
           ),
