@@ -17,7 +17,7 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 6 | Ricerca città | location_manual_screen.dart | ⬜ da fare | — |
 | 7 | Home | home_screen.dart (+ custom_top_bar.dart) | ✅ approvata | `bb31b27` |
 | 8 | Carrello (vuoto+pieno) | cart_screen.dart | 🔎 vuoto fatto · pieno da fare | _vedi #8_ |
-| 9 | Disco singola | club_detail_screen.dart | ⬜ da fare | — |
+| 9 | Disco singola | club_detail_screen.dart | 🔎 corretta (ciclo) | _vedi #9_ |
 | 10 | Selezione ticket | booking_screen.dart | ⬜ da fare | — |
 | 11 | Ordine effettuato | payment_success_screen.dart | ⬜ da fare | — |
 | 12 | Notifiche | notifications_screen.dart | ⬜ da fare | — |
@@ -25,6 +25,16 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ⬜ da fare | — |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #9 Scheda club / Disco singola (ciclo corrente)
+Fonti: `attuale_2/specifica-club.jpeg` (pre-restyle) · `analisi/scheda-club.png` + `vetrina-club.css` · `off/10 -…home-aggiornato.png`. Confronto **codice ↔ CSS** (lo screenshot precede il restyle).
+Già allineati: indirizzo 23/w500/.8, bookmark 48, card serata (gradiente #000→#000B83, locandina 95×119, titolo 32, OGGI 24, ecc.).
+- **"Prossime serate"**: `R.sp(20)` → CSS **32**/w700/-0.08 line37 (era troppo piccolo). *(club_detail_screen.dart)*
+- **PRENOTA card serata**: gradiente `#000→#000B83` (si confondeva con la card) → CSS **`#1900D8→#201065`**.
+- **Generi** info row: `R.sp(18)` → CSS **16** (l'orario resta 18).
+- **Titolo club**: aggiunto `line-height 41/36` (CSS).
+- Non toccato: dati DB; hero 217 (≈ CSS 205, lasciato per coerenza col morph Hero dalla home); back row (pattern condiviso).
+- `flutter analyze`: pulito.
 
 ### #8 Carrello VUOTO (ciclo corrente)
 Fonti: `attuale_2/carrello-vuoto.png` · `off/08 - Carrello vuoto.png` (no analisi/CSS per il carrello → off + design system).

@@ -396,6 +396,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                 fontSize: R.sp(36),
                 fontWeight: FontWeight.w700,
                 color: Colors.white,
+                height: 41 / 36, // CSS: line-height 41
                 letterSpacing: -0.08 * 36,
               ),
             ),
@@ -481,7 +482,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                   child: Text(
                     generi,
                     style: OnlistTextStyles.hn(
-                      fontSize: R.sp(18),
+                      fontSize: R.sp(16), // CSS generi: 16px (orario è 18)
                       fontWeight: FontWeight.w700,
                       color: Colors.white.withValues(alpha: 0.6),
                     ),
@@ -506,9 +507,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
           child: Text(
             'Prossime serate',
             style: OnlistTextStyles.hn(
-              fontSize: R.sp(20),
+              fontSize: R.sp(32),
               fontWeight: FontWeight.w700,
               color: Colors.white,
+              height: 37 / 32, // CSS: 32px line-height 37, LS -0.08
+              letterSpacing: -0.08 * 32,
             ),
           ),
         ),
@@ -712,10 +715,12 @@ class _SerataCard extends StatelessWidget {
                       decoration: BoxDecoration(
                         gradient: isSoldOut
                             ? null
+                            // CSS Rectangle 164: #1900D8 → #201065 (brand),
+                            // più chiaro della card per far risaltare il bottone.
                             : const LinearGradient(
                                 begin: Alignment.centerLeft,
                                 end: Alignment.centerRight,
-                                colors: [Color(0xFF000000), Color(0xFF000B83)],
+                                colors: [Color(0xFF1900D8), Color(0xFF201065)],
                               ),
                         color: isSoldOut
                             ? Colors.white.withValues(alpha: 0.18)
