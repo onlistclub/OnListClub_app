@@ -33,6 +33,12 @@ jobs:
       - name: Flutter pub get
         run: flutter pub get
 
+      - name: Create placeholder env.json
+        # env.json è dichiarato come asset in pubspec.yaml ma è gitignored,
+        # quindi sul runner non esiste e il bundling fallirebbe. La config vera
+        # arriva dai --dart-define qui sotto: a env.json basta esistere.
+        run: echo '{}' > env.json
+
       - name: Build iOS (release, unsigned)
         run: |
           flutter build ios --release --no-codesign \
