@@ -24,7 +24,17 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 13 | Riepilogo ordini | orders_screen.dart | 🔎 corretta (ciclo) | _vedi #13_ |
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ✅ già allineato (ciclo) | _vedi #14_ |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | 🔎 corretta (ciclo) | _vedi #15_ |
-| 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+| 16 | Account / Profilo | profile_screen.dart | 🔎 corretta (ciclo) | _vedi #16_ |
+
+### #16 Account / Profilo (schermata 13, ciclo corrente)
+Fonti: `attuale_2/account.jpeg` · `analisi/account.css` (inutile: contiene solo un ticket nascosto) · `off/Account.png`.
+- **Figma off/Account è VUOTO**: solo top bar + "← Torna indietro" + corpo vuoto + footer. Il contenuto reale
+  (campi profilo, "Salvati", azioni account) **non è disegnato** → tenuto com'è (funzionalità essenziale; un
+  Account vuoto come il Figma sarebbe assurdo; "mai schermate bianche").
+- `profile_screen.dart` **non** usa più `GoogleFonts.inter` (già migrato a `OnlistTextStyles.hn`).
+- **Unica modifica Figma-supportata**: aggiunta riga **"← Torna indietro"** (arrow 28 + `title32Light`, pattern condiviso), che prima mancava.
+- Bonus: corretta deprecation `dialogBackgroundColor` → `DialogThemeData` (analyze pulito).
+- `flutter analyze`: pulito.
 
 ### #15 Pop-up info serata (schermata 12, ciclo corrente)
 Fonti: `attuale_2/pop-up-info-serata.png` · `analisi/scheda-specifica-serata.png` + `pop-up-info-club.css` · `off/19`.
