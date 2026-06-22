@@ -4,7 +4,6 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/sign_up_model.dart';
 import 'package:intl/intl.dart';
-import '../../../core/services/register_service.dart';
 
 part 'sign_up_event.dart';
 part 'sign_up_state.dart';
@@ -196,44 +195,16 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       );
       
       if (response.user != null) {
-        final user = response.user!;
-        final iso = model.phoneCountryIso ?? 'IT';
-        final nn = model.nationalNumber;
-        final dob = model.dob;
-        if (nn.isEmpty || dob == null) {
-          emit(state.copyWith(isLoading: false, errorMessage: 'Dati telefono/paese mancanti'));
-          return;
-        }
-        try {
-          // Scrittura atomica di utente + telefono (E.164) in un'unica transazione
-          // via RPC SECURITY DEFINER: niente righe orfane e maggiorenne calcolato
-          // lato DB.
-          await RegisterService().registerAtomic(
-            userId: user.id,
-            email: model.email,
-            nome: model.firstName,
-            cognome: model.lastName,
-            dataNascita: dob,
-            telefono: model.phone,
-            countryIso: iso,
-          );
-          emit(state.copyWith(isLoading: false, isSuccess: true));
-        } on PostgrestException catch (e) {
-          // 23505 = unique_violation: rete di sicurezza del telefono (l'email
-          // viene già intercettata prima/da signUp). Messaggio amichevole.
-          debugPrint('[SignUpBloc] registerAtomic PostgrestException: ${e.code} ${e.message}');
-          emit(state.copyWith(
-            isLoading: false,
-            errorMessage:
-                e.code == '23505' ? phoneTakenMessage : 'Errore salvataggio telefono: ${e.message}',
-          ));
-          return;
-        } catch (e) {
-          debugPrint('[SignUpBloc] registerAtomic error: $e');
-          emit(state.copyWith(isLoading: false, errorMessage: 'Errore salvataggio telefono: $e'));
-          return;
-        }
-        // La navigazione è gestita da isSuccess
+        // Con "Confirm email" attivo, signUp NON apre una sessione: `auth.uid()`
+        // è ancora null. Quindi qui NON scriviamo il profilo — la RPC
+        // `register_user_transaction` fallirebbe con la guardia di sicurezza
+        // ("Forbidden: caller is not the target user", 42501). I dati anagrafici
+        // e il telefono viaggiano nei metadata di `auth.users` (campo `data:`
+        // sopra) e vengono scritti DOPO la conferma email da
+        // `UserProfileManager.ensureProfileExists()`, chiamato dal verificationBloc
+        // al primo login con sessione valida.
+        emit(state.copyWith(isLoading: false, isSuccess: true));
+        // La navigazione alla schermata di verifica è gestita da isSuccess.
       } else {
          // Should throw error if failed usually, but just in case
          emit(state.copyWith(isLoading: false, errorMessage: "Registration failed"));

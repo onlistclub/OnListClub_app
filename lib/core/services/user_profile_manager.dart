@@ -1,6 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
-import '../utils/age_calculator.dart';
+import 'register_service.dart';
 
 /// Servizio singleton per il profilo utente in `public.utenti`.
 ///
@@ -60,10 +60,15 @@ class UserProfileManager {
   }
 
   /// Ensures that the user profile exists in the `public.utenti` table.
-  /// Should be called after a successful login.
+  /// Should be called after a successful login / email confirmation.
   ///
-  /// If the profile does not exist, it is created using the metadata
-  /// stored in [auth.users] (which was populated during registration).
+  /// Questo è il punto della "scrittura post-conferma": al momento del signUp
+  /// (con "Confirm email" attivo) non c'è sessione e `auth.uid()` è null, quindi
+  /// il profilo NON viene scritto lì. Qui invece la sessione è attiva, perciò la
+  /// RPC atomica `register_user_transaction` passa la guardia di sicurezza e
+  /// crea in un'unica transazione la riga `utenti` + il telefono in
+  /// `utenti_numeri_telefono`, a partire dai metadata salvati su `auth.users`
+  /// durante la registrazione.
   Future<void> ensureProfileExists() async {
     final client = Supabase.instance.client;
     final user = client.auth.currentUser;
@@ -75,57 +80,57 @@ class UserProfileManager {
 
     try {
       debugPrint('[UserProfileManager] Checking if profile exists for ${user.id}...');
-      
-      // Check if row exists
-      final data = await client
+
+      // Se la riga esiste già, niente da fare: evitiamo riscritture a ogni login.
+      final existing = await client
           .from('utenti')
           .select('id')
           .eq('id', user.id)
           .maybeSingle();
-
-      if (data != null) {
-        debugPrint('[UserProfileManager] Profile exists. Proceeding to upsert via RPC.');
+      if (existing != null) {
+        debugPrint('[UserProfileManager] Profile already exists. Nothing to do.');
+        return;
       }
 
       debugPrint('[UserProfileManager] Profile not found. Creating from metadata...');
-      
+
       final metadata = user.userMetadata;
       if (metadata == null) {
         debugPrint('[UserProfileManager] No metadata found. Cannot create profile.');
         return;
       }
 
-      // Extract data
       final nome = metadata['nome'] as String?;
       final cognome = metadata['cognome'] as String?;
       final dobString = metadata['data_nascita'] as String?;
-      
-      DateTime? dob;
-      if (dobString != null) {
-        dob = DateTime.tryParse(dobString);
+      final telefono = metadata['telefono'] as String?;
+      final countryIso = metadata['phone_country_iso'] as String?;
+
+      final dob = dobString != null ? DateTime.tryParse(dobString) : null;
+
+      if (nome == null || cognome == null || dob == null || telefono == null) {
+        debugPrint(
+            '[UserProfileManager] Metadata incompleti (nome/cognome/dob/telefono). Skip creazione profilo.');
+        return;
       }
 
-      bool isAdult = false;
-      if (dob != null) {
-        isAdult = AgeCalculator.isAdult(dob);
-      }
+      // Scrittura atomica utente + telefono (E.164) via RPC SECURITY DEFINER.
+      // Ora `auth.uid()` == user.id, quindi la guardia passa e non c'è più
+      // l'errore "Forbidden: caller is not the target user".
+      await RegisterService().registerAtomic(
+        userId: user.id,
+        email: user.email ?? '',
+        nome: nome,
+        cognome: cognome,
+        dataNascita: dob,
+        telefono: telefono,
+        countryIso: countryIso,
+      );
 
-      // Upsert solo su public.utenti; non inseriamo telefono qui
-      await Supabase.instance.client.from('utenti').upsert({
-        'id': user.id,
-        'nome': nome,
-        'cognome': cognome,
-        'email': user.email,
-        'data_nascita': dob?.toIso8601String(),
-        'maggiorenne': isAdult,
-      });
-
-      debugPrint('[UserProfileManager] Profile created successfully.');
-
+      debugPrint('[UserProfileManager] Profile created successfully (via RPC).');
     } catch (e) {
       debugPrint('[UserProfileManager] Error ensuring profile: $e');
-      // We don't rethrow because we don't want to block login flow,
-      // but in a real app you might want to show an error or retry.
+      // Non rilanciamo: non vogliamo bloccare il flusso di login/verifica.
     }
   }
 }
