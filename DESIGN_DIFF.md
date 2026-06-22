@@ -42,6 +42,10 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 - Testo italiano mantenuto (l'inglese del Figma è solo placeholder).
 - **Testo in basso mantenuto** ("La tua posizione è protetta…") con font corretto: `HelveticaNeue` 12 + interlinea `16/12` (come CSS SF Pro Text → HelveticaNeue).
 - **Titolo non più schiacciato**: usava `title36Bold.copyWith(fontSize: 24)` che portava `letterSpacing -2.88` (per 36px) comprimendo il testo a 24px → ora `24/w700/line 28/letter-spacing +0.87` come CSS. Rimosso import `onlist_text_styles` non più usato.
+- **Sfondo identico a login/registrazione**: aggiunto `Scaffold backgroundColor: black` (gradiente già `onboardingBackground`).
+- **Distribuzione verticale come off/05**: spacer proporzionali `25 / 9 / 13` (icona ~29%, testo sicurezza ~82% invece che incollato in fondo); gap titolo→sottotitolo 12→16, gap bottoni 14→12.
+- **Icona a cerchio**: `borderRadius` → `shape: BoxShape.circle`.
+- **Bottoni più stretti**: `width: double.infinity` → `R.w(71)` (Figma 280/393 ≈ 71%).
 
 ### #4 Conferma email
 - **Linea bianca sul bordo rimossa**: lo Scaffold non impostava `backgroundColor` (default bianco) → aggiunto `backgroundColor: black` + gradiente in `Container` a piena pagina (`width/height: infinity`).
