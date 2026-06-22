@@ -211,10 +211,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
         label,
         style: OnlistTextStyles.hn(
           color: Colors.white,
-          fontSize: R.sp(32),
+          fontSize: R.sp(36), // CSS "Oggi": 36/w700/-0.07
           fontWeight: FontWeight.w700,
           height: 41 / 36,
-          letterSpacing: -0.07 * 32,
+          letterSpacing: -0.07 * 36,
         ),
       ),
     );
@@ -257,22 +257,22 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                       'Ticket x $quantita',
                       style: OnlistTextStyles.hn(
                         color: Colors.white,
-                        fontSize: R.sp(32),
+                        fontSize: R.sp(40), // CSS "Ticket x 1": 39.52
                         fontWeight: FontWeight.w400,
-                        letterSpacing: -0.1 * 32,
-                        height: 1.05,
+                        letterSpacing: -0.1 * 40,
+                        height: 1.0,
                       ),
                     ),
                     SizedBox(width: R.sp(10)),
                     Padding(
-                      padding: EdgeInsets.only(bottom: R.sp(4)),
+                      padding: EdgeInsets.only(bottom: R.sp(6)),
                       child: Text(
                         'Ticket ${_capitalize(tipo)}',
                         style: OnlistTextStyles.hn(
                           color: Colors.white,
-                          fontSize: R.sp(16),
+                          fontSize: R.sp(20), // CSS "Ticket normale": 20 Light
                           fontWeight: FontWeight.w300,
-                          letterSpacing: -0.06 * 16,
+                          letterSpacing: -0.06 * 20,
                         ),
                       ),
                     ),
@@ -288,23 +288,23 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                         '${_fmtPrezzo(prezzo)}€',
                         style: OnlistTextStyles.hn(
                           color: Colors.white,
-                          fontSize: R.sp(72),
+                          fontSize: R.sp(96), // CSS prezzo: 96/-0.1
                           fontWeight: FontWeight.w400,
-                          letterSpacing: -0.08 * 72,
+                          letterSpacing: -0.1 * 96,
                           height: 1.0,
                         ),
                       ),
                     if (drinkOmaggio != null && drinkOmaggio > 0) ...[
                       SizedBox(width: R.sp(8)),
                       Padding(
-                        padding: EdgeInsets.only(bottom: R.sp(10)),
+                        padding: EdgeInsets.only(bottom: R.sp(18)),
                         child: Text(
                           '+ $drinkOmaggio drink omaggio',
                           style: OnlistTextStyles.hn(
                             color: Colors.white,
-                            fontSize: R.sp(13),
+                            fontSize: R.sp(24), // CSS "+drink omaggio": 24/-0.1
                             fontWeight: FontWeight.w400,
-                            letterSpacing: -0.1 * 13,
+                            letterSpacing: -0.1 * 24,
                           ),
                         ),
                       ),
@@ -326,8 +326,19 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                           letterSpacing: -0.1 * 15,
                         ),
                       ),
-                      SizedBox(height: R.sp(2)),
-                      Icon(Icons.keyboard_arrow_down, color: Colors.white, size: R.sp(22)),
+                      SizedBox(height: R.sp(6)),
+                      // CSS Ellipse 9: cerchio 28 bordo 2px con freccia giù dentro.
+                      Container(
+                        width: R.sp(28),
+                        height: R.sp(28),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Icon(Icons.arrow_downward,
+                            color: Colors.white, size: R.sp(16)),
+                      ),
                     ],
                   ),
                 ),
@@ -386,21 +397,21 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                   nomeTavolo.isNotEmpty ? 'Tavolo $nomeTavolo' : 'Tavolo',
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
-                    fontSize: R.sp(32),
+                    fontSize: R.sp(40), // coerente con card prevendita (CSS 39.52)
                     fontWeight: FontWeight.w400,
-                    letterSpacing: -0.1 * 32,
-                    height: 1.05,
+                    letterSpacing: -0.1 * 40,
+                    height: 1.0,
                   ),
                 ),
                 if (nomeCliente.isNotEmpty) ...[
-                  SizedBox(height: R.sp(4)),
+                  SizedBox(height: R.sp(6)),
                   Text(
                     'Riservato a $nomeCliente',
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
-                      fontSize: R.sp(16),
+                      fontSize: R.sp(20),
                       fontWeight: FontWeight.w300,
-                      letterSpacing: -0.06 * 16,
+                      letterSpacing: -0.06 * 20,
                     ),
                   ),
                 ],
@@ -429,8 +440,19 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                           letterSpacing: -0.1 * 15,
                         ),
                       ),
-                      SizedBox(height: R.sp(2)),
-                      Icon(Icons.keyboard_arrow_down, color: Colors.white, size: R.sp(22)),
+                      SizedBox(height: R.sp(6)),
+                      // CSS Ellipse 9: cerchio 28 bordo 2px con freccia giù dentro.
+                      Container(
+                        width: R.sp(28),
+                        height: R.sp(28),
+                        alignment: Alignment.center,
+                        decoration: BoxDecoration(
+                          shape: BoxShape.circle,
+                          border: Border.all(color: Colors.white, width: 2),
+                        ),
+                        child: Icon(Icons.arrow_downward,
+                            color: Colors.white, size: R.sp(16)),
+                      ),
                     ],
                   ),
                 ),

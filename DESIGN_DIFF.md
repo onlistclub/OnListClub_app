@@ -21,10 +21,21 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 10 | Lista/Dettaglio ticket | booking_screen.dart | ✅ già allineato (ciclo) | _vedi #10_ |
 | 11 | Ordine effettuato | payment_success_screen.dart | 🔎 corretta (ciclo) | _vedi #11_ |
 | 12 | Notifiche | notifications_screen.dart | ✅ già allineato (ciclo) | _vedi #12_ |
-| 13 | Riepilogo ordini | orders_screen.dart | ⬜ da fare | — |
+| 13 | Riepilogo ordini | orders_screen.dart | 🔎 corretta (ciclo) | _vedi #13_ |
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ⬜ da fare | — |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #13 Riepilogo ordini (schermata 10, ciclo corrente)
+Fonti: `attuale_2/riepilogo-ordini.jpeg` · `analisi/riepilogo-ordini.css` + `riepilogo-ticket-acquistati.png` · `off/17`.
+Card `cardSummary` `#1E00FF→#020011` r10 ✓. La card era **sottodimensionata** vs CSS → ingrandita:
+- "Oggi" header `R.sp(32)` → **36**/w700/-0.07 (CSS). 
+- "Ticket x N" 32 → **40** (CSS 39.52); "Ticket {tipo}" 16 → **20** (Light); prezzo 72 → **96**/-0.1; "+drink" 13 → **24**/-0.1.
+- "Visualizza QR Code" 15 ✓ + aggiunto **cerchio 28 bordo 2px** con freccia giù (CSS Ellipse 9, prima freccia nuda).
+- Card **tavolo** (senza Figma proprio): allineata per coerenza (titolo 40, sottotitolo 20, stesso cerchio "Vedi piantina").
+- Prezzo già intero (`_fmtPrezzo`, niente `.0`).
+- ⚠️ **TabBar Prevendite/Tavoli**: non presente nel Figma off/17 (che mostra solo i ticket). **Tenuta** perché funzionale (l'app gestisce anche i tavoli). Segnalata.
+- `flutter analyze`: pulito.
 
 ### #12 Notifiche (schermata 9, ciclo corrente)
 Fonti: `attuale_2/notifiche.jpeg` · `analisi/notifiche.css` + png · `off/16`.
