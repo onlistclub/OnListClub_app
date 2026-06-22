@@ -22,9 +22,15 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 11 | Ordine effettuato | payment_success_screen.dart | 🔎 corretta (ciclo) | _vedi #11_ |
 | 12 | Notifiche | notifications_screen.dart | ✅ già allineato (ciclo) | _vedi #12_ |
 | 13 | Riepilogo ordini | orders_screen.dart | 🔎 corretta (ciclo) | _vedi #13_ |
-| 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ⬜ da fare | — |
+| 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ✅ già allineato (ciclo) | _vedi #14_ |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #14 Prevendita acquistata + QR (schermata 11, ciclo corrente)
+Fonti: `attuale_2/specifica-prevenita-qr-code.jpeg` · `off/18` (il CSS `specifica-ticket-acquistato.css` è in realtà l'artboard "Account" col ticket nascosto → non affidabile, uso off).
+**Verificato: già allineato, nessuna modifica.**
+- Card `cardSummary` r10; "Ticket xN" `ticketLabel` 39.52; "Ticket tipo" `ticketSubtitleXs` 20; prezzo `price96` 96; "+drink" `body24Regular` 24; QR centrato; pill "ANNULLA PREVENDITA" 219×35 r10 bianco 13% `button20Bold`; "Chiudi QR Code" `link15` + cerchio 28. Footer borsa attiva. Prezzo già intero.
+- ⚠️ Aggiunta non-Figma: riga `ID: …` in cima alla card (riferimento staff/scansione). **Tenuta** (funzionale). Segnalata.
 
 ### #13 Riepilogo ordini (schermata 10, ciclo corrente)
 Fonti: `attuale_2/riepilogo-ordini.jpeg` · `analisi/riepilogo-ordini.css` + `riepilogo-ticket-acquistati.png` · `off/17`.
