@@ -18,13 +18,21 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 7 | Home | home_screen.dart (+ custom_top_bar.dart) | ✅ approvata | `bb31b27` |
 | 8 | Carrello (vuoto+pieno) | cart_screen.dart | 🔎 vuoto fatto · pieno da fare | _vedi #8_ |
 | 9 | Disco singola | club_detail_screen.dart | 🔎 corretta (ciclo) | _vedi #9_ |
-| 10 | Selezione ticket | booking_screen.dart | ⬜ da fare | — |
+| 10 | Lista/Dettaglio ticket | booking_screen.dart | ✅ già allineato (ciclo) | _vedi #10_ |
 | 11 | Ordine effettuato | payment_success_screen.dart | ⬜ da fare | — |
 | 12 | Notifiche | notifications_screen.dart | ⬜ da fare | — |
 | 13 | Riepilogo ordini | orders_screen.dart | ⬜ da fare | — |
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ⬜ da fare | — |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #10 Lista + Dettaglio ticket (schermate 4-5-6, ciclo corrente)
+Fonti: `attuale_2/{tickets,ticket-normale,ticket-vip}.jpeg` · `analisi/carrello-ticket*.css` + png · `off/11,12,13`.
+Step di `booking_screen.dart`: `ticketList` (4) e `ticketDetail` (5/6). Per c2 saltati selection/tableConfig/bottles.
+**Verificato CODICE ↔ CSS ↔ off: già allineato, nessuna modifica.**
+- Lista card: solido `#1900D8` r10 (= off/11, non il gradiente nascosto del CSS) ✓; PRENOTA `bookButton` `#000→#201064` (= CSS) ✓.
+- Dettaglio: card `cardSingleTicket` `#000→#0015FF` (= off/12-13) ✓; "Ticket" 50, "Normale/Vip" 48 light, prezzo 192, AGGIUNGI AL CARRELLO `primaryCTA` `#1800D2→#120099` ✓.
+- **Osservazioni dato (NON toccate)**: prezzo mostra `25.0€`/`10.0€` (Figma `25€`/`10€`); ordine lista Vip→Normale (Figma Normale→Vip). Sono formattazione/ordinamento da DB → fuori da questo pass di design.
 
 ### #9 Scheda club / Disco singola (ciclo corrente)
 Fonti: `attuale_2/specifica-club.jpeg` (pre-restyle) · `analisi/scheda-club.png` + `vetrina-club.css` · `off/10 -…home-aggiornato.png`. Confronto **codice ↔ CSS** (lo screenshot precede il restyle).
