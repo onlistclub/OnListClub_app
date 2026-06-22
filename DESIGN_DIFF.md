@@ -20,11 +20,17 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 9 | Disco singola | club_detail_screen.dart | 🔎 corretta (ciclo) | _vedi #9_ |
 | 10 | Lista/Dettaglio ticket | booking_screen.dart | ✅ già allineato (ciclo) | _vedi #10_ |
 | 11 | Ordine effettuato | payment_success_screen.dart | 🔎 corretta (ciclo) | _vedi #11_ |
-| 12 | Notifiche | notifications_screen.dart | ⬜ da fare | — |
+| 12 | Notifiche | notifications_screen.dart | ✅ già allineato (ciclo) | _vedi #12_ |
 | 13 | Riepilogo ordini | orders_screen.dart | ⬜ da fare | — |
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ⬜ da fare | — |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #12 Notifiche (schermata 9, ciclo corrente)
+Fonti: `attuale_2/notifiche.jpeg` · `analisi/notifiche.css` + png · `off/16`.
+**Verificato CODICE ↔ CSS ↔ off: già allineato, nessuna modifica.**
+- Card notifica 66 r10 gradiente `[0x33FFFFFF, 0x331E00FF]` (Frame 351); titolo centrato `ticketLabel` 39.52/-0.1; "Data" `title28Regular` 28/-0.1 a left ~16. Footer campanella attiva.
+- Differenza trascurabile non applicata: il 2° card CSS finisce `#1900D8` (vs `#1E00FF`) — stesso accento al 20%, impercettibile.
 
 ### #11 Ordine effettuato (schermata 8, ciclo corrente)
 Fonti: `attuale_2/ordine-effettuato.png` · `analisi/conferma-ordine-effettuato.css` + `ordine-effettuato.png` · `off/15`.
