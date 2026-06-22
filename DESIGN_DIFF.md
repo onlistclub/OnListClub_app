@@ -16,15 +16,21 @@ Legenda stato: ⬜ da fare · 🔎 in analisi · ✅ approvata/completata · ⏭
 | 5 | Concedi posizione | location_permission_screen.dart | ✅ completata | `2bd8063` |
 | 6 | Ricerca città | location_manual_screen.dart | ⬜ da fare | — |
 | 7 | Home | home_screen.dart (+ custom_top_bar.dart) | ✅ approvata | `bb31b27` |
-| 8 | Carrello (vuoto+pieno) | cart_screen.dart | 🔎 vuoto fatto · pieno da fare | _vedi #8_ |
+| 8 | Carrello (vuoto+pieno) | cart_screen.dart | ✅ vuoto fatto · pieno allineato | _vedi #8_ |
 | 9 | Disco singola | club_detail_screen.dart | 🔎 corretta (ciclo) | _vedi #9_ |
 | 10 | Lista/Dettaglio ticket | booking_screen.dart | ✅ già allineato (ciclo) | _vedi #10_ |
-| 11 | Ordine effettuato | payment_success_screen.dart | ⬜ da fare | — |
+| 11 | Ordine effettuato | payment_success_screen.dart | 🔎 corretta (ciclo) | _vedi #11_ |
 | 12 | Notifiche | notifications_screen.dart | ⬜ da fare | — |
 | 13 | Riepilogo ordini | orders_screen.dart | ⬜ da fare | — |
 | 14 | Prevendita acquistata (QR) | prevendita_detail_screen.dart | ⬜ da fare | — |
 | 15 | Pop-up info serata | event_info_popup_screen.dart | ⬜ da fare | — |
 | 16 | Account / Profilo | profile_screen.dart | ⬜ da fare | — |
+
+### #11 Ordine effettuato (schermata 8, ciclo corrente)
+Fonti: `attuale_2/ordine-effettuato.png` · `analisi/conferma-ordine-effettuato.css` + `ordine-effettuato.png` · `off/15`.
+Stili già esatti: ORDINE `display64Light` (64/63 w300 -0.07), EFFETTUATO `title36Light` (36 w300 -0.07), "Buon divertimento!" `body20Light` (20 w300 -0.07), CTA "TORNA NELLA HOME" `primaryCTA`.
+- **Unico diff**: "Buon divertimento!" indentato `left 163` → **213** (CSS: cascata a destra, sotto la parte destra di EFFETTUATO). *(payment_success_screen.dart)*
+- `flutter analyze`: pulito.
 
 ### #10 Lista + Dettaglio ticket (schermate 4-5-6, ciclo corrente)
 Fonti: `attuale_2/{tickets,ticket-normale,ticket-vip}.jpeg` · `analisi/carrello-ticket*.css` + png · `off/11,12,13`.
@@ -51,7 +57,10 @@ Fonti: `attuale_2/carrello-vuoto.png` · `off/08 - Carrello vuoto.png` (no anali
   **Deciso (utente): messaggio più discreto** → rimossa l'icona grande, testi ridotti e attenuati
   ("Il carrello è vuoto" 22→16 alpha .6→.4; sottotitolo 15→13 alpha .35→.28). Compromesso tra
   Figma pulito e CLAUDE.md §5.4 "mai schermate bianche". *(cart_screen.dart `_buildEmptyCart`)*
-- Stato "pieno" (#14 Carrello con qualcosa) **non toccato qui**: è una schermata successiva dell'ordine.
+- Stato "pieno" (#14 Carrello con qualcosa): **verificato vs off/14 → già allineato**. Card `cardSummary`
+  `#1E00FF→#020011`, "Ticket x 1" + "Ticket normale", "10€" + "+2 drink omaggio", CTA "ORDINA IL TUO
+  POSTO ORA" `primaryCTA`. Prezzo già intero (`toStringAsFixed(0)`, niente `.0`). Nessuna modifica.
+  Vista tavolo (`_buildTableCartView`) non toccata: flusso tavolo saltato (c2).
 - `flutter analyze`: pulito.
 
 ### #7 Home (ciclo corrente — correzioni applicate, attesa OK)

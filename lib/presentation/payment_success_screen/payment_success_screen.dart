@@ -44,7 +44,9 @@ class PaymentSuccessScreen extends StatelessWidget {
                     ),
                     const SizedBox(height: 8),
                     const Padding(
-                      padding: EdgeInsets.only(left: 163),
+                      // Figma 15: "Buon divertimento!" indentato a 213 (più a
+                      // destra di EFFETTUATO@163), cascata verso destra.
+                      padding: EdgeInsets.only(left: 213),
                       child: Text('Buon divertimento!', style: OnlistTextStyles.body20Light),
                     ),
                   ],
