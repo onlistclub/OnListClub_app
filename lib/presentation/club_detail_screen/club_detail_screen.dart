@@ -587,12 +587,8 @@ class _SerataCard extends StatelessWidget {
             width: 369,
             height: 132,
             decoration: BoxDecoration(
-              gradient: const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [Color(0xFF000000), Color(0xFF000B83)],
-                stops: [0.2837, 0.7933],
-              ),
+              // Ufficiale "Prossime serate": #000 28% → #000B83 79% (OnlistColors).
+              gradient: OnlistColors.cardEvent,
               borderRadius: BorderRadius.circular(10),
             ),
             child: Stack(

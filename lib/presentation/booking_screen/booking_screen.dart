@@ -435,7 +435,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     return Container(
       padding: const EdgeInsets.all(22),
       decoration: BoxDecoration(
-        color: const Color(0xFF1900D8),
+        // Ufficiale "Ticket disponibili": rgba(0,0,0,.5) → rgba(0,21,255,.5).
+        gradient: OnlistColors.cardTicketAvailable,
         borderRadius: BorderRadius.circular(10),
       ),
       child: Stack(

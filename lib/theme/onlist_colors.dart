@@ -67,12 +67,31 @@ class OnlistColors {
     colors: [black, blueGradientEnd],
   );
 
-  /// Card sintetica carrello/ordini (schermate 14, 17, 18).
-  /// `linear-gradient(180deg, #1E00FF 0%, #020011 100%)`
+  /// Card sintetica carrello/ordini ("Ticket riepilogo ordini" / "Ticket nel
+  /// carrello"). `linear-gradient(180deg, #1E00FF 0%, #020011 100%)`
   static const LinearGradient cardSummary = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
     colors: [blueElectric, blueDeepNear],
+  );
+
+  /// Card "Club consigliati" (Home) e "Prossime serate" (Club detail).
+  /// Valore UFFICIALE: `linear-gradient(90deg, #000 28.37%, #000B83 79.33%)`.
+  /// È un blu profondo (NON il viola #1500B3/#110091 usato per errore prima).
+  static const LinearGradient cardEvent = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [black, Color(0xFF000B83)],
+    stops: [0.2837, 0.7933],
+  );
+
+  /// Card "Ticket disponibili" (lista prevendite, booking).
+  /// Valore UFFICIALE: `linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,21,255,.5))`
+  /// (blu semitrasparente, NON il solido viola #1900D8 usato prima).
+  static const LinearGradient cardTicketAvailable = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0x80000000), Color(0x800015FF)],
   );
 
   // ── Gradienti bottoni ───────────────────────────────────────────────────

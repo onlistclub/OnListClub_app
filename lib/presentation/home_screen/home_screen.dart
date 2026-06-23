@@ -512,35 +512,22 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
   Widget _buildRecommendedCards(BuildContext context, HomeState state) {
     if (state.recommendedClubs.isEmpty) return const SizedBox.shrink();
-    final clubs = state.recommendedClubs;
     return Column(
       children: [
-        for (int i = 0; i < clubs.length; i++)
+        for (final club in state.recommendedClubs)
           Padding(
             padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
             child: _scaleToWidth(
               designW: 369,
               designH: 108,
-              // Figma 07: il gradiente card alterna #1500B3 (card 1) e #110091
-              // (card 2), entrambi al 80% di opacità (rgba 0.8).
-              child: _buildRecommendedClubCard(
-                context,
-                clubs[i],
-                endColor: i.isEven
-                    ? const Color(0xCC1500B3)
-                    : const Color(0xCC110091),
-              ),
+              child: _buildRecommendedClubCard(context, club),
             ),
           ),
       ],
     );
   }
 
-  Widget _buildRecommendedClubCard(
-    BuildContext context,
-    LocaleModel club, {
-    required Color endColor,
-  }) {
+  Widget _buildRecommendedClubCard(BuildContext context, LocaleModel club) {
     // Riusa il layout della card Figma "Club consigliati" (07-aggiornato):
     // immagine sinistra, nome + generi + città a destra, bottone PRENOTA.
     return AnimatedPress(
@@ -549,14 +536,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         width: 369,
         height: 108,
         decoration: BoxDecoration(
-          // Figma 07 (Frame 352/351): linear-gradient(95deg,
-          // rgba(0,0,0,0.8) 1.37% → endColor 100%). endColor = #1500B3/#110091.
-          gradient: LinearGradient(
-            colors: [const Color(0xCC000000), endColor],
-            stops: const [0.0137, 1.0],
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-          ),
+          // Ufficiale "Club consigliati": #000 28% → #000B83 79% (OnlistColors).
+          gradient: OnlistColors.cardEvent,
           borderRadius: BorderRadius.circular(10),
         ),
         child: Stack(
