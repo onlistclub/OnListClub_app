@@ -610,7 +610,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       textAlign: TextAlign.right,
                       style: OnlistTextStyles.body24Regular),
                 ),
-                const Spacer(),
+                // Vuoti proporzionali al Figma (A:B:C ≈ 1:5:1, CSS 24:113:23):
+                // prezzo in alto (~27%), avviso in basso (~86%), niente vuoto
+                // grande in fondo. Spacer1/Spacer3 = flex 1 (default).
+                const Spacer(flex: 5),
                 Center(
                   child: Text(validity,
                       textAlign: TextAlign.center,
