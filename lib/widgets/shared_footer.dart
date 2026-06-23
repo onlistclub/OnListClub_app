@@ -78,6 +78,9 @@ class SharedFooter extends StatelessWidget {
 
   Widget _buildNavItem(String? imagePath, int index, String routeName, {IconData? iconData}) {
     final isSelected = currentIndex == index;
+    // Pill responsive: base 73 (Figma 73×43), ma cap allo slot dell'icona così
+    // non sfora sui telefoni stretti. Slot ≈ (larghezza − 40 padding) / 4 icone.
+    final pillW = ((R.width - 40) / 4 - 12).clamp(0.0, 73.0);
     return GestureDetector(
       onTap: () {
         if (index == 3) {
@@ -92,15 +95,15 @@ class SharedFooter extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // Pill "tab attiva" — 73×43 rgba(255,255,255,0.25) radius 10 (Figma).
+          // Pill "tab attiva" — 73×43 bianco 31% raggio 10 (Figma off/footer-bar).
           AnimatedContainer(
             duration: const Duration(milliseconds: 200),
             curve: Curves.easeOut,
-            width: 73,
+            width: pillW,
             height: 43,
             decoration: BoxDecoration(
               color: Colors.white.withValues(alpha: isSelected ? 0.31 : 0),
-              borderRadius: BorderRadius.circular(7),
+              borderRadius: BorderRadius.circular(10),
             ),
           ),
           AnimatedOpacity(
