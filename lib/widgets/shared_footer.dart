@@ -4,70 +4,75 @@ import '../core/services/badge_service.dart';
 
 /// Bottom navigation bar condivisa dalle schermate principali.
 ///
-/// Ordine icone (allineato al Figma `docs/figma_screen/off/`):
-/// 0 = Home, 1 = Borsa (ordini acquistati), 2 = Carrello (cart attivo),
-/// 3 = Campanella (notifiche). Il Profilo NON è in questa nav bar — si
-/// raggiunge dall'icona persona del `CustomTopBar` (in alto a destra).
+/// Usa gli asset UFFICIALI del design (`assets/svg/`), così la barra è
+/// pixel-perfect col Figma `off/footer-bar.PNG`:
+/// - capsula/bordo: `bordo_footer.png` (354×49)
+/// - pill tab attiva: `selezionato.png` (73×43)
+/// - icone: `home/bag/carrello/notification.png` (~34, bianche)
 ///
-/// Riceve `currentIndex` per evidenziare la tab attiva. Passare `-1` per
-/// nessuna tab evidenziata (es. schermate raggiunte da Profilo).
+/// Ordine icone: 0 = Home, 1 = Borsa (ordini), 2 = Carrello, 3 = Campanella.
+/// Il Profilo NON è qui — si raggiunge dall'icona persona del `CustomTopBar`.
+/// Tutte le misure sono scalate in proporzione alla larghezza (base 354),
+/// quindi responsive senza pixel fissi. Passare `-1` per nessuna tab attiva.
 class SharedFooter extends StatelessWidget {
   final int currentIndex;
 
   const SharedFooter({Key? key, required this.currentIndex}) : super(key: key);
 
-  /// Altezza visiva del footer (capsula 49 + margini verticali).
-  /// Usata come padding di "clearance" nelle schermate con `extendBody: true`
-  /// così l'ultimo contenuto scrollabile può superare la capsula flottante.
+  /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
+  /// padding di fondo, così l'ultimo contenuto scrollabile supera la capsula.
   static const double height = 65;
+
+  // Dimensioni native del design (in px Figma).
+  static const double _designW = 354;
+  static const double _designH = 49;
+  static const double _margin = 20; // CSS: left 20 → margine laterale
 
   @override
   Widget build(BuildContext context) {
-    // Figma (off/footer-bar.PNG + CSS "Home"): barra 354×49 (≈ schermo−40),
-    // raggio 10, fondo bianco ~2% con bordo chiaro 1px; 4 icone ~30×31
-    // equispaziate; pill "tab attiva" 73×43 raggio 7 bianco ~31%.
-    // Sfondo TRASPARENTE: la capsula FLOTTA sul contenuto e non lo oscura —
-    // con `extendBody: true` le schermate scrollano dietro di essa.
-    // Material trasparente: fornisce un DefaultTextStyle valido al sotto-albero
-    // (evita lo stile di fallback sottolineato del badge su Android datati).
+    // Capsula larga (schermo − margini), con tetto per non gonfiarsi sui tablet.
+    final capsuleW = (R.width - _margin * 2).clamp(0.0, _designW * 1.15);
+    final scale = capsuleW / _designW;
+    final capsuleH = _designH * scale;
+
     return Material(
       type: MaterialType.transparency,
       child: SafeArea(
         top: false,
         child: SizedBox(
           height: height,
-          child: Padding(
-            padding: const EdgeInsets.symmetric(horizontal: 20),
-            child: Center(
-              child: Container(
-                width: double.infinity,
-                height: 49,
-                decoration: BoxDecoration(
-                  color: Colors.white.withValues(alpha: 0.02),
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.12),
-                    width: 1,
+          child: Center(
+            child: SizedBox(
+              width: capsuleW,
+              height: capsuleH,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Bordo/capsula ufficiale (asset esatto).
+                  Positioned.fill(
+                    child: Image.asset(
+                      ImageConstant.imgFooterBorder,
+                      fit: BoxFit.fill,
+                    ),
                   ),
-                ),
-                // Expanded: 4 slot equispaziati che non vanno in overflow
-                // nemmeno su telefoni molto stretti (la pill 73px resta centrata).
-                child: Row(
-                  children: [
-                    Expanded(
-                        child: _buildNavItem(
-                            ImageConstant.imgHome, 0, AppRoutes.homeScreen)),
-                    Expanded(
-                        child: _buildNavItem(null, 1, AppRoutes.ordersScreen,
-                            iconData: Icons.shopping_bag_outlined)),
-                    Expanded(
-                        child: _buildNavItem(ImageConstant.imgShoppingCart, 2,
-                            AppRoutes.cartScreen)),
-                    Expanded(
-                        child: _buildNavItem(ImageConstant.imgBell, 3,
-                            AppRoutes.notificationsScreen)),
-                  ],
-                ),
+                  // Icone equispaziate (4 slot uguali).
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _buildNavItem(scale, ImageConstant.imgNavHome,
+                              34, 34, 0, AppRoutes.homeScreen)),
+                      Expanded(
+                          child: _buildNavItem(scale, ImageConstant.imgNavBag,
+                              34, 32, 1, AppRoutes.ordersScreen)),
+                      Expanded(
+                          child: _buildNavItem(scale, ImageConstant.imgNavCart,
+                              34, 34, 2, AppRoutes.cartScreen)),
+                      Expanded(
+                          child: _buildNavItem(scale, ImageConstant.imgNavBell,
+                              31, 34, 3, AppRoutes.notificationsScreen)),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -76,11 +81,9 @@ class SharedFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(String? imagePath, int index, String routeName, {IconData? iconData}) {
+  Widget _buildNavItem(double scale, String iconPath, double iconW,
+      double iconH, int index, String routeName) {
     final isSelected = currentIndex == index;
-    // Pill responsive: base 73 (Figma 73×43), ma cap allo slot dell'icona così
-    // non sfora sui telefoni stretti. Slot ≈ (larghezza − 40 padding) / 4 icone.
-    final pillW = ((R.width - 40) / 4 - 12).clamp(0.0, 73.0);
     return GestureDetector(
       onTap: () {
         if (index == 3) {
@@ -95,65 +98,64 @@ class SharedFooter extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // Pill "tab attiva" — 73×43 bianco 31% raggio 10 (Figma off/footer-bar).
-          AnimatedContainer(
-            duration: const Duration(milliseconds: 200),
-            curve: Curves.easeOut,
-            width: pillW,
-            height: 43,
-            decoration: BoxDecoration(
-              color: Colors.white.withValues(alpha: isSelected ? 0.31 : 0),
-              borderRadius: BorderRadius.circular(10),
+          // Pill "selezionato" ufficiale (73×43) dietro l'icona attiva.
+          if (isSelected)
+            Image.asset(
+              ImageConstant.imgFooterPill,
+              width: 73 * scale,
+              height: 43 * scale,
+              fit: BoxFit.fill,
+            ),
+          // Icona bianca (nativa ~34). Inattiva: attenuata (come Figma).
+          SizedBox(
+            width: iconW * scale,
+            height: iconH * scale,
+            child: Stack(
+              clipBehavior: Clip.none,
+              children: [
+                Positioned.fill(
+                  child: Opacity(
+                    opacity: isSelected ? 1.0 : 0.5,
+                    child: Image.asset(iconPath, fit: BoxFit.contain),
+                  ),
+                ),
+                // Badge notifiche (solo campanella) — fuori dall'opacity.
+                if (index == 3)
+                  Positioned(
+                    top: -6 * scale,
+                    right: -8 * scale,
+                    child: ValueListenableBuilder<int>(
+                      valueListenable:
+                          BadgeService().notificationBadgeCount,
+                      builder: (context, count, child) {
+                        if (count == 0) return const SizedBox.shrink();
+                        return Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: const BoxDecoration(
+                            color: Colors.red,
+                            shape: BoxShape.circle,
+                          ),
+                          constraints: const BoxConstraints(
+                            minWidth: 16,
+                            minHeight: 16,
+                          ),
+                          child: Text(
+                            count > 9 ? '9+' : '$count',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                              decoration: TextDecoration.none,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        );
+                      },
+                    ),
+                  ),
+              ],
             ),
           ),
-          AnimatedOpacity(
-            opacity: isSelected ? 1.0 : 0.5,
-            duration: const Duration(milliseconds: 200),
-            child: imagePath != null
-                ? CustomImageView(
-                    imagePath: imagePath,
-                    height: 30.93,
-                    width: 30.29,
-                    color: Colors.white, // Figma: icone bianche, dimming via opacity
-                  )
-                : Icon(
-                    iconData,
-                    size: 30.93,
-                    color: Colors.white,
-                  ),
-          ),
-          if (index == 3) // Badge per le notifiche
-            ValueListenableBuilder<int>(
-              valueListenable: BadgeService().notificationBadgeCount,
-              builder: (context, count, child) {
-                if (count == 0) return const SizedBox.shrink();
-                return Positioned(
-                  top: 0,
-                  right: 8,
-                  child: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: const BoxDecoration(
-                      color: Colors.red,
-                      shape: BoxShape.circle,
-                    ),
-                    constraints: const BoxConstraints(
-                      minWidth: 16,
-                      minHeight: 16,
-                    ),
-                    child: Text(
-                      count > 9 ? '9+' : '$count',
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 10,
-                        fontWeight: FontWeight.bold,
-                        decoration: TextDecoration.none,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
-                );
-              },
-            ),
         ],
       ),
     );

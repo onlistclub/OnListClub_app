@@ -58,18 +58,22 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               if (showSearch)
                 GestureDetector(
                   onTap: onSearchTap ?? () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.search, color: Colors.white, size: 30),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    // Asset ufficiale navbar (assets/svg/search.png, 34×34).
+                    child: Image.asset(ImageConstant.imgNavSearch,
+                        width: 34, height: 34),
                   ),
                 ),
               if (showProfile) ...[
                 const SizedBox(width: 8),
                 GestureDetector(
                   onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
-                  child: const Padding(
-                    padding: EdgeInsets.all(8.0),
-                    child: Icon(Icons.person_outline, color: Colors.white, size: 30),
+                  child: Padding(
+                    padding: const EdgeInsets.all(8.0),
+                    // Asset ufficiale navbar (assets/svg/profile.png, 23×29).
+                    child: Image.asset(ImageConstant.imgNavProfile,
+                        width: 23, height: 29),
                   ),
                 ),
               ],
