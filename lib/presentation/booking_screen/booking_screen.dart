@@ -220,7 +220,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
 
   Widget _buildTopBar() {
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 10),
+      // Allineato allo standard delle altre schermate (Figma "Torna indietro").
+      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
       child: GestureDetector(
         onTap: () {
           if (_currentStep == BookingStep.selection) {
@@ -236,16 +237,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         },
         child: Row(
           children: [
-            const Icon(Icons.arrow_back, color: Colors.white, size: 20),
+            const Icon(Icons.arrow_back, color: Colors.white, size: 28),
             const SizedBox(width: 6),
-            Text(
-              'Torna indietro',
-              style: OnlistTextStyles.hn(
-                color: Colors.white,
-                fontSize: R.sp(16),
-                fontWeight: FontWeight.w500,
-              ),
-            ),
+            // Figma: "Torna indietro" 32/w300/-0.03 (come cart/club/prevendita).
+            Text('Torna indietro', style: OnlistTextStyles.title32Light),
           ],
         ),
       ),
@@ -432,125 +427,146 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     String? ticketId,
     String? serataId,
   }) {
-    return Container(
-      padding: const EdgeInsets.all(22),
-      decoration: BoxDecoration(
-        // Ufficiale "Ticket disponibili": rgba(0,0,0,.5) → rgba(0,21,255,.5).
-        gradient: OnlistColors.cardTicketAvailable,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Stack(
-        children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        // Card sulle proporzioni Figma (370×280): l'altezza segue la larghezza,
+        // così specifica (a destra) e PRENOTA (in basso) NON si sovrappongono.
+        // I 4 blocchi sono ancorati ai 4 angoli.
+        final cardH = constraints.maxWidth * 280 / 370;
+        return Container(
+          height: cardH,
+          padding: const EdgeInsets.fromLTRB(22, 13, 16, 18),
+          decoration: BoxDecoration(
+            // Ufficiale "Ticket disponibili": rgba(0,0,0,.5) → rgba(0,21,255,.5).
+            gradient: OnlistColors.cardTicketAvailable,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Stack(
             children: [
-              Text(
-                "Ticket",
-                style: OnlistTextStyles.hn(
-                  color: Colors.white,
-                  fontSize: R.sp(40),
-                  fontWeight: FontWeight.w400,
-                  height: 45 / 40,
-                  letterSpacing: -0.1 * 40,
+              // Ticket + tipo (alto-sinistra)
+              Align(
+                alignment: Alignment.topLeft,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      "Ticket",
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(40),
+                        fontWeight: FontWeight.w400,
+                        height: 45 / 40,
+                        letterSpacing: -0.1 * 40,
+                      ),
+                    ),
+                    Text(
+                      type,
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(24),
+                        fontWeight: FontWeight.w300,
+                        height: 29 / 24,
+                        letterSpacing: -0.06 * 24,
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              Text(
-                type,
-                style: OnlistTextStyles.hn(
-                  color: Colors.white,
-                  fontSize: R.sp(24),
-                  fontWeight: FontWeight.w300,
-                  height: 29 / 24,
-                  letterSpacing: -0.06 * 24,
+              // Prezzo + specifica (alto-destra)
+              Align(
+                alignment: Alignment.topRight,
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text(
+                      price,
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(96),
+                        fontWeight: FontWeight.w400,
+                        height: 110 / 96,
+                        letterSpacing: -0.08 * 96,
+                      ),
+                    ),
+                    const SizedBox(height: 4),
+                    SizedBox(
+                      width: 180,
+                      child: Text(
+                        description,
+                        textAlign: TextAlign.right,
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(16),
+                          fontWeight: FontWeight.w400,
+                          height: 18 / 16,
+                          letterSpacing: -0.1 * 16,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
               ),
-              const SizedBox(height: 80),
-              SizedBox(
-                width: 160,
-                child: Text(
-                  validity,
-                  style: OnlistTextStyles.hn(
-                    color: Colors.white,
-                    fontSize: R.sp(16),
-                    fontWeight: FontWeight.w400,
-                    height: 18 / 16,
-                    letterSpacing: -0.1 * 16,
+              // Entrata valida (basso-sinistra)
+              Align(
+                alignment: Alignment.bottomLeft,
+                child: SizedBox(
+                  width: 175,
+                  child: Text(
+                    validity,
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white,
+                      fontSize: R.sp(16),
+                      fontWeight: FontWeight.w400,
+                      height: 18 / 16,
+                      letterSpacing: -0.1 * 16,
+                    ),
+                  ),
+                ),
+              ),
+              // PRENOTA (basso-destra) → dettaglio ticket
+              Align(
+                alignment: Alignment.bottomRight,
+                child: AnimatedPress(
+                  onPressed: () {
+                    setState(() {
+                      _selectedTicket = {
+                        'type': type,
+                        'price': price,
+                        'description': description,
+                        'validity': validity,
+                        'ticketId': ticketId,
+                        'serataId': serataId,
+                      };
+                      _currentStep = BookingStep.ticketDetail;
+                    });
+                  },
+                  child: Container(
+                    width: 133,
+                    height: 58,
+                    decoration: BoxDecoration(
+                      gradient: OnlistColors.bookButton,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    alignment: Alignment.center,
+                    child: Text(
+                      "PRENOTA",
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: R.sp(24),
+                        height: 28 / 24,
+                        letterSpacing: -0.1 * 24,
+                      ),
+                    ),
                   ),
                 ),
               ),
             ],
           ),
-          Positioned(
-            right: 0,
-            top: 0,
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                Text(
-                  price,
-                  style: OnlistTextStyles.hn(
-                    color: Colors.white,
-                    fontSize: R.sp(96),
-                    fontWeight: FontWeight.w400,
-                    height: 110 / 96,
-                    letterSpacing: -0.08 * 96,
-                  ),
-                ),
-                Text(
-                  description,
-                  textAlign: TextAlign.right,
-                  style: OnlistTextStyles.hn(
-                    color: Colors.white,
-                    fontSize: R.sp(16),
-                    fontWeight: FontWeight.w400,
-                    height: 18 / 16,
-                    letterSpacing: -0.1 * 16,
-                  ),
-                ),
-              ],
-            ),
-          ),
-          Positioned(
-            right: 0,
-            bottom: 0,
-            child: AnimatedPress(
-              onPressed: () {
-                // Va al dettaglio del singolo ticket (12/13) prima del carrello
-                setState(() {
-                  _selectedTicket = {
-                    'type': type,
-                    'price': price,
-                    'description': description,
-                    'validity': validity,
-                    'ticketId': ticketId,
-                    'serataId': serataId,
-                  };
-                  _currentStep = BookingStep.ticketDetail;
-                });
-              },
-              child: Container(
-                width: 161,
-                height: 68,
-                decoration: BoxDecoration(
-                  gradient: OnlistColors.bookButton,
-                  borderRadius: BorderRadius.circular(10),
-                ),
-                alignment: Alignment.center,
-                child: Text(
-                  "PRENOTA",
-                  style: OnlistTextStyles.hn(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: R.sp(24),
-                    height: 28 / 24,
-                    letterSpacing: -0.1 * 24,
-                  ),
-                ),
-              ),
-            ),
-          ),
-        ],
-      ),
+        );
+      },
     );
   }
 
