@@ -86,7 +86,9 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                   onTap: _onBackTap,
                   behavior: HitTestBehavior.opaque,
                   child: Row(
-                    mainAxisSize: MainAxisSize.min,
+                    // Larghezza piena: il "back" resta in alto a SINISTRA. La
+                    // Column padre è centrata: con mainAxisSize.min la riga
+                    // veniva centrata (Figma 17 la vuole a sinistra).
                     children: [
                       Icon(Icons.arrow_back, color: Colors.white, size: R.sp(20)),
                       SizedBox(width: R.sp(6)),
