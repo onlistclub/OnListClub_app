@@ -155,7 +155,11 @@ class AuthenticationBloc
       final password = state.authenticationModel?.password ?? '';
       final client = Supabase.instance.client;
 
-      await client.auth.signUp(email: email, password: password);
+      await client.auth.signUp(
+        email: email,
+        password: password,
+        emailRedirectTo: 'https://www.onlistclub.com/auth/email-confirmed',
+      );
 
       emit(state.copyWith(isLoading: false, isRegisterSuccess: true));
 

@@ -74,6 +74,19 @@
 				<string>com.googleusercontent.apps.73394688512-kt2hojans7apksgvu1rs3d72ofmgistd</string>
 			</array>
 		</dict>
+		<!-- Custom scheme dell'app: usato per i deep link di ritorno dal sito
+		     (es. /auth/email-confirmed, /auth/password-changed) e da Stripe
+		     (vedi docs/database/stripe_integration_plan.md). -->
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>com.onlistclub.app</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>onlistclub</string>
+			</array>
+		</dict>
 	</array>
 </dict>
 </plist>

@@ -179,6 +179,10 @@ class MyApp extends StatelessWidget {
             Widget content = MediaQuery(
               data: MediaQuery.of(context).copyWith(
                 textScaler: TextScaler.linear(1.0),
+                // Ignora l'impostazione iOS "Testo in grassetto" (Accessibilità):
+                // mantiene i pesi Helvetica Neue del design system invece di
+                // forzare FontWeight.bold su tutti i Text.
+                boldText: false,
               ),
               child: child!,
             );

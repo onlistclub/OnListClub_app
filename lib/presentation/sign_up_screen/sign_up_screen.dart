@@ -163,10 +163,15 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                         textFieldController: state.phoneController,
                         initialValue: PhoneNumber(isoCode: 'IT'),
                         locale: 'it_IT',
+                        // Messaggio in italiano (default del pacchetto è "Invalid phone number").
+                        errorMessage: 'Numero di telefono non valido',
                         selectorConfig: const SelectorConfig(
                           selectorType: PhoneInputSelectorType.DIALOG,
                           showFlags: true,
-                          useEmoji: false,
+                          // Emoji-bandiera native: su iOS si renderizzano e si
+                          // aggiornano sempre quando cambi paese (i PNG del
+                          // pacchetto 0.7.4 invece non si aggiornavano).
+                          useEmoji: true,
                           setSelectorButtonAsPrefixIcon: false,
                           leadingPadding: 0,
                           trailingSpace: true,
@@ -175,7 +180,11 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                         autoValidateMode: AutovalidateMode.disabled,
                         selectorTextStyle: _kInputStyle,
                         textStyle: _kInputStyle,
-                        formatInput: false,
+                        // Formattazione "as-you-type" secondo il paese
+                        // selezionato. È solo visiva: onInputChanged estrae
+                        // comunque le sole cifre, quindi l'E.164 salvato resta
+                        // coerente.
+                        formatInput: true,
                         keyboardType: TextInputType.phone,
                         inputDecoration: _underlineDecoration(
                           hintText: 'Numero di telefono',

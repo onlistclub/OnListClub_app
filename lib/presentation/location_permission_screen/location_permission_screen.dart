@@ -159,29 +159,38 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                         ),
                       ),
                     ),
-                    const Spacer(flex: 9),
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.center,
-                      children: [
-                        const Icon(Icons.lock_outline,
-                            color: Colors.white54, size: 14),
-                        const SizedBox(width: 6),
-                        const Flexible(
-                          child: Text(
-                            'La tua posizione è protetta e non verrà condivisa con terzi.',
-                            // Font del design (SF Pro Text → HelveticaNeue), 12/line 16.
-                            style: TextStyle(
-                                fontFamily: 'HelveticaNeue',
-                                fontSize: 12,
-                                height: 16 / 12,
-                                fontWeight: FontWeight.w400,
-                                color: Colors.white54),
-                            textAlign: TextAlign.center,
+                    const Spacer(flex: 11),
+                    // Nota privacy: icona + testo come blocco compatto centrato
+                    // (prima il Flexible faceva esplodere il testo a tutta riga,
+                    // con il lock isolato a sinistra). Padding orizzontale extra
+                    // per tenere il blocco lontano dai bordi.
+                    Padding(
+                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        crossAxisAlignment: CrossAxisAlignment.center,
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          const Icon(Icons.lock_outline,
+                              color: Colors.white54, size: 14),
+                          const SizedBox(width: 6),
+                          const Flexible(
+                            child: Text(
+                              'La tua posizione è protetta e non verrà condivisa con terzi.',
+                              // Font del design (SF Pro Text → HelveticaNeue), 12/line 16.
+                              style: TextStyle(
+                                  fontFamily: 'HelveticaNeue',
+                                  fontSize: 12,
+                                  height: 16 / 12,
+                                  fontWeight: FontWeight.w400,
+                                  color: Colors.white54),
+                              textAlign: TextAlign.center,
+                            ),
                           ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                    const Spacer(flex: 13),
+                    const Spacer(flex: 7),
                   ],
                 ),
               ),

@@ -185,6 +185,10 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       final response = await client.auth.signUp(
         email: model.email,
         password: model.password,
+        // Pagina di benvenuto sul sito dopo la conferma email: invita l'utente
+        // a tornare in app via deep link. URL whitelistato in
+        // Supabase Dashboard → Authentication → URL Configuration.
+        emailRedirectTo: 'https://www.onlistclub.com/auth/email-confirmed',
         data: {
           'nome': model.firstName,
           'cognome': model.lastName,

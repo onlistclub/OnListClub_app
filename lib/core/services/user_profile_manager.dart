@@ -15,8 +15,11 @@ class UserProfileManager {
 
   /// Returns true if the user has a complete profile in `public.utenti`.
   /// A profile is considered complete when the required fields
-  /// (nome, cognome, data_nascita) are all non-null.
-  /// This is used to decide whether to redirect to CompleteProfileScreen.
+  /// (nome, cognome, data_nascita) are all non-null AND the user has at least
+  /// one phone number in `utenti_numeri_telefono`.
+  /// This is used to decide whether to redirect to CompleteProfileScreen
+  /// (anche dopo il login OAuth Google/Apple, dove il telefono non arriva dal
+  /// provider e va raccolto nel form di completamento).
   Future<bool> isProfileComplete() async {
     final client = Supabase.instance.client;
     final user = client.auth.currentUser;
@@ -27,10 +30,23 @@ class UserProfileManager {
         .eq('id', user.id)
         .maybeSingle();
     if (data == null) return false;
-    // Il profilo è completo solo se tutti i campi obbligatori sono presenti
-    return data['nome'] != null &&
+    // Prima i campi base sulla riga utente: se mancano, è inutile interrogare
+    // anche la tabella dei telefoni.
+    final hasBaseFields = data['nome'] != null &&
         data['cognome'] != null &&
         data['data_nascita'] != null;
+    if (!hasBaseFields) return false;
+    // Il telefono è obbligatorio ma vive in una tabella separata (1:N), senza
+    // FK dichiarata: lo verifichiamo con una query mirata. La colonna
+    // `is_verified` esiste già qui: in futuro il gate potrà richiedere il
+    // numero verificato via OTP, oggi basta che esista.
+    final phone = await client
+        .from('utenti_numeri_telefono')
+        .select('id')
+        .eq('id_utente', user.id)
+        .limit(1)
+        .maybeSingle();
+    return phone != null;
   }
 
   /// Legge il raggio di ricerca in km salvato nel profilo utente.

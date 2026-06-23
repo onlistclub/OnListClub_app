@@ -69,7 +69,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
           },
           builder: (context, state) {
             return SafeArea(
-              child: SingleChildScrollView(
+              // Niente scroll: la pagina deve stare tutta in viewport. Uso
+              // spazi proporzionali (R.h) e Spacer per distribuire i blocchi.
+              child: Padding(
                 // Margine laterale proporzionale (Figma: left 39 su 393 ≈ 9.9%)
                 padding: EdgeInsets.symmetric(horizontal: R.w(9.9)),
                 child: Form(
@@ -77,10 +79,9 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      // Spazio sopra il titolo (Figma: titolo a ~117/852 ≈ 13.5%).
-                      SizedBox(height: R.h(13.5)),
+                      SizedBox(height: R.h(8)),
                       Text('Accedi', style: OnlistTextStyles.display40Regular),
-                      const SizedBox(height: 40),
+                      SizedBox(height: R.h(4)),
                       _UnderlineField(
                         controller: state.emailController,
                         label: 'Email',
@@ -97,14 +98,14 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                             .read<AuthenticationBloc>()
                             .add(EmailChangedEvent(email: v)),
                       ),
-                      const SizedBox(height: 40),
+                      SizedBox(height: R.h(3.5)),
                       _UnderlinePasswordField(
                         controller: state.passwordController,
                         onChanged: (v) => context
                             .read<AuthenticationBloc>()
                             .add(PasswordChangedEvent(password: v)),
                       ),
-                      const SizedBox(height: 40),
+                      SizedBox(height: R.h(4)),
                       // Bottoni Accedi / Registrati — impilati e centrati (Figma)
                       Center(
                         child: Column(
@@ -113,7 +114,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                               label: 'Accedi',
                               onTap: () => _onTapAccedi(context, state),
                             ),
-                            const SizedBox(height: 22),
+                            const SizedBox(height: 18),
                             _WhiteButton(
                               label: 'Registrati',
                               onTap: () {
@@ -124,9 +125,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                           ],
                         ),
                       ),
-                      // Spazio tra "Registrati" e i social (Figma: social a
-                      // ~587/852, ≈14% di altezza), proporzionale come il resto.
-                      SizedBox(height: R.h(14)),
+                      const Spacer(),
                       if (state.isLoading)
                         const Center(
                           child: CircularProgressIndicator(color: OnlistColors.white),
@@ -140,7 +139,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                                 .add(AppleSignInEvent());
                           },
                         ),
-                        const SizedBox(height: 22),
+                        const SizedBox(height: 16),
                         _GoogleButton(
                           onTap: () {
                             AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'google'});
@@ -150,9 +149,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                           },
                         ),
                       ],
-                      // Spazio sotto i social (Figma: ~149/852 ≈ 17%) per non
-                      // ammassare tutto in alto: distribuzione come l'ufficiale.
-                      SizedBox(height: R.h(17)),
+                      SizedBox(height: R.h(6)),
                     ],
                   ),
                 ),
@@ -313,30 +310,21 @@ class _WhiteButton extends StatelessWidget {
   }
 }
 
+// Slot fisso per il logo: garantisce che la "C" di "Continua" parta allo
+// stesso X sia su Apple che su Google, anche se i due loghi hanno larghezze
+// visivamente diverse.
+const double _kSocialIconSlot = 28;
+
 class _AppleButton extends StatelessWidget {
   const _AppleButton({required this.onTap});
   final VoidCallback onTap;
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 47,
-      child: ElevatedButton.icon(
-        onPressed: onTap,
-        icon: const Icon(Icons.apple, color: OnlistColors.black, size: 24),
-        label: Text('Continua con Apple', style: _kSocialLabel),
-        style: ElevatedButton.styleFrom(
-          backgroundColor: OnlistColors.white,
-          foregroundColor: OnlistColors.black,
-          elevation: 0,
-          // Contenuto allineato a sinistra come nel Figma (icona a left ~14).
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.only(left: 14),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(11)),
-        ),
-      ),
+    return _SocialButton(
+      onTap: onTap,
+      icon: const Icon(Icons.apple, color: OnlistColors.black, size: 24),
+      label: 'Continua con Apple',
     );
   }
 }
@@ -358,22 +346,53 @@ class _GoogleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    return _SocialButton(
+      onTap: onTap,
+      icon: SvgPicture.string(_googleGSvg, width: 22, height: 22),
+      label: 'Continua con Google',
+    );
+  }
+}
+
+/// Bottone social: logo in uno slot a larghezza fissa, etichetta subito dopo.
+/// Così le scritte di Apple e Google sono perfettamente allineate sull'asse X.
+class _SocialButton extends StatelessWidget {
+  const _SocialButton({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+  });
+
+  final VoidCallback onTap;
+  final Widget icon;
+  final String label;
+
+  @override
+  Widget build(BuildContext context) {
     return SizedBox(
       width: double.infinity,
       height: 47,
-      child: ElevatedButton.icon(
+      child: ElevatedButton(
         onPressed: onTap,
-        icon: SvgPicture.string(_googleGSvg, width: 24, height: 24),
-        label: Text('Continua con Google', style: _kSocialLabel),
         style: ElevatedButton.styleFrom(
           backgroundColor: OnlistColors.white,
           foregroundColor: OnlistColors.black,
           elevation: 0,
-          // Contenuto allineato a sinistra come nel Figma (icona a left ~14).
-          alignment: Alignment.centerLeft,
-          padding: const EdgeInsets.only(left: 14),
+          padding: const EdgeInsets.symmetric(horizontal: 14),
           shape: RoundedRectangleBorder(
               borderRadius: BorderRadius.circular(11)),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.start,
+          crossAxisAlignment: CrossAxisAlignment.center,
+          children: [
+            SizedBox(
+              width: _kSocialIconSlot,
+              child: Center(child: icon),
+            ),
+            const SizedBox(width: 10),
+            Text(label, style: _kSocialLabel),
+          ],
         ),
       ),
     );
