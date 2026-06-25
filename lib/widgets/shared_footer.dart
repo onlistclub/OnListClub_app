@@ -1,3 +1,5 @@
+import 'dart:ui';
+
 import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 import '../core/services/badge_service.dart';
@@ -16,12 +18,20 @@ import '../core/services/badge_service.dart';
 /// quindi responsive senza pixel fissi. Passare `-1` per nessuna tab attiva.
 class SharedFooter extends StatelessWidget {
   final int currentIndex;
+  /// Se true, dietro la capsula appare un velo sfocato che copre il margine
+  /// inferiore della schermata (Figma: home e club detail). Lo si attiva solo
+  /// dove serve per non gravare sui device datati.
+  final bool withBottomBlur;
 
-  const SharedFooter({Key? key, required this.currentIndex}) : super(key: key);
+  const SharedFooter({
+    Key? key,
+    required this.currentIndex,
+    this.withBottomBlur = false,
+  }) : super(key: key);
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
   /// padding di fondo, così l'ultimo contenuto scrollabile supera la capsula.
-  static const double height = 65;
+  static const double height = 70;
 
   // Dimensioni native del design (in px Figma).
   static const double _designW = 354;
@@ -35,19 +45,62 @@ class SharedFooter extends StatelessWidget {
     final scale = capsuleW / _designW;
     final capsuleH = _designH * scale;
 
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     return Material(
       type: MaterialType.transparency,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: height,
-          child: Center(
+      child: Stack(
+        clipBehavior: Clip.none,
+        children: [
+          // Velo sfocato dietro la capsula + sopra l'home indicator iOS.
+          // Solo in home / club detail (vedi withBottomBlur).
+          if (withBottomBlur)
+            Positioned.fill(
+              child: IgnorePointer(
+                child: ClipRect(
+                  child: BackdropFilter(
+                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                    child: Container(
+                      decoration: BoxDecoration(
+                        gradient: LinearGradient(
+                          begin: Alignment.topCenter,
+                          end: Alignment.bottomCenter,
+                          colors: [
+                            Colors.black.withOpacity(0.0),
+                            Colors.black.withOpacity(0.35),
+                          ],
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+          SafeArea(
+            top: false,
             child: SizedBox(
-              width: capsuleW,
-              height: capsuleH,
-              child: Stack(
-                alignment: Alignment.center,
-                children: [
+              height: height,
+              child: Padding(
+                // Spinge leggermente la capsula in basso (Figma 07-aggiornato:
+                // capsula a top 781 / altezza schermo 852, margine sotto ridotto).
+                padding: EdgeInsets.only(bottom: bottomInset == 0 ? 6 : 0),
+                child: Center(
+                  child: SizedBox(
+                    width: capsuleW,
+                    height: capsuleH,
+                    child: Stack(
+                      alignment: Alignment.center,
+                      children: [
+                  // Fondo opaco dietro l'asset (l'asset ha 2% di bianco e sparisce
+                  // sul nero). 8% di bianco dà la presenza vista nel Figma.
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(10),
+                      child: Container(
+                        color: Colors.white.withOpacity(0.08),
+                      ),
+                    ),
+                  ),
                   // Bordo/capsula ufficiale (asset esatto).
                   Positioned.fill(
                     child: Image.asset(
@@ -56,27 +109,30 @@ class SharedFooter extends StatelessWidget {
                     ),
                   ),
                   // Icone equispaziate (4 slot uguali).
-                  Row(
-                    children: [
-                      Expanded(
-                          child: _buildNavItem(scale, ImageConstant.imgNavHome,
-                              34, 34, 0, AppRoutes.homeScreen)),
-                      Expanded(
-                          child: _buildNavItem(scale, ImageConstant.imgNavBag,
-                              34, 32, 1, AppRoutes.ordersScreen)),
-                      Expanded(
-                          child: _buildNavItem(scale, ImageConstant.imgNavCart,
-                              34, 34, 2, AppRoutes.cartScreen)),
-                      Expanded(
-                          child: _buildNavItem(scale, ImageConstant.imgNavBell,
-                              31, 34, 3, AppRoutes.notificationsScreen)),
-                    ],
+                        Row(
+                          children: [
+                            Expanded(
+                                child: _buildNavItem(scale, ImageConstant.imgNavHome,
+                                    34, 34, 0, AppRoutes.homeScreen)),
+                            Expanded(
+                                child: _buildNavItem(scale, ImageConstant.imgNavBag,
+                                    34, 32, 1, AppRoutes.ordersScreen)),
+                            Expanded(
+                                child: _buildNavItem(scale, ImageConstant.imgNavCart,
+                                    34, 34, 2, AppRoutes.cartScreen)),
+                            Expanded(
+                                child: _buildNavItem(scale, ImageConstant.imgNavBell,
+                                    31, 34, 3, AppRoutes.notificationsScreen)),
+                          ],
+                        ),
+                      ],
+                    ),
                   ),
-                ],
+                ),
               ),
             ),
           ),
-        ),
+        ],
       ),
     );
   }

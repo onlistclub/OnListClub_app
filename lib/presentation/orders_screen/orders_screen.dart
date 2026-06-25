@@ -80,26 +80,18 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             children: [
               const CustomTopBar(),
               // ── "← Torna indietro" (Figma 17) ─────────────────────────────
+              // Allineato allo standard delle altre schermate (cart, club,
+              // prevendita, booking): icona 28 + testo title32Light.
               Padding(
-                padding: EdgeInsets.fromLTRB(16, R.sp(4), 16, R.sp(6)),
+                padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
                 child: GestureDetector(
                   onTap: _onBackTap,
                   behavior: HitTestBehavior.opaque,
                   child: Row(
-                    // Larghezza piena: il "back" resta in alto a SINISTRA. La
-                    // Column padre è centrata: con mainAxisSize.min la riga
-                    // veniva centrata (Figma 17 la vuole a sinistra).
                     children: [
-                      Icon(Icons.arrow_back, color: Colors.white, size: R.sp(20)),
-                      SizedBox(width: R.sp(6)),
-                      Text(
-                        'Torna indietro',
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(16),
-                          fontWeight: FontWeight.w500,
-                        ),
-                      ),
+                      const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                      const SizedBox(width: 6),
+                      Text('Torna indietro', style: OnlistTextStyles.title32Light),
                     ],
                   ),
                 ),
@@ -233,6 +225,13 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
     final stato = (prenotazione?['stato'] ?? 'in_attesa').toString();
     final drinkOmaggio = (prevendita?['drink_omaggio'] ?? evento?['drink_omaggio']) as int?;
+    // Testo "extra" sotto il prezzo: se la prevendita ha drink_omaggio (int>0)
+    // formattiamo "+ N drink omaggio"; altrimenti usiamo la descrizione dal DB
+    // (es. "Ingresso + 1 shot"). Tiene allineate cart/detail/ordini.
+    final descrizione = (prevendita?['descrizione'] as String?)?.trim();
+    final String? extraText = (drinkOmaggio != null && drinkOmaggio > 0)
+        ? '+ $drinkOmaggio drink omaggio'
+        : (descrizione != null && descrizione.isNotEmpty ? descrizione : null);
 
     return GestureDetector(
       onTap: () => NavigatorService.pushNamed(
@@ -296,12 +295,12 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                           height: 1.0,
                         ),
                       ),
-                    if (drinkOmaggio != null && drinkOmaggio > 0) ...[
+                    if (extraText != null) ...[
                       SizedBox(width: R.sp(8)),
                       Padding(
                         padding: EdgeInsets.only(bottom: R.sp(18)),
                         child: Text(
-                          '+ $drinkOmaggio drink omaggio',
+                          extraText,
                           style: OnlistTextStyles.hn(
                             color: Colors.white,
                             fontSize: R.sp(24), // CSS "+drink omaggio": 24/-0.1

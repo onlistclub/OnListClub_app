@@ -1,12 +1,15 @@
-import 'package:flutter/material.dart';
-import 'package:intl_phone_number_input/intl_phone_number_input.dart';
+import 'dart:io' show Platform;
 
+import 'package:flutter/cupertino.dart';
+import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
+import '../../core/services/location_service.dart';
 import '../../core/utils/age_calculator.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
+import '../../widgets/phone_field/onlist_phone_field.dart';
 import './bloc/sign_up_bloc.dart';
 import './models/sign_up_model.dart';
 
@@ -15,10 +18,25 @@ class SignUpScreen extends StatefulWidget {
 
   static Widget builder(BuildContext context) {
     return BlocProvider<SignUpBloc>(
-      create: (context) => SignUpBloc(SignUpState(
-        signUpModel: SignUpModel(),
-      ))
-        ..add(SignUpInitialEvent()),
+      create: (ctx) {
+        // Args opzionali: arrivano quando lo screen è aperto dopo un login
+        // OAuth (Google/Apple) per pre-riempire i campi noti e saltare la
+        // verifica email a fine flusso.
+        final args = ModalRoute.of(ctx)?.settings.arguments as Map?;
+        final bloc = SignUpBloc(SignUpState(signUpModel: SignUpModel()))
+          ..add(SignUpInitialEvent());
+        if (args != null) {
+          bloc.add(SignUpPrefillEvent(
+            nome: args['nome'] as String?,
+            cognome: args['cognome'] as String?,
+            email: args['email'] as String?,
+            telefono: args['telefono'] as String?,
+            dataNascita: args['dataNascita'] as DateTime?,
+            oauthVerified: args['oauthVerified'] == true,
+          ));
+        }
+        return bloc;
+      },
       child: const SignUpScreen(),
     );
   }
@@ -34,20 +52,37 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: DecoratedBox(
+      body: GestureDetector(
+        // Tap fuori dai campi → chiude la tastiera (richiesta UX dell'utente).
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
         child: BlocConsumer<SignUpBloc, SignUpState>(
           listener: (context, state) {
             if (state.isSuccess) {
               AnalyticsService.log(event: 'registration_email_success');
-              NavigatorService.pushNamedAndRemoveUntil(
-                AppRoutes.verificationScreen,
-                arguments: {
-                  'registrationTime': DateTime.now(),
-                  'email': state.signUpModel?.email,
-                  'password': state.signUpModel?.password,
-                },
-              );
+              if (state.oauthVerified) {
+                // Email già verificata dal provider OAuth: niente schermata di
+                // verifica, andiamo direttamente alla concessione posizione
+                // (o alla città se la posizione è già stata gestita).
+                LocationService.shouldShowLocationPrompt().then((show) {
+                  NavigatorService.pushNamedAndRemoveUntil(
+                    show
+                        ? AppRoutes.locationPermissionScreen
+                        : AppRoutes.homeScreen,
+                  );
+                });
+              } else {
+                NavigatorService.pushNamedAndRemoveUntil(
+                  AppRoutes.verificationScreen,
+                  arguments: {
+                    'registrationTime': DateTime.now(),
+                    'email': state.signUpModel?.email,
+                    'password': state.signUpModel?.password,
+                  },
+                );
+              }
             }
             if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
               AnalyticsService.log(event: 'registration_error', metadata: {'error': state.errorMessage});
@@ -149,64 +184,24 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                             .read<SignUpBloc>()
                             .add(EmailChangedEvent(email: v)),
                       ),
-                      const SizedBox(height: 24),
-                      _UnderlinePasswordField(
-                        controller: state.passwordController,
-                        onChanged: (v) => context
-                            .read<SignUpBloc>()
-                            .add(PasswordChangedEvent(password: v)),
-                      ),
+                      // Con OAuth (Google/Apple) l'autenticazione è già fatta
+                      // dal provider: la password non serve e il campo è nascosto.
+                      if (!state.oauthVerified) ...[
+                        const SizedBox(height: 24),
+                        _UnderlinePasswordField(
+                          controller: state.passwordController,
+                          onChanged: (v) => context
+                              .read<SignUpBloc>()
+                              .add(PasswordChangedEvent(password: v)),
+                        ),
+                      ],
                       const SizedBox(height: 24),
                       Text('Telefono', style: OnlistTextStyles.formLabel22),
                       const SizedBox(height: 4),
-                      InternationalPhoneNumberInput(
-                        textFieldController: state.phoneController,
-                        initialValue: PhoneNumber(isoCode: 'IT'),
-                        locale: 'it_IT',
-                        // Messaggio in italiano (default del pacchetto è "Invalid phone number").
-                        errorMessage: 'Numero di telefono non valido',
-                        selectorConfig: const SelectorConfig(
-                          selectorType: PhoneInputSelectorType.DIALOG,
-                          showFlags: true,
-                          // Emoji-bandiera native: su iOS si renderizzano e si
-                          // aggiornano sempre quando cambi paese (i PNG del
-                          // pacchetto 0.7.4 invece non si aggiornavano).
-                          useEmoji: true,
-                          setSelectorButtonAsPrefixIcon: false,
-                          leadingPadding: 0,
-                          trailingSpace: true,
-                        ),
-                        ignoreBlank: false,
-                        autoValidateMode: AutovalidateMode.disabled,
-                        selectorTextStyle: _kInputStyle,
-                        textStyle: _kInputStyle,
-                        // Formattazione "as-you-type" secondo il paese
-                        // selezionato. È solo visiva: onInputChanged estrae
-                        // comunque le sole cifre, quindi l'E.164 salvato resta
-                        // coerente.
-                        formatInput: true,
-                        keyboardType: TextInputType.phone,
-                        inputDecoration: _underlineDecoration(
-                          hintText: 'Numero di telefono',
-                        ),
-                        onInputChanged: (phone) {
-                          // La bandiera del selettore è l'UNICA fonte di verità
-                          // per il paese: ricostruiamo l'E.164 da dialCode +
-                          // numero nazionale, senza fidarci di phone.phoneNumber
-                          // (che il widget può lasciare incoerente con isoCode
-                          // se l'utente digita un prefisso a mano). Così bandiera,
-                          // prefisso salvato e country_id restano sempre coerenti.
-                          final iso = phone.isoCode;
-                          final dialClean =
-                              (phone.dialCode ?? '').replaceAll(RegExp(r'\D'), '');
-                          // Numero nazionale: solo cifre del campo di testo; se
-                          // per errore inizia col prefisso, lo rimuoviamo.
-                          var nn = (state.phoneController?.text ?? '')
-                              .replaceAll(RegExp(r'\D'), '');
-                          if (dialClean.isNotEmpty && nn.startsWith(dialClean)) {
-                            nn = nn.substring(dialClean.length);
-                          }
-                          final e164 = '+$dialClean$nn';
+                      OnlistPhoneField(
+                        controller: state.phoneController!,
+                        initialIso: 'IT',
+                        onChanged: (iso, _, nn, e164) {
                           context.read<SignUpBloc>().add(PhoneChangedEvent(
                               phone: e164,
                               countryIso: iso,
@@ -251,31 +246,96 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
             );
           },
         ),
+        ),
       ),
     );
   }
 
   Future<void> _selectDate(BuildContext context, SignUpState state) async {
+    final now = DateTime.now();
+    // Default a 18 anni fa esatti (year-aware: niente drift dovuto ai bisestili
+    // che con Duration(days: 365*18) faceva atterrare al 2008 anziché al 2007).
+    final initial = state.signUpModel?.dob ??
+        DateTime(now.year - 18, now.month, now.day);
+    final first = DateTime(1900);
+
+    final bloc = context.read<SignUpBloc>();
+
+    if (Platform.isIOS) {
+      // Picker iOS nativo (ruota). Modal popup ancorato al fondo, sfondo
+      // sistema (rispetta light/dark del device).
+      DateTime temp = initial;
+      await showCupertinoModalPopup<void>(
+        context: context,
+        builder: (ctx) {
+          return Container(
+            height: 300,
+            color: CupertinoColors.systemBackground.resolveFrom(ctx),
+            child: SafeArea(
+              top: false,
+              child: Column(
+                children: [
+                  // Toolbar con Annulla / Fatto, in stile iOS.
+                  Container(
+                    padding: const EdgeInsets.symmetric(horizontal: 16),
+                    decoration: BoxDecoration(
+                      border: Border(
+                        bottom: BorderSide(
+                          color: CupertinoColors.separator.resolveFrom(ctx),
+                          width: 0.5,
+                        ),
+                      ),
+                    ),
+                    child: Row(
+                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                      children: [
+                        CupertinoButton(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          onPressed: () => Navigator.of(ctx).pop(),
+                          child: const Text('Annulla'),
+                        ),
+                        CupertinoButton(
+                          padding: const EdgeInsets.symmetric(vertical: 12),
+                          onPressed: () {
+                            bloc.add(DobChangedEvent(dob: temp));
+                            Navigator.of(ctx).pop();
+                          },
+                          child: const Text(
+                            'Fatto',
+                            style: TextStyle(fontWeight: FontWeight.w600),
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                  Expanded(
+                    child: CupertinoDatePicker(
+                      mode: CupertinoDatePickerMode.date,
+                      initialDateTime: initial,
+                      minimumDate: first,
+                      maximumDate: now,
+                      onDateTimeChanged: (d) => temp = d,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      );
+      return;
+    }
+
+    // Android (e altri): picker Material nativo, senza override custom — usa
+    // il tema di sistema (in dark mode è già scuro).
     final picked = await showDatePicker(
       context: context,
-      initialDate:
-          DateTime.now().subtract(const Duration(days: 365 * 18)),
-      firstDate: DateTime(1900),
-      lastDate: DateTime.now(),
-      builder: (context, child) => Theme(
-        data: ThemeData.dark().copyWith(
-          colorScheme: const ColorScheme.dark(
-            primary: Colors.white,
-            onPrimary: Color(0xFF0000FF),
-            surface: Color(0xFF0A0066),
-            onSurface: Colors.white,
-          ),
-        ),
-        child: child!,
-      ),
+      initialDate: initial,
+      firstDate: first,
+      lastDate: now,
     );
     if (picked != null && context.mounted) {
-      context.read<SignUpBloc>().add(DobChangedEvent(dob: picked));
+      bloc.add(DobChangedEvent(dob: picked));
     }
   }
 

@@ -22,6 +22,13 @@ class LocaleModel extends Equatable {
   final String? descrizione;
   final double? lat;
   final double? lng;
+  /// Orario standard di apertura del locale (es. 22:00), proveniente da
+  /// `locali.orario_apertura` (TIME). Nullable: i locali senza orario fisso
+  /// non mostrano la riga nella UI.
+  final String? orarioApertura;
+  /// Orario standard di chiusura del locale (es. 04:00). Coppia con
+  /// [orarioApertura].
+  final String? orarioChiusura;
 
   const LocaleModel({
     required this.id,
@@ -38,6 +45,8 @@ class LocaleModel extends Equatable {
     this.descrizione,
     this.lat,
     this.lng,
+    this.orarioApertura,
+    this.orarioChiusura,
   });
 
   String get prezzoString => '€' * prezzoIndicativo;
@@ -52,6 +61,17 @@ class LocaleModel extends Equatable {
     ];
     return parts.join(', ');
   }
+
+  /// Orario formato display "HH:mm - HH:mm" (es. "22:00 - 04:00").
+  /// Stringa vuota se manca anche uno solo dei due valori.
+  String get orarioString {
+    if (orarioApertura == null || orarioChiusura == null) return '';
+    return '${_formatTime(orarioApertura!)} - ${_formatTime(orarioChiusura!)}';
+  }
+
+  /// Postgres TIME arriva come "HH:mm:ss" → tagliamo i secondi.
+  static String _formatTime(String t) =>
+      t.length >= 5 ? t.substring(0, 5) : t;
 
   factory LocaleModel.fromMap(Map<String, dynamic> m) {
     // Supabase JOIN restituisce citta come oggetto annidato:
@@ -84,6 +104,8 @@ class LocaleModel extends Equatable {
       descrizione: m['descrizione'] as String?,
       lat: lat,
       lng: lng,
+      orarioApertura: m['orario_apertura']?.toString(),
+      orarioChiusura: m['orario_chiusura']?.toString(),
     );
   }
 
@@ -92,5 +114,6 @@ class LocaleModel extends Equatable {
         id, nome, indirizzo, nomeCitta, idCitta, logoUrl, fotoUrl,
         famosita, generiMusicali, prezzoIndicativo,
         linkTripadvisor, descrizione, lat, lng,
+        orarioApertura, orarioChiusura,
       ];
 }

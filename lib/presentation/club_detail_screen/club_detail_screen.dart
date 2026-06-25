@@ -298,7 +298,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         },
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 0),
+      bottomNavigationBar: const SharedFooter(currentIndex: 0, withBottomBlur: true),
     );
   }
 
@@ -311,7 +311,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
         child: Row(
           children: [
-            const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
+            // Freccia "Torna indietro" leggermente ingrandita (richiesta UX).
+            const Icon(Icons.arrow_back, color: OnlistColors.white, size: 34),
             const SizedBox(width: 6),
             Text('Torna indietro', style: OnlistTextStyles.title32Light),
           ],
@@ -426,7 +427,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   // ── Subtitle (indirizzo) — tap → Google Maps ────────────────────────────────
   Widget _buildSubtitle(LocaleModel locale) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(13, 14, 13, 0),
+      // Indirizzo attaccato al nome del club (Figma off): niente gap verticale
+      // sopra, sta sotto la baseline del titolo.
+      padding: const EdgeInsets.fromLTRB(13, 2, 13, 0),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _openMaps(locale.indirizzoCompleto),
@@ -442,9 +445,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     );
   }
 
-  // ── Info rows: orario evento + generi musicali (Figma 10 — niente prezzo) ──
+  // ── Info rows: orario apertura locale + generi musicali (Figma off) ────────
   Widget _buildInfoRows(LocaleModel locale, SerataModel? evento) {
-    final orario = evento?.orarioString ?? '';
+    // Orario di APERTURA DEL LOCALE (non dell'evento): è informazione stabile
+    // del club, mostrata sotto l'indirizzo. Letto da locali.orario_apertura/_chiusura.
+    final orario = locale.orarioString;
     // generi: preferenza all'evento, fallback al locale
     final generi = (evento?.generiMusicali.isNotEmpty == true)
         ? evento!.generiMusicali.join(' - ')
@@ -561,6 +566,20 @@ class _SerataCard extends StatelessWidget {
         serata.data.day == now.day;
   }
 
+  /// Etichetta giorni: "OGGI" se la serata è oggi, altrimenti countdown
+  /// stile Figma ("-3 giorni" = mancano 3 giorni). Per le serate già passate
+  /// restituisce stringa vuota (non vengono mostrate nella lista).
+  String get _dayLabel {
+    if (_isToday) return 'OGGI';
+    final today = DateTime.now();
+    final todayDate = DateTime(today.year, today.month, today.day);
+    final serataDate =
+        DateTime(serata.data.year, serata.data.month, serata.data.day);
+    final diff = serataDate.difference(todayDate).inDays;
+    if (diff <= 0) return '';
+    return '-$diff ${diff == 1 ? 'giorno' : 'giorni'}';
+  }
+
   @override
   Widget build(BuildContext context) {
     final isSoldOut = serata.statusPosti == 'Sold Out';
@@ -631,13 +650,13 @@ class _SerataCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // OGGI @ (106,39) — solo se la serata è oggi
-                if (_isToday)
+                // Label giorno @ (106,39): "OGGI" o "-N giorni" (countdown).
+                if (_dayLabel.isNotEmpty)
                   Positioned(
                     left: 106,
                     top: 39,
                     child: Text(
-                      'OGGI',
+                      _dayLabel,
                       style: OnlistTextStyles.hn(
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
@@ -709,15 +728,10 @@ class _SerataCard extends StatelessWidget {
                       width: 86,
                       height: 38,
                       decoration: BoxDecoration(
-                        gradient: isSoldOut
-                            ? null
-                            // CSS Rectangle 164: #1900D8 → #201065 (brand),
-                            // più chiaro della card per far risaltare il bottone.
-                            : const LinearGradient(
-                                begin: Alignment.centerLeft,
-                                end: Alignment.centerRight,
-                                colors: [Color(0xFF1900D8), Color(0xFF201065)],
-                              ),
+                        // PRENOTA standard d'app (Figma `Rectangle 164`):
+                        // #1E00FF → #201064 verticale. Stesso stile usato dalla
+                        // card ticket booking — fonte unica `bookButton`.
+                        gradient: isSoldOut ? null : OnlistColors.bookButton,
                         color: isSoldOut
                             ? Colors.white.withValues(alpha: 0.18)
                             : null,

@@ -11,6 +11,9 @@ class SignUpState extends Equatable {
   final GlobalKey<FormState>? formKey;
   final bool isLoading;
   final bool isSuccess;
+  /// true → l'email è già verificata via OAuth: la UI naviga direttamente a
+  /// location/city senza passare dalla schermata di verifica.
+  final bool oauthVerified;
   final String? errorMessage;
   final SignUpModel? signUpModel;
   // No custom country list: we use IntlPhoneField's internal list
@@ -26,6 +29,7 @@ class SignUpState extends Equatable {
     this.formKey,
     this.isLoading = false,
     this.isSuccess = false,
+    this.oauthVerified = false,
     this.errorMessage,
     this.signUpModel,
     // No custom countries state
@@ -43,6 +47,7 @@ class SignUpState extends Equatable {
         formKey,
         isLoading,
         isSuccess,
+        oauthVerified,
         errorMessage,
         signUpModel,
         // no custom countries state
@@ -59,6 +64,7 @@ class SignUpState extends Equatable {
     GlobalKey<FormState>? formKey,
     bool? isLoading,
     bool? isSuccess,
+    bool? oauthVerified,
     String? errorMessage,
     SignUpModel? signUpModel,
     // no custom countries state
@@ -75,6 +81,7 @@ class SignUpState extends Equatable {
       formKey: formKey ?? this.formKey,
       isLoading: isLoading ?? this.isLoading,
       isSuccess: isSuccess ?? this.isSuccess,
+      oauthVerified: oauthVerified ?? this.oauthVerified,
       // Transitorio: non usiamo `?? this.errorMessage` così l'errore non
       // persiste tra un emit e l'altro e il dialog non si ripete a ogni tasto.
       errorMessage: errorMessage,

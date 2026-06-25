@@ -9,6 +9,29 @@ abstract class SignUpEvent extends Equatable {
 
 class SignUpInitialEvent extends SignUpEvent {}
 
+/// Pre-compila il form con i dati che arrivano da un'identità OAuth (Google /
+/// Apple). Quando `oauthVerified = true`, al submit la UI navigherà
+/// direttamente alla schermata di location, saltando la verifica email.
+class SignUpPrefillEvent extends SignUpEvent {
+  final String? nome;
+  final String? cognome;
+  final String? email;
+  final String? telefono;
+  final DateTime? dataNascita;
+  final bool oauthVerified;
+  const SignUpPrefillEvent({
+    this.nome,
+    this.cognome,
+    this.email,
+    this.telefono,
+    this.dataNascita,
+    this.oauthVerified = false,
+  });
+  @override
+  List<Object?> get props =>
+      [nome, cognome, email, telefono, dataNascita, oauthVerified];
+}
+
 class FirstNameChangedEvent extends SignUpEvent {
   final String firstName;
   const FirstNameChangedEvent({required this.firstName});

@@ -65,11 +65,15 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
     final bool isEmpty = args == null;
     final String bookingType = args?['type'] as String? ?? "table";
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
-        child: SafeArea(
+    // Gradient applicato come "sfondo schermo" dietro l'intero Scaffold (incluso
+    // il footer): senza questo il `bottomNavigationBar` semi-trasparente lascia
+    // intravedere il nero piatto dello Scaffold, e il gradient sembra non
+    // arrivare al fondo.
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           bottom: false,
           child: Column(
             children: [
@@ -86,8 +90,8 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
             ],
           ),
         ),
+        bottomNavigationBar: const SharedFooter(currentIndex: 2),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 2),
     );
   }
 
@@ -100,57 +104,61 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
 
     return Column(
       children: [
-        // Card sintetica (Figma: 353x175, gradiente #1E00FF -> #020011)
-        Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 18),
-          child: Container(
-            width: double.infinity,
-            padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
-            decoration: BoxDecoration(
-              gradient: OnlistColors.cardSummary,
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      Text("Ticket x 1",
-                          style: OnlistTextStyles.ticketLabel),
-                      const SizedBox(width: 8),
-                      Padding(
-                        padding: const EdgeInsets.only(top: 14),
-                        child: Text("Ticket $ticketType",
-                            style: OnlistTextStyles.ticketSubtitleXs),
-                      ),
-                    ],
+        // Card sintetica (Figma 14: gradiente #1E00FF -> #020011, riempie tutta
+        // la larghezza dello schermo — niente padding orizzontale esterno).
+        Container(
+          width: double.infinity,
+          padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+          decoration: BoxDecoration(
+            gradient: OnlistColors.cardSummary,
+            borderRadius: BorderRadius.circular(10),
+          ),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              // "Ticket x 1" a sinistra, "Ticket Normale" piccolo a destra
+              // allineato in alto (Figma 14): niente più offset verticale.
+              Row(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Expanded(
+                    child: Text(
+                      "Ticket x 1",
+                      style: OnlistTextStyles.ticketLabel,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
                   ),
-                ),
-                const SizedBox(height: 4),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    crossAxisAlignment: CrossAxisAlignment.end,
-                    children: [
-                      Text("$total€", style: OnlistTextStyles.price96),
-                      const SizedBox(width: 10),
-                      Padding(
-                        padding: const EdgeInsets.only(bottom: 18),
-                        child: Text("+ 2 drink omaggio",
-                            style: OnlistTextStyles.body24Regular),
-                      ),
-                    ],
+                  const SizedBox(width: 8),
+                  Padding(
+                    padding: const EdgeInsets.only(top: 6),
+                    child: Text("Ticket $ticketType",
+                        style: OnlistTextStyles.ticketSubtitleXs),
                   ),
+                ],
+              ),
+              const SizedBox(height: 4),
+              FittedBox(
+                fit: BoxFit.scaleDown,
+                alignment: Alignment.centerLeft,
+                child: Row(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.end,
+                  children: [
+                    Text("$total€", style: OnlistTextStyles.price96),
+                    const SizedBox(width: 10),
+                    // "+ 2 drink omaggio" sale verso il centro verticale del
+                    // prezzo (Figma 14): bottom padding maggiore = stringa più
+                    // in alto rispetto al baseline del 96px.
+                    Padding(
+                      padding: const EdgeInsets.only(bottom: 32),
+                      child: Text("+ 2 drink omaggio",
+                          style: OnlistTextStyles.body24Regular),
+                    ),
+                  ],
                 ),
-              ],
-            ),
+              ),
+            ],
           ),
         ),
         const Spacer(),

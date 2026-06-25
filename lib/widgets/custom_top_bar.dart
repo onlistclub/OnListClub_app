@@ -24,67 +24,58 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Spec Figma `docs/figma_screen/off/nav-bar.png`: contenitore nero con
-    // wordmark OnList prominente a sinistra e search/persona a destra.
+    // Spec Figma `docs/figma_screen/off/07 - Home-aggiornato.png`: wordmark
+    // OnList incollato al bordo sinistro, search + profile in coppia compatta
+    // sul bordo destro.
     return Container(
       color: Colors.transparent,
-      padding: const EdgeInsets.fromLTRB(16, 10, 12, 10),
+      padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
       child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
             onTap: isHome ? null : () => NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen),
             child: Hero(
               tag: 'app_logo',
-              // L'asset logo è quadrato (1563×1563) col wordmark centrato e ampio
-              // padding trasparente. Riempiamo la LARGHEZZA (≈ proporzione Figma
-              // nav-bar: wordmark ~31% schermo) e ritagliamo il padding verticale,
-              // così il logo è grande ma la barra resta bassa. Misure responsive
-              // (proporzionali alla larghezza schermo), non pixel fissi.
+              // Wordmark più contenuto (Figma nav-bar mostra il logo a ~25% schermo)
+              // così non occupa spazio. L'asset è quadrato con ampio padding
+              // trasparente: usiamo fitWidth e altezza proporzionale.
               child: SizedBox(
-                width: R.w(54),
-                height: R.w(12),
+                width: R.w(28),
+                height: R.w(11),
                 child: Image.asset(
                   ImageConstant.imgLogoOnlist,
                   fit: BoxFit.fitWidth,
+                  alignment: Alignment.centerLeft,
                 ),
               ),
             ),
           ),
-          Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              if (showSearch)
-                GestureDetector(
-                  onTap: onSearchTap ?? () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    // Asset ufficiale navbar (assets/svg/search.png, 34×34).
-                    child: Image.asset(ImageConstant.imgNavSearch,
-                        width: 34, height: 34),
-                  ),
-                ),
-              if (showProfile) ...[
-                const SizedBox(width: 8),
-                GestureDetector(
-                  onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
-                  child: Padding(
-                    padding: const EdgeInsets.all(8.0),
-                    // Asset ufficiale navbar (assets/svg/profile.png, 23×29).
-                    child: Image.asset(ImageConstant.imgNavProfile,
-                        width: 23, height: 29),
-                  ),
-                ),
-              ],
-            ],
-          ),
+          const Spacer(),
+          if (showSearch)
+            GestureDetector(
+              onTap: onSearchTap ?? () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Image.asset(ImageConstant.imgNavSearch,
+                    width: 30, height: 30),
+              ),
+            ),
+          if (showProfile)
+            GestureDetector(
+              onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                child: Image.asset(ImageConstant.imgNavProfile,
+                    width: 22, height: 28),
+              ),
+            ),
         ],
       ),
     );
   }
 
-  // Altezza barra = slot logo responsive (R.w(12)) + padding verticale (10+10).
+  // Altezza barra = slot logo (R.w(11)) + padding verticale (10+10).
   @override
-  Size get preferredSize => Size.fromHeight(R.w(12) + 20);
+  Size get preferredSize => Size.fromHeight(R.w(11) + 20);
 }

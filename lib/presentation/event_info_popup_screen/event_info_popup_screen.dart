@@ -8,7 +8,7 @@ import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
 
-/// Pop-up info serata (Figma `off/19 - pop up info club.png`).
+/// Pop-up info serata (Figma `off/19 - pop up info serata.png`).
 ///
 /// Si raggiunge cliccando sulla **card serata** in schermata 10 (club detail).
 /// Mostra tutte le info dell'evento: stile musicale, dress code, età minima,
@@ -16,6 +16,12 @@ import '../../widgets/shared_footer.dart';
 /// naviga alla `bookingScreen` (pagina di scelta Tavolo / Prevendita).
 ///
 /// Riceve come `arguments` una Map: `{'serata': SerataModel, 'club': LocaleModel}`.
+///
+/// ─────────────────────────────────────────────────────────────────────────────
+/// SPAZIATURE: tutti i valori verticali/orizzontali sono **px design Figma**
+/// (393×852, card 354×663 a top=119), poi scalati con [R.sp] per device reali.
+/// Riferimento CSS: `docs/figma_screen/analisi/pop-up-info-club.css`.
+/// ─────────────────────────────────────────────────────────────────────────────
 class EventInfoPopupScreen extends StatelessWidget {
   const EventInfoPopupScreen({Key? key}) : super(key: key);
 
@@ -32,26 +38,31 @@ class EventInfoPopupScreen extends StatelessWidget {
       return const Scaffold(backgroundColor: Colors.black);
     }
 
-    return Scaffold(
-      backgroundColor: OnlistColors.black,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
-        child: SafeArea(
+    // Gradient applicato come "sfondo schermo" dietro l'intero Scaffold (incluso
+    // il footer): stesso fix di carrello/booking — il footer semi-trasparente
+    // lasciava intravedere il nero piatto sotto la card.
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           bottom: false,
           child: Column(
             children: [
               const CustomTopBar(),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: EdgeInsets.fromLTRB(12, R.sp(8), 12, R.sp(24)),
+                  // Margine card: 19px a sinistra/destra (Figma 393−354)/2.
+                  padding: EdgeInsets.fromLTRB(
+                      R.sp(19), R.sp(4), R.sp(19), R.sp(8)),
                   child: _PopupCard(serata: serata, club: club),
                 ),
               ),
             ],
           ),
         ),
+        bottomNavigationBar: const SharedFooter(currentIndex: 0),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 0),
     );
   }
 }
@@ -62,44 +73,132 @@ class _PopupCard extends StatelessWidget {
   final SerataModel serata;
   final LocaleModel club;
 
+  // ── Costanti Figma (px design) ─────────────────────────────────────────────
+  // Riferite alla card 354×663. Le posizioni X dei contenuti sono sottratte
+  // di 19 (offset card) per ottenere offset interni alla card.
+  // Altezza del banner radiale superiore (Rectangle 211).
+  static const double _bannerH = 134;
+  // Padding di contenuto: la maggior parte usa ~16, la pill data e i box
+  // usano ~12 (più stretti dal bordo card).
+  static const double _padContent = 16; // x=35 → 16 da card-left
+  static const double _padPill = 12;    // x=31 → 12 da card-left
+
   @override
   Widget build(BuildContext context) {
+    final radius = BorderRadius.circular(R.sp(32));
+    // Card linear gradient (Rectangle 210): #2600FF → #1500B2 @53.85% → #000.
+    // Min-height ≈ 611 design px così la card riempie sempre lo schermo anche
+    // con poche info (richiesta: "tutto in una pagina, scroll solo se serve").
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.fromLTRB(R.sp(18), R.sp(18), R.sp(18), R.sp(22)),
       decoration: BoxDecoration(
-        // Figma off/19 (Rectangle 210): gradiente blu vivo #2600FF→#1500B2→#000.
         gradient: const LinearGradient(
           begin: Alignment.topCenter,
           end: Alignment.bottomCenter,
           colors: [Color(0xFF2600FF), Color(0xFF1500B2), Color(0xFF000000)],
           stops: [0.0, 0.5385, 1.0],
         ),
-        borderRadius: BorderRadius.circular(24),
+        borderRadius: radius,
+      ),
+      constraints: BoxConstraints(minHeight: R.sp(611)),
+      // Clip così il banner radiale non sborda dagli angoli arrotondati.
+      child: ClipRRect(
+        borderRadius: radius,
+        child: Stack(
+          children: [
+            // Banner radiale top (Rectangle 211) — overlay sopra il linear
+            // gradient e SOTTO il testo. Lo Stack disegna i figli nell'ordine
+            // dichiarato, quindi questo viene prima del contenuto.
+            // CSS: radial-gradient(34.4% 200.32% at 31.78% 68.44%, #0031D2, #2E0098)
+            // Centro (31.78%, 68.44%) → Alignment(-0.36, 0.37).
+            Positioned(
+              top: 0,
+              left: 0,
+              right: 0,
+              child: IgnorePointer(
+                child: Container(
+                  height: R.sp(_bannerH),
+                  decoration: const BoxDecoration(
+                    gradient: RadialGradient(
+                      center: Alignment(-0.36, 0.37),
+                      radius: 1.5,
+                      colors: [Color(0xFF0031D2), Color(0xFF2E0098)],
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            // Contenuto: badge, titolo, indirizzo, data, info, line-up, CTA.
+            _buildContent(context),
+          ],
+        ),
+      ),
+    );
+  }
+
+  /// Contenuto della card con spaziature Figma esatte (in design px → R.sp).
+  Widget _buildContent(BuildContext context) {
+    final hasGeneri = serata.generiMusicali.isNotEmpty;
+    final hasLineup = serata.lineup.isNotEmpty;
+
+    return Padding(
+      // Padding "neutro" che ospita la pill data e i box (i contenuti che vanno
+      // PIÙ a sinistra usano _padPill=12). Il testo a 16 lo otteniamo con un
+      // ulteriore inset orizzontale di 4 sui sotto-blocchi.
+      padding: EdgeInsets.fromLTRB(
+        R.sp(_padPill),
+        R.sp(6),  // top banner → primo elemento (QUESTA SERA): 6px
+        R.sp(_padPill),
+        R.sp(8),  // bottom card
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          // QUESTA SERA badge + close (X) — gap interno standard pill
           _topBadgeAndClose(context),
-          SizedBox(height: R.sp(14)),
-          _titleAndAddress(),
-          SizedBox(height: R.sp(14)),
-          _datePill(),
-          if (serata.generiMusicali.isNotEmpty) ...[
-            SizedBox(height: R.sp(20)),
-            _section('STILE MUSICALE'),
-            SizedBox(height: R.sp(10)),
-            _chipsRow(serata.generiMusicali),
-          ],
+          // 6+23 = 29, prossimo a 49 → 20px gap
           SizedBox(height: R.sp(20)),
-          _infoBoxesGrid(),
-          if (serata.lineup.isNotEmpty) ...[
-            SizedBox(height: R.sp(22)),
-            _section('LINE-UP'),
-            SizedBox(height: R.sp(10)),
-            ...serata.lineup.map(_djRow),
+          // Padding interno extra di +4px (16-12) per allineare titolo/indirizzo
+          Padding(
+            padding: EdgeInsets.symmetric(horizontal: R.sp(_padContent - _padPill)),
+            child: _titleAndAddress(),
+          ),
+          // 49+45 = 94, indirizzo a 96 → 2px (gap dentro _titleAndAddress)
+          // indirizzo: 96+16=112, date pill a 129 → 17px
+          SizedBox(height: R.sp(17)),
+          _datePill(),
+          // 129+41=170, STILE MUSICALE a 185 → 15px
+          SizedBox(height: R.sp(15)),
+          if (hasGeneri) ...[
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: R.sp(_padContent - _padPill)),
+              child: _section('STILE MUSICALE'),
+            ),
+            // STILE MUSICALE 185+16=201, chips a 205 → 4px
+            SizedBox(height: R.sp(4)),
+            _chipsRow(serata.generiMusicali),
+            // chips 205+23=228, info row1 a 240 → 12px
+            SizedBox(height: R.sp(12)),
           ],
-          SizedBox(height: R.sp(24)),
+          _infoBoxesGrid(),
+          if (hasLineup) ...[
+            // Info row2 finisce a 327+79=406, LINE-UP a 417 → 11px
+            SizedBox(height: R.sp(11)),
+            Padding(
+              padding: EdgeInsets.symmetric(
+                  horizontal: R.sp(_padContent - _padPill)),
+              child: _section('LINE-UP'),
+            ),
+            // LINE-UP 417+16=433, DJ1 a 442 → 9px
+            SizedBox(height: R.sp(9)),
+            for (final dj in serata.lineup) ...[
+              _djRow(dj),
+              SizedBox(height: R.sp(9)),
+            ],
+          ],
+          // Gap finale prima del CTA: 10px Figma
+          SizedBox(height: R.sp(hasLineup ? 1 : 10)),
           _acquistaCta(context),
         ],
       ),
@@ -108,72 +207,113 @@ class _PopupCard extends StatelessWidget {
 
   Widget _topBadgeAndClose(BuildContext context) {
     final label = _serataDayLabel();
-    return Row(
-      children: [
-        Container(
-          padding: EdgeInsets.symmetric(horizontal: R.sp(10), vertical: R.sp(4)),
-          decoration: BoxDecoration(
-            // CSS Rectangle 212: gradiente teal→blu 53%, r10.
-            gradient: const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Color(0x8700A29A), Color(0x871E00FF)],
-            ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          child: Text(
-            label,
-            style: OnlistTextStyles.hn(
-              fontSize: R.sp(13),
-              fontWeight: FontWeight.w700,
-              color: Colors.white,
-              letterSpacing: -0.08 * 13,
-            ),
-          ),
-        ),
-        const Spacer(),
-        GestureDetector(
-          onTap: () => NavigatorService.goBack(),
-          behavior: HitTestBehavior.opaque,
-          child: Container(
-            width: R.sp(24),
-            height: R.sp(24),
+    return SizedBox(
+      // Figma badge height 23
+      height: R.sp(23),
+      child: Row(
+        children: [
+          // Badge QUESTA SERA: Rectangle 212, radial gradient teal→blu.
+          Container(
+            // Padding interno: badge h=23, font 16 → ~3 vert / 12 horiz
+            padding: EdgeInsets.symmetric(
+                horizontal: R.sp(12), vertical: R.sp(3)),
             decoration: BoxDecoration(
-              // CSS Ellipse 12: cerchio outline bordo 1px bianco 72%.
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white.withValues(alpha: 0.72)),
+              // CSS: radial-gradient(... rgba(0,162,154,0.53) 0%, rgba(30,0,255,0.53) 100%)
+              gradient: const RadialGradient(
+                center: Alignment(0.86, -0.5), // 93.16%, 25%
+                radius: 1.0,
+                colors: [Color(0x8700A29A), Color(0x871E00FF)],
+              ),
+              borderRadius: BorderRadius.circular(R.sp(10)),
+              boxShadow: [
+                // box-shadow: 0px 2px 10px rgba(0, 5, 96, 0.48)
+                BoxShadow(
+                  color: const Color(0x7A000560),
+                  offset: Offset(0, R.sp(2)),
+                  blurRadius: R.sp(10),
+                ),
+              ],
             ),
-            alignment: Alignment.center,
-            child: Icon(Icons.close, color: Colors.white, size: R.sp(14)),
+            child: Text(
+              label,
+              style: OnlistTextStyles.hn(
+                fontSize: R.sp(16),
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: 16 / 16,
+                letterSpacing: -0.08 * 16,
+              ),
+            ),
           ),
-        ),
-      ],
+          const Spacer(),
+          // Close (X) — cerchio outline 24×24, bordo bianco 72%
+          GestureDetector(
+            onTap: () => NavigatorService.goBack(),
+            behavior: HitTestBehavior.opaque,
+            child: Container(
+              width: R.sp(24),
+              height: R.sp(24),
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                border: Border.all(
+                    color: Colors.white.withValues(alpha: 0.72),
+                    width: R.sp(1)),
+              ),
+              alignment: Alignment.center,
+              child: Icon(Icons.close, color: Colors.white, size: R.sp(14)),
+            ),
+          ),
+        ],
+      ),
     );
   }
 
   Widget _titleAndAddress() {
+    // Titolo con gradient text bianco→azzurrino + ombra blu (Figma):
+    // background: radial-gradient(50% 50% at 50% 50%, #FFFFFF 0%, #E0E1FF 100%)
+    // text-shadow: 0px 4px 4px rgba(38, 0, 255, 0.63)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        Text(
-          serata.nome.toUpperCase(),
-          style: OnlistTextStyles.hn(
-            fontSize: R.sp(45), // CSS "SPRING PARTY": 45/w700/-0.08
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-            height: 45 / 45,
-            letterSpacing: -0.08 * 45,
+        ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return const RadialGradient(
+              center: Alignment.center,
+              radius: 0.7,
+              colors: [Color(0xFFFFFFFF), Color(0xFFE0E1FF)],
+            ).createShader(bounds);
+          },
+          blendMode: BlendMode.srcIn,
+          child: Text(
+            serata.nome.toUpperCase(),
+            style: OnlistTextStyles.hn(
+              fontSize: R.sp(45),
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              height: 45 / 45,
+              letterSpacing: -0.08 * 45,
+            ).copyWith(
+              shadows: [
+                Shadow(
+                  color: const Color(0xA12600FF),
+                  offset: Offset(0, R.sp(4)),
+                  blurRadius: R.sp(4),
+                ),
+              ],
+            ),
+            maxLines: 2,
+            overflow: TextOverflow.ellipsis,
           ),
-          maxLines: 2,
-          overflow: TextOverflow.ellipsis,
         ),
-        SizedBox(height: R.sp(6)),
+        // Titolo h=45, baseline a y=45+rel49=94, indirizzo a 96 → 2px gap
+        SizedBox(height: R.sp(2)),
         Text(
           club.indirizzoCompleto,
           style: OnlistTextStyles.hn(
-            fontSize: R.sp(16), // CSS indirizzo: 16/-0.08 white 77%
+            fontSize: R.sp(16),
             fontWeight: FontWeight.w400,
             color: Colors.white.withValues(alpha: 0.77),
+            height: 16 / 16,
             letterSpacing: -0.08 * 16,
           ),
         ),
@@ -189,19 +329,22 @@ class _PopupCard extends StatelessWidget {
         : date;
     return Container(
       width: double.infinity,
-      padding: EdgeInsets.symmetric(horizontal: R.sp(14), vertical: R.sp(10)),
+      // Figma height 41, font 20 → ~10 padding verticale
+      padding: EdgeInsets.symmetric(
+          horizontal: R.sp(14), vertical: R.sp(10)),
       decoration: BoxDecoration(
         // CSS Rectangle 213: nero 27%, r11.
         color: Colors.black.withValues(alpha: 0.27),
-        borderRadius: BorderRadius.circular(11),
+        borderRadius: BorderRadius.circular(R.sp(11)),
       ),
       child: Text(
         text,
         textAlign: TextAlign.center,
         style: OnlistTextStyles.hn(
-          fontSize: R.sp(20), // CSS data: 20/w500/-0.08
+          fontSize: R.sp(20),
           fontWeight: FontWeight.w500,
           color: Colors.white,
+          height: 20 / 20,
           letterSpacing: -0.08 * 20,
         ),
       ),
@@ -211,33 +354,33 @@ class _PopupCard extends StatelessWidget {
   Widget _section(String label) {
     return Text(
       label,
-      // CSS "STILE MUSICALE"/"LINE-UP": 16/w500 bianco pieno, -0.05.
       style: OnlistTextStyles.hn(
         fontSize: R.sp(16),
         fontWeight: FontWeight.w500,
         color: Colors.white,
+        height: 16 / 16,
         letterSpacing: -0.05 * 16,
       ),
     );
   }
 
   Widget _chipsRow(List<String> generi) {
-    // CSS off/19: primo genere "attivo" (blu 0.2), gli altri attenuati
-    // (nero 0.2 @ 50%); rettangoli arrotondati r11, testo 16/w400/-0.08.
+    // CSS chip height 23, font 16 → ~4 vert / 12 horiz
     return Wrap(
       spacing: R.sp(10),
-      runSpacing: R.sp(10),
+      runSpacing: R.sp(8),
       children: [
         for (var i = 0; i < generi.length; i++)
           Opacity(
             opacity: i == 0 ? 1.0 : 0.5,
             child: Container(
-              padding: EdgeInsets.symmetric(horizontal: R.sp(12), vertical: R.sp(4)),
+              padding: EdgeInsets.symmetric(
+                  horizontal: R.sp(12), vertical: R.sp(4)),
               decoration: BoxDecoration(
                 color: i == 0
-                    ? const Color(0x330004FF) // rgba(0,4,255,0.2)
-                    : const Color(0x33000000), // rgba(0,0,0,0.2)
-                borderRadius: BorderRadius.circular(11),
+                    ? const Color(0x330004FF)
+                    : const Color(0x33000000),
+                borderRadius: BorderRadius.circular(R.sp(11)),
               ),
               child: Text(
                 generi[i],
@@ -245,6 +388,7 @@ class _PopupCard extends StatelessWidget {
                   fontSize: R.sp(16),
                   fontWeight: FontWeight.w400,
                   color: Colors.white,
+                  height: 16 / 16,
                   letterSpacing: -0.08 * 16,
                 ),
               ),
@@ -255,7 +399,6 @@ class _PopupCard extends StatelessWidget {
   }
 
   /// Quattro box DRESS CODE / ETÀ MINIMA / SOUND SISTEM / PARCHEGGIO.
-  /// I box senza valore vengono saltati (no placeholder).
   Widget _infoBoxesGrid() {
     final items = <_InfoBox>[
       if (serata.dressCode != null && serata.dressCode!.isNotEmpty)
@@ -268,23 +411,20 @@ class _PopupCard extends StatelessWidget {
         _InfoBox('PARCHEGGIO', serata.parcheggio!),
     ];
     if (items.isEmpty) return const SizedBox.shrink();
-    // Render a 2 colonne in righe da 2.
     final rows = <Widget>[];
     for (var i = 0; i < items.length; i += 2) {
       final left = items[i];
       final right = i + 1 < items.length ? items[i + 1] : null;
+      // Gap inter-riga 8px Figma (row1@240 → row2@327; 327-240-79=8)
+      final bool isLast = i + 2 >= items.length;
       rows.add(Padding(
-        padding: EdgeInsets.only(bottom: R.sp(10)),
-        // IntrinsicHeight: dà alla Row un'altezza finita dentro lo
-        // SingleChildScrollView (vincolo verticale illimitato), così
-        // CrossAxisAlignment.stretch può pareggiare i due box affiancati
-        // senza generare "BoxConstraints forces an infinite height".
+        padding: EdgeInsets.only(bottom: isLast ? 0 : R.sp(8)),
         child: IntrinsicHeight(
           child: Row(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
               Expanded(child: _renderInfoBox(left)),
-              SizedBox(width: R.sp(10)),
+              SizedBox(width: R.sp(7)), // 199-(36+156)=7 → gap centrale
               Expanded(
                 child: right != null
                     ? _renderInfoBox(right)
@@ -299,25 +439,28 @@ class _PopupCard extends StatelessWidget {
   }
 
   Widget _renderInfoBox(_InfoBox box) {
+    // Box 156×79: pill etichetta a y=7 (366-359), label x=5 dal box (46-41),
+    // valore a y=36 (395-359).
     return Container(
-      padding: EdgeInsets.symmetric(horizontal: R.sp(12), vertical: R.sp(12)),
+      padding: EdgeInsets.fromLTRB(R.sp(5), R.sp(7), R.sp(5), R.sp(8)),
       decoration: BoxDecoration(
-        color: const Color(0x291E00FF), // CSS rgba(30,0,255,0.16)
-        borderRadius: BorderRadius.circular(11),
+        color: const Color(0x291E00FF),
+        borderRadius: BorderRadius.circular(R.sp(11)),
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Etichetta su pill gradiente (CSS Rectangle 220: grigio44→blu44, r7).
+          // Etichetta pill: h=15, font 10 → padding ~2.5 vert / 5 horiz
           Container(
-            padding: EdgeInsets.symmetric(horizontal: R.sp(6), vertical: R.sp(2)),
+            padding: EdgeInsets.symmetric(
+                horizontal: R.sp(5), vertical: R.sp(2)),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.centerLeft,
                 end: Alignment.centerRight,
                 colors: [Color(0x70D9D9D9), Color(0x701E00FF)],
               ),
-              borderRadius: BorderRadius.circular(7),
+              borderRadius: BorderRadius.circular(R.sp(7)),
             ),
             child: Text(
               box.title,
@@ -325,17 +468,20 @@ class _PopupCard extends StatelessWidget {
                 fontSize: R.sp(10),
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
+                height: 10 / 10,
                 letterSpacing: -0.05 * 10,
               ),
             ),
           ),
-          SizedBox(height: R.sp(8)),
+          // Pill bottom @22, valore top @36 → 14 px gap
+          SizedBox(height: R.sp(14)),
           Text(
             box.value,
             style: OnlistTextStyles.hn(
-              fontSize: R.sp(20), // CSS valore: 20/w500/-0.05
+              fontSize: R.sp(20),
               fontWeight: FontWeight.w500,
               color: Colors.white,
+              height: 20 / 20,
               letterSpacing: -0.05 * 20,
             ),
           ),
@@ -353,11 +499,13 @@ class _PopupCard extends StatelessWidget {
       if (orario.isNotEmpty) orario,
     ].join(' · ');
     return Container(
-      margin: EdgeInsets.only(bottom: R.sp(10)),
-      padding: EdgeInsets.symmetric(horizontal: R.sp(11), vertical: R.sp(8)),
+      // Figma box DJ: 320×50, x=35 (cioè 16 dal bordo card). Riempie la card
+      // con _padPill=12; aggiungiamo solo un margine interno coerente.
+      padding: EdgeInsets.symmetric(
+          horizontal: R.sp(11), vertical: R.sp(7)),
       decoration: BoxDecoration(
-        color: const Color(0x291E00FF), // CSS rgba(30,0,255,0.16)
-        borderRadius: BorderRadius.circular(19),
+        color: const Color(0x291E00FF),
+        borderRadius: BorderRadius.circular(R.sp(19)),
       ),
       child: Row(
         children: [
@@ -365,7 +513,6 @@ class _PopupCard extends StatelessWidget {
             width: R.sp(35),
             height: R.sp(35),
             decoration: const BoxDecoration(
-              // CSS Ellipse 13: gradiente bianco46→blu46.
               gradient: LinearGradient(
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
@@ -380,14 +527,16 @@ class _PopupCard extends StatelessWidget {
                 fontSize: R.sp(16),
                 fontWeight: FontWeight.w500,
                 color: Colors.white,
+                height: 16 / 16,
                 letterSpacing: -0.05 * 16,
               ),
             ),
           ),
-          SizedBox(width: R.sp(12)),
+          SizedBox(width: R.sp(7)), // 88-(46+35)=7
           Expanded(
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
               children: [
                 Text(
                   dj.nome,
@@ -395,6 +544,7 @@ class _PopupCard extends StatelessWidget {
                     fontSize: R.sp(16),
                     fontWeight: FontWeight.w500,
                     color: Colors.white,
+                    height: 16 / 16,
                     letterSpacing: -0.05 * 16,
                   ),
                 ),
@@ -406,6 +556,7 @@ class _PopupCard extends StatelessWidget {
                       fontSize: R.sp(13),
                       fontWeight: FontWeight.w300,
                       color: Colors.white,
+                      height: 13 / 13,
                       letterSpacing: -0.05 * 13,
                     ),
                   ),
@@ -415,15 +566,16 @@ class _PopupCard extends StatelessWidget {
           ),
           if (dj.headliner)
             Container(
-              padding: EdgeInsets.symmetric(horizontal: R.sp(10), vertical: R.sp(5)),
+              // Figma: 79×26, font 13 → padding ~6 vert / 10 horiz
+              padding: EdgeInsets.symmetric(
+                  horizontal: R.sp(10), vertical: R.sp(6)),
               decoration: BoxDecoration(
-                // CSS Rectangle 227: bianco35→teal35, r9.
                 gradient: const LinearGradient(
                   begin: Alignment.centerLeft,
                   end: Alignment.centerRight,
                   colors: [Color(0x59FFFFFF), Color(0x59007D99)],
                 ),
-                borderRadius: BorderRadius.circular(9),
+                borderRadius: BorderRadius.circular(R.sp(9)),
               ),
               child: Text(
                 'HEADLINER',
@@ -431,6 +583,7 @@ class _PopupCard extends StatelessWidget {
                   fontSize: R.sp(13),
                   fontWeight: FontWeight.w700,
                   color: Colors.white,
+                  height: 13 / 13,
                   letterSpacing: -0.05 * 13,
                 ),
               ),
@@ -448,23 +601,25 @@ class _PopupCard extends StatelessWidget {
       ),
       child: Container(
         width: double.infinity,
-        padding: EdgeInsets.symmetric(vertical: R.sp(8)),
+        // Figma 323×45, font 32 → padding ~6 vert
+        padding: EdgeInsets.symmetric(vertical: R.sp(6)),
         decoration: BoxDecoration(
-          // CSS Rectangle 229: gradiente blu 51% (#1F00FF→#1900D8), r15.
+          // CSS Rectangle 229: gradient blu 51% (#1F00FF→#1900D8), r15.
           gradient: const LinearGradient(
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
             colors: [Color(0x821F00FF), Color(0x821900D8)],
           ),
-          borderRadius: BorderRadius.circular(15),
+          borderRadius: BorderRadius.circular(R.sp(15)),
         ),
         alignment: Alignment.center,
         child: Text(
           'Acquista il tuo ticket',
           style: OnlistTextStyles.hn(
-            fontSize: R.sp(32), // CSS: 32/w500/-0.05
+            fontSize: R.sp(32),
             fontWeight: FontWeight.w500,
             color: Colors.white,
+            height: 32 / 32,
             letterSpacing: -0.05 * 32,
           ),
         ),

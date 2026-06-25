@@ -8,6 +8,7 @@ import '../models/authentication_model.dart';
 import '../../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/user_profile_manager.dart';
+import '../../../core/services/register_service.dart';
 // La config Google (client/server ID) è applicata una volta in main.dart via
 // GoogleSignIn.instance.initialize(): qui basta chiamare authenticate().
 
@@ -53,33 +54,90 @@ class AuthenticationBloc
       return;
     }
 
-    // NON chiamiamo ensureProfileExists() qui: nel flusso OAuth la riga in
-    // public.utenti viene creata solo DOPO che l'utente completa il form.
+    // Se il profilo è già completo (utente che si ri-logga), nulla da fare.
     final profileComplete = await UserProfileManager().isProfileComplete();
     if (profileComplete) {
-      // Profilo già completo: accedi direttamente
       emit(state.copyWith(isLoading: false, isLoginSuccess: true));
-    } else {
-      // Prima volta con OAuth (o profilo incompleto): pre-compila nome/cognome/email
-      final metadata = user.userMetadata ?? {};
-      final fullName = metadata['full_name'] as String? ?? metadata['name'] as String?;
-      String? nome;
-      String? cognome;
+      return;
+    }
+
+    // Estraiamo TUTTI i campi disponibili dai metadata dell'identità OAuth.
+    // Google passa quasi sempre nome/cognome/email; telefono e data di nascita
+    // arrivano solo con scope People API extra (non garantiti). Apple non
+    // passa mai telefono né data di nascita.
+    final metadata = user.userMetadata ?? {};
+    String? nome = metadata['given_name'] as String? ??
+        metadata['first_name'] as String?;
+    String? cognome = metadata['family_name'] as String? ??
+        metadata['last_name'] as String?;
+    if (nome == null || cognome == null) {
+      final fullName = metadata['full_name'] as String? ??
+          metadata['name'] as String?;
       if (fullName != null && fullName.contains(' ')) {
         final parts = fullName.split(' ');
-        nome = parts.first;
-        cognome = parts.sublist(1).join(' ');
+        nome ??= parts.first;
+        cognome ??= parts.sublist(1).join(' ');
       } else {
-        nome = fullName;
+        nome ??= fullName;
       }
-      emit(state.copyWith(
-        isLoading: false,
-        needsProfileCompletion: true,
-        oauthNome: nome,
-        oauthCognome: cognome,
-        oauthEmail: user.email,
-      ));
     }
+    final telefono = (metadata['phone'] as String?) ??
+        (metadata['phone_number'] as String?) ??
+        user.phone;
+    final birthdayStr = metadata['birthday'] as String? ??
+        metadata['birthdate'] as String? ??
+        metadata['data_nascita'] as String?;
+    final dataNascita = birthdayStr != null
+        ? DateTime.tryParse(birthdayStr)
+        : null;
+
+    final hasAll = (nome != null && nome.trim().isNotEmpty) &&
+        (cognome != null && cognome.trim().isNotEmpty) &&
+        (telefono != null && telefono.trim().isNotEmpty) &&
+        dataNascita != null;
+
+    if (hasAll) {
+      // Caso ideale (raro con Google/Apple): scriviamo subito il profilo via
+      // RPC atomica e proseguiamo come login normale (location/city).
+      try {
+        await RegisterService().registerAtomic(
+          userId: user.id,
+          email: user.email ?? '',
+          nome: nome!,
+          cognome: cognome!,
+          dataNascita: dataNascita,
+          telefono: telefono!,
+          countryIso: null,
+        );
+        emit(state.copyWith(isLoading: false, isLoginSuccess: true));
+      } catch (e) {
+        debugPrint('[AuthBloc] OAuth auto-register fallito: $e');
+        // Fallback: vai al form di registrazione con i dati pre-compilati.
+        emit(state.copyWith(
+          isLoading: false,
+          needsProfileCompletion: true,
+          oauthNome: nome,
+          oauthCognome: cognome,
+          oauthEmail: user.email,
+          oauthTelefono: telefono,
+          oauthDataNascita: dataNascita,
+        ));
+      }
+      return;
+    }
+
+    // Manca qualcosa: vai al form di registrazione coi campi noti pre-riempiti.
+    // L'email viene anche dall'identità OAuth ed è già verificata, quindi al
+    // submit NON mostriamo la schermata di verifica.
+    emit(state.copyWith(
+      isLoading: false,
+      needsProfileCompletion: true,
+      oauthNome: nome,
+      oauthCognome: cognome,
+      oauthEmail: user.email,
+      oauthTelefono: telefono,
+      oauthDataNascita: dataNascita,
+    ));
   }
 
   _onInitialize(

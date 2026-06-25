@@ -3,6 +3,7 @@ import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/sign_up_model.dart';
+import '../../../core/services/register_service.dart';
 import 'package:intl/intl.dart';
 
 part 'sign_up_event.dart';
@@ -25,6 +26,7 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
 
   SignUpBloc(SignUpState initialState) : super(initialState) {
     on<SignUpInitialEvent>(_onInitialize);
+    on<SignUpPrefillEvent>(_onPrefill);
     on<FirstNameChangedEvent>(_onFirstNameChanged);
     on<LastNameChangedEvent>(_onLastNameChanged);
     on<EmailChangedEvent>(_onEmailChanged);
@@ -51,6 +53,37 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       isLoading: false,
       isSuccess: false,
       signUpModel: SignUpModel(phoneCountryIso: 'IT'),
+    ));
+  }
+
+  _onPrefill(
+    SignUpPrefillEvent event,
+    Emitter<SignUpState> emit,
+  ) {
+    // Scrive nei controller i dati ricevuti da Google/Apple (così sono già
+    // visibili nel form) e li sincronizza nel SignUpModel. Lascia tutto
+    // editabile dall'utente.
+    if (event.nome != null) state.firstNameController?.text = event.nome!;
+    if (event.cognome != null) state.lastNameController?.text = event.cognome!;
+    if (event.email != null) state.emailController?.text = event.email!;
+    if (event.dataNascita != null) {
+      state.dobController?.text =
+          DateFormat('dd/MM/yyyy').format(event.dataNascita!);
+    }
+    // NB: il telefono NON viene scritto nel controller perché OnlistPhoneField
+    // gestisce solo cifre nazionali (no prefisso). L'E.164 OAuth è raro nella
+    // pratica (Google solo con scope extra, Apple mai): se arriva lo salviamo
+    // nel modello e l'utente lo conferma riscrivendo il numero. Quando il
+    // widget emette i suoi onChanged, sovrascriverà comunque questa stringa.
+    emit(state.copyWith(
+      oauthVerified: event.oauthVerified,
+      signUpModel: state.signUpModel?.copyWith(
+        firstName: event.nome ?? state.signUpModel?.firstName,
+        lastName: event.cognome ?? state.signUpModel?.lastName,
+        email: event.email ?? state.signUpModel?.email,
+        phone: event.telefono ?? state.signUpModel?.phone,
+        dob: event.dataNascita ?? state.signUpModel?.dob,
+      ),
     ));
   }
 
@@ -141,6 +174,56 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
     try {
       final model = state.signUpModel;
       if (model == null) return;
+
+      // ── Branch OAuth (Google/Apple) ───────────────────────────────────────
+      // L'utente è già autenticato (signInWithIdToken già avvenuto) e l'email
+      // è già verificata dal provider: non rifacciamo signUp, scriviamo solo
+      // il profilo via RPC atomica e usciamo. La password non è richiesta.
+      if (state.oauthVerified) {
+        final client = Supabase.instance.client;
+        final user = client.auth.currentUser;
+        if (user == null) {
+          emit(state.copyWith(
+            isLoading: false,
+            errorMessage: 'Sessione scaduta, riprova ad accedere.',
+          ));
+          return;
+        }
+        if (model.dob == null) {
+          emit(state.copyWith(
+            isLoading: false,
+            errorMessage: 'Inserisci la data di nascita',
+          ));
+          return;
+        }
+        try {
+          await RegisterService().registerAtomic(
+            userId: user.id,
+            email: user.email ?? model.email,
+            nome: model.firstName,
+            cognome: model.lastName,
+            dataNascita: model.dob!,
+            telefono: model.phone,
+            countryIso: model.phoneCountryIso,
+          );
+          emit(state.copyWith(isLoading: false, isSuccess: true));
+        } on PostgrestException catch (e) {
+          // Telefono già usato da un altro account, ecc.
+          final msg = e.message.toLowerCase();
+          if (msg.contains('phone') || msg.contains('telefono')) {
+            emit(state.copyWith(
+                isLoading: false, errorMessage: phoneTakenMessage));
+          } else {
+            emit(state.copyWith(isLoading: false, errorMessage: e.message));
+          }
+        } catch (e) {
+          emit(state.copyWith(
+            isLoading: false,
+            errorMessage: 'Registrazione fallita: $e',
+          ));
+        }
+        return;
+      }
 
       // Guard di sicurezza: il form valida già la password (min 8 caratteri),
       // ma il BLoC non si affida solo alla UI. Non esiste un campo di conferma

@@ -48,12 +48,15 @@ class OnlistColors {
 
   /// Sfondo schermate pre-home (Splash, Login, Sign up, Verifica, Permessi GPS,
   /// Posizione manuale). Gradiente radiale ufficiale Figma:
-  /// `radial-gradient(98.88% 98.88% at 0% 1.12%, #0009FF 0%, #000000 100%)`.
+  /// `radial-gradient(98.42% 98.42% at 3.05% 1.58%, #0107D6 0%, #000000 100%)`.
   /// Center/raggio frazionari → scala con lo schermo (sistema responsive).
+  ///   - 3.05%  → asse X normalizzato (-1..+1): 2*0.0305 - 1 = -0.939
+  ///   - 1.58%  → asse Y normalizzato (-1..+1): 2*0.0158 - 1 = -0.9684
+  ///   - 98.42% → radius normalizzato: 0.9842
   static const RadialGradient onboardingBackground = RadialGradient(
-    center: Alignment(-1.0, -0.98), // 0% 1.12% (alto-sinistra)
-    radius: 0.99, // ≈ 98.88%
-    colors: [blueGradientStart2, black], // #0009FF → #000000
+    center: Alignment(-0.939, -0.9684), // 3.05% 1.58% (alto-sinistra)
+    radius: 0.9842, // ≈ 98.42%
+    colors: [blueGradientStart, black], // #0107D6 → #000000
     stops: [0.0, 1.0],
   );
 
@@ -106,12 +109,14 @@ class OnlistColors {
     stops: [0.1948, 1.0],
   );
 
-  /// Bottone PRENOTA card ticket (vertical gradient).
-  /// `linear-gradient(180deg, #000 0%, #201064 100%)`
+  /// Bottone PRENOTA unificato (card ticket booking + card serata club detail).
+  /// Valore UFFICIALE Figma `Rectangle 164`:
+  /// `linear-gradient(180deg, #1E00FF 0%, #201064 100%)`.
+  /// Usato come stile standard di tutti i pulsanti "PRENOTA" dell'app.
   static const LinearGradient bookButton = LinearGradient(
     begin: Alignment.topCenter,
     end: Alignment.bottomCenter,
-    colors: [black, blueViolet],
+    colors: [blueElectric, blueViolet],
   );
 
   /// Bottone PRENOTA card serata home (horizontal).

@@ -83,11 +83,21 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     final stato = _annullata
         ? 'annullata'
         : (prenotazione?['stato'] ?? 'in_attesa');
+    // ID della singola riga prenotazioni_prevendite (item['id']):
+    // è il codice che il sito web scanner legge per identificare univocamente
+    // questo biglietto. NON usare prenotazione['id'] (che è l'ID dell'ordine
+    // madre e può raggruppare più biglietti). Ogni prenotazioni_prevendite
+    // ha il suo UUID univoco → ogni biglietto ha il suo QR distinto.
     final idPrenotazione = (prenotazione?['id'] ?? item['id'])?.toString();
-    // QR scannerizzabile davvero: codifica un URL di verifica (il sito lo gestirà).
-    final qrData = idPrenotazione != null
-        ? 'https://onlist.club/verify/$idPrenotazione'
-        : 'onlist-ticket';
+    // ID univoco di questa riga prenotazioni_prevendite — è ciò che il QR codifica.
+    final idPrenotazionePrevendita = item['id']?.toString();
+    // QR scannerizzabile: l'URL di verifica contiene l'ID prenotazioni_prevendite.
+    // Il sito web (/staff) chiama scan_ticket(_qr_code) con questo UUID.
+    final qrData = idPrenotazionePrevendita != null
+        ? 'https://www.onlistclub.com/verify/$idPrenotazionePrevendita'
+        : (idPrenotazione != null
+            ? 'https://www.onlistclub.com/verify/$idPrenotazione'
+            : 'onlist-ticket');
     final prezzoNum = prezzo is num ? prezzo : num.tryParse('$prezzo');
     final prezzoStr = prezzoNum == null
         ? '—'
@@ -96,6 +106,16 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
     final drinkOmaggio =
         (prevendita?['drink_omaggio'] ?? evento?['drink_omaggio']) as int?;
+    // Fallback: se il DB non ha drink_omaggio, mostriamo la descrizione testuale
+    // della prevendita (es. "+ 2 drink omaggio", "Ingresso + 1 shot"). Tiene
+    // allineate cart, ticket detail, ordini e QR detail.
+    final descrizionePrevendita =
+        (prevendita?['descrizione'] as String?)?.trim();
+    final String? extraText = (drinkOmaggio != null && drinkOmaggio > 0)
+        ? '+ $drinkOmaggio drink omaggio'
+        : (descrizionePrevendita != null && descrizionePrevendita.isNotEmpty
+            ? descrizionePrevendita
+            : null);
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -111,7 +131,9 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
               _buildBackRow(),
               Expanded(
                 child: SingleChildScrollView(
-                  padding: const EdgeInsets.fromLTRB(20, 8, 20, 24 + SharedFooter.height),
+                  // Niente padding orizzontale: la card riempie tutta la
+                  // larghezza schermo (Figma 18 edge-to-edge).
+                  padding: EdgeInsets.fromLTRB(0, 8, 0, 24 + SharedFooter.height),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -142,23 +164,25 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                 ),
                               ),
                             ),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  Text('Ticket x $quantita',
-                                      style: OnlistTextStyles.ticketLabel),
-                                  const SizedBox(width: 8),
-                                  Padding(
+                            // "Ticket x N" + "Ticket {tipo}" con più respiro tra
+                            // i due (Figma 18: il sottotitolo è chiaramente
+                            // staccato dal numero, non incollato).
+                            Row(
+                              crossAxisAlignment: CrossAxisAlignment.start,
+                              children: [
+                                Text('Ticket x $quantita',
+                                    style: OnlistTextStyles.ticketLabel),
+                                const SizedBox(width: 18),
+                                Expanded(
+                                  child: Padding(
                                     padding: const EdgeInsets.only(top: 14),
                                     child: Text('Ticket $tipo',
-                                        style: OnlistTextStyles.ticketSubtitleXs),
+                                        style: OnlistTextStyles.ticketSubtitleXs,
+                                        maxLines: 1,
+                                        overflow: TextOverflow.ellipsis),
                                   ),
-                                ],
-                              ),
+                                ),
+                              ],
                             ),
                             FittedBox(
                               fit: BoxFit.scaleDown,
@@ -168,12 +192,12 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                 crossAxisAlignment: CrossAxisAlignment.end,
                                 children: [
                                   Text(prezzoStr, style: OnlistTextStyles.price96),
-                                  if (drinkOmaggio != null && drinkOmaggio > 0) ...[
+                                  if (extraText != null) ...[
                                     const SizedBox(width: 10),
                                     Padding(
-                                      padding: const EdgeInsets.only(bottom: 18),
+                                      padding: const EdgeInsets.only(bottom: 32),
                                       child: Text(
-                                          '+ $drinkOmaggio drink omaggio',
+                                          extraText,
                                           style: OnlistTextStyles.body24Regular),
                                     ),
                                   ],

@@ -37,7 +37,14 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
       // Sfondo nero: evita la striscia bianca (scaffold di default) nella zona
       // safe-area in basso, dove il gradiente termina comunque in nero.
       backgroundColor: OnlistColors.black,
-      body: DecoratedBox(
+      // La tastiera si sovrappone ai bottoni social senza spostare/spingere il
+      // layout: i campi Email/Password restano fissi mentre si scrive.
+      resizeToAvoidBottomInset: false,
+      body: GestureDetector(
+        // Tap fuori dai campi → chiude la tastiera (richiesta UX dell'utente).
+        behavior: HitTestBehavior.opaque,
+        onTap: () => FocusScope.of(context).unfocus(),
+        child: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
         child: BlocConsumer<AuthenticationBloc, AuthenticationState>(
           listener: (context, state) {
@@ -53,12 +60,18 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
             }
             if (state.needsProfileCompletion) {
               AnalyticsService.log(event: 'registration_oauth_started');
+              // Niente più schermata "completa profilo": apriamo la registrazione
+              // standard con i campi noti pre-riempiti. L'email è già verificata
+              // dal provider OAuth, quindi al submit salteremo la verifica.
               NavigatorService.pushNamed(
-                AppRoutes.completeProfileScreen,
+                AppRoutes.signUpScreen,
                 arguments: {
+                  'oauthVerified': true,
                   'nome': state.oauthNome,
                   'cognome': state.oauthCognome,
                   'email': state.oauthEmail,
+                  'telefono': state.oauthTelefono,
+                  'dataNascita': state.oauthDataNascita,
                 },
               );
             }
@@ -156,6 +169,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
               ),
             );
           },
+        ),
         ),
       ),
     );

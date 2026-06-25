@@ -240,7 +240,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         position: _navSlide,
         child: FadeTransition(
           opacity: _navFade,
-          child: const SharedFooter(currentIndex: 0),
+          child: const SharedFooter(currentIndex: 0, withBottomBlur: true),
         ),
       ),
     );
@@ -348,41 +348,41 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   Widget _buildHeroImage(BuildContext context, HomeState state) {
     final club = state.localeVicino;
     final fotoUrl = club?.fotoUrl;
-    final hero = Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 9),
-      child: Stack(
-        children: [
-          // Morph Hero verso il dettaglio club (tag = club id, solo con foto).
-          _heroWrap(
-            tag: 'club-img-${club?.id ?? ''}',
-            enabled: club != null && fotoUrl != null,
-            child: ClipRRect(
-              borderRadius: BorderRadius.circular(10),
-              child: Container(
-                width: double.infinity,
-                height: 217,
-                color: const Color(0xFF1A1A2E),
-                child: fotoUrl != null
-                    ? CachedNetworkImage(
-                        imageUrl: fotoUrl,
-                        width: MediaQuery.of(context).size.width,
-                        height: 217,
-                        fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => const ImageFallback(),
-                      )
-                    : const ImageFallback(),
-              ),
+    // Figma 07-aggiornato: l'immagine occupa tutta la larghezza schermo, senza
+    // bordi neri laterali. Niente padding orizzontale, raggio piccolo solo
+    // come morbidezza visiva (10px).
+    final hero = Stack(
+      children: [
+        // Morph Hero verso il dettaglio club (tag = club id, solo con foto).
+        _heroWrap(
+          tag: 'club-img-${club?.id ?? ''}',
+          enabled: club != null && fotoUrl != null,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(10),
+            child: Container(
+              width: double.infinity,
+              height: 217,
+              color: const Color(0xFF1A1A2E),
+              child: fotoUrl != null
+                  ? CachedNetworkImage(
+                      imageUrl: fotoUrl,
+                      width: MediaQuery.of(context).size.width,
+                      height: 217,
+                      fit: BoxFit.cover,
+                      errorWidget: (_, __, ___) => const ImageFallback(),
+                    )
+                  : const ImageFallback(),
             ),
           ),
-          // Pill "Il tuo club preferito" — solo se il club è nei preferiti
-          if (club != null)
-            Positioned(
-              top: 12,
-              left: 12,
-              child: _FavoritePill(clubId: club.id),
-            ),
-        ],
-      ),
+        ),
+        // Pill "Il tuo club preferito" — solo se il club è nei preferiti
+        if (club != null)
+          Positioned(
+            top: 12,
+            left: 16,
+            child: _FavoritePill(clubId: club.id),
+          ),
+      ],
     );
     if (club == null) return hero;
     return GestureDetector(
@@ -625,9 +625,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 ),
               ),
             ),
-            // PRENOTA → schermata 10 (club detail)
+            // PRENOTA → schermata 10 (club detail). Bordo dx con 9px di respiro
+            // dal margine card (369 - 86 - 9 = 274) come nel Figma 07-aggiornato.
             Positioned(
-              left: 283,
+              left: 274,
               top: 62,
               child: GestureDetector(
                 onTap: () => _navigateToClubDetail(context, club),

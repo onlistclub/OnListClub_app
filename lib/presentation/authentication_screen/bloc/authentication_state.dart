@@ -11,6 +11,8 @@ class AuthenticationState extends Equatable {
   final String? oauthNome;
   final String? oauthCognome;
   final String? oauthEmail;
+  final String? oauthTelefono;
+  final DateTime? oauthDataNascita;
   final String? errorMessage;
   final AuthenticationModel? authenticationModel;
 
@@ -25,6 +27,8 @@ class AuthenticationState extends Equatable {
     this.oauthNome,
     this.oauthCognome,
     this.oauthEmail,
+    this.oauthTelefono,
+    this.oauthDataNascita,
     this.errorMessage,
     this.authenticationModel,
   });
@@ -41,6 +45,8 @@ class AuthenticationState extends Equatable {
         oauthNome,
         oauthCognome,
         oauthEmail,
+        oauthTelefono,
+        oauthDataNascita,
         errorMessage,
         authenticationModel,
       ];
@@ -56,6 +62,8 @@ class AuthenticationState extends Equatable {
     String? oauthNome,
     String? oauthCognome,
     String? oauthEmail,
+    String? oauthTelefono,
+    DateTime? oauthDataNascita,
     String? errorMessage,
     AuthenticationModel? authenticationModel,
   }) {
@@ -70,6 +78,8 @@ class AuthenticationState extends Equatable {
       oauthNome: oauthNome ?? this.oauthNome,
       oauthCognome: oauthCognome ?? this.oauthCognome,
       oauthEmail: oauthEmail ?? this.oauthEmail,
+      oauthTelefono: oauthTelefono ?? this.oauthTelefono,
+      oauthDataNascita: oauthDataNascita ?? this.oauthDataNascita,
       // Transitorio: non usiamo `?? this.errorMessage` così l'errore non
       // persiste tra un emit e l'altro e il dialog non si ripete a ogni tasto.
       errorMessage: errorMessage,

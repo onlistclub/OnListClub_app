@@ -159,13 +159,13 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                         ),
                       ),
                     ),
-                    const Spacer(flex: 11),
-                    // Nota privacy: icona + testo come blocco compatto centrato
-                    // (prima il Flexible faceva esplodere il testo a tutta riga,
-                    // con il lock isolato a sinistra). Padding orizzontale extra
-                    // per tenere il blocco lontano dai bordi.
+                    const Spacer(flex: 16),
+                    // Nota privacy in fondo schermata: icona + testo compatti
+                    // centrati. Padding orizzontale generoso (40) per far
+                    // wrappare il testo su due righe pulite senza toccare i
+                    // bordi, anche su device stretti tipo iPhone SE.
                     Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24),
+                      padding: const EdgeInsets.symmetric(horizontal: 40),
                       child: Row(
                         mainAxisAlignment: MainAxisAlignment.center,
                         crossAxisAlignment: CrossAxisAlignment.center,
@@ -190,7 +190,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                         ],
                       ),
                     ),
-                    const Spacer(flex: 7),
+                    const Spacer(flex: 3),
                   ],
                 ),
               ),

@@ -11,6 +11,7 @@ import '../models/serata_model.dart';
 const _localiSelect =
     'id, nome, indirizzo, id_citta, logo_url, foto_url, famosita, '
     'generi_musicali, prezzo_indicativo, link_tripadvisor, descrizione, '
+    'orario_apertura, orario_chiusura, '
     'lat, lng, citta(nome_citta, lat, lng)';
 
 /// Accesso a `locali` ed `eventi` su Supabase.

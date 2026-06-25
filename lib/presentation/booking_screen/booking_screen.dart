@@ -155,12 +155,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       return _buildNoSerataView();
     }
 
-    return Scaffold(
-      backgroundColor: Colors.black,
-      bottomNavigationBar: const SharedFooter(currentIndex: 0),
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
-        child: SafeArea(
+    // Gradient applicato come "sfondo schermo" dietro l'intero Scaffold (incluso
+    // il footer): stesso fix del carrello — il footer semi-trasparente lasciava
+    // intravedere il nero piatto dello Scaffold sotto la card ticket.
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        bottomNavigationBar: const SharedFooter(currentIndex: 0),
+        body: SafeArea(
           bottom: false,
           child: Column(
             children: [
@@ -405,7 +408,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 padding: const EdgeInsets.only(bottom: 15),
                 child: _buildTicketCard(
                   type: p['tipo']?.toString() ?? '',
-                  price: p['prezzo'] != null ? "${p['prezzo']}€" : "—",
+                  price: p['prezzo'] != null ? "${_formatPrice(p['prezzo'])}€" : "—",
                   description: p['descrizione']?.toString() ?? '',
                   validity: p['validita']?.toString() ?? '',
                   ticketId: (p['id_prevendita'] ?? p['id'])?.toString(),
@@ -574,7 +577,9 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   Widget _buildTicketDetailStep(SerataModel? serata) {
     final t = _selectedTicket ?? const {};
     final String type = t['type']?.toString() ?? '';
-    final String price = t['price']?.toString() ?? '—';
+    // Safe-format: se il prezzo arriva come "12.0€" o "12.0" lo normalizziamo
+    // a "12€" (per coerenza col Figma, che non mostra mai il decimale .0).
+    final String price = _normalizePriceString(t['price']?.toString() ?? '—');
     final String description = t['description']?.toString() ?? '';
     final String validity = t['validity']?.toString() ?? '';
 
@@ -584,7 +589,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         const SizedBox(height: 8),
         Expanded(
           child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 12),
+            // Edge-to-edge come Figma 12/13: niente margine orizzontale, la
+            // card riempie tutta la larghezza dello schermo.
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
             decoration: BoxDecoration(
               gradient: OnlistColors.cardSingleTicket,
@@ -594,8 +600,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Ticket", style: OnlistTextStyles.ticketTitleLg),
+                // "Normale"/"Vip" indentato a destra (Figma: il sottotipo
+                // entra di circa metà larghezza, come se fosse incolonnato
+                // sotto la coda di "Ticket").
                 Padding(
-                  padding: const EdgeInsets.only(left: 12),
+                  padding: const EdgeInsets.only(left: 90),
                   child: Text(type, style: OnlistTextStyles.ticketSubtitleLg),
                 ),
                 const Spacer(),
@@ -986,6 +995,29 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         ),
       ),
     );
+  }
+
+  /// Normalizza una stringa di prezzo già formata (es. "12.0€") rimuovendo
+  /// il `.0` finale prima del simbolo. Non tocca i prezzi con decimali validi.
+  static String _normalizePriceString(String s) {
+    final m = RegExp(r'^(\d+)\.0+(\D?.*)$').firstMatch(s);
+    if (m != null) return '${m.group(1)}${m.group(2)}';
+    return s;
+  }
+
+  /// Formatta il prezzo togliendo il `.0` se il valore è intero (12.0 → "12",
+  /// 12.5 → "12.50"). Evita il "12.0€" che il design non prevede.
+  static String _formatPrice(dynamic p) {
+    if (p is num) {
+      if (p == p.truncate()) return p.toInt().toString();
+      return p.toStringAsFixed(2);
+    }
+    final parsed = double.tryParse(p?.toString() ?? '');
+    if (parsed != null) {
+      if (parsed == parsed.truncate()) return parsed.toInt().toString();
+      return parsed.toStringAsFixed(2);
+    }
+    return p?.toString() ?? '';
   }
 
   Widget _buildCircBtn(IconData icon, VoidCallback onTap) {
