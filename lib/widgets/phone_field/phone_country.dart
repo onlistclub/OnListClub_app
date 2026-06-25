@@ -1,4 +1,5 @@
-import 'package:intl_phone_number_input/intl_phone_number_input.dart'
+// ignore: implementation_imports
+import 'package:intl_phone_number_input/src/models/country_list.dart'
     show Countries;
 
 /// Rappresentazione minimale di un paese per il selettore prefisso.
