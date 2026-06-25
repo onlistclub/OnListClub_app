@@ -1,4 +1,4 @@
-name: iOS build 
+name: iOS build def?
 
 # Builda un .ipa NON firmato, da firmare/installare con Sideloadly (Apple ID
 # gratuito). Niente certificati Apple richiesti.
