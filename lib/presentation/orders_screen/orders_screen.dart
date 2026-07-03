@@ -19,38 +19,27 @@ class OrdersScreen extends StatefulWidget {
   State<OrdersScreen> createState() => _OrdersScreenState();
 }
 
-class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderStateMixin, ScreenAnalytics {
+class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
   @override
   String get screenName => 'orders_list';
 
-  late TabController _tabController;
   List<Map<String, dynamic>> _prevendite = [];
-  List<Map<String, dynamic>> _tavoli = [];
   bool _isLoading = true;
 
   @override
   void initState() {
     super.initState();
-    _tabController = TabController(length: 2, vsync: this);
     _loadData();
   }
 
-  @override
-  void dispose() {
-    _tabController.dispose();
-    super.dispose();
-  }
-
+  // MVP: la sezione "Tavoli" è nascosta a livello di design; carichiamo solo le
+  // prevendite (i tavoli restano gestiti a DB per un ripristino futuro).
   Future<void> _loadData() async {
     setState(() => _isLoading = true);
     try {
-      final results = await Future.wait([
-        OrdersService.getPrevenditeOrdini(),
-        OrdersService.getTavoliOrdini(),
-      ]);
+      final prevendite = await OrdersService.getPrevenditeOrdini();
       setState(() {
-        _prevendite = results[0];
-        _tavoli = results[1];
+        _prevendite = prevendite;
         _isLoading = false;
       });
     } catch (e) {
@@ -80,10 +69,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
             children: [
               const CustomTopBar(),
               // ── "← Torna indietro" (Figma 17) ─────────────────────────────
-              // Allineato allo standard delle altre schermate (cart, club,
-              // prevendita, booking): icona 28 + testo title32Light.
+              // Icona 28 + testo title32Light. Respiro sopra/sotto come il
+              // design ufficiale (riepilogo-ordini.css: arrow top 112 sotto la
+              // barra logo, sezione "Oggi" a top 171).
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                 child: GestureDetector(
                   onTap: _onBackTap,
                   behavior: HitTestBehavior.opaque,
@@ -96,35 +86,11 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                   ),
                 ),
               ),
-              // ── Tab bar (manteniamo separazione Prevendite/Tavoli) ────────
-              Container(
-                decoration: const BoxDecoration(
-                  border: Border(bottom: BorderSide(color: Color(0xFF2A2A2A), width: 0.5)),
-                ),
-                child: TabBar(
-                  controller: _tabController,
-                  indicatorColor: Colors.white,
-                  indicatorWeight: 2,
-                  labelColor: Colors.white,
-                  unselectedLabelColor: Colors.white38,
-                  labelStyle: OnlistTextStyles.hn(fontWeight: FontWeight.bold, fontSize: R.sp(15)),
-                  unselectedLabelStyle: OnlistTextStyles.hn(fontWeight: FontWeight.w400, fontSize: R.sp(15)),
-                  tabs: const [
-                    Tab(text: 'Prevendite'),
-                    Tab(text: 'Tavoli'),
-                  ],
-                ),
-              ),
+              // MVP: nessuna tab. Mostriamo solo le prevendite (Tavoli nascosti).
               Expanded(
                 child: _isLoading
                     ? const AppLoadingIndicator()
-                    : TabBarView(
-                        controller: _tabController,
-                        children: [
-                          _buildPrevenditeList(),
-                          _buildTavoliList(),
-                        ],
-                      ),
+                    : _buildPrevenditeList(),
               ),
             ],
           ),
@@ -166,37 +132,6 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     );
   }
 
-  Widget _buildTavoliList() {
-    if (_tavoli.isEmpty) {
-      return Center(
-        child: Text(
-          'Nessun tavolo prenotato',
-          style: OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(16)),
-        ),
-      );
-    }
-    final sections = _groupByDate(_tavoli, _tavoloDate);
-    return ListView.builder(
-      padding: EdgeInsets.fromLTRB(16, R.sp(12), 16, R.sp(24) + SharedFooter.height),
-      itemCount: sections.length,
-      itemBuilder: (context, i) {
-        final section = sections[i];
-        return StaggeredItem(
-          index: i,
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              _buildSectionHeader(section.label),
-              SizedBox(height: R.sp(10)),
-              ...section.items.map(_buildTavoloCard),
-              SizedBox(height: R.sp(18)),
-            ],
-          ),
-        );
-      },
-    );
-  }
-
   // ── Header sezione (Oggi / Domani / data) ──────────────────────────────────
   Widget _buildSectionHeader(String label) {
     return Padding(
@@ -225,13 +160,13 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
     final stato = (prenotazione?['stato'] ?? 'in_attesa').toString();
     final drinkOmaggio = (prevendita?['drink_omaggio'] ?? evento?['drink_omaggio']) as int?;
-    // Testo "extra" sotto il prezzo: se la prevendita ha drink_omaggio (int>0)
-    // formattiamo "+ N drink omaggio"; altrimenti usiamo la descrizione dal DB
-    // (es. "Ingresso + 1 shot"). Tiene allineate cart/detail/ordini.
-    final descrizione = (prevendita?['descrizione'] as String?)?.trim();
+    // Testo "extra" accanto al prezzo: SOLO i drink omaggio, e solo se
+    // valorizzati nel DB (drink_omaggio int>0). Niente fallback alla
+    // descrizione: testi lunghi come "Ingresso entro le 00:00 + ..."
+    // uscivano dallo schermo (overflow orizzontale della card).
     final String? extraText = (drinkOmaggio != null && drinkOmaggio > 0)
         ? '+ $drinkOmaggio drink omaggio'
-        : (descrizione != null && descrizione.isNotEmpty ? descrizione : null);
+        : null;
 
     return GestureDetector(
       onTap: () => NavigatorService.pushNamed(
@@ -297,15 +232,19 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
                       ),
                     if (extraText != null) ...[
                       SizedBox(width: R.sp(8)),
-                      Padding(
-                        padding: EdgeInsets.only(bottom: R.sp(18)),
-                        child: Text(
-                          extraText,
-                          style: OnlistTextStyles.hn(
-                            color: Colors.white,
-                            fontSize: R.sp(24), // CSS "+drink omaggio": 24/-0.1
-                            fontWeight: FontWeight.w400,
-                            letterSpacing: -0.1 * 24,
+                      Flexible(
+                        child: Padding(
+                          padding: EdgeInsets.only(bottom: R.sp(18)),
+                          child: Text(
+                            extraText,
+                            maxLines: 2,
+                            overflow: TextOverflow.ellipsis,
+                            style: OnlistTextStyles.hn(
+                              color: Colors.white,
+                              fontSize: R.sp(24), // CSS "+drink omaggio": 24/-0.1
+                              fontWeight: FontWeight.w400,
+                              letterSpacing: -0.1 * 24,
+                            ),
                           ),
                         ),
                       ),
@@ -346,119 +285,6 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
               ],
             ),
             // Stato (solo se annullata/usato — altrimenti card pulita come Figma)
-            if (_shouldShowStatePill(stato))
-              Positioned(
-                top: 0,
-                right: 0,
-                child: _buildStatePill(stato),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  // ── Card tavolo (stessa estetica gradiente per coerenza) ───────────────────
-  Widget _buildTavoloCard(Map<String, dynamic> item) {
-    final evento = item['eventi'] as Map<String, dynamic>?;
-    final tavolo = item['tavoli'] as Map<String, dynamic>?;
-
-    final nomeTavolo = (tavolo?['nome_tavolo'] ?? '').toString();
-    final stato = (item['stato'] ?? 'in_attesa').toString();
-    final nomeCliente = (item['nome_cliente'] ?? '').toString();
-    final data = evento?['data'];
-
-    String dataFormatted = '';
-    if (data != null) {
-      try {
-        dataFormatted = DateFormatter.formatLong(DateTime.parse(data.toString()));
-      } catch (_) {
-        dataFormatted = data.toString();
-      }
-    }
-
-    return GestureDetector(
-      onTap: () => NavigatorService.pushNamed(
-        AppRoutes.tavoloDetailScreen,
-        arguments: item,
-      ),
-      child: Container(
-        margin: EdgeInsets.only(bottom: R.sp(14)),
-        padding: EdgeInsets.symmetric(horizontal: R.sp(18), vertical: R.sp(16)),
-        decoration: BoxDecoration(
-          gradient: OnlistColors.cardSummary,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  nomeTavolo.isNotEmpty ? 'Tavolo $nomeTavolo' : 'Tavolo',
-                  style: OnlistTextStyles.hn(
-                    color: Colors.white,
-                    fontSize: R.sp(40), // coerente con card prevendita (CSS 39.52)
-                    fontWeight: FontWeight.w400,
-                    letterSpacing: -0.1 * 40,
-                    height: 1.0,
-                  ),
-                ),
-                if (nomeCliente.isNotEmpty) ...[
-                  SizedBox(height: R.sp(6)),
-                  Text(
-                    'Riservato a $nomeCliente',
-                    style: OnlistTextStyles.hn(
-                      color: Colors.white,
-                      fontSize: R.sp(20),
-                      fontWeight: FontWeight.w300,
-                      letterSpacing: -0.06 * 20,
-                    ),
-                  ),
-                ],
-                if (dataFormatted.isNotEmpty) ...[
-                  SizedBox(height: R.sp(6)),
-                  Text(
-                    dataFormatted,
-                    style: OnlistTextStyles.hn(
-                      color: Colors.white,
-                      fontSize: R.sp(13),
-                      fontWeight: FontWeight.w400,
-                    ),
-                  ),
-                ],
-                SizedBox(height: R.sp(12)),
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Vedi piantina',
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(15),
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: -0.1 * 15,
-                        ),
-                      ),
-                      SizedBox(height: R.sp(6)),
-                      // CSS Ellipse 9: cerchio 28 bordo 2px con freccia giù dentro.
-                      Container(
-                        width: R.sp(28),
-                        height: R.sp(28),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: Icon(Icons.arrow_downward,
-                            color: Colors.white, size: R.sp(16)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
             if (_shouldShowStatePill(stato))
               Positioned(
                 top: 0,
@@ -514,11 +340,6 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     return _parseDate(evento?['data']);
   }
 
-  DateTime? _tavoloDate(Map<String, dynamic> item) {
-    final evento = item['eventi'] as Map<String, dynamic>?;
-    return _parseDate(evento?['data']);
-  }
-
   DateTime? _parseDate(dynamic raw) {
     if (raw == null) return null;
     try {
@@ -550,6 +371,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     return list.map((b) => _DateSection(_dateLabel(b.date), b.items)).toList();
   }
 
+  // Etichetta data della sezione:
+  // - oggi → "Oggi", ieri → "Ieri", domani → "Domani"
+  // - stesso anno di quello corrente → "27 giu" (giorno + mese)
+  // - anno diverso → "27 giu 2026" (con anno)
   String _dateLabel(DateTime? d) {
     if (d == null) return 'Senza data';
     final now = DateTime.now();
@@ -558,7 +383,10 @@ class _OrdersScreenState extends State<OrdersScreen> with SingleTickerProviderSt
     final diff = eventDay.difference(today).inDays;
     if (diff == 0) return 'Oggi';
     if (diff == 1) return 'Domani';
-    return DateFormatter.formatLong(d);
+    if (diff == -1) return 'Ieri';
+    return d.year == now.year
+        ? DateFormatter.formatDayMonth(d)
+        : DateFormatter.formatLong(d);
   }
 
   String _capitalize(String s) {

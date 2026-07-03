@@ -89,12 +89,20 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                 padding: EdgeInsets.symmetric(horizontal: R.w(9.9)),
                 child: Form(
                   key: state.formKey,
+                  // Spaziatura verticale a `Spacer` proporzionali: i valori di
+                  // `flex` riproducono i gap del frame Figma (852px, accedi.css /
+                  // 02 - Autenticazione.png) come rapporti, così i blocchi
+                  // mantengono le stesse proporzioni su qualsiasi altezza schermo
+                  // e collassano senza mai andare in overflow (niente più strisce
+                  // gialle/nere). Riferimenti (top in px del frame 852):
+                  //   Accedi 117 · Email 217 · Password 304 · btn Accedi 363
+                  //   btn Registrati 425 · Apple 587 · Google 656 · fondo 852
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
-                      SizedBox(height: R.h(8)),
+                      const Spacer(flex: 106), // fondo alto → titolo (alzato di poco)
                       Text('Accedi', style: OnlistTextStyles.display40Regular),
-                      SizedBox(height: R.h(4)),
+                      const Spacer(flex: 52), // titolo → Email
                       _UnderlineField(
                         controller: state.emailController,
                         label: 'Email',
@@ -111,14 +119,14 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                             .read<AuthenticationBloc>()
                             .add(EmailChangedEvent(email: v)),
                       ),
-                      SizedBox(height: R.h(3.5)),
+                      const Spacer(flex: 65), // Email → Password
                       _UnderlinePasswordField(
                         controller: state.passwordController,
                         onChanged: (v) => context
                             .read<AuthenticationBloc>()
                             .add(PasswordChangedEvent(password: v)),
                       ),
-                      SizedBox(height: R.h(4)),
+                      const Spacer(flex: 37), // Password → bottoni
                       // Bottoni Accedi / Registrati — impilati e centrati (Figma)
                       Center(
                         child: Column(
@@ -138,7 +146,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                           ],
                         ),
                       ),
-                      const Spacer(),
+                      const Spacer(flex: 122), // Registrati → Apple (vuoto centrale)
                       if (state.isLoading)
                         const Center(
                           child: CircularProgressIndicator(color: OnlistColors.white),
@@ -162,7 +170,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
                           },
                         ),
                       ],
-                      SizedBox(height: R.h(6)),
+                      const Spacer(flex: 149), // Google → fondo schermo
                     ],
                   ),
                 ),
@@ -239,7 +247,11 @@ class _UnderlineField extends StatelessWidget {
           keyboardType: keyboardType,
           textAlignVertical: TextAlignVertical.bottom,
           style: _kInputStyle,
-          decoration: _underlineDecoration(),
+          // suffixIcon invisibile: il campo Password ha il pulsante occhio come
+          // suffix, che impone al suo campo un'altezza minima di 48px. Qui
+          // aggiungiamo un suffix vuoto (stesso vincolo 48px) così il campo
+          // Email ha ESATTAMENTE la stessa altezza e l'underline si allinea.
+          decoration: _underlineDecoration(suffixIcon: const SizedBox.shrink()),
           validator: validator,
           onChanged: onChanged,
         ),

@@ -22,14 +22,43 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.isHome = false,
   }) : super(key: key);
 
+  // ── Crop virtuale del wordmark ──────────────────────────────────────────
+  // `logo_onlist_wordmark.png` NON è ritagliato: è un canvas quadrato
+  // 4096×4096 con la scritta "OnList" che occupa solo una fascia centrale,
+  // circondata da ampio spazio trasparente. Renderizzarlo con BoxFit.contain
+  // e un aspect ratio "largo" (assumendo un ritaglio che non esiste) lo
+  // rimpiccioliva e lo spostava in alto a sinistra nella navbar.
+  // Finché il file non viene sostituito con una versione ritagliata, lo
+  // ritagliamo qui via OverflowBox+Transform (nessuna modifica al file su
+  // disco). Percentuali misurate col bounding box reale dei pixel non
+  // trasparenti (Image.getbbox, canvas 4096×4096): left 506, top 1579,
+  // right 3590, bottom 2517px.
+  static const double _cropLeft = 0.1235;
+  static const double _cropTop = 0.3855;
+  static const double _cropWidth = 0.7529;
+  static const double _cropHeight = 0.2290;
+  static double get _cropAspect => _cropWidth / _cropHeight;
+
+  /// Altezza della scritta "OnList": dimensione fissa (non scalata su R.w),
+  /// coerente con le icone search/profile (32px) — misurato su
+  /// `docs/figma_screen/off/nav-bar.png`: logo 37px vs icone 34px, quindi
+  /// stessa taglia, non 30% dello schermo (che lo rendeva enorme/sfocato).
+  static const double _logoHeight = 34;
+
+  static double get _logoWidth => _logoHeight * _cropAspect;
+
+  /// Padding verticale della barra (sopra+sotto).
+  static const double _vPad = 10;
+
   @override
   Widget build(BuildContext context) {
-    // Spec Figma `docs/figma_screen/off/07 - Home-aggiornato.png`: wordmark
-    // OnList incollato al bordo sinistro, search + profile in coppia compatta
-    // sul bordo destro.
+    // Spec Figma `docs/figma_screen/off/07 - Home-aggiornato.png` / `nav-bar.png`:
+    // wordmark OnList grande sul bordo sinistro, search + profile sul bordo
+    // destro. Il crop virtuale (_buildLogo) compensa il padding trasparente
+    // dell'asset quadrato — vedi commento sopra `_cropLeft` ecc.
     return Container(
       color: Colors.transparent,
-      padding: const EdgeInsets.fromLTRB(8, 10, 8, 10),
+      padding: const EdgeInsets.fromLTRB(16, _vPad, 12, _vPad),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -37,18 +66,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
             onTap: isHome ? null : () => NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen),
             child: Hero(
               tag: 'app_logo',
-              // Wordmark più contenuto (Figma nav-bar mostra il logo a ~25% schermo)
-              // così non occupa spazio. L'asset è quadrato con ampio padding
-              // trasparente: usiamo fitWidth e altezza proporzionale.
-              child: SizedBox(
-                width: R.w(28),
-                height: R.w(11),
-                child: Image.asset(
-                  ImageConstant.imgLogoOnlist,
-                  fit: BoxFit.fitWidth,
-                  alignment: Alignment.centerLeft,
-                ),
-              ),
+              child: _buildLogo(),
             ),
           ),
           const Spacer(),
@@ -56,18 +74,18 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
             GestureDetector(
               onTap: onSearchTap ?? () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                 child: Image.asset(ImageConstant.imgNavSearch,
-                    width: 30, height: 30),
+                    width: 32, height: 32),
               ),
             ),
           if (showProfile)
             GestureDetector(
               onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 6),
+                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                 child: Image.asset(ImageConstant.imgNavProfile,
-                    width: 22, height: 28),
+                    width: 25, height: 32),
               ),
             ),
         ],
@@ -75,7 +93,40 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  // Altezza barra = slot logo (R.w(11)) + padding verticale (10+10).
+  /// Crop virtuale del wordmark: renderizza l'asset (quadrato) ingrandito
+  /// e lo trasla/clippa così che nel box finale (_logoWidth × _logoHeight)
+  /// sia visibile solo la fascia con la scritta "OnList".
+  Widget _buildLogo() {
+    final double boxW = _logoWidth;
+    final double boxH = _logoHeight;
+    // Lato del render quadrato: la frazione _cropHeight del lato deve
+    // corrispondere a boxH.
+    final double side = boxH / _cropHeight;
+    return ClipRect(
+      child: SizedBox(
+        width: boxW,
+        height: boxH,
+        child: OverflowBox(
+          alignment: Alignment.topLeft,
+          minWidth: side,
+          maxWidth: side,
+          minHeight: side,
+          maxHeight: side,
+          child: Transform.translate(
+            offset: Offset(-_cropLeft * side, -_cropTop * side),
+            child: Image.asset(
+              ImageConstant.imgLogoOnlistWordmark,
+              width: side,
+              height: side,
+              fit: BoxFit.fill,
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Altezza barra = altezza logo + padding verticale (10+10).
   @override
-  Size get preferredSize => Size.fromHeight(R.w(11) + 20);
+  Size get preferredSize => Size.fromHeight(_logoHeight + _vPad * 2);
 }

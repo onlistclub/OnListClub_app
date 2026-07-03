@@ -26,7 +26,10 @@ class OnlistPhoneField extends StatefulWidget {
     this.hintText = 'Numero di telefono',
   });
 
-  final TextEditingController controller;
+  // Nullable perché nella schermata di registrazione il controller arriva da
+  // un BLoC che lo crea in modo asincrono: nel primissimo build (prima che il
+  // BLoC emetta il suo stato iniziale) può ancora valere null.
+  final TextEditingController? controller;
   final void Function(
     String iso,
     String dialCode,
@@ -42,6 +45,12 @@ class OnlistPhoneField extends StatefulWidget {
 
 class _OnlistPhoneFieldState extends State<OnlistPhoneField> {
   late PhoneCountry _country;
+  // Fallback usato solo finché widget.controller è null (vedi commento sul
+  // campo `controller`); viene scartato non appena il vero controller arriva.
+  TextEditingController? _fallbackController;
+
+  TextEditingController get _controller =>
+      widget.controller ?? (_fallbackController ??= TextEditingController());
 
   @override
   void initState() {
@@ -57,8 +66,14 @@ class _OnlistPhoneFieldState extends State<OnlistPhoneField> {
     });
   }
 
+  @override
+  void dispose() {
+    _fallbackController?.dispose();
+    super.dispose();
+  }
+
   void _emit() {
-    final national = _digitsOnly(widget.controller.text);
+    final national = _digitsOnly(_controller.text);
     final dialClean = _country.dial.replaceAll(RegExp(r'\D'), '');
     final e164 = '+$dialClean$national';
     widget.onChanged(_country.iso, _country.dial, national, e164);
@@ -112,7 +127,7 @@ class _OnlistPhoneFieldState extends State<OnlistPhoneField> {
         // Campo numero nazionale (sotto-linea bianca, come gli altri input)
         Expanded(
           child: TextField(
-            controller: widget.controller,
+            controller: _controller,
             keyboardType: TextInputType.phone,
             inputFormatters: [
               FilteringTextInputFormatter.digitsOnly,

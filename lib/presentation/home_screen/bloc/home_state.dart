@@ -10,6 +10,10 @@ class HomeState extends Equatable {
   final int raggioKm;
   final bool isGpsForced;
   final String locationSourceLabel;
+  /// True quando il GPS è stato forzato ma non è disponibile (permesso negato,
+  /// preview web, timeout): la UI mostra un messaggio e mantiene l'ultima
+  /// posizione invece di ricadere in silenzio sul club più famoso.
+  final bool gpsUnavailable;
 
   const HomeState({
     this.homeModel,
@@ -21,6 +25,7 @@ class HomeState extends Equatable {
     this.raggioKm = 20,
     this.isGpsForced = false,
     this.locationSourceLabel = '',
+    this.gpsUnavailable = false,
   });
 
   @override
@@ -34,6 +39,7 @@ class HomeState extends Equatable {
         raggioKm,
         isGpsForced,
         locationSourceLabel,
+        gpsUnavailable,
       ];
 
   HomeState copyWith({
@@ -46,6 +52,7 @@ class HomeState extends Equatable {
     int? raggioKm,
     bool? isGpsForced,
     String? locationSourceLabel,
+    bool? gpsUnavailable,
   }) {
     return HomeState(
       homeModel: homeModel ?? this.homeModel,
@@ -58,6 +65,7 @@ class HomeState extends Equatable {
       raggioKm: raggioKm ?? this.raggioKm,
       isGpsForced: isGpsForced ?? this.isGpsForced,
       locationSourceLabel: locationSourceLabel ?? this.locationSourceLabel,
+      gpsUnavailable: gpsUnavailable ?? this.gpsUnavailable,
     );
   }
 }

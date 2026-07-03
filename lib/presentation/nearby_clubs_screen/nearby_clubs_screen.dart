@@ -567,6 +567,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
 
     return Scaffold(
       backgroundColor: OnlistColors.black,
+      // Footer flottante: il gradiente si estende dietro la capsula così sotto
+      // non resta la fascia nera dello Scaffold.
+      extendBody: true,
       bottomNavigationBar: const SharedFooter(currentIndex: -1),
       body: DecoratedBox(
         decoration:
@@ -577,7 +580,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             // ── CustomTopBar ──
-            const CustomTopBar(showSearch: false),
+            // Icona ricerca mostrata anche qui per uniformità con le altre
+            // schermate: no-op perché si è già nella schermata di ricerca.
+            CustomTopBar(onSearchTap: () {}),
             // Subheader with back button and chips
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
@@ -1020,8 +1025,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                       else
                         Expanded(
                           child: ListView.separated(
-                            padding: const EdgeInsets.symmetric(
-                                horizontal: 12, vertical: 8),
+                            padding: const EdgeInsets.fromLTRB(
+                                12, 8, 12, 8 + SharedFooter.height),
                             itemCount: filtered.length,
                             separatorBuilder: (_, __) => Container(
                               height: 0.5,

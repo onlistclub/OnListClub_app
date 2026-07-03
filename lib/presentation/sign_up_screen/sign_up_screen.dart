@@ -17,12 +17,15 @@ class SignUpScreen extends StatefulWidget {
   const SignUpScreen({Key? key}) : super(key: key);
 
   static Widget builder(BuildContext context) {
+    // Args opzionali: arrivano quando lo screen è aperto dopo un login OAuth
+    // (Google/Apple) per pre-riempire i campi noti e saltare la verifica
+    // email a fine flusso. Letti QUI (context della route, valido) e non
+    // dentro `create:`, perché lì `ModalRoute.of` lancerebbe un errore:
+    // provider vieta di ascoltare un InheritedWidget in una callback `create`,
+    // che viene eseguita una sola volta e non gestisce gli aggiornamenti.
+    final args = ModalRoute.of(context)?.settings.arguments as Map?;
     return BlocProvider<SignUpBloc>(
       create: (ctx) {
-        // Args opzionali: arrivano quando lo screen è aperto dopo un login
-        // OAuth (Google/Apple) per pre-riempire i campi noti e saltare la
-        // verifica email a fine flusso.
-        final args = ModalRoute.of(ctx)?.settings.arguments as Map?;
         final bloc = SignUpBloc(SignUpState(signUpModel: SignUpModel()))
           ..add(SignUpInitialEvent());
         if (args != null) {
@@ -199,7 +202,7 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                       Text('Telefono', style: OnlistTextStyles.formLabel22),
                       const SizedBox(height: 4),
                       OnlistPhoneField(
-                        controller: state.phoneController!,
+                        controller: state.phoneController,
                         initialIso: 'IT',
                         onChanged: (iso, _, nn, e164) {
                           context.read<SignUpBloc>().add(PhoneChangedEvent(

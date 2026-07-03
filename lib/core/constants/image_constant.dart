@@ -16,6 +16,9 @@ class ImageConstant {
 
   // Logo
   static String imgLogoOnlist = '${_basePath}logo_onlist.png';
+  // Wordmark "OnList" ritagliato (senza il padding trasparente del quadrato
+  // 4096², che rimpiccioliva il logo nella top bar). Aspect ≈ 2.625:1.
+  static String imgLogoOnlistWordmark = '${_basePath}logo_onlist_wordmark.png';
 
   // Event Detail Screen
   static String imgHome = '${_basePath}img_home.svg';

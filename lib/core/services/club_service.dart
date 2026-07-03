@@ -67,7 +67,7 @@ class ClubService {
         .eq('club_id', clubId)
         .eq('stato', 'attivo')
         .gte('inizio_evento', oggiInizio)
-        .order('inizio_evento')
+        .order('inizio_evento', ascending: true)
         .limit(limit);
     return (response as List<dynamic>)
         .whereType<Map<String, dynamic>>()
@@ -158,6 +158,8 @@ class ClubService {
       'prezzo_indicativo': m['prezzo_indicativo'],
       'link_tripadvisor': m['link_tripadvisor'],
       'descrizione': m['descrizione'],
+      'orario_apertura': m['orario_apertura'],
+      'orario_chiusura': m['orario_chiusura'],
       'lat': m['lat'],
       'lng': m['lng'],
       'citta': {'nome_citta': m['citta']},

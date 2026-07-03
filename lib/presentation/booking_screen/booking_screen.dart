@@ -1,3 +1,5 @@
+import 'dart:ui' show ImageFilter;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:intl/intl.dart';
@@ -8,6 +10,8 @@ import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/booking_service.dart';
+import '../../core/services/orders_service.dart';
+import '../../core/utils/age_gate.dart';
 import '../../core/utils/responsive.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/onlist_colors.dart';
@@ -45,6 +49,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   bool _isLoading = true;
   String? _loadError;
 
+  // Data di nascita utente per il gate d'età (eventi 16+/18+). Null = sconosciuta
+  // → nessun blocco (fail-open, non blocchiamo per un dato mancante).
+  DateTime? _userDob;
+
   // Selection state
   String _selectedTable = "Seleziona";
   String? _selectedTableId;
@@ -76,6 +84,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       final prevendite = await BookingService.getPrevendite(args.serata!.id);
       final tavoli = await BookingService.getTavoli(args.serata!.id);
       final bottiglie = await BookingService.getBottiglie();
+      final dob = await _loadUserDob();
 
       if (!mounted) return;
       setState(() {
@@ -84,6 +93,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         _prevendite = prevendite;
         _tavoli = tavoli;
         _bottiglie = bottiglie;
+        _userDob = dob;
         _isLoading = false;
       });
     } catch (e) {
@@ -113,6 +123,17 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           ),
         );
       });
+    }
+  }
+
+  /// Data di nascita utente da `utenti.data_nascita` (per il gate d'età).
+  Future<DateTime?> _loadUserDob() async {
+    try {
+      final profile = await OrdersService.getUserProfile();
+      final dobStr = profile?['data_nascita'] as String?;
+      return dobStr != null ? DateTime.tryParse(dobStr) : null;
+    } catch (_) {
+      return null;
     }
   }
 
@@ -172,21 +193,24 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               Expanded(
                 child: _isLoading
                   ? const AppLoadingIndicator()
-                  : AnimatedSwitcher(
-                      duration: const Duration(milliseconds: 400),
-                      transitionBuilder: (Widget child, Animation<double> animation) {
-                        return FadeTransition(
-                          opacity: animation,
-                          child: SlideTransition(
-                            position: Tween<Offset>(
-                              begin: const Offset(0.1, 0),
-                              end: Offset.zero,
-                            ).animate(animation),
-                            child: child,
-                          ),
-                        );
-                      },
-                      child: _buildBody(locale, serata),
+                  : _wrapAgeGate(
+                      serata,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0.1, 0),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: _buildBody(locale, serata),
+                      ),
                     ),
               ),
             ],
@@ -221,10 +245,100 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     );
   }
 
+  // ── Gate d'età (eventi 16+/18+) ────────────────────────────────────────────
+  // L'evento resta visibile ovunque; qui, sulla prenotazione, se l'utente è
+  // troppo giovane il contenuto viene "blurrato" e al tocco compare il messaggio
+  // che l'evento è riservato ai N+.
+  Widget _wrapAgeGate(SerataModel? serata, Widget body) {
+    final minAge = AgeGate.blockedMinAge(
+      etaMinima: serata?.etaMinima,
+      dob: _userDob,
+    );
+    if (minAge == null) return body;
+
+    return Stack(
+      fit: StackFit.expand,
+      children: [
+        body,
+        Positioned.fill(
+          child: ClipRect(
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: GestureDetector(
+                behavior: HitTestBehavior.opaque,
+                onTap: () => _showAgeBlockDialog(minAge),
+                child: Container(
+                  color: Colors.black.withValues(alpha: 0.35),
+                  alignment: Alignment.center,
+                  padding: const EdgeInsets.all(28),
+                  child: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.lock_outline,
+                          color: Colors.white, size: 48),
+                      SizedBox(height: R.sp(16)),
+                      Text(
+                        'Evento riservato ai $minAge+',
+                        textAlign: TextAlign.center,
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(22),
+                          fontWeight: FontWeight.w700,
+                        ),
+                      ),
+                      SizedBox(height: R.sp(8)),
+                      Text(
+                        'Tocca per maggiori informazioni',
+                        textAlign: TextAlign.center,
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white70,
+                          fontSize: R.sp(14),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  void _showAgeBlockDialog(int minAge) {
+    showDialog(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text(
+          'Evento riservato ai $minAge+',
+          style: OnlistTextStyles.hn(
+              color: Colors.white, fontWeight: FontWeight.bold),
+        ),
+        content: Text(
+          'Questo evento è riservato ai maggiori di $minAge anni. '
+          'Non puoi effettuare la prenotazione.',
+          style: OnlistTextStyles.hn(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx),
+            child: Text('Ho capito',
+                style: OnlistTextStyles.hn(
+                    color: OnlistColors.blueElectric,
+                    fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+  }
+
   Widget _buildTopBar() {
     return Padding(
-      // Allineato allo standard delle altre schermate (Figma "Torna indietro").
-      padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+      // Respiro sopra/sotto come il design ufficiale (arrow sotto la barra logo).
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       child: GestureDetector(
         onTap: () {
           if (_currentStep == BookingStep.selection) {
@@ -410,7 +524,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   type: p['tipo']?.toString() ?? '',
                   price: p['prezzo'] != null ? "${_formatPrice(p['prezzo'])}€" : "—",
                   description: p['descrizione']?.toString() ?? '',
-                  validity: p['validita']?.toString() ?? '',
+                  // Nota di entrata composta dal limite d'ingresso della serata
+                  // (fallback al vecchio campo prevendite.validita).
+                  validity:
+                      serata?.notaEntrata ?? (p['validita']?.toString() ?? ''),
                   ticketId: (p['id_prevendita'] ?? p['id'])?.toString(),
                   serataId: serata?.id,
                 ),
@@ -464,7 +581,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       ),
                     ),
                     Text(
-                      type,
+                      _displayType(type),
                       style: OnlistTextStyles.hn(
                         color: Colors.white,
                         fontSize: R.sp(24),
@@ -581,7 +698,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     // a "12€" (per coerenza col Figma, che non mostra mai il decimale .0).
     final String price = _normalizePriceString(t['price']?.toString() ?? '—');
     final String description = t['description']?.toString() ?? '';
-    final String validity = t['validity']?.toString() ?? '';
+    // Nota di entrata: preferisci il limite d'ingresso della serata; se assente,
+    // usa quella già passata dalla card (fallback a prevendite.validita).
+    final String validity =
+        serata?.notaEntrata ?? (t['validity']?.toString() ?? '');
 
     return Column(
       key: const ValueKey("ticketDetail"),
@@ -589,8 +709,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         const SizedBox(height: 8),
         Expanded(
           child: Container(
-            // Edge-to-edge come Figma 12/13: niente margine orizzontale, la
-            // card riempie tutta la larghezza dello schermo.
+            // Card inset dai bordi come Figma 12/13 (carrello-ticket-vip.css:
+            // Rectangle 164 a left 21 su 393 → margini laterali ~20px, angoli
+            // arrotondati visibili su tutti i lati).
+            margin: const EdgeInsets.symmetric(horizontal: 16),
             padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
             decoration: BoxDecoration(
               gradient: OnlistColors.cardSingleTicket,
@@ -600,12 +722,13 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text("Ticket", style: OnlistTextStyles.ticketTitleLg),
-                // "Normale"/"Vip" indentato a destra (Figma: il sottotipo
-                // entra di circa metà larghezza, come se fosse incolonnato
-                // sotto la coda di "Ticket").
+                // Sottotipo "Vip"/"Normale": Capitalized (NON tutto maiuscolo) e
+                // indentato ~40px sotto "Ticket" come il design
+                // (carrello-ticket-vip.css: "Ticket" left 32, "Normale" left 72).
                 Padding(
-                  padding: const EdgeInsets.only(left: 90),
-                  child: Text(type, style: OnlistTextStyles.ticketSubtitleLg),
+                  padding: const EdgeInsets.only(left: 40),
+                  child: Text(_displayType(type),
+                      style: OnlistTextStyles.ticketSubtitleLg),
                 ),
                 const Spacer(),
                 FittedBox(
@@ -995,6 +1118,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         ),
       ),
     );
+  }
+
+  /// Normalizza il tipo ticket per la UI: prima lettera maiuscola, resto
+  /// minuscolo (es. "VIP" → "Vip", "normale" → "Normale"). Il design non usa
+  /// il tutto-maiuscolo per il sottotipo.
+  static String _displayType(String t) {
+    final s = t.trim();
+    if (s.isEmpty) return s;
+    return s[0].toUpperCase() + s.substring(1).toLowerCase();
   }
 
   /// Normalizza una stringa di prezzo già formata (es. "12.0€") rimuovendo

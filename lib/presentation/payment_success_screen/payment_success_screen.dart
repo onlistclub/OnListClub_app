@@ -14,11 +14,15 @@ class PaymentSuccessScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
-        child: SafeArea(
+    // Gradient applicato come "sfondo schermo" dietro l'intero Scaffold (incluso
+    // il footer): senza questo il `bottomNavigationBar` semi-trasparente lascia
+    // intravedere il nero piatto dello Scaffold, e il gradient sembra non
+    // arrivare al fondo.
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: SafeArea(
           bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -64,8 +68,8 @@ class PaymentSuccessScreen extends StatelessWidget {
             ],
           ),
         ),
+        bottomNavigationBar: const SharedFooter(currentIndex: 2),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 2),
     );
   }
 }

@@ -4,6 +4,7 @@ import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../routes/app_routes.dart';
 import '../../core/services/booking_service.dart';
+import '../../core/services/cart_service.dart';
 import '../../core/utils/responsive.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
@@ -50,6 +51,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
         },
       );
 
+      CartService().clear();
       BadgeService().incrementNotificationBadge();
       NavigatorService.pushNamed(AppRoutes.paymentSuccessScreen);
     } catch (e) {
@@ -61,7 +63,16 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final routeArgs = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    // Il tasto "Torna indietro" ha senso SOLO quando si arriva qui in
+    // automatico dal flusso di prenotazione (route con arguments). Se invece
+    // si arriva dalla bottom nav (tab carrello), non ci sono arguments: in
+    // quel caso mostriamo l'ultima prevendita salvata, senza back button.
+    final bool cameFromBooking = routeArgs != null;
+    if (cameFromBooking) {
+      CartService().current = routeArgs;
+    }
+    final args = routeArgs ?? CartService().current;
     final bool isEmpty = args == null;
     final String bookingType = args?['type'] as String? ?? "table";
 
@@ -78,7 +89,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
           child: Column(
             children: [
               const CustomTopBar(),
-              _buildBackButton(),
+              if (cameFromBooking) _buildBackButton(),
               const SizedBox(height: 10),
               Expanded(
                 child: isEmpty
@@ -104,10 +115,11 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
 
     return Column(
       children: [
-        // Card sintetica (Figma 14: gradiente #1E00FF -> #020011, riempie tutta
-        // la larghezza dello schermo — niente padding orizzontale esterno).
+        // Card sintetica (gradiente #1E00FF -> #020011) con margine laterale,
+        // in linea con le altre card della schermata (niente edge-to-edge).
         Container(
           width: double.infinity,
+          margin: const EdgeInsets.symmetric(horizontal: 18),
           padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
           decoration: BoxDecoration(
             gradient: OnlistColors.cardSummary,
@@ -347,7 +359,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
 
   Widget _buildBackButton() {
     return Padding(
-      padding: const EdgeInsets.only(left: 12, top: 4),
+      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       child: GestureDetector(
         onTap: () => NavigatorService.goBack(),
         behavior: HitTestBehavior.opaque,

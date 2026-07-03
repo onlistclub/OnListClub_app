@@ -1,4 +1,56 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
+
+/// `RadialGradient` di Flutter disegna un cerchio il cui raggio è sempre
+/// relativo al lato PIÙ CORTO del box (vedi doc di `RadialGradient.radius`).
+/// Il gradiente ufficiale è invece un'ellisse RUOTATA col picco blu nell'angolo
+/// alto-sinistra (il CSS Figma aveva proprio il warning "rotation not
+/// supported"). Parametri ottenuti fittando i pixel reali del PNG ufficiale
+/// (`docs/figma_screen/off/02 - Autenticazione.png`, 393×852): per ogni pixel
+/// di sfondo si risolve `d = 1 - B/214` (214 = canale blu del picco #0107D6) e
+/// si minimizza lo scarto su tutta l'immagine. Ottimo globale:
+///   - semiasse "orizzontale" → 1.05 × larghezza
+///   - semiasse "verticale"   → 1.08 × altezza
+///   - rotazione dell'ellisse  → −23°
+/// Errore medio residuo ≈ 0.7% del canale blu su ~32k pixel (tutte le zone
+/// entro ±2). La rotazione è ciò che tiene più blu nella diagonale verso il
+/// basso-destra, che un'ellisse ad assi dritti sottostimava. Il transform
+/// costruisce M = T(C)·Rot(θ)·Scale(sx,sy)·T(−C): Flutter lo usa come
+/// localMatrix del gradiente, quindi il cerchio base diventa l'ellisse ruotata
+/// voluta, col centro fisso. Frazioni relative a larghezza/altezza reali → il
+/// gradiente scala con qualsiasi schermo.
+class _EllipticalGradientTransform extends GradientTransform {
+  const _EllipticalGradientTransform();
+
+  /// Semiasse "orizzontale" come frazione della larghezza dello schermo.
+  static const double _fx = 1.05;
+
+  /// Semiasse "verticale" come frazione dell'altezza dello schermo.
+  static const double _fy = 1.08;
+
+  /// Rotazione dell'ellisse attorno al centro (gradi → radianti).
+  static const double _rotation = -23.0 * math.pi / 180.0;
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
+    // Raggio base del cerchio disegnato da RadialGradient (lato corto).
+    final double base =
+        OnlistColors.onboardingRadius * math.min(bounds.width, bounds.height);
+    if (base == 0) return null;
+    // Scala ogni asse per raggiungere il semiasse voluto in px.
+    final double scaleX = (_fx * bounds.width) / base;
+    final double scaleY = (_fy * bounds.height) / base;
+    final Offset center = bounds.topLeft +
+        OnlistColors.onboardingBackgroundCenter.alongSize(bounds.size);
+    // M = T(C)·Rot(θ)·Scale·T(−C): ruota e stira il cerchio base tenendo C fermo.
+    return Matrix4.identity()
+      ..translateByDouble(center.dx, center.dy, 0.0, 1.0)
+      ..rotateZ(_rotation)
+      ..scaleByDouble(scaleX, scaleY, 1.0, 1.0)
+      ..translateByDouble(-center.dx, -center.dy, 0.0, 1.0);
+  }
+}
 
 /// Tinte e gradienti ufficiali del design system Onlist Club.
 ///
@@ -47,17 +99,28 @@ class OnlistColors {
   );
 
   /// Sfondo schermate pre-home (Splash, Login, Sign up, Verifica, Permessi GPS,
-  /// Posizione manuale). Gradiente radiale ufficiale Figma:
-  /// `radial-gradient(98.42% 98.42% at 3.05% 1.58%, #0107D6 0%, #000000 100%)`.
-  /// Center/raggio frazionari → scala con lo schermo (sistema responsive).
-  ///   - 3.05%  → asse X normalizzato (-1..+1): 2*0.0305 - 1 = -0.939
-  ///   - 1.58%  → asse Y normalizzato (-1..+1): 2*0.0158 - 1 = -0.9684
-  ///   - 98.42% → radius normalizzato: 0.9842
+  /// Posizione manuale). Ellisse blu RUOTATA con picco #0107D6 nell'angolo
+  /// alto-sinistra che sfuma a nero. Centro e colori dal CSS Figma ufficiale
+  /// (accedi.css / start.css: `at 3.94% 1.58%, #0107D6 → #000000`); assi e
+  /// rotazione dell'ellisse sono fittati sui pixel reali del PNG ufficiale
+  /// (vedi [_EllipticalGradientTransform]) perché il CSS aveva il warning
+  /// "rotation not supported" e i suoi 98.42% non corrispondevano ai pixel.
+  ///   - 3.94% → asse X normalizzato (-1..+1): 2*0.0394 - 1 = -0.9212
+  ///   - 1.58% → asse Y normalizzato (-1..+1): 2*0.0158 - 1 = -0.9684
+  static const Alignment onboardingBackgroundCenter =
+      Alignment(-0.9212, -0.9684); // 3.94% 1.58% (alto-sinistra)
+
+  /// Raggio base del [RadialGradient] pre-home (frazione del lato corto).
+  /// Il valore preciso è irrilevante: [_EllipticalGradientTransform] riscala
+  /// entrambi gli assi ai semiassi misurati, ma lo teniamo per chiarezza.
+  static const double onboardingRadius = 0.9842;
+
   static const RadialGradient onboardingBackground = RadialGradient(
-    center: Alignment(-0.939, -0.9684), // 3.05% 1.58% (alto-sinistra)
-    radius: 0.9842, // ≈ 98.42%
+    center: onboardingBackgroundCenter,
+    radius: onboardingRadius,
     colors: [blueGradientStart, black], // #0107D6 → #000000
     stops: [0.0, 1.0],
+    transform: _EllipticalGradientTransform(),
   );
 
   // ── Gradienti card ──────────────────────────────────────────────────────

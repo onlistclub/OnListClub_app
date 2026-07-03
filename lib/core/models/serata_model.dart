@@ -20,6 +20,9 @@ class SerataModel extends Equatable {
   final String? etaMinima;
   final String? soundSystem;
   final String? parcheggio;
+  /// Limite orario di ingresso per la serata (es. "02:00"), da
+  /// `eventi.limite_entrata` (TIME). Null = nessun limite impostato.
+  final String? limiteEntrata;
   final List<LineupDj> lineup;
 
   const SerataModel({
@@ -39,8 +42,17 @@ class SerataModel extends Equatable {
     this.etaMinima,
     this.soundSystem,
     this.parcheggio,
+    this.limiteEntrata,
     this.lineup = const [],
   });
+
+  /// Nota di entrata mostrata nel dettaglio ticket, composta dal limite orario
+  /// d'ingresso della serata. Null se il limite non è impostato.
+  String? get notaEntrata {
+    final l = limiteEntrata;
+    if (l == null || l.isEmpty) return null;
+    return 'Entrata valida per questo ticket entro le $l';
+  }
 
   int? get postiDisponibili =>
       ingressiPrevisti > 0 ? ingressiPrevisti - postiPrenotati : null;
@@ -106,6 +118,7 @@ class SerataModel extends Equatable {
       etaMinima: m['eta_minima'] as String?,
       soundSystem: m['sound_system'] as String?,
       parcheggio: m['parcheggio'] as String?,
+      limiteEntrata: _trim(m['limite_entrata'] as String?),
       lineup: (m['lineup'] as List<dynamic>?)
               ?.whereType<Map<String, dynamic>>()
               .map(LineupDj.fromMap)
@@ -120,7 +133,7 @@ class SerataModel extends Equatable {
         oraApertura, oraChiusura,
         ingressiPrevisti, postiPrenotati,
         locandinaUrl, generiMusicali, stato, prezzoIngresso,
-        dressCode, etaMinima, soundSystem, parcheggio, lineup,
+        dressCode, etaMinima, soundSystem, parcheggio, limiteEntrata, lineup,
       ];
 }
 
@@ -143,7 +156,7 @@ class LineupDj extends Equatable {
   });
 
   String get orarioString {
-    if (oraInizio != null && oraFine != null) return '$oraInizio - $oraFine';
+    if (oraInizio != null && oraFine != null) return '$oraInizio → $oraFine';
     if (oraInizio != null) return oraInizio!;
     return '';
   }

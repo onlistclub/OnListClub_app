@@ -323,29 +323,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
             children: [
               // Navbar fissa condivisa (logo + ricerca + persona) — come Figma.
               // Tap "persona" no-op: si è già sulla pagina Account.
+              // Nessun "Torna indietro": la pagina Account è una tab principale.
               CustomTopBar(onProfileTap: () {}),
-              // "← Torna indietro" (Figma off/Account). Pattern condiviso con le
-              // altre schermate (arrow 28 + title32Light).
-              GestureDetector(
-                onTap: () {
-                  if (Navigator.canPop(context)) {
-                    NavigatorService.goBack();
-                  } else {
-                    NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
-                  }
-                },
-                behavior: HitTestBehavior.opaque,
-                child: Padding(
-                  padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
-                      const SizedBox(width: 6),
-                      Text('Torna indietro', style: OnlistTextStyles.title32Light),
-                    ],
-                  ),
-                ),
-              ),
               Expanded(
                 child: _isLoading
                     ? const AppLoadingIndicator()

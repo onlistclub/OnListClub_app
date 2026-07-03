@@ -162,7 +162,8 @@ class SharedFooter extends StatelessWidget {
               height: 43 * scale,
               fit: BoxFit.fill,
             ),
-          // Icona bianca (nativa ~34). Inattiva: attenuata (come Figma).
+          // Icona bianca (nativa ~34). Attiva: piena. Inattiva: attenuata
+          // (come Figma), nessun effetto extra oltre l'opacità.
           SizedBox(
             width: iconW * scale,
             height: iconH * scale,

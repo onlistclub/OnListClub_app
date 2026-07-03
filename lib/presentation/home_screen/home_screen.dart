@@ -125,7 +125,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       extendBody: true,
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
-        child: BlocBuilder<HomeBloc, HomeState>(
+        child: BlocConsumer<HomeBloc, HomeState>(
+        // Messaggio quando il GPS forzato non è disponibile (permesso negato,
+        // preview web, timeout): manteniamo l'ultima posizione già mostrata.
+        listenWhen: (prev, curr) => !prev.gpsUnavailable && curr.gpsUnavailable,
+        listener: (context, state) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            const SnackBar(
+              content: Text('GPS non disponibile. Mostro l\'ultima posizione.'),
+            ),
+          );
+        },
         buildWhen: (prev, curr) =>
             prev.localeVicino != curr.localeVicino ||
             prev.upcomingEventi != curr.upcomingEventi ||
@@ -240,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         position: _navSlide,
         child: FadeTransition(
           opacity: _navFade,
-          child: const SharedFooter(currentIndex: 0, withBottomBlur: true),
+          child: const SharedFooter(currentIndex: 0, withBottomBlur: false),
         ),
       ),
     );
@@ -348,9 +358,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   Widget _buildHeroImage(BuildContext context, HomeState state) {
     final club = state.localeVicino;
     final fotoUrl = club?.fotoUrl;
-    // Figma 07-aggiornato: l'immagine occupa tutta la larghezza schermo, senza
-    // bordi neri laterali. Niente padding orizzontale, raggio piccolo solo
-    // come morbidezza visiva (10px).
+    // Figma 07-aggiornato (home.css): l'immagine NON è edge-to-edge, ha margini
+    // laterali (~10px) e raggio 10px. Il padding orizzontale viene applicato in
+    // fondo alla funzione così anche la pill "Il tuo club preferito" resta
+    // relativa all'immagine.
     final hero = Stack(
       children: [
         // Morph Hero verso il dettaglio club (tag = club id, solo con foto).
@@ -384,11 +395,19 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           ),
       ],
     );
-    if (club == null) return hero;
-    return GestureDetector(
-      behavior: HitTestBehavior.opaque,
-      onTap: () => _navigateToClubDetail(context, club),
-      child: hero,
+    if (club == null) {
+      return Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 10),
+        child: hero,
+      );
+    }
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        onTap: () => _navigateToClubDetail(context, club),
+        child: hero,
+      ),
     );
   }
 
@@ -527,6 +546,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     );
   }
 
+  /// Riga info sotto il nome nelle card consigliate: orario apertura–chiusura
+  /// (design ufficiale). Fallback ai generi musicali se il locale non ha orari.
+  String _recommendedInfoLine(LocaleModel club) {
+    final orario = club.orarioString;
+    return orario.isNotEmpty ? orario : club.generiString;
+  }
+
   Widget _buildRecommendedClubCard(BuildContext context, LocaleModel club) {
     // Riusa il layout della card Figma "Club consigliati" (07-aggiornato):
     // immagine sinistra, nome + generi + città a destra, bottone PRENOTA.
@@ -535,6 +561,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       child: Container(
         width: 369,
         height: 108,
+        // Clippa il contenuto al raggio della card così l'immagine non sborda
+        // dagli angoli arrotondati.
+        clipBehavior: Clip.antiAlias,
         decoration: BoxDecoration(
           // Ufficiale "Club consigliati": #000 28% → #000B83 79% (OnlistColors).
           gradient: OnlistColors.cardEvent,
@@ -542,10 +571,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         ),
         child: Stack(
           children: [
-            // Foto del club
+            // Foto del club — inset 6px come home.css (allineata al bordo card).
             Positioned(
-              left: 15,
-              top: 7,
+              left: 6,
+              top: 6,
               child: _heroWrap(
                 tag: 'club-img-${club.id}',
                 enabled: club.fotoUrl != null,
@@ -553,7 +582,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   borderRadius: BorderRadius.circular(10),
                   child: Container(
                     width: 165,
-                    height: 95,
+                    height: 96,
                     color: const Color(0xFF2A2A2A),
                     child: club.fotoUrl != null
                         ? CachedNetworkImage(
@@ -588,15 +617,16 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 ),
               ),
             ),
-            // Generi musicali
-            if (club.generiString.isNotEmpty)
+            // Orario apertura–chiusura (fallback ai generi se il locale non ha
+            // orari). Larghezza vincolata + ellipsis così non sfora la card.
+            if (_recommendedInfoLine(club).isNotEmpty)
               Positioned(
                 left: 193,
                 top: 54,
                 child: SizedBox(
-                  width: 159,
+                  width: 80,
                   child: Text(
-                    club.generiString,
+                    _recommendedInfoLine(club),
                     maxLines: 1,
                     overflow: TextOverflow.ellipsis,
                     style: OnlistTextStyles.hn(
@@ -608,19 +638,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                   ),
                 ),
               ),
-            // Città
+            // Città — larghezza vincolata per non finire sotto il bottone PRENOTA.
             Positioned(
               left: 189,
               top: 90,
               child: Opacity(
                 opacity: 0.8,
-                child: Text(
-                  club.nomeCitta ?? '',
-                  style: OnlistTextStyles.hn(
-                    fontSize: 12,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 12 / 12,
+                child: SizedBox(
+                  width: 84,
+                  child: Text(
+                    club.nomeCitta ?? '',
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: OnlistTextStyles.hn(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 12 / 12,
+                    ),
                   ),
                 ),
               ),
@@ -701,7 +736,7 @@ class _HomeSkeleton extends StatelessWidget {
           children: [
             // Hero
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 9),
+              padding: EdgeInsets.symmetric(horizontal: 10),
               child: ShimmerBox(width: double.infinity, height: 217),
             ),
             SizedBox(height: 14),

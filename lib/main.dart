@@ -137,6 +137,12 @@ Future<void> main() async {
   // Ripristina i flag persistenti che vengono letti sincronicamente
   // a runtime (es. LocationService.isGpsForced).
   await LocationService.loadGpsForcedFromPrefs();
+
+  // Forza sempre l'highlight da touch: su emulatori/desktop con tastiera,
+  // Flutter userebbe la modalità "traditional" e lascerebbe un cerchio grigio
+  // di focus sull'ultima cella toccata (es. nel CalendarDatePicker Material).
+  FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+
   debugPrint('[Startup] Initialization complete.');
 
   runApp(const MyApp());

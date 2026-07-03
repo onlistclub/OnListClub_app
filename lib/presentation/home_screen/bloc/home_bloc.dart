@@ -49,7 +49,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
   }
 
   Future<void> _load(Emitter<HomeState> emit) async {
-    emit(state.copyWith(isLoading: true));
+    emit(state.copyWith(isLoading: true, gpsUnavailable: false));
     try {
       // 1. Raggio utente
       final raggio = await UserProfileManager().getRaggioKm();
@@ -59,8 +59,11 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       double? lng;
       String sourceLabel = '';
 
-      Future<void> tryGps() async {
-        debugPrint('[HomeBloc] 📡 tryGps() chiamato');
+      // [promptPermission] true → se il permesso è negato chiediamo il permesso
+      // nativo al telefono (usato quando l'utente forza esplicitamente il GPS).
+      // false → nessun prompt (fallback automatico, per non infastidire).
+      Future<void> tryGps({bool promptPermission = false}) async {
+        debugPrint('[HomeBloc] 📡 tryGps() chiamato (prompt=$promptPermission)');
         try {
           final cached = await LocationService.getCachedGpsPosition();
           if (cached != null) {
@@ -69,8 +72,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
             sourceLabel = 'Posizione Attuale';
             debugPrint('[HomeBloc] ✅ GPS da cache: lat=$lat, lng=$lng');
           } else {
-            final permission = await Geolocator.checkPermission();
+            var permission = await Geolocator.checkPermission();
             debugPrint('[HomeBloc] 🔑 Permesso GPS: $permission');
+            // GPS forzato + permesso negato → mostra il prompt nativo del telefono.
+            if (promptPermission &&
+                !kIsWeb &&
+                permission == LocationPermission.denied) {
+              permission = await Geolocator.requestPermission();
+              debugPrint('[HomeBloc] 🔑 Permesso GPS dopo richiesta: $permission');
+            }
             if (permission == LocationPermission.whileInUse ||
                 permission == LocationPermission.always) {
               final pos = await Geolocator.getCurrentPosition(
@@ -96,7 +106,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       int bookingsCount = 0;
       if (state.isGpsForced) {
         debugPrint('[HomeBloc] 🎯 GPS forzato dall\'utente');
-        await tryGps();
+        await tryGps(promptPermission: true);
+        if (lat == null) {
+          // GPS forzato ma non disponibile (permesso negato, preview web,
+          // timeout): NON ricadere sul club più famoso. Manteniamo l'ultima
+          // posizione e segnaliamo alla UI (messaggio "GPS non disponibile").
+          debugPrint('[HomeBloc] ⚠️ GPS forzato non disponibile — mantengo posizione precedente');
+          emit(state.copyWith(isLoading: false, gpsUnavailable: true));
+          return;
+        }
       } else {
         // 2. Se > 5 prenotazioni, usa lo storico.
         // Calcoliamo gli ID club dell'utente UNA sola volta e li riusiamo per

@@ -106,16 +106,12 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
     final drinkOmaggio =
         (prevendita?['drink_omaggio'] ?? evento?['drink_omaggio']) as int?;
-    // Fallback: se il DB non ha drink_omaggio, mostriamo la descrizione testuale
-    // della prevendita (es. "+ 2 drink omaggio", "Ingresso + 1 shot"). Tiene
-    // allineate cart, ticket detail, ordini e QR detail.
-    final descrizionePrevendita =
-        (prevendita?['descrizione'] as String?)?.trim();
+    // Testo "extra" accanto al prezzo: SOLO i drink omaggio, e solo se
+    // valorizzati nel DB (drink_omaggio int>0). Niente fallback alla
+    // descrizione: coerente con orders_screen ed evita testi lunghi.
     final String? extraText = (drinkOmaggio != null && drinkOmaggio > 0)
         ? '+ $drinkOmaggio drink omaggio'
-        : (descrizionePrevendita != null && descrizionePrevendita.isNotEmpty
-            ? descrizionePrevendita
-            : null);
+        : null;
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -130,160 +126,198 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
               const CustomTopBar(),
               _buildBackRow(),
               Expanded(
-                child: SingleChildScrollView(
-                  // Niente padding orizzontale: la card riempie tutta la
-                  // larghezza schermo (Figma 18 edge-to-edge).
-                  padding: EdgeInsets.fromLTRB(0, 8, 0, 24 + SharedFooter.height),
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Card grande con tutto dentro (Figma 18)
-                      Container(
-                        width: double.infinity,
-                        padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                        decoration: BoxDecoration(
-                          gradient: OnlistColors.cardSummary,
-                          borderRadius: BorderRadius.circular(10),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            // ID prenotazione in alto (riferimento per staff/scansione,
-                            // non presente nel Figma).
-                            Padding(
-                              padding: const EdgeInsets.only(bottom: 10),
-                              child: Text(
-                                'ID: ${idPrenotazione ?? '—'}',
-                                maxLines: 1,
-                                overflow: TextOverflow.ellipsis,
-                                style: OnlistTextStyles.hn(
-                                  fontSize: 11,
-                                  fontWeight: FontWeight.w500,
-                                  color: Colors.white.withValues(alpha: 0.7),
-                                  letterSpacing: 0.5,
-                                ),
+                // La card si "allunga" per riempire lo spazio verticale
+                // disponibile (Figma 18: bordo alto, QR centrato, ANNULLA
+                // vicino al fondo). ATTENZIONE: questa schermata contiene un
+                // QrImageView (pacchetto qr_flutter), che avvolge SEMPRE il
+                // proprio contenuto in un LayoutBuilder interno (non
+                // modificabile, è nel codice del pacchetto). Sia
+                // IntrinsicHeight sia SliverFillRemaining calcolano le
+                // dimensioni intrinseche dei discendenti e vanno in crash
+                // non appena raggiungono quel LayoutBuilder ("LayoutBuilder
+                // does not support returning intrinsic dimensions").
+                // Soluzione: calcoliamo l'altezza della card ESPLICITAMENTE
+                // con LayoutBuilder (qui, fuori da qualunque scroll/sliver) e
+                // la imponiamo con un SizedBox — questo NON richiede mai le
+                // dimensioni intrinseche dei figli, quindi è sicuro anche
+                // con il QR dentro.
+                child: LayoutBuilder(
+                  builder: (context, constraints) {
+                    const double topGap = 12;
+                    final double bottomGap = 24 + SharedFooter.height;
+                    const double chiudiGap = 20;
+                    // Stima blocco "Chiudi QR Code": testo(~20) + gap(6) +
+                    // cerchio(28).
+                    const double chiudiBlockH = 56;
+                    final double cardH = (constraints.maxHeight -
+                            topGap -
+                            bottomGap -
+                            chiudiGap -
+                            chiudiBlockH)
+                        .clamp(420.0, double.infinity);
+                    return SingleChildScrollView(
+                      padding: EdgeInsets.fromLTRB(16, topGap, 16, bottomGap),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.stretch,
+                        children: [
+                          // Card grande con tutto dentro (Figma 18). SizedBox
+                          // forza un'altezza esatta/bounded, così Expanded/
+                          // Spacer dentro il Container funzionano senza mai
+                          // richiedere dimensioni intrinseche.
+                          SizedBox(
+                            height: cardH,
+                            child: Container(
+                              width: double.infinity,
+                              padding:
+                                  const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                              decoration: BoxDecoration(
+                                gradient: OnlistColors.cardSummary,
+                                borderRadius: BorderRadius.circular(10),
                               ),
-                            ),
-                            // "Ticket x N" + "Ticket {tipo}" con più respiro tra
-                            // i due (Figma 18: il sottotitolo è chiaramente
-                            // staccato dal numero, non incollato).
-                            Row(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Text('Ticket x $quantita',
-                                    style: OnlistTextStyles.ticketLabel),
-                                const SizedBox(width: 18),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.only(top: 14),
-                                    child: Text('Ticket $tipo',
-                                        style: OnlistTextStyles.ticketSubtitleXs,
-                                        maxLines: 1,
-                                        overflow: TextOverflow.ellipsis),
-                                  ),
-                                ),
-                              ],
-                            ),
-                            FittedBox(
-                              fit: BoxFit.scaleDown,
-                              alignment: Alignment.centerLeft,
-                              child: Row(
-                                mainAxisSize: MainAxisSize.min,
-                                crossAxisAlignment: CrossAxisAlignment.end,
+                              child: Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  Text(prezzoStr, style: OnlistTextStyles.price96),
-                                  if (extraText != null) ...[
-                                    const SizedBox(width: 10),
-                                    Padding(
-                                      padding: const EdgeInsets.only(bottom: 32),
-                                      child: Text(
-                                          extraText,
-                                          style: OnlistTextStyles.body24Regular),
+                                  // "Ticket x N" + "Ticket {tipo}" con più
+                                  // respiro tra i due (Figma 18: il
+                                  // sottotitolo è staccato dal numero).
+                                  Row(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Ticket x $quantita',
+                                          style: OnlistTextStyles.ticketLabel),
+                                      const SizedBox(width: 18),
+                                      Expanded(
+                                        child: Padding(
+                                          padding: const EdgeInsets.only(
+                                              top: 14),
+                                          child: Text('Ticket $tipo',
+                                              style: OnlistTextStyles
+                                                  .ticketSubtitleXs,
+                                              maxLines: 1,
+                                              overflow:
+                                                  TextOverflow.ellipsis),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  FittedBox(
+                                    fit: BoxFit.scaleDown,
+                                    alignment: Alignment.centerLeft,
+                                    child: Row(
+                                      mainAxisSize: MainAxisSize.min,
+                                      crossAxisAlignment:
+                                          CrossAxisAlignment.end,
+                                      children: [
+                                        Text(prezzoStr,
+                                            style: OnlistTextStyles.price96),
+                                        if (extraText != null) ...[
+                                          const SizedBox(width: 10),
+                                          Padding(
+                                            padding: const EdgeInsets.only(
+                                                bottom: 32),
+                                            child: Text(extraText,
+                                                style: OnlistTextStyles
+                                                    .body24Regular),
+                                          ),
+                                        ],
+                                      ],
                                     ),
-                                  ],
+                                  ),
+                                  // Spazio flessibile: centra il QR e spinge
+                                  // ANNULLA verso il fondo della card.
+                                  const Spacer(),
+                                  Center(
+                                    child: Container(
+                                      padding: const EdgeInsets.all(10),
+                                      color: Colors.white,
+                                      child: QrImageView(
+                                        data: qrData,
+                                        version: QrVersions.auto,
+                                        size: (R.width * 0.62)
+                                            .clamp(160.0, 238.0),
+                                        backgroundColor: Colors.white,
+                                      ),
+                                    ),
+                                  ),
+                                  const Spacer(),
+                                  // ANNULLA PREVENDITA (pill)
+                                  if (stato.toString().toLowerCase() !=
+                                      'annullata')
+                                    Center(
+                                      child: GestureDetector(
+                                        onTap: _isAnnullando
+                                            ? null
+                                            : () =>
+                                                _annulla(idPrenotazione),
+                                        child: Container(
+                                          width: 219,
+                                          height: 35,
+                                          decoration: BoxDecoration(
+                                            color: Colors.white
+                                                .withValues(alpha: 0.13),
+                                            borderRadius:
+                                                BorderRadius.circular(10),
+                                          ),
+                                          alignment: Alignment.center,
+                                          child: _isAnnullando
+                                              ? const SizedBox(
+                                                  width: 18,
+                                                  height: 18,
+                                                  child:
+                                                      CircularProgressIndicator(
+                                                          color:
+                                                              Colors.white,
+                                                          strokeWidth: 2),
+                                                )
+                                              : Text('ANNULLA PREVENDITA',
+                                                  style: OnlistTextStyles
+                                                      .button20Bold),
+                                        ),
+                                      ),
+                                    )
+                                  else
+                                    Center(
+                                      child: Text('PREVENDITA ANNULLATA',
+                                          style: OnlistTextStyles
+                                              .button20Bold
+                                              .copyWith(
+                                                  color: Colors.redAccent)),
+                                    ),
                                 ],
                               ),
                             ),
-                            const SizedBox(height: 16),
-                            // QR
-                            Center(
-                              child: Container(
-                                padding: const EdgeInsets.all(10),
-                                color: Colors.white,
-                                child: QrImageView(
-                                  data: qrData,
-                                  version: QrVersions.auto,
-                                  size: (R.width * 0.62).clamp(160.0, 238.0),
-                                  backgroundColor: Colors.white,
-                                ),
+                          ),
+                          const SizedBox(height: 20),
+                          // Chiudi QR Code
+                          Center(
+                            child: GestureDetector(
+                              onTap: () => NavigatorService.goBack(),
+                              behavior: HitTestBehavior.opaque,
+                              child: Column(
+                                children: [
+                                  Text('Chiudi QR Code',
+                                      style: OnlistTextStyles.link15),
+                                  const SizedBox(height: 6),
+                                  Container(
+                                    width: 28,
+                                    height: 28,
+                                    decoration: BoxDecoration(
+                                      shape: BoxShape.circle,
+                                      border: Border.all(
+                                          color: Colors.white, width: 2),
+                                    ),
+                                    child: const Icon(Icons.arrow_upward,
+                                        color: Colors.white, size: 18),
+                                  ),
+                                ],
                               ),
                             ),
-                            const SizedBox(height: 20),
-                            // ANNULLA PREVENDITA (pill)
-                            if (stato.toString().toLowerCase() != 'annullata')
-                              Center(
-                                child: GestureDetector(
-                                  onTap: _isAnnullando
-                                      ? null
-                                      : () => _annulla(idPrenotazione),
-                                  child: Container(
-                                    width: 219,
-                                    height: 35,
-                                    decoration: BoxDecoration(
-                                      color: Colors.white.withValues(alpha: 0.13),
-                                      borderRadius: BorderRadius.circular(10),
-                                    ),
-                                    alignment: Alignment.center,
-                                    child: _isAnnullando
-                                        ? const SizedBox(
-                                            width: 18,
-                                            height: 18,
-                                            child: CircularProgressIndicator(
-                                                color: Colors.white,
-                                                strokeWidth: 2),
-                                          )
-                                        : Text('ANNULLA PREVENDITA',
-                                            style: OnlistTextStyles.button20Bold),
-                                  ),
-                                ),
-                              )
-                            else
-                              Center(
-                                child: Text('PREVENDITA ANNULLATA',
-                                    style: OnlistTextStyles.button20Bold
-                                        .copyWith(color: Colors.redAccent)),
-                              ),
-                          ],
-                        ),
-                      ),
-                      const SizedBox(height: 20),
-                      // Chiudi QR Code
-                      Center(
-                        child: GestureDetector(
-                          onTap: () => NavigatorService.goBack(),
-                          behavior: HitTestBehavior.opaque,
-                          child: Column(
-                            children: [
-                              Text('Chiudi QR Code',
-                                  style: OnlistTextStyles.link15),
-                              const SizedBox(height: 6),
-                              Container(
-                                width: 28,
-                                height: 28,
-                                decoration: BoxDecoration(
-                                  shape: BoxShape.circle,
-                                  border: Border.all(
-                                      color: Colors.white, width: 2),
-                                ),
-                                child: const Icon(Icons.keyboard_arrow_down,
-                                    color: Colors.white, size: 18),
-                              ),
-                            ],
                           ),
-                        ),
+                        ],
                       ),
-                    ],
-                  ),
+                    );
+                  },
                 ),
               ),
             ],
@@ -299,7 +333,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
       onTap: () => NavigatorService.goBack(),
       behavior: HitTestBehavior.opaque,
       child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 0, 12, 4),
+        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
         child: Row(
           children: [
             const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
