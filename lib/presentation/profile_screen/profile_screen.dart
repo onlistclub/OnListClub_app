@@ -5,6 +5,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_export.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/badge_service.dart';
 import '../../core/services/orders_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
@@ -491,6 +492,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     return Column(
       children: [
         const Divider(height: 1, color: Colors.white10, indent: 24, endIndent: 24),
+        _buildNotificationsTile(),
         _buildActionTile(
           icon: Icons.receipt_long_outlined,
           label: 'Riepilogo Ordini',
@@ -509,6 +511,61 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           onTap: _confirmLogout,
         ),
       ],
+    );
+  }
+
+  // Riga "Notifiche": stesso stile delle altre azioni account, ma con badge
+  // live dal contatore non lette (spostato qui dalla footer).
+  Widget _buildNotificationsTile() {
+    return InkWell(
+      onTap: () {
+        BadgeService().clearNotificationBadge();
+        NavigatorService.pushNamed(AppRoutes.notificationsScreen);
+      },
+      child: Padding(
+        padding: EdgeInsets.symmetric(horizontal: 24, vertical: R.sp(14)),
+        child: Row(
+          children: [
+            Icon(Icons.notifications_outlined,
+                color: OnlistColors.blueElectric, size: R.sp(22)),
+            SizedBox(width: R.sp(14)),
+            Expanded(
+              child: Text('Notifiche',
+                  style: OnlistTextStyles.hn(
+                      fontSize: R.sp(16),
+                      fontWeight: FontWeight.w400,
+                      color: OnlistColors.white)),
+            ),
+            ValueListenableBuilder<int>(
+              valueListenable: BadgeService().notificationBadgeCount,
+              builder: (context, count, child) {
+                if (count == 0) return const SizedBox.shrink();
+                return Container(
+                  margin: EdgeInsets.only(right: R.sp(8)),
+                  padding: const EdgeInsets.symmetric(horizontal: 7, vertical: 2),
+                  decoration: const BoxDecoration(
+                    color: Colors.red,
+                    shape: BoxShape.circle,
+                  ),
+                  constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                  child: Text(
+                    count > 9 ? '9+' : '$count',
+                    textAlign: TextAlign.center,
+                    style: const TextStyle(
+                      color: Colors.white,
+                      fontSize: 11,
+                      fontWeight: FontWeight.bold,
+                      decoration: TextDecoration.none,
+                    ),
+                  ),
+                );
+              },
+            ),
+            Icon(Icons.chevron_right,
+                color: OnlistColors.white.withValues(alpha: 0.4), size: R.sp(20)),
+          ],
+        ),
+      ),
     );
   }
 

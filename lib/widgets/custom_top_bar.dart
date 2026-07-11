@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../core/app_export.dart';
+import '../core/services/badge_service.dart';
 
 /// App bar custom condivisa dalle schermate principali.
 ///
@@ -85,8 +86,29 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                child: SvgPicture.asset(ImageConstant.imgNavProfile,
-                    width: 28, height: 28),
+                child: Stack(
+                  clipBehavior: Clip.none,
+                  children: [
+                    SvgPicture.asset(ImageConstant.imgNavProfile,
+                        width: 28, height: 28),
+                    // Pallino "hai notifiche non lette" — sostituisce il
+                    // badge che prima stava sulla campanella della footer.
+                    Positioned(
+                      top: -2,
+                      right: -2,
+                      child: ValueListenableBuilder<int>(
+                        valueListenable: BadgeService().notificationBadgeCount,
+                        builder: (context, count, child) {
+                          if (count == 0) return const SizedBox.shrink();
+                          return SvgPicture.asset(
+                              ImageConstant.imgProfileBadgeDot,
+                              width: 12,
+                              height: 12);
+                        },
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
         ],
