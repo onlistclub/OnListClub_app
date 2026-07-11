@@ -580,14 +580,21 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                         letterSpacing: -0.1 * 40,
                       ),
                     ),
-                    Text(
-                      _displayType(type),
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(24),
-                        fontWeight: FontWeight.w300,
-                        height: 29 / 24,
-                        letterSpacing: -0.06 * 24,
+                    // Sottotipo indentato sotto la "K" di "Ticket" come da
+                    // Figma (carrello-ticket.css: "Ticket" left 29/254,
+                    // tipologia left 64/296) — stesso pattern già usato in
+                    // _buildTicketDetailStep.
+                    Padding(
+                      padding: EdgeInsets.only(left: R.sp(40)),
+                      child: Text(
+                        _displayType(type),
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(24),
+                          fontWeight: FontWeight.w300,
+                          height: 29 / 24,
+                          letterSpacing: -0.06 * 24,
+                        ),
                       ),
                     ),
                   ],
