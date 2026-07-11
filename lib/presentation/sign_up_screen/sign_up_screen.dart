@@ -55,6 +55,12 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Il tema globale non imposta scaffoldBackgroundColor (default Material
+      // bianco). Senza questo, un frame di transizione/animazione tastiera
+      // può far intravedere un lampo bianco sotto il DecoratedBox scuro
+      // (visto in particolare nel flusso Google, dove il form è più corto
+      // senza il campo password e quindi più soggetto a questo artefatto).
+      backgroundColor: Colors.black,
       body: GestureDetector(
         // Tap fuori dai campi → chiude la tastiera (richiesta UX dell'utente).
         behavior: HitTestBehavior.opaque,

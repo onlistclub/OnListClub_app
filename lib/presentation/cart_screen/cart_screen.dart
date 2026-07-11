@@ -28,6 +28,24 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   String get screenName => 'cart';
 
   bool _isPaying = false;
+  // Evita di ri-sincronizzare CartService().current a ogni rebuild (vedi
+  // didChangeDependencies): senza questa guardia, il setState nel finally
+  // di _processPayment rifaceva il build e RISCRIVEVA il carrello appena
+  // svuotato da CartService().clear(), facendolo sembrare "sempre pieno".
+  bool _cartSynced = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (!_cartSynced) {
+      _cartSynced = true;
+      final routeArgs =
+          ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+      if (routeArgs != null) {
+        CartService().current = routeArgs;
+      }
+    }
+  }
 
   Future<void> _processPayment(Map<String, dynamic>? args) async {
     setState(() => _isPaying = true);
@@ -68,10 +86,10 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
     // automatico dal flusso di prenotazione (route con arguments). Se invece
     // si arriva dalla bottom nav (tab carrello), non ci sono arguments: in
     // quel caso mostriamo l'ultima prevendita salvata, senza back button.
+    // NOTA: la sincronizzazione di CartService().current con routeArgs
+    // avviene UNA SOLA VOLTA in didChangeDependencies (non qui in build,
+    // che gira a ogni rebuild — vedi commento su _cartSynced).
     final bool cameFromBooking = routeArgs != null;
-    if (cameFromBooking) {
-      CartService().current = routeArgs;
-    }
     final args = routeArgs ?? CartService().current;
     final bool isEmpty = args == null;
     final String bookingType = args?['type'] as String? ?? "table";
@@ -112,6 +130,10 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
     final priceStr = args?['price']?.toString() ?? "10€";
     final priceVal = double.tryParse(priceStr.replaceAll("€", "").trim()) ?? 10.0;
     final total = priceVal.toStringAsFixed(0);
+    // Descrizione reale del ticket (es. "+ 2 drink omaggio"), passata da
+    // booking_screen. Prima era una stringa hardcoded sempre visibile anche
+    // per ticket senza drink omaggio.
+    final description = args?['description']?.toString().trim() ?? '';
 
     return Column(
       children: [
@@ -158,15 +180,17 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     Text("$total€", style: OnlistTextStyles.price96),
-                    const SizedBox(width: 10),
-                    // "+ 2 drink omaggio" sale verso il centro verticale del
-                    // prezzo (Figma 14): bottom padding maggiore = stringa più
-                    // in alto rispetto al baseline del 96px.
-                    Padding(
-                      padding: const EdgeInsets.only(bottom: 32),
-                      child: Text("+ 2 drink omaggio",
-                          style: OnlistTextStyles.body24Regular),
-                    ),
+                    if (description.isNotEmpty) ...[
+                      const SizedBox(width: 10),
+                      // Descrizione sale verso il centro verticale del prezzo
+                      // (Figma 14): bottom padding maggiore = stringa più in
+                      // alto rispetto al baseline del 96px.
+                      Padding(
+                        padding: const EdgeInsets.only(bottom: 32),
+                        child: Text(description,
+                            style: OnlistTextStyles.body24Regular),
+                      ),
+                    ],
                   ],
                 ),
               ),

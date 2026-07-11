@@ -160,32 +160,32 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                       ),
                     ),
                     const Spacer(flex: 16),
-                    // Nota privacy in fondo schermata: icona + testo compatti
-                    // centrati. Padding orizzontale generoso (40) per far
-                    // wrappare il testo su due righe pulite senza toccare i
-                    // bordi, anche su device stretti tipo iPhone SE.
+                    // Nota privacy in fondo schermata: icona sopra, testo
+                    // sotto, entrambi centrati in una Column (non più Row
+                    // icona+testo: con testo su 2 righe di lunghezza diversa
+                    // l'icona ancorata al centro verticale del blocco dava un
+                    // effetto "storto"/sbilanciato). Padding orizzontale
+                    // generoso (40) per far wrappare il testo su due righe
+                    // pulite senza toccare i bordi, anche su device stretti
+                    // tipo iPhone SE.
                     Padding(
                       padding: const EdgeInsets.symmetric(horizontal: 40),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
+                      child: Column(
                         mainAxisSize: MainAxisSize.min,
                         children: [
                           const Icon(Icons.lock_outline,
                               color: Colors.white54, size: 14),
-                          const SizedBox(width: 6),
-                          const Flexible(
-                            child: Text(
-                              'La tua posizione è protetta e non verrà condivisa con terzi.',
-                              // Font del design (SF Pro Text → HelveticaNeue), 12/line 16.
-                              style: TextStyle(
-                                  fontFamily: 'HelveticaNeue',
-                                  fontSize: 12,
-                                  height: 16 / 12,
-                                  fontWeight: FontWeight.w400,
-                                  color: Colors.white54),
-                              textAlign: TextAlign.center,
-                            ),
+                          const SizedBox(height: 4),
+                          const Text(
+                            'La tua posizione è protetta e non verrà condivisa con terzi.',
+                            // Font del design (SF Pro Text → HelveticaNeue), 12/line 16.
+                            style: TextStyle(
+                                fontFamily: 'HelveticaNeue',
+                                fontSize: 12,
+                                height: 16 / 12,
+                                fontWeight: FontWeight.w400,
+                                color: Colors.white54),
+                            textAlign: TextAlign.center,
                           ),
                         ],
                       ),

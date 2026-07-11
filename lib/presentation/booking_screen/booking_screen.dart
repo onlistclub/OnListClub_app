@@ -765,6 +765,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 'type': 'ticket',
                 'ticketType': type,
                 'price': price,
+                'description': description,
                 'ticketId': t['ticketId'],
                 'id_evento': t['serataId'] ?? serata?.id,
               });

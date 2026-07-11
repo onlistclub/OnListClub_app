@@ -75,7 +75,6 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
         {};
 
     final prenotazione = item['prenotazioni'] as Map<String, dynamic>?;
-    final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
     final prevendita = item['prevendite'] as Map<String, dynamic>?;
 
     final tipo = prevendita?['tipo'] ?? 'Normale';
@@ -102,16 +101,16 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     final prezzoStr = prezzoNum == null
         ? '—'
         : '${prezzoNum % 1 == 0 ? prezzoNum.toInt() : prezzoNum}€';
-    // Quantità e drink omaggio dai dati reali della prenotazione.
+    // Quantità dai dati reali della prenotazione.
     final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
-    final drinkOmaggio =
-        (prevendita?['drink_omaggio'] ?? evento?['drink_omaggio']) as int?;
-    // Testo "extra" accanto al prezzo: SOLO i drink omaggio, e solo se
-    // valorizzati nel DB (drink_omaggio int>0). Niente fallback alla
-    // descrizione: coerente con orders_screen ed evita testi lunghi.
-    final String? extraText = (drinkOmaggio != null && drinkOmaggio > 0)
-        ? '+ $drinkOmaggio drink omaggio'
-        : null;
+    // Testo "extra" accanto al prezzo: descrizione reale della prevendita dal
+    // DB (es. "+ 2 drink omaggio"). NOTA: `drink_omaggio` non è una colonna
+    // esistente in `prevendite`/`eventi` — l'unica sorgente vera è
+    // `descrizione`. Qui è già protetto dall'overflow dal FittedBox del
+    // prezzo, che rimpicciolisce tutta la riga se serve.
+    final descrizione = (prevendita?['descrizione'] as String?)?.trim();
+    final String? extraText =
+        (descrizione != null && descrizione.isNotEmpty) ? descrizione : null;
 
     return Scaffold(
       backgroundColor: Colors.black,

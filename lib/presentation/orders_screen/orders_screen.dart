@@ -152,21 +152,20 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
   // ── Card prevendita (gradiente blu cardSummary, Figma 17) ──────────────────
   Widget _buildPrevenditaCard(Map<String, dynamic> item) {
     final prenotazione = item['prenotazioni'] as Map<String, dynamic>?;
-    final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
     final prevendita = item['prevendite'] as Map<String, dynamic>?;
 
     final tipo = (prevendita?['tipo'] ?? 'normale').toString().toLowerCase();
     final prezzo = prevendita?['prezzo'];
     final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
     final stato = (prenotazione?['stato'] ?? 'in_attesa').toString();
-    final drinkOmaggio = (prevendita?['drink_omaggio'] ?? evento?['drink_omaggio']) as int?;
-    // Testo "extra" accanto al prezzo: SOLO i drink omaggio, e solo se
-    // valorizzati nel DB (drink_omaggio int>0). Niente fallback alla
-    // descrizione: testi lunghi come "Ingresso entro le 00:00 + ..."
-    // uscivano dallo schermo (overflow orizzontale della card).
-    final String? extraText = (drinkOmaggio != null && drinkOmaggio > 0)
-        ? '+ $drinkOmaggio drink omaggio'
-        : null;
+    // Testo "extra" accanto al prezzo: descrizione reale della prevendita dal
+    // DB (es. "+ 2 drink omaggio", "Ingresso + 1 shot"). NOTA: `drink_omaggio`
+    // non è una colonna esistente in `prevendite`/`eventi` — l'unica sorgente
+    // vera è `descrizione`. L'overflow che aveva causato la rimozione di
+    // questo campo è ora gestito da Flexible+maxLines+ellipsis sotto.
+    final descrizione = (prevendita?['descrizione'] as String?)?.trim();
+    final String? extraText =
+        (descrizione != null && descrizione.isNotEmpty) ? descrizione : null;
 
     return GestureDetector(
       onTap: () => NavigatorService.pushNamed(
