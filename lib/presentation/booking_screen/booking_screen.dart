@@ -183,7 +183,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
       child: Scaffold(
         backgroundColor: Colors.transparent,
-        bottomNavigationBar: const SharedFooter(currentIndex: 0),
+        bottomNavigationBar: const SharedFooter(currentIndex: 1),
         body: SafeArea(
           bottom: false,
           child: Column(

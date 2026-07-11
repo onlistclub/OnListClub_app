@@ -1,20 +1,20 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../../core/app_export.dart';
-import '../core/services/badge_service.dart';
 
 /// Bottom navigation bar condivisa dalle schermate principali.
 ///
-/// Usa gli asset UFFICIALI del design (`assets/svg/`), così la barra è
-/// pixel-perfect col Figma `off/footer-bar.PNG`:
-/// - capsula/bordo: `bordo_footer.png` (354×49)
-/// - pill tab attiva: `selezionato.png` (73×43)
-/// - icone: `home/bag/carrello/notification.png` (~34, bianche)
+/// Usa gli asset UFFICIALI del design (`assets/svg/ufficiali/`):
+/// - capsula: `Rectangle 261.svg` (213×48)
+/// - icone: `Ticket_Voucher.svg` / `Vector.svg` (home) / `Shopping_Cart_01.svg` (24-33, bianche)
 ///
-/// Ordine icone: 0 = Home, 1 = Borsa (ordini), 2 = Carrello, 3 = Campanella.
-/// Il Profilo NON è qui — si raggiunge dall'icona persona del `CustomTopBar`.
-/// Tutte le misure sono scalate in proporzione alla larghezza (base 354),
+/// Ordine icone: 0 = Ticket (riepilogo ordini), 1 = Home, 2 = Carrello.
+/// Le notifiche non sono più una tab della footer — si raggiungono dalla
+/// pagina Profilo. Il Profilo stesso NON è qui — si raggiunge dall'icona
+/// persona del `CustomTopBar`.
+/// Tutte le misure sono scalate in proporzione alla larghezza (base 213),
 /// quindi responsive senza pixel fissi. Passare `-1` per nessuna tab attiva.
 class SharedFooter extends StatelessWidget {
   final int currentIndex;
@@ -33,9 +33,9 @@ class SharedFooter extends StatelessWidget {
   /// padding di fondo, così l'ultimo contenuto scrollabile supera la capsula.
   static const double height = 70;
 
-  // Dimensioni native del design (in px Figma).
-  static const double _designW = 354;
-  static const double _designH = 49;
+  // Dimensioni native del design (in px Figma, capsula `Rectangle 261.svg`).
+  static const double _designW = 213;
+  static const double _designH = 48;
   static const double _margin = 20; // CSS: left 20 → margine laterale
 
   @override
@@ -91,38 +91,26 @@ class SharedFooter extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                  // Fondo opaco dietro l'asset (l'asset ha 2% di bianco e sparisce
-                  // sul nero). 8% di bianco dà la presenza vista nel Figma.
+                  // Capsula ufficiale (asset esatto, già include il fill al
+                  // 4% di bianco e il raggio pill — nessun layer extra sotto).
                   Positioned.fill(
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: Container(
-                        color: Colors.white.withOpacity(0.08),
-                      ),
-                    ),
-                  ),
-                  // Bordo/capsula ufficiale (asset esatto).
-                  Positioned.fill(
-                    child: Image.asset(
-                      ImageConstant.imgFooterBorder,
+                    child: SvgPicture.asset(
+                      ImageConstant.imgFooterCapsule,
                       fit: BoxFit.fill,
                     ),
                   ),
-                  // Icone equispaziate (4 slot uguali).
+                  // Icone equispaziate (3 slot uguali).
                         Row(
                           children: [
                             Expanded(
-                                child: _buildNavItem(scale, ImageConstant.imgNavHome,
-                                    34, 34, 0, AppRoutes.homeScreen)),
+                                child: _buildNavItem(scale, ImageConstant.imgNavTicket,
+                                    24, 24, 0, AppRoutes.ordersScreen)),
                             Expanded(
-                                child: _buildNavItem(scale, ImageConstant.imgNavBag,
-                                    34, 32, 1, AppRoutes.ordersScreen)),
+                                child: _buildNavItem(scale, ImageConstant.imgNavHome,
+                                    33, 33, 1, AppRoutes.homeScreen)),
                             Expanded(
                                 child: _buildNavItem(scale, ImageConstant.imgNavCart,
-                                    34, 34, 2, AppRoutes.cartScreen)),
-                            Expanded(
-                                child: _buildNavItem(scale, ImageConstant.imgNavBell,
-                                    31, 34, 3, AppRoutes.notificationsScreen)),
+                                    24, 24, 2, AppRoutes.cartScreen)),
                           ],
                         ),
                       ],
@@ -137,14 +125,15 @@ class SharedFooter extends StatelessWidget {
     );
   }
 
+  // Diametro nativo del cerchio "riempimento leggero" dietro la tab attiva:
+  // abbraccia la più grande delle 3 icone (Home, 33×33) con un piccolo margine.
+  static const double _selectedCircleSize = 44;
+
   Widget _buildNavItem(double scale, String iconPath, double iconW,
       double iconH, int index, String routeName) {
     final isSelected = currentIndex == index;
     return GestureDetector(
       onTap: () {
-        if (index == 3) {
-          BadgeService().clearNotificationBadge();
-        }
         if (!isSelected && routeName.isNotEmpty) {
           NavigatorService.pushNamedAndRemoveUntil(routeName);
         }
@@ -154,63 +143,26 @@ class SharedFooter extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // Pill "selezionato" ufficiale (73×43) dietro l'icona attiva.
+          // Cerchio a riempimento leggero dietro l'icona attiva (nessun
+          // asset dedicato nel design: stesso stile dello sfondo capsula,
+          // bianco a bassa opacità, nessun bordo visibile).
           if (isSelected)
-            Image.asset(
-              ImageConstant.imgFooterPill,
-              width: 73 * scale,
-              height: 43 * scale,
-              fit: BoxFit.fill,
+            Container(
+              width: _selectedCircleSize * scale,
+              height: _selectedCircleSize * scale,
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.08),
+                shape: BoxShape.circle,
+              ),
             ),
-          // Icona bianca (nativa ~34). Attiva: piena. Inattiva: attenuata
-          // (come Figma), nessun effetto extra oltre l'opacità.
+          // Icona bianca (nativa dal design). Attiva: piena. Inattiva:
+          // attenuata (come Figma), nessun effetto extra oltre l'opacità.
           SizedBox(
             width: iconW * scale,
             height: iconH * scale,
-            child: Stack(
-              clipBehavior: Clip.none,
-              children: [
-                Positioned.fill(
-                  child: Opacity(
-                    opacity: isSelected ? 1.0 : 0.5,
-                    child: Image.asset(iconPath, fit: BoxFit.contain),
-                  ),
-                ),
-                // Badge notifiche (solo campanella) — fuori dall'opacity.
-                if (index == 3)
-                  Positioned(
-                    top: -6 * scale,
-                    right: -8 * scale,
-                    child: ValueListenableBuilder<int>(
-                      valueListenable:
-                          BadgeService().notificationBadgeCount,
-                      builder: (context, count, child) {
-                        if (count == 0) return const SizedBox.shrink();
-                        return Container(
-                          padding: const EdgeInsets.all(4),
-                          decoration: const BoxDecoration(
-                            color: Colors.red,
-                            shape: BoxShape.circle,
-                          ),
-                          constraints: const BoxConstraints(
-                            minWidth: 16,
-                            minHeight: 16,
-                          ),
-                          child: Text(
-                            count > 9 ? '9+' : '$count',
-                            style: const TextStyle(
-                              color: Colors.white,
-                              fontSize: 10,
-                              fontWeight: FontWeight.bold,
-                              decoration: TextDecoration.none,
-                            ),
-                            textAlign: TextAlign.center,
-                          ),
-                        );
-                      },
-                    ),
-                  ),
-              ],
+            child: Opacity(
+              opacity: isSelected ? 1.0 : 0.5,
+              child: SvgPicture.asset(iconPath, fit: BoxFit.contain),
             ),
           ),
         ],

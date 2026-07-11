@@ -323,7 +323,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 1),
+      bottomNavigationBar: const SharedFooter(currentIndex: 0),
     );
   }
 

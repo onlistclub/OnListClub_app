@@ -80,7 +80,7 @@ class EventInfoPopupScreen extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: const SharedFooter(currentIndex: 0),
+        bottomNavigationBar: const SharedFooter(currentIndex: 1),
       ),
     );
   }

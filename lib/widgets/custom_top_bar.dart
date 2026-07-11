@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import '../core/app_export.dart';
 
 /// App bar custom condivisa dalle schermate principali.
@@ -75,8 +76,8 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               onTap: onSearchTap ?? () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                child: Image.asset(ImageConstant.imgNavSearch,
-                    width: 32, height: 32),
+                child: SvgPicture.asset(ImageConstant.imgNavSearch,
+                    width: 28, height: 28),
               ),
             ),
           if (showProfile)
@@ -84,8 +85,8 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
-                child: Image.asset(ImageConstant.imgNavProfile,
-                    width: 25, height: 32),
+                child: SvgPicture.asset(ImageConstant.imgNavProfile,
+                    width: 28, height: 28),
               ),
             ),
         ],

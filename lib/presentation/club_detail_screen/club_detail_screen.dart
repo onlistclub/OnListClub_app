@@ -298,7 +298,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         },
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 0, withBottomBlur: true),
+      bottomNavigationBar: const SharedFooter(currentIndex: 1, withBottomBlur: true),
     );
   }
 

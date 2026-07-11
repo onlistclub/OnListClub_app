@@ -26,16 +26,25 @@ class ImageConstant {
   static String imgBell = '${_basePath}img_bell.svg';
   static String imgUser = '${_basePath}img_user.svg';
 
-  // ── Asset ufficiali navbar/footer (assets/svg/) ──────────────────────────
-  // Icone bianche, pill "selezionato" e bordo capsula, dimensioni native dal
-  // design (footer-bar 354×49, pill 73×43, icone ~34).
+  // ── Asset VECCHI navbar/footer (assets/svg/) ──────────────────────────────
+  // Non più referenziati da nessuno screen dopo il restyle a footer 3-icone
+  // (vedi imgNavTicket/imgNavHome/imgNavCart sotto). Lasciati qui perché i
+  // file .png esistono ancora su disco: valutare se rimuoverli.
   static const String _svgPath = 'assets/svg/';
-  static String imgNavHome = '${_svgPath}home.png';          // 34×34
-  static String imgNavBag = '${_svgPath}bag.png';            // 34×32
-  static String imgNavCart = '${_svgPath}carrello.png';      // 34×34
-  static String imgNavBell = '${_svgPath}notification.png';  // 31×34
-  static String imgNavSearch = '${_svgPath}search.png';      // 34×34
-  static String imgNavProfile = '${_svgPath}profile.png';    // 23×29
-  static String imgFooterPill = '${_svgPath}selezionato.png'; // 73×43
-  static String imgFooterBorder = '${_svgPath}bordo_footer.png'; // 354×49
+  static String imgNavBagOld = '${_svgPath}bag.png';            // 34×32
+  static String imgNavBellOld = '${_svgPath}notification.png';  // 31×34
+  static String imgFooterPillOld = '${_svgPath}selezionato.png'; // 73×43
+  static String imgFooterBorderOld = '${_svgPath}bordo_footer.png'; // 354×49
+
+  // ── Asset ufficiali navbar/footer (assets/svg/ufficiali/) ─────────────────
+  // Nuova footer a 3 icone (Ticket, Home, Carrello) + nuove icone top bar.
+  // SVG con stroke bianco nativo: renderizzare con SvgPicture, non Image.asset.
+  static const String _svgUfficiali = '${_svgPath}ufficiali/';
+  static String imgNavTicket = '${_svgUfficiali}Ticket_Voucher.svg';        // 24×24
+  static String imgNavHome = '${_svgUfficiali}Vector.svg';                  // 33×33
+  static String imgNavCart = '${_svgUfficiali}Shopping_Cart_01.svg';        // 24×24
+  static String imgNavSearch = '${_svgUfficiali}Search_Magnifying_Glass.svg'; // 24×24
+  static String imgNavProfile = '${_svgUfficiali}User_01.svg';              // 24×24
+  static String imgProfileBadgeDot = '${_svgUfficiali}Ellipse 17.svg';      // 16×16
+  static String imgFooterCapsule = '${_svgUfficiali}Rectangle 261.svg';     // 213×48
 }

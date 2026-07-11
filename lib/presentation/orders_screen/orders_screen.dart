@@ -96,7 +96,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
           ),
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 1),
+      bottomNavigationBar: const SharedFooter(currentIndex: 0),
     );
   }
 

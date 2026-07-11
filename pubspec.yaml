@@ -37,6 +37,7 @@ flutter:
     - assets/
     - assets/images/
     - assets/svg/
+    - assets/svg/ufficiali/
     - env.json
   fonts:
     - family: HelveticaNeue

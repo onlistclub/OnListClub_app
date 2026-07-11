@@ -158,5 +158,5 @@ class TavoloDetailScreen extends StatelessWidget {
     return const CustomTopBar();
   }
 
-  Widget _buildBottomNav() => const SharedFooter(currentIndex: 1);
+  Widget _buildBottomNav() => const SharedFooter(currentIndex: 0);
 }
