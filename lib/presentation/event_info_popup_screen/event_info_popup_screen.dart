@@ -232,9 +232,16 @@ class _PopupCard extends StatelessWidget {
               SizedBox(height: R.sp(7)),
             ],
           ],
-          // Gap finale prima del CTA (con lineup: 7px già dato dal loop + 20
-          // qui = ~27px): aumentato, era ancora troppo stretto.
+          // Gap minimo prima del CTA (con lineup: 7px già dato dal loop + 20
+          // qui = ~27px).
           SizedBox(height: R.sp(hasLineup ? 20 : 16)),
+          // Spazio flessibile: la card si estende fino al fondo dello
+          // spazio disponibile (SliverFillRemaining), ma senza questo
+          // Expanded il contenuto restava ancorato in alto lasciando una
+          // lunga coda di gradiente vuoto sotto il CTA — misurato sul
+          // riferimento ufficiale: nel Figma il CTA arriva quasi al fondo
+          // della card (~93-97% dell'altezza schermo), non a metà.
+          Expanded(child: SizedBox()),
           _acquistaCta(context),
         ],
       ),
