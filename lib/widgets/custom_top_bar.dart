@@ -31,14 +31,15 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   // "largo" (assumendo un ritaglio che non esiste) lo rimpiccioliva e lo
   // spostava in alto a sinistra nella navbar. Lo ritagliamo qui via
   // OverflowBox+Transform (nessuna modifica al file su disco).
-  // Percentuali misurate sul bounding box dei pixel PIENI delle lettere
-  // (esclude il glow viola del puntino della "i", che sfora sopra la
-  // cap-height): così le lettere riempiono la barra come prima e il glow
-  // eccedente viene clippato dal ClipRect. Sorgente: nuovo logo off_logo.
+  // Percentuali basate sul bounding box dei pixel PIENI delle lettere
+  // (left/width/bottom), con un po' di headroom in alto (_cropTop alzato,
+  // _cropHeight aumentato di pari misura → bordo inferiore delle lettere
+  // invariato) per NON clippare il glow viola del puntino della "i", che
+  // sfora sopra la cap-height. Sorgente: nuovo logo off_logo.
   static const double _cropLeft = 0.1237;
-  static const double _cropTop = 0.4206;
+  static const double _cropTop = 0.3950;
   static const double _cropWidth = 0.7520;
-  static const double _cropHeight = 0.2279;
+  static const double _cropHeight = 0.2535;
   static double get _cropAspect => _cropWidth / _cropHeight;
 
   /// Altezza della scritta "OnList": dimensione fissa (non scalata su R.w),
