@@ -223,19 +223,50 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                       ],
                                     ),
                                   ),
-                                  // Spazio flessibile: centra il QR e spinge
-                                  // ANNULLA verso il fondo della card.
-                                  const Spacer(),
+                                  // Gap fisso (era Spacer flessibile): il QR
+                                  // deve stare vicino al prezzo come nel
+                                  // Figma ufficiale, non centrato a metà
+                                  // dello spazio libero.
+                                  SizedBox(height: R.sp(28)),
                                   Center(
                                     child: Container(
                                       padding: const EdgeInsets.all(10),
                                       color: Colors.white,
-                                      child: QrImageView(
-                                        data: qrData,
-                                        version: QrVersions.auto,
-                                        size: (R.width * 0.62)
-                                            .clamp(160.0, 238.0),
-                                        backgroundColor: Colors.white,
+                                      // ShaderMask ricolora solo i pixel
+                                      // opachi del QR (i moduli scuri) con
+                                      // la sfumatura viola ufficiale — il QR
+                                      // resta un vero QrImageView generato
+                                      // dai dati reali (qrData), quindi
+                                      // scannerizzabile e collegato
+                                      // all'ordine. backgroundColor deve
+                                      // restare transparent: il bianco è
+                                      // dato dal Container esterno, così lo
+                                      // sfondo non viene toccato dallo
+                                      // shader (BlendMode.srcIn colora solo
+                                      // ciò che ha alpha > 0).
+                                      child: ShaderMask(
+                                        shaderCallback: (bounds) =>
+                                            const LinearGradient(
+                                          begin: Alignment.topCenter,
+                                          end: Alignment.bottomCenter,
+                                          colors: [
+                                            OnlistColors.blueElectric,
+                                            OnlistColors.blueDeep,
+                                          ],
+                                        ).createShader(bounds),
+                                        blendMode: BlendMode.srcIn,
+                                        child: QrImageView(
+                                          data: qrData,
+                                          version: QrVersions.auto,
+                                          // Box totale (QR + padding 10x2)
+                                          // proporzionato al Figma ufficiale
+                                          // (258×258 su frame 393 di
+                                          // riferimento), responsive via
+                                          // R.width invece di px fissi.
+                                          size: ((R.width * (258 / 393)) - 20)
+                                              .clamp(160.0, 320.0),
+                                          backgroundColor: Colors.transparent,
+                                        ),
                                       ),
                                     ),
                                   ),
