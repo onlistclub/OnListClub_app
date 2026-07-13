@@ -22,6 +22,8 @@ class PaymentSuccessScreen extends StatelessWidget {
       decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+        extendBody: true,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -58,7 +60,7 @@ class PaymentSuccessScreen extends StatelessWidget {
               ),
               const Spacer(flex: 4),
               Padding(
-                padding: const EdgeInsets.fromLTRB(12, 0, 12, 24),
+                padding: EdgeInsets.fromLTRB(12, 0, 12, 24 + SharedFooter.height),
                 child: OnlistPrimaryButton(
                   label: 'TORNA NELLA HOME',
                   onPressed: () => NavigatorService.pushNamedAndRemoveUntil(

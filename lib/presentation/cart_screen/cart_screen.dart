@@ -102,6 +102,8 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
       decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+        extendBody: true,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -110,11 +112,14 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
               if (cameFromBooking) _buildBackButton(),
               const SizedBox(height: 10),
               Expanded(
-                child: isEmpty
-                    ? _buildEmptyCart()
-                    : (bookingType == "ticket"
-                        ? _buildTicketCartView(args)
-                        : _buildTableCartView(args)),
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: SharedFooter.height),
+                  child: isEmpty
+                      ? _buildEmptyCart()
+                      : (bookingType == "ticket"
+                          ? _buildTicketCartView(args)
+                          : _buildTableCartView(args)),
+                ),
               ),
             ],
           ),

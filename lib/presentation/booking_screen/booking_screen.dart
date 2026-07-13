@@ -183,6 +183,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+        extendBody: true,
         bottomNavigationBar: const SharedFooter(currentIndex: 1),
         body: SafeArea(
           bottom: false,
@@ -191,27 +193,30 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               const CustomTopBar(),
               _buildTopBar(),
               Expanded(
-                child: _isLoading
-                  ? const AppLoadingIndicator()
-                  : _wrapAgeGate(
-                      serata,
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0.1, 0),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: _buildBody(locale, serata),
+                child: Padding(
+                  padding: EdgeInsets.only(bottom: SharedFooter.height),
+                  child: _isLoading
+                    ? const AppLoadingIndicator()
+                    : _wrapAgeGate(
+                        serata,
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 400),
+                          transitionBuilder: (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.1, 0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: _buildBody(locale, serata),
+                        ),
                       ),
-                    ),
+                ),
               ),
             ],
           ),

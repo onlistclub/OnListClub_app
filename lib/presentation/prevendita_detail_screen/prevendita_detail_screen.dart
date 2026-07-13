@@ -158,12 +158,21 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                     // Stima blocco "Chiudi QR Code": testo(~20) + gap(6) +
                     // cerchio(28).
                     const double chiudiBlockH = 56;
+                    // Tetto massimo proporzionato al Figma ufficiale
+                    // (Rectangle 164: card 527 su frame 852 di riferimento,
+                    // ~61.8%): senza questo limite, su schermi più alti del
+                    // riferimento la card si allungava oltre le proporzioni
+                    // Figma, lasciando troppo spazio blu vuoto attorno al QR
+                    // invece di restare compatta come nel design ufficiale.
+                    final double cardHMax = (R.height * (527 / 852)) < 420.0
+                        ? 420.0
+                        : (R.height * (527 / 852));
                     final double cardH = (constraints.maxHeight -
                             topGap -
                             bottomGap -
                             chiudiGap -
                             chiudiBlockH)
-                        .clamp(420.0, double.infinity);
+                        .clamp(420.0, cardHMax);
                     return SingleChildScrollView(
                       padding: EdgeInsets.fromLTRB(16, topGap, 16, bottomGap),
                       child: Column(

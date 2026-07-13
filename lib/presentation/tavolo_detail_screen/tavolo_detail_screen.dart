@@ -30,7 +30,10 @@ class TavoloDetailScreen extends StatelessWidget {
 
     return Scaffold(
       backgroundColor: Colors.black,
+      // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+      extendBody: true,
       body: SafeArea(
+        bottom: false,
         child: Column(
           children: [
             _buildTopBar(context),
@@ -59,7 +62,7 @@ class TavoloDetailScreen extends StatelessWidget {
             // ── Box blu ─────────────────────────────────────────────────────
             Expanded(
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 16),
+                padding: EdgeInsets.fromLTRB(16, 0, 16, SharedFooter.height),
                 child: Container(
                   width: double.infinity,
                   clipBehavior: Clip.hardEdge,
@@ -109,11 +112,10 @@ class TavoloDetailScreen extends StatelessWidget {
                 ),
               ),
             ),
-            const SizedBox(height: 16),
-            _buildBottomNav(),
           ],
         ),
       ),
+      bottomNavigationBar: const SharedFooter(currentIndex: 0),
     );
   }
 
@@ -157,6 +159,4 @@ class TavoloDetailScreen extends StatelessWidget {
     // tutte le altre schermate con navbar.
     return const CustomTopBar();
   }
-
-  Widget _buildBottomNav() => const SharedFooter(currentIndex: 0);
 }

@@ -68,7 +68,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
                     // una sola intestazione data, sotto tutte le notifiche di quel giorno.
                     final sections = _groupByDate(notifications);
                     return ListView.builder(
-                      padding: const EdgeInsets.fromLTRB(12, 16, 12, 16 + SharedFooter.height),
+                      padding: EdgeInsets.fromLTRB(12, 16, 12, 16 + SharedFooter.height),
                       itemCount: sections.length,
                       itemBuilder: (context, index) {
                         final section = sections[index];

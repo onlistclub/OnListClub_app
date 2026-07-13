@@ -239,7 +239,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                 // Body
                 Expanded(
                   child: SingleChildScrollView(
-                    padding: const EdgeInsets.only(bottom: SharedFooter.height),
+                    padding: EdgeInsets.only(bottom: SharedFooter.height),
                     child: Column(
                       crossAxisAlignment: CrossAxisAlignment.start,
                       children: [

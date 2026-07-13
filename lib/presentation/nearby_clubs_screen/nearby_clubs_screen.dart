@@ -1025,7 +1025,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                       else
                         Expanded(
                           child: ListView.separated(
-                            padding: const EdgeInsets.fromLTRB(
+                            padding: EdgeInsets.fromLTRB(
                                 12, 8, 12, 8 + SharedFooter.height),
                             itemCount: filtered.length,
                             separatorBuilder: (_, __) => Container(

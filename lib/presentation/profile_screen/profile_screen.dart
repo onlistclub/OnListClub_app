@@ -330,7 +330,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                 child: _isLoading
                     ? const AppLoadingIndicator()
                     : SingleChildScrollView(
-                        padding: const EdgeInsets.only(bottom: SharedFooter.height),
+                        padding: EdgeInsets.only(bottom: SharedFooter.height),
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [

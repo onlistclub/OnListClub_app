@@ -45,6 +45,8 @@ class EventInfoPopupScreen extends StatelessWidget {
       decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
       child: Scaffold(
         backgroundColor: Colors.transparent,
+        // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+        extendBody: true,
         body: SafeArea(
           bottom: false,
           child: Column(
@@ -66,11 +68,10 @@ class EventInfoPopupScreen extends StatelessWidget {
                       // Margine card: 19px a sinistra/destra (Figma 393−354)/2.
                       // Gap sopra ritoccato leggermente in più su richiesta
                       // (era 40, ancora percepito stretto su device reale).
-                      // Gap sotto ridotto verso il Figma ufficiale, dove la
-                      // card tocca quasi la nav bar (Frame 416 bottom = nav
-                      // bar top, gap zero).
-                      padding: EdgeInsets.fromLTRB(
-                          R.sp(19), R.sp(48), R.sp(19), R.sp(16)),
+                      // Gap sotto: spazio Figma + clearance della capsula
+                      // flottante, altrimenti la card finisce dietro la footer.
+                      padding: EdgeInsets.fromLTRB(R.sp(19), R.sp(48), R.sp(19),
+                          R.sp(16) + SharedFooter.height),
                       sliver: SliverFillRemaining(
                         hasScrollBody: false,
                         child: _PopupCard(serata: serata, club: club),
