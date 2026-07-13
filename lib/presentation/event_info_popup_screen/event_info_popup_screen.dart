@@ -64,12 +64,13 @@ class EventInfoPopupScreen extends StatelessWidget {
                   slivers: [
                     SliverPadding(
                       // Margine card: 19px a sinistra/destra (Figma 393−354)/2.
-                      // Gap sopra allineato alla proporzione Figma (header→card
-                      // ~3.5% dell'altezza schermo, era 2.5%). Gap sotto ridotto
-                      // verso il Figma ufficiale, dove la card tocca quasi la
-                      // nav bar (Frame 416 bottom = nav bar top, gap zero).
+                      // Gap sopra ritoccato leggermente in più su richiesta
+                      // (era 40, ancora percepito stretto su device reale).
+                      // Gap sotto ridotto verso il Figma ufficiale, dove la
+                      // card tocca quasi la nav bar (Frame 416 bottom = nav
+                      // bar top, gap zero).
                       padding: EdgeInsets.fromLTRB(
-                          R.sp(19), R.sp(40), R.sp(19), R.sp(16)),
+                          R.sp(19), R.sp(48), R.sp(19), R.sp(16)),
                       sliver: SliverFillRemaining(
                         hasScrollBody: false,
                         child: _PopupCard(serata: serata, club: club),
