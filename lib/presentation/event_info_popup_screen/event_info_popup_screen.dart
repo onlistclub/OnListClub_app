@@ -67,12 +67,14 @@ class EventInfoPopupScreen extends StatelessWidget {
                   slivers: [
                     SliverPadding(
                       // Margine card: 19px a sinistra/destra (Figma 393−354)/2.
-                      // Gap sopra ridotto: la card deve stare vicina
-                      // all'header come nel Figma, non staccata.
-                      // Gap sotto: spazio Figma + clearance della capsula
-                      // flottante, altrimenti la card finisce dietro la footer.
-                      padding: EdgeInsets.fromLTRB(R.sp(19), R.sp(16), R.sp(19),
-                          R.sp(16) + SharedFooter.height),
+                      // Gap sopra ridotto ulteriormente: la card deve stare
+                      // a filo con l'header come nel Figma.
+                      // Gap sotto: SOLO la clearance della capsula flottante
+                      // (SharedFooter.height), senza margine extra — il CTA
+                      // deve stare vicino alla footer come nel Figma, non
+                      // con un vuoto aggiuntivo sopra di essa.
+                      padding: EdgeInsets.fromLTRB(
+                          R.sp(19), R.sp(8), R.sp(19), SharedFooter.height),
                       sliver: SliverToBoxAdapter(
                         child: _PopupCard(serata: serata, club: club),
                       ),
