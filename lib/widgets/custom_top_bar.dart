@@ -79,7 +79,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                 child: SvgPicture.asset(ImageConstant.imgNavSearch,
-                    width: 28, height: 28),
+                    width: 34, height: 34),
               ),
             ),
           if (showProfile)
@@ -91,7 +91,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                   clipBehavior: Clip.none,
                   children: [
                     SvgPicture.asset(ImageConstant.imgNavProfile,
-                        width: 28, height: 28),
+                        width: 34, height: 34),
                     // Pallino "hai notifiche non lette" — sostituisce il
                     // badge che prima stava sulla campanella della footer.
                     Positioned(

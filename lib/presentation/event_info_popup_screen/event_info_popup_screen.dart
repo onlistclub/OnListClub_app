@@ -243,9 +243,12 @@ class _PopupCard extends StatelessWidget {
           // un'altezza fissa) — l'Expanded andava in overflow e spingeva
           // "Acquista il tuo ticket" fuori dall'area visibile, dietro la
           // footer. Il bottone d'acquisto è un flusso critico (non deve
-          // MAI sparire), quindi si torna al gap fisso: meno fedele al
-          // Figma sulla posizione esatta del CTA, ma sempre visibile.
-          SizedBox(height: R.sp(hasLineup ? 20 : 16)),
+          // MAI sparire), quindi resta un gap FISSO (sicuro: la card ora
+          // si dimensiona sul contenuto, quindi aumentarlo la allunga
+          // semplicemente un po', senza rischio di overflow). Aumentato
+          // leggermente su richiesta per staccare di più il CTA dalla
+          // line-up.
+          SizedBox(height: R.sp(hasLineup ? 32 : 28)),
           _acquistaCta(context),
         ],
       ),
