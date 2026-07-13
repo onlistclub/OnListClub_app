@@ -245,12 +245,18 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                   // Gap fisso (era Spacer flessibile): il QR
                                   // deve stare vicino al prezzo come nel
                                   // Figma ufficiale, non centrato a metà
-                                  // dello spazio libero. Valore misurato
-                                  // pixel-precisamente sul riferimento
-                                  // ufficiale (docs/figma_screen/off/
-                                  // image-1783954807532.webp): ~42.6 su
-                                  // frame 393 di riferimento.
-                                  SizedBox(height: R.sp(43)),
+                                  // dello spazio libero. Il target misurato
+                                  // (ink-to-QR ~42.6 su frame 393, da
+                                  // docs/figma_screen/off/
+                                  // image-1783954807532.webp) include già
+                                  // lo spazio "invisibile" sotto il testo
+                                  // dato dal line-height di price96
+                                  // (110/96, senza discendenti in "18€"):
+                                  // impostare qui lo stesso 43 sommava un
+                                  // gap doppio (misurato ~70 reale). Ridotto
+                                  // per compensare quello spazio già
+                                  // presente nel font.
+                                  SizedBox(height: R.sp(16)),
                                   Center(
                                     child: Container(
                                       padding: const EdgeInsets.all(10),
