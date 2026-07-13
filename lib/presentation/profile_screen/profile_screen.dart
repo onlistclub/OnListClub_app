@@ -200,7 +200,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   ///
   /// Il cambio avviene fuori dall'app: Supabase invia un'email con un link
   /// (template "Reset Password" in dashboard) che porta a
-  /// https://www.onlistclub.com/auth/reset-password dove l'utente imposta la
+  /// https://www.onlistclub.com/reset-password dove l'utente imposta la
   /// nuova password. Funziona anche per gli utenti OAuth (Google/Apple) che
   /// non hanno mai impostato una password: in quel caso ne creano una.
   Future<void> _changePassword() async {
@@ -254,7 +254,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     try {
       await Supabase.instance.client.auth.resetPasswordForEmail(
         email,
-        redirectTo: 'https://www.onlistclub.com/auth/reset-password',
+        redirectTo: 'https://www.onlistclub.com/reset-password',
       );
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
