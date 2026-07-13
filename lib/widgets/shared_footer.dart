@@ -128,16 +128,19 @@ class SharedFooter extends StatelessWidget {
         clipBehavior: Clip.none,
         alignment: Alignment.center,
         children: [
-          // Cerchio a riempimento leggero dietro l'icona attiva (nessun
-          // asset dedicato nel design: stesso stile dello sfondo capsula,
-          // bianco a bassa opacità, nessun bordo visibile).
+          // Anello sottile dietro l'icona attiva (nessun asset dedicato nel
+          // design): solo bordo, centro trasparente — si vede il vetro della
+          // capsula anche dentro il cerchio, non un disco bianco pieno.
           if (isSelected)
             Container(
               width: selectedCircleSize,
               height: selectedCircleSize,
               decoration: BoxDecoration(
-                color: Colors.white.withOpacity(0.08),
                 shape: BoxShape.circle,
+                border: Border.all(
+                  color: Colors.white.withOpacity(0.55),
+                  width: 1.4,
+                ),
               ),
             ),
           // Icona bianca (nativa dal design). Attiva: piena. Inattiva:
