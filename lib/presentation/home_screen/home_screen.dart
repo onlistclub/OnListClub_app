@@ -250,7 +250,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         position: _navSlide,
         child: FadeTransition(
           opacity: _navFade,
-          child: const SharedFooter(currentIndex: 1, withBottomBlur: false),
+          child: const SharedFooter(currentIndex: 1),
         ),
       ),
     );

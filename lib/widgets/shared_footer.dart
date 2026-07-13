@@ -7,8 +7,10 @@ import '../../core/app_export.dart';
 /// Bottom navigation bar condivisa dalle schermate principali.
 ///
 /// Usa gli asset UFFICIALI del design (`assets/svg/ufficiali/`):
-/// - capsula: `Rectangle 261.svg` (213×48)
-/// - icone: `Ticket_Voucher.svg` / `Vector.svg` (home) / `Shopping_Cart_01.svg` (24-33, bianche)
+/// - capsula: `Rectangle 261.svg` (213×48), resa "vetro smerigliato" con
+///   `BackdropFilter` (sfoca il contenuto sotto) invece di un fill piatto
+/// - icone: `Ticket_Voucher.svg` / `Vector.svg` (home) / `Shopping_Cart_01.svg`,
+///   tutte renderizzate a 24×24 (stessa dimensione, bianche)
 ///
 /// Ordine icone: 0 = Ticket (riepilogo ordini), 1 = Home, 2 = Carrello.
 /// Le notifiche non sono più una tab della footer — si raggiungono dalla
@@ -18,15 +20,10 @@ import '../../core/app_export.dart';
 /// quindi responsive senza pixel fissi. Passare `-1` per nessuna tab attiva.
 class SharedFooter extends StatelessWidget {
   final int currentIndex;
-  /// Se true, dietro la capsula appare un velo sfocato che copre il margine
-  /// inferiore della schermata (Figma: home e club detail). Lo si attiva solo
-  /// dove serve per non gravare sui device datati.
-  final bool withBottomBlur;
 
   const SharedFooter({
     Key? key,
     required this.currentIndex,
-    this.withBottomBlur = false,
   }) : super(key: key);
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
@@ -53,29 +50,28 @@ class SharedFooter extends StatelessWidget {
         clipBehavior: Clip.none,
         children: [
           // Velo sfocato dietro la capsula + sopra l'home indicator iOS.
-          // Solo in home / club detail (vedi withBottomBlur).
-          if (withBottomBlur)
-            Positioned.fill(
-              child: IgnorePointer(
-                child: ClipRect(
-                  child: BackdropFilter(
-                    filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
-                    child: Container(
-                      decoration: BoxDecoration(
-                        gradient: LinearGradient(
-                          begin: Alignment.topCenter,
-                          end: Alignment.bottomCenter,
-                          colors: [
-                            Colors.black.withOpacity(0.0),
-                            Colors.black.withOpacity(0.35),
-                          ],
-                        ),
+          // Attivo su tutte le schermate con footer (coerenza col Figma).
+          Positioned.fill(
+            child: IgnorePointer(
+              child: ClipRect(
+                child: BackdropFilter(
+                  filter: ImageFilter.blur(sigmaX: 18, sigmaY: 18),
+                  child: Container(
+                    decoration: BoxDecoration(
+                      gradient: LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [
+                          Colors.black.withOpacity(0.0),
+                          Colors.black.withOpacity(0.35),
+                        ],
                       ),
                     ),
                   ),
                 ),
               ),
             ),
+          ),
           SafeArea(
             top: false,
             child: SizedBox(
@@ -91,15 +87,26 @@ class SharedFooter extends StatelessWidget {
                     child: Stack(
                       alignment: Alignment.center,
                       children: [
-                  // Capsula ufficiale (asset esatto, già include il fill al
-                  // 4% di bianco e il raggio pill — nessun layer extra sotto).
+                  // Capsula "vetro smerigliato": sfoca il contenuto che scorre
+                  // sotto (BackdropFilter) e ci stende sopra il fill ufficiale
+                  // (Rectangle 261.svg, 4% bianco) — così la capsula resta
+                  // realmente trasparente/traslucida come nel Figma, non un
+                  // riquadro opaco. Raggio = metà altezza, pillola piena come
+                  // l'asset (rx 24 su h 48).
                   Positioned.fill(
-                    child: SvgPicture.asset(
-                      ImageConstant.imgFooterCapsule,
-                      fit: BoxFit.fill,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(capsuleH / 2),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: SvgPicture.asset(
+                          ImageConstant.imgFooterCapsule,
+                          fit: BoxFit.fill,
+                        ),
+                      ),
                     ),
                   ),
-                  // Icone equispaziate (3 slot uguali).
+                  // Icone equispaziate (3 slot uguali), stessa dimensione
+                  // per tutte e tre (come Figma — Home non è più grande).
                         Row(
                           children: [
                             Expanded(
@@ -107,7 +114,7 @@ class SharedFooter extends StatelessWidget {
                                     24, 24, 0, AppRoutes.ordersScreen)),
                             Expanded(
                                 child: _buildNavItem(scale, ImageConstant.imgNavHome,
-                                    33, 33, 1, AppRoutes.homeScreen)),
+                                    24, 24, 1, AppRoutes.homeScreen)),
                             Expanded(
                                 child: _buildNavItem(scale, ImageConstant.imgNavCart,
                                     24, 24, 2, AppRoutes.cartScreen)),
@@ -126,8 +133,8 @@ class SharedFooter extends StatelessWidget {
   }
 
   // Diametro nativo del cerchio "riempimento leggero" dietro la tab attiva:
-  // abbraccia la più grande delle 3 icone (Home, 33×33) con un piccolo margine.
-  static const double _selectedCircleSize = 44;
+  // abbraccia le icone (tutte 24×24 ora) con un margine confortevole.
+  static const double _selectedCircleSize = 40;
 
   Widget _buildNavItem(double scale, String iconPath, double iconW,
       double iconH, int index, String routeName) {
