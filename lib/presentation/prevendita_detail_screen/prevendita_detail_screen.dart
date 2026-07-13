@@ -144,7 +144,12 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                   builder: (context, constraints) {
                     const double topGap = 12;
                     final double bottomGap = 24 + SharedFooter.height;
-                    const double chiudiGap = 20;
+                    // Allineato al SizedBox tra card e blocco "Chiudi QR
+                    // Code" più sotto: DEVE restare uguale a quel valore,
+                    // altrimenti il calcolo di cardH riserva uno spazio
+                    // sbagliato e "Chiudi QR Code"/freccia rischiano di
+                    // uscire dallo schermo o di essere troppo stretti.
+                    const double chiudiGap = 32;
                     // Stima blocco "Chiudi QR Code": testo(~20) + gap(6) +
                     // cerchio(28).
                     const double chiudiBlockH = 56;
@@ -258,13 +263,13 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                         child: QrImageView(
                                           data: qrData,
                                           version: QrVersions.auto,
-                                          // Box totale (QR + padding 10x2)
-                                          // proporzionato al Figma ufficiale
-                                          // (258×258 su frame 393 di
-                                          // riferimento), responsive via
-                                          // R.width invece di px fissi.
-                                          size: ((R.width * (258 / 393)) - 20)
-                                              .clamp(160.0, 320.0),
+                                          // Box totale (QR + padding 10x2) leggermente
+                                          // più grande della proporzione
+                                          // Figma base (258/393 → 280/393),
+                                          // responsive via R.width invece di
+                                          // px fissi.
+                                          size: ((R.width * (280 / 393)) - 20)
+                                              .clamp(160.0, 340.0),
                                           backgroundColor: Colors.transparent,
                                         ),
                                       ),
@@ -318,7 +323,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 20),
+                          const SizedBox(height: 32),
                           // Chiudi QR Code
                           Center(
                             child: GestureDetector(
