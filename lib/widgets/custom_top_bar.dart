@@ -25,20 +25,20 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   }) : super(key: key);
 
   // ── Crop virtuale del wordmark ──────────────────────────────────────────
-  // `logo_onlist_wordmark.png` NON è ritagliato: è un canvas quadrato
-  // 4096×4096 con la scritta "OnList" che occupa solo una fascia centrale,
-  // circondata da ampio spazio trasparente. Renderizzarlo con BoxFit.contain
-  // e un aspect ratio "largo" (assumendo un ritaglio che non esiste) lo
-  // rimpiccioliva e lo spostava in alto a sinistra nella navbar.
-  // Finché il file non viene sostituito con una versione ritagliata, lo
-  // ritagliamo qui via OverflowBox+Transform (nessuna modifica al file su
-  // disco). Percentuali misurate col bounding box reale dei pixel non
-  // trasparenti (Image.getbbox, canvas 4096×4096): left 506, top 1579,
-  // right 3590, bottom 2517px.
-  static const double _cropLeft = 0.1235;
-  static const double _cropTop = 0.3855;
-  static const double _cropWidth = 0.7529;
-  static const double _cropHeight = 0.2290;
+  // `logo_onlist_wordmark.png` NON è ritagliato: è un canvas quadrato con la
+  // scritta "OnList" che occupa solo una fascia centrale, circondata da ampio
+  // spazio trasparente. Renderizzarlo con BoxFit.contain e un aspect ratio
+  // "largo" (assumendo un ritaglio che non esiste) lo rimpiccioliva e lo
+  // spostava in alto a sinistra nella navbar. Lo ritagliamo qui via
+  // OverflowBox+Transform (nessuna modifica al file su disco).
+  // Percentuali misurate sul bounding box dei pixel PIENI delle lettere
+  // (esclude il glow viola del puntino della "i", che sfora sopra la
+  // cap-height): così le lettere riempiono la barra come prima e il glow
+  // eccedente viene clippato dal ClipRect. Sorgente: nuovo logo off_logo.
+  static const double _cropLeft = 0.1237;
+  static const double _cropTop = 0.4206;
+  static const double _cropWidth = 0.7520;
+  static const double _cropHeight = 0.2279;
   static double get _cropAspect => _cropWidth / _cropHeight;
 
   /// Altezza della scritta "OnList": dimensione fissa (non scalata su R.w),

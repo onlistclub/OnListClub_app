@@ -36,6 +36,8 @@ flutter:
   assets:
     - assets/
     - assets/images/
+    - assets/images/2.0x/
+    - assets/images/3.0x/
     - assets/svg/
     - assets/svg/ufficiali/
     - env.json
