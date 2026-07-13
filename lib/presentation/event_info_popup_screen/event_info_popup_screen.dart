@@ -53,27 +53,27 @@ class EventInfoPopupScreen extends StatelessWidget {
             children: [
               const CustomTopBar(),
               Expanded(
-                // La card (col suo sfondo gradiente) deve estendersi fino in
-                // fondo allo spazio disponibile, non fermarsi a metà lasciando
-                // uno sfondo piatto sotto. SliverFillRemaining(hasScrollBody:
-                // false) fa da "Expanded dentro lo scroll": riempie tutta
-                // l'altezza residua quando c'è spazio, e permette comunque lo
-                // scroll se il contenuto (tanti DJ in line-up) supera lo
-                // schermo. NON usare IntrinsicHeight qui — non è supportato
-                // come discendente di uno scroll/LayoutBuilder e causa un
-                // crash di layout.
+                // La card deve essere alta quanto il suo contenuto (non
+                // forzata a riempire tutto lo schermo): SliverFillRemaining
+                // stirava la card fino al fondo del viewport lasciando una
+                // coda di gradiente vuoto sotto il CTA (o, con contenuto
+                // lungo, andava in overflow e nascondeva il CTA dietro la
+                // footer). SliverToBoxAdapter dimensiona la card al
+                // contenuto e rende la CustomScrollView scrollabile SOLO
+                // se il contenuto non ci sta nello schermo. NON usare
+                // IntrinsicHeight qui — non è supportato come discendente
+                // di uno scroll/LayoutBuilder e causa un crash di layout.
                 child: CustomScrollView(
                   slivers: [
                     SliverPadding(
                       // Margine card: 19px a sinistra/destra (Figma 393−354)/2.
-                      // Gap sopra ritoccato leggermente in più su richiesta
-                      // (era 40, ancora percepito stretto su device reale).
+                      // Gap sopra ridotto: la card deve stare vicina
+                      // all'header come nel Figma, non staccata.
                       // Gap sotto: spazio Figma + clearance della capsula
                       // flottante, altrimenti la card finisce dietro la footer.
-                      padding: EdgeInsets.fromLTRB(R.sp(19), R.sp(48), R.sp(19),
+                      padding: EdgeInsets.fromLTRB(R.sp(19), R.sp(16), R.sp(19),
                           R.sp(16) + SharedFooter.height),
-                      sliver: SliverFillRemaining(
-                        hasScrollBody: false,
+                      sliver: SliverToBoxAdapter(
                         child: _PopupCard(serata: serata, club: club),
                       ),
                     ),
