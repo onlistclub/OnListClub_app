@@ -125,76 +125,34 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
               const CustomTopBar(),
               _buildBackRow(),
               Expanded(
-                // La card si "allunga" per riempire lo spazio verticale
-                // disponibile (Figma 18: bordo alto, QR centrato, ANNULLA
-                // vicino al fondo). ATTENZIONE: questa schermata contiene un
-                // QrImageView (pacchetto qr_flutter), che avvolge SEMPRE il
-                // proprio contenuto in un LayoutBuilder interno (non
-                // modificabile, è nel codice del pacchetto). Sia
-                // IntrinsicHeight sia SliverFillRemaining calcolano le
-                // dimensioni intrinseche dei discendenti e vanno in crash
-                // non appena raggiungono quel LayoutBuilder ("LayoutBuilder
-                // does not support returning intrinsic dimensions").
-                // Soluzione: calcoliamo l'altezza della card ESPLICITAMENTE
-                // con LayoutBuilder (qui, fuori da qualunque scroll/sliver) e
-                // la imponiamo con un SizedBox — questo NON richiede mai le
-                // dimensioni intrinseche dei figli, quindi è sicuro anche
-                // con il QR dentro.
-                child: LayoutBuilder(
-                  builder: (context, constraints) {
-                    const double topGap = 12;
-                    final double bottomGap = 24 + SharedFooter.height;
-                    // Allineato al SizedBox tra card e blocco "Chiudi QR
-                    // Code" più sotto: DEVE restare uguale a quel valore,
-                    // altrimenti il calcolo di cardH riserva uno spazio
-                    // sbagliato e "Chiudi QR Code"/freccia rischiano di
-                    // uscire dallo schermo o di essere troppo stretti.
-                    // Misurato pixel-precisamente sul riferimento ufficiale
-                    // (docs/figma_screen/off/image-1783954807532.webp): gap
-                    // totale bottone->testo ~18.7 su frame 393, di cui ~20
-                    // già coperti dal padding interno della card (bottom:20)
-                    // — 32 usato prima era troppo, sforava il target reale.
-                    const double chiudiGap = 8;
-                    // Stima blocco "Chiudi QR Code": testo(~20) + gap(6) +
-                    // cerchio(28).
-                    const double chiudiBlockH = 56;
-                    // Tetto massimo proporzionato al Figma ufficiale
-                    // (Rectangle 164: card 527 su frame 852 di riferimento,
-                    // ~61.8%): senza questo limite, su schermi più alti del
-                    // riferimento la card si allungava oltre le proporzioni
-                    // Figma, lasciando troppo spazio blu vuoto attorno al QR
-                    // invece di restare compatta come nel design ufficiale.
-                    final double cardHMax = (R.height * (527 / 852)) < 420.0
-                        ? 420.0
-                        : (R.height * (527 / 852));
-                    final double cardH = (constraints.maxHeight -
-                            topGap -
-                            bottomGap -
-                            chiudiGap -
-                            chiudiBlockH)
-                        .clamp(420.0, cardHMax);
-                    return SingleChildScrollView(
-                      padding: EdgeInsets.fromLTRB(16, topGap, 16, bottomGap),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.stretch,
-                        children: [
-                          // Card grande con tutto dentro (Figma 18). SizedBox
-                          // forza un'altezza esatta/bounded, così Expanded/
-                          // Spacer dentro il Container funzionano senza mai
-                          // richiedere dimensioni intrinseche.
-                          SizedBox(
-                            height: cardH,
-                            child: Container(
-                              width: double.infinity,
-                              padding:
-                                  const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                              decoration: BoxDecoration(
-                                gradient: OnlistColors.cardSummary,
-                                borderRadius: BorderRadius.circular(10),
-                              ),
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
+                // La card e il blocco "Chiudi QR Code" condividono ora lo
+                // stesso sfondo (Figma aggiornato: il gradiente della card
+                // si estende fino a includere "Chiudi QR Code" e la
+                // freccia, non finisce subito dopo ANNULLA). ATTENZIONE:
+                // questa schermata contiene un QrImageView (pacchetto
+                // qr_flutter), che avvolge SEMPRE il proprio contenuto in
+                // un LayoutBuilder interno (non modificabile, è nel codice
+                // del pacchetto): IntrinsicHeight e SliverFillRemaining
+                // calcolano le dimensioni intrinseche dei discendenti e
+                // vanno in crash non appena raggiungono quel LayoutBuilder.
+                // Qui non serve nessuna delle due: niente Spacer/Expanded
+                // dentro la card, quindi un semplice Column dentro
+                // SingleChildScrollView si dimensiona sul contenuto senza
+                // richiedere dimensioni intrinseche — sicuro anche col QR.
+                child: SingleChildScrollView(
+                  padding: EdgeInsets.fromLTRB(
+                      16, 12, 16, 24 + SharedFooter.height),
+                  child: Container(
+                    width: double.infinity,
+                    constraints: BoxConstraints(minHeight: R.sp(420)),
+                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
+                    decoration: BoxDecoration(
+                      gradient: OnlistColors.cardSummary,
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Column(
+                      crossAxisAlignment: CrossAxisAlignment.start,
+                      children: [
                                   // "Ticket x N" + "Ticket {tipo}" con più
                                   // respiro tra i due (Figma 18: il
                                   // sottotitolo è staccato dal numero).
@@ -260,7 +218,17 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                   Center(
                                     child: Container(
                                       padding: const EdgeInsets.all(10),
-                                      color: Colors.white,
+                                      decoration: BoxDecoration(
+                                        color: Colors.white,
+                                        // Angoli arrotondati (richiesto):
+                                        // il raggio resta piccolo rispetto
+                                        // al box (~260px) e al padding
+                                        // interno (10px), quindi non taglia
+                                        // i pattern-finder del QR agli
+                                        // angoli — resta scannerizzabile.
+                                        borderRadius:
+                                            BorderRadius.circular(R.sp(16)),
+                                      ),
                                       // ShaderMask ricolora solo i pixel
                                       // opachi del QR (i moduli scuri) con
                                       // la sfumatura viola ufficiale — il QR
@@ -301,7 +269,14 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                       ),
                                     ),
                                   ),
-                                  const Spacer(),
+                                  // Gap fisso (era Spacer flessibile): ANNULLA
+                                  // deve stare vicino al QR come nel Figma,
+                                  // non spinto in fondo a un container ora
+                                  // dimensionato sul contenuto. Valore
+                                  // misurato sul riferimento ufficiale
+                                  // (image-1783954807532.webp): gap
+                                  // QR-bottom -> ANNULLA-top ~23.
+                                  SizedBox(height: R.sp(23)),
                                   // ANNULLA PREVENDITA (pill)
                                   if (stato.toString().toLowerCase() !=
                                       'annullata')
@@ -345,12 +320,10 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                               .copyWith(
                                                   color: Colors.redAccent)),
                                     ),
-                                ],
-                              ),
-                            ),
-                          ),
-                          const SizedBox(height: 8),
-                          // Chiudi QR Code
+                          SizedBox(height: R.sp(8)),
+                          // Chiudi QR Code — ora dentro la card, stesso
+                          // sfondo gradiente (Figma aggiornato: prima
+                          // stava fuori su sfondo nero).
                           Center(
                             child: GestureDetector(
                               onTap: () => NavigatorService.goBack(),
@@ -377,10 +350,9 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                           ),
                         ],
                       ),
-                    );
-                  },
+                    ),
+                  ),
                 ),
-              ),
             ],
           ),
         ),
