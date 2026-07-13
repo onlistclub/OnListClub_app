@@ -149,7 +149,12 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                     // altrimenti il calcolo di cardH riserva uno spazio
                     // sbagliato e "Chiudi QR Code"/freccia rischiano di
                     // uscire dallo schermo o di essere troppo stretti.
-                    const double chiudiGap = 32;
+                    // Misurato pixel-precisamente sul riferimento ufficiale
+                    // (docs/figma_screen/off/image-1783954807532.webp): gap
+                    // totale bottone->testo ~18.7 su frame 393, di cui ~20
+                    // già coperti dal padding interno della card (bottom:20)
+                    // — 32 usato prima era troppo, sforava il target reale.
+                    const double chiudiGap = 8;
                     // Stima blocco "Chiudi QR Code": testo(~20) + gap(6) +
                     // cerchio(28).
                     const double chiudiBlockH = 56;
@@ -231,8 +236,12 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                   // Gap fisso (era Spacer flessibile): il QR
                                   // deve stare vicino al prezzo come nel
                                   // Figma ufficiale, non centrato a metà
-                                  // dello spazio libero.
-                                  SizedBox(height: R.sp(28)),
+                                  // dello spazio libero. Valore misurato
+                                  // pixel-precisamente sul riferimento
+                                  // ufficiale (docs/figma_screen/off/
+                                  // image-1783954807532.webp): ~42.6 su
+                                  // frame 393 di riferimento.
+                                  SizedBox(height: R.sp(43)),
                                   Center(
                                     child: Container(
                                       padding: const EdgeInsets.all(10),
@@ -263,13 +272,15 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                         child: QrImageView(
                                           data: qrData,
                                           version: QrVersions.auto,
-                                          // Box totale (QR + padding 10x2) leggermente
-                                          // più grande della proporzione
-                                          // Figma base (258/393 → 280/393),
+                                          // Box totale (QR + padding 10x2) proporzionato
+                                          // al Figma ufficiale: 258/393
+                                          // misurato pixel-precisamente sul
+                                          // riferimento (rapporto 0.6554,
+                                          // 280/393 usato prima sforava),
                                           // responsive via R.width invece di
                                           // px fissi.
-                                          size: ((R.width * (280 / 393)) - 20)
-                                              .clamp(160.0, 340.0),
+                                          size: ((R.width * (258 / 393)) - 20)
+                                              .clamp(160.0, 320.0),
                                           backgroundColor: Colors.transparent,
                                         ),
                                       ),
@@ -323,7 +334,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                               ),
                             ),
                           ),
-                          const SizedBox(height: 32),
+                          const SizedBox(height: 8),
                           // Chiudi QR Code
                           Center(
                             child: GestureDetector(
