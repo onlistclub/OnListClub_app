@@ -40,9 +40,9 @@ class ImageConstant {
   // Nuova footer a 3 icone (Ticket, Home, Carrello) + nuove icone top bar.
   // SVG con stroke bianco nativo: renderizzare con SvgPicture, non Image.asset.
   static const String _svgUfficiali = '${_svgPath}ufficiali/';
-  static String imgNavTicket = '${_svgUfficiali}Ticket_Voucher.svg';        // 24×24
-  static String imgNavHome = '${_svgUfficiali}Vector.svg';                  // 33×33
-  static String imgNavCart = '${_svgUfficiali}Shopping_Cart_01.svg';        // 24×24
+  static String imgNavTicket = '${_svgUfficiali}Vector.svg';                // 41×29
+  static String imgNavHome = '${_svgUfficiali}home.svg';                    // 33×33
+  static String imgNavCart = '${_svgUfficiali}Shopping_Cart_01.svg';        // 31×32
   static String imgNavSearch = '${_svgUfficiali}Search_Magnifying_Glass.svg'; // 24×24
   static String imgNavProfile = '${_svgUfficiali}User_01.svg';              // 24×24
   static String imgProfileBadgeDot = '${_svgUfficiali}Ellipse 17.svg';      // 16×16

@@ -9,8 +9,9 @@ import '../../core/app_export.dart';
 /// Usa gli asset UFFICIALI del design (`assets/svg/ufficiali/`):
 /// - capsula: `Rectangle 261.svg`, resa "vetro smerigliato" con
 ///   `BackdropFilter` (sfoca il contenuto sotto) invece di un fill piatto
-/// - icone: `Ticket_Voucher.svg` / `Vector.svg` (home) / `Shopping_Cart_01.svg`,
-///   tutte renderizzate alla stessa dimensione (bianche)
+/// - icone: `Vector.svg` (ticket) / `home.svg` / `Shopping_Cart_01.svg`
+///   (carrello), stessa altezza per tutte, larghezza secondo l'aspect
+///   ratio nativo di ciascun asset (bianche)
 ///
 /// Ordine icone: 0 = Ticket (riepilogo ordini), 1 = Home, 2 = Carrello.
 /// Le notifiche non sono più una tab della footer — si raggiungono dalla
@@ -32,7 +33,14 @@ class SharedFooter extends StatelessWidget {
   // l'asset, centrata (il margine laterale è quello che ne risulta).
   static const double _designCapsuleW = 213;
   static const double _designCapsuleH = 48;
-  static const double _designIconSize = 33; // icone grandi come nel Figma
+  // Altezza comune delle 3 icone (px design). La larghezza segue l'aspect
+  // ratio nativo di ciascun asset (ticket è naturalmente più largo che alto,
+  // come un vero biglietto) — tutti e tre riempiono quasi interamente il
+  // proprio viewBox, quindi nessun ritaglio/compensazione è più necessario.
+  static const double _designIconSize = 33;
+  static const double _ticketAspect = 41 / 29; // Vector.svg (ticket)
+  static const double _homeAspect = 33 / 33; // home.svg
+  static const double _cartAspect = 31 / 32; // Shopping_Cart_01.svg
   static const double _designClearanceExtra = 28; // spazio sopra/sotto la pillola
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
@@ -93,21 +101,13 @@ class SharedFooter extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                            child: _buildNavItem(iconSize,
-                                ImageConstant.imgNavTicket, 0, AppRoutes.ordersScreen,
-                                // Ticket_Voucher.svg ha molto vuoto interno nel suo
-                                // viewBox 24×24 (il disegno occupa solo x:[3,21]
-                                // y:[6,18]): a parità di box appare più piccolo
-                                // degli altri due, che riempiono quasi tutto il
-                                // loro canvas. Ritaglio il riquadro effettivo del
-                                // disegno (stessa tecnica di custom_top_bar.dart
-                                // per il logo, nessuna modifica al file .svg).
-                                contentCrop: const Size(22, 16))),
+                            child: _buildNavItem(iconSize, _ticketAspect,
+                                ImageConstant.imgNavTicket, 0, AppRoutes.ordersScreen)),
                         Expanded(
-                            child: _buildNavItem(iconSize,
+                            child: _buildNavItem(iconSize, _homeAspect,
                                 ImageConstant.imgNavHome, 1, AppRoutes.homeScreen)),
                         Expanded(
-                            child: _buildNavItem(iconSize,
+                            child: _buildNavItem(iconSize, _cartAspect,
                                 ImageConstant.imgNavCart, 2, AppRoutes.cartScreen)),
                       ],
                     ),
@@ -121,27 +121,9 @@ class SharedFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(double iconSize, String iconPath, int index,
-      String routeName, {Size? contentCrop}) {
+  Widget _buildNavItem(double iconHeight, double aspect, String iconPath,
+      int index, String routeName) {
     final isSelected = currentIndex == index;
-    // Icona nativa 24×24 (dimensione di tutti gli asset ufficiali footer,
-    // tranne Home che è 33×33 ma riempie già tutto il suo canvas).
-    const nativeSize = 24.0;
-    final Widget svg = contentCrop == null
-        ? SvgPicture.asset(iconPath, fit: BoxFit.contain)
-        : FittedBox(
-            fit: BoxFit.contain,
-            child: SizedBox(
-              width: contentCrop.width,
-              height: contentCrop.height,
-              child: OverflowBox(
-                maxWidth: nativeSize,
-                maxHeight: nativeSize,
-                child: SvgPicture.asset(iconPath,
-                    width: nativeSize, height: nativeSize),
-              ),
-            ),
-          );
     return GestureDetector(
       onTap: () {
         if (!isSelected && routeName.isNotEmpty) {
@@ -152,13 +134,15 @@ class SharedFooter extends StatelessWidget {
       child: Center(
         // Nessuna forma decorativa dietro l'icona attiva (niente cerchio/anello):
         // come nel Figma, la selezione si vede solo dall'icona a piena opacità
-        // contro le altre attenuate.
+        // contro le altre attenuate. Altezza comune, larghezza secondo
+        // l'aspect ratio nativo dell'asset (il ticket è naturalmente più
+        // largo che alto).
         child: SizedBox(
-          width: iconSize,
-          height: iconSize,
+          width: iconHeight * aspect,
+          height: iconHeight,
           child: Opacity(
             opacity: isSelected ? 1.0 : 0.5,
-            child: svg,
+            child: SvgPicture.asset(iconPath, fit: BoxFit.contain),
           ),
         ),
       ),
