@@ -43,6 +43,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               const CustomTopBar(),

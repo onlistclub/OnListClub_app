@@ -320,6 +320,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       body: Container(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               // Navbar fissa condivisa (logo + ricerca + persona) — come Figma.

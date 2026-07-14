@@ -65,6 +65,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(
+          bottom: false,
           child: Column(
             children: [
               const CustomTopBar(),

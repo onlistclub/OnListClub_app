@@ -218,6 +218,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
         builder: (context, state) {
           return SafeArea(
+            bottom: false,
             child: Column(
               children: [
                 // AppBar
