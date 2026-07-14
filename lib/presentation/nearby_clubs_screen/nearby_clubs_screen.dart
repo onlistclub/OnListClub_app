@@ -45,10 +45,107 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   CittaModel?
       _customCity; // città cercata manualmente: ha priorità su GPS/saved
 
+  // ── Barra di ricerca unificata ─────────────────────────────────────────────
+  // Un solo campo cerca sia locali (filtro client-side sulla lista già
+  // caricata) sia città (query su Supabase, ricentra la ricerca).
+  final TextEditingController _searchCtrl = TextEditingController();
+  final FocusNode _searchFocus = FocusNode();
+  Timer? _cityDebounce;
+  List<CittaModel> _cityResults = [];
+  bool _cityLoading = false;
+  // Marker monotonico per scartare risposte di chiamate ormai obsolete
+  // (es. utente digita "mil" mentre "mi" è ancora in volo).
+  int _citySeq = 0;
+
   @override
   void initState() {
     super.initState();
     _future = _load();
+  }
+
+  @override
+  void dispose() {
+    _cityDebounce?.cancel();
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
+  /// Aggiorna il filtro locali e, in parallelo, cerca città corrispondenti.
+  void _onSearchChanged(String value) {
+    setState(() => _searchQuery = value);
+
+    _cityDebounce?.cancel();
+    final query = value.trim();
+    if (query.length < 2) {
+      setState(() {
+        _cityResults = [];
+        _cityLoading = false;
+      });
+      return;
+    }
+
+    _citySeq++;
+    final mySeq = _citySeq;
+    setState(() => _cityLoading = true);
+    _cityDebounce = Timer(const Duration(milliseconds: 300), () async {
+      try {
+        final r = await LocationService.searchCitta(query);
+        if (!mounted || mySeq != _citySeq) return;
+        setState(() {
+          _cityResults = r;
+          _cityLoading = false;
+        });
+      } catch (e) {
+        debugPrint('[NearbyClubs] searchCitta fallita: $e');
+        if (!mounted || mySeq != _citySeq) return;
+        setState(() {
+          _cityResults = [];
+          _cityLoading = false;
+        });
+      }
+    });
+  }
+
+  /// Ricentra la ricerca sulla città scelta e svuota il campo: la città
+  /// diventa il contesto (chip in alto), non un filtro testuale sui nomi.
+  void _selectCity(CittaModel citta) {
+    _cityDebounce?.cancel();
+    _citySeq++;
+    _searchCtrl.clear();
+    _searchFocus.unfocus();
+    setState(() {
+      _customCity = citta;
+      _searchQuery = '';
+      _cityResults = [];
+      _cityLoading = false;
+      _future = _load();
+    });
+  }
+
+  void _clearCity() {
+    setState(() {
+      _customCity = null;
+      _future = _load();
+    });
+  }
+
+  /// Accende/spegne il GPS come sorgente della ricerca. Acceso, la città
+  /// cercata a mano viene scartata: altrimenti avrebbe comunque la priorità
+  /// in `_load()` e il GPS non avrebbe alcun effetto visibile.
+  void _toggleGps(bool enable) {
+    LocationService.isGpsForced = enable;
+    setState(() {
+      if (enable) _customCity = null;
+      _future = _load();
+    });
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(enable
+            ? 'Ricerca tramite GPS attivata'
+            : 'GPS disattivato: ricerca per città'),
+      ),
+    );
   }
 
   // ── Load ───────────────────────────────────────────────────────────────────
@@ -105,6 +202,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
         }
       }
     } else {
+      // GPS disattivato: la ricerca si basa su una città.
       // Priorità 3: città salvata manualmente nelle impostazioni
       final savedCity = await LocationService.getSavedLocation();
       if (savedCity?.lat != null) {
@@ -113,9 +211,20 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
         locationLabel = savedCity.nomeCitta;
       }
 
-      // Priorità 4: fallback a GPS
+      // Priorità 4: nessuna città scelta → deduciamo la più vicina dall'ultima
+      // posizione GPS in cache. Non chiediamo una nuova posizione: col toggle
+      // spento il GPS non va interrogato.
       if (lat == null) {
-        await tryGps();
+        final cached = await LocationService.getCachedGpsPosition();
+        if (cached != null) {
+          final nearest =
+              await LocationService.getNearestCitta(cached.lat, cached.lng);
+          if (nearest?.lat != null) {
+            lat = nearest!.lat;
+            lng = nearest.lng;
+            locationLabel = nearest.nomeCitta;
+          }
+        }
       }
     }
 
@@ -262,9 +371,16 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                             ),
                           ),
                           children: [
+                            // Basemap CARTO "dark_matter": look pulito e
+                            // minimale, coerente col tema scuro dell'app.
+                            // Niente API key; l'attribuzione sotto è richiesta
+                            // dalla licenza CARTO/OpenStreetMap.
                             TileLayer(
                               urlTemplate:
-                                  'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+                                  'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
+                              subdomains: const ['a', 'b', 'c', 'd'],
+                              retinaMode:
+                                  RetinaMode.isHighDensity(context),
                               userAgentPackageName: 'com.onlist.app',
                             ),
                             CircleLayer(
@@ -299,7 +415,16 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                         ),
                       ),
                     ),
-                    const SizedBox(height: 12),
+                    const SizedBox(height: 4),
+                    Text(
+                      '© OpenStreetMap, © CARTO',
+                      style: TextStyle(
+                        fontFamily: 'Helvetica',
+                        fontSize: 9,
+                        color: Colors.white24,
+                      ),
+                    ),
+                    const SizedBox(height: 8),
                   ],
                   Center(
                     child: Text(
@@ -393,165 +518,6 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
 
     if (confirmed == true) {
       await UserProfileManager().saveRaggioKm(tempRaggio);
-      final newFuture = _load();
-      setState(() {
-        _future = newFuture;
-      });
-    }
-  }
-
-  // ── City picker ────────────────────────────────────────────────────────────
-
-  Future<void> _showCityPicker() async {
-    final TextEditingController ctrl = TextEditingController();
-    List<CittaModel> results = [];
-    Timer? searchDebounce;
-    // Marker monotonico per scartare risposte di chiamate ormai obsolete
-    // (es. utente digita "mil" mentre "mi" è ancora in volo).
-    int searchSeq = 0;
-
-    final picked = await showDialog<CittaModel>(
-      context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => Dialog(
-          backgroundColor: OnlistColors.black,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360, maxHeight: 440),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(20, 20, 20, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Cerca per città',
-                    style: TextStyle(
-                        fontFamily: 'Helvetica',
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 17),
-                  ),
-                  const SizedBox(height: 14),
-                  TextField(
-                    controller: ctrl,
-                    autofocus: true,
-                    style: TextStyle(
-                        fontFamily: 'Helvetica',
-                        color: Colors.white,
-                        fontSize: 14),
-                    decoration: InputDecoration(
-                      hintText: 'Nome città…',
-                      hintStyle: TextStyle(
-                          fontFamily: 'Helvetica',
-                          color: Colors.white38,
-                          fontSize: 14),
-                      prefixIcon: const Icon(Icons.search,
-                          color: Colors.white38, size: 20),
-                      filled: true,
-                      fillColor: OnlistColors.blueDeep,
-                      border: OutlineInputBorder(
-                        borderRadius: BorderRadius.circular(10),
-                        borderSide: BorderSide.none,
-                      ),
-                      contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                    ),
-                    onChanged: (v) {
-                      searchDebounce?.cancel();
-                      final query = v.trim();
-                      if (query.length < 2) {
-                        setS(() => results = []);
-                        return;
-                      }
-                      searchSeq++;
-                      final mySeq = searchSeq;
-                      searchDebounce = Timer(
-                        const Duration(milliseconds: 300),
-                        () async {
-                          try {
-                            final r =
-                                await LocationService.searchCitta(query);
-                            // Scarta se nel frattempo l'utente ha digitato altro.
-                            if (mySeq != searchSeq) return;
-                            setS(() => results = r);
-                          } catch (e) {
-                            debugPrint(
-                                '[NearbyClubs] searchCitta fallita: $e');
-                            if (mySeq != searchSeq) return;
-                            setS(() => results = []);
-                          }
-                        },
-                      );
-                    },
-                  ),
-                  if (results.isNotEmpty) ...[
-                    const SizedBox(height: 8),
-                    Flexible(
-                      child: ListView.builder(
-                        shrinkWrap: true,
-                        itemCount: results.length,
-                        itemBuilder: (_, i) {
-                          final c = results[i];
-                          return InkWell(
-                            onTap: () => Navigator.pop(ctx, c),
-                            borderRadius: BorderRadius.circular(8),
-                            child: Padding(
-                              padding: const EdgeInsets.symmetric(
-                                  horizontal: 4, vertical: 10),
-                              child: Row(
-                                children: [
-                                  const Icon(Icons.location_city,
-                                      color: OnlistColors.blueElectric, size: 18),
-                                  const SizedBox(width: 10),
-                                  Expanded(
-                                    child: Text(
-                                      c.nomeCitta,
-                                      style: TextStyle(
-                                          fontFamily: 'Helvetica',
-                                          color: Colors.white,
-                                          fontSize: 14),
-                                    ),
-                                  ),
-                                ],
-                              ),
-                            ),
-                          );
-                        },
-                      ),
-                    ),
-                  ] else if (ctrl.text.trim().length >= 2) ...[
-                    const SizedBox(height: 20),
-                    Center(
-                      child: Text(
-                        'Nessuna città trovata',
-                        style: TextStyle(
-                            fontFamily: 'Helvetica',
-                            color: Colors.white38,
-                            fontSize: 13),
-                      ),
-                    ),
-                  ],
-                  const SizedBox(height: 8),
-                  Align(
-                    alignment: Alignment.centerRight,
-                    child: TextButton(
-                      onPressed: () => Navigator.pop(ctx),
-                      child: Text('Annulla',
-                          style: TextStyle(
-                              fontFamily: 'Helvetica', color: Colors.white54)),
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-
-    if (picked != null) {
-      setState(() => _customCity = picked);
       final newFuture = _load();
       setState(() {
         _future = newFuture;
@@ -667,55 +633,67 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                           color: Colors.white54,
                                         ),
                                       ),
+                                      // La città scelta a mano si toglie da qui
+                                      // e si torna alla sorgente automatica.
+                                      if (_customCity != null) ...[
+                                        const SizedBox(width: 4),
+                                        GestureDetector(
+                                          behavior: HitTestBehavior.opaque,
+                                          onTap: _clearCity,
+                                          child: const Icon(Icons.close,
+                                              color: Colors.white54, size: 12),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
                               ],
-                              // Usa GPS button (solo se non forzato e non su GPS)
-                              if (!isGpsForced && locLabel != 'GPS') ...[
-                                const SizedBox(width: 8),
-                                GestureDetector(
-                                  onTap: () {
-                                    LocationService.isGpsForced = true;
-                                    setState(() {
-                                      _customCity = null;
-                                      _future = _load();
-                                    });
-                                    ScaffoldMessenger.of(context).showSnackBar(
-                                      const SnackBar(
-                                          content: Text(
-                                              'Ricerca tramite GPS attivata')),
-                                    );
-                                  },
-                                  child: Container(
-                                    padding: const EdgeInsets.symmetric(
-                                        horizontal: 8, vertical: 4),
-                                    decoration: BoxDecoration(
-                                      color: OnlistColors.blueDeep,
-                                      borderRadius: BorderRadius.circular(7),
-                                      border: Border.all(
-                                          color: OnlistColors.blueElectric
-                                              .withValues(alpha: 0.35)),
-                                    ),
-                                    child: Row(
-                                      children: [
-                                        const Icon(Icons.my_location,
-                                            color: Colors.white, size: 12),
-                                        const SizedBox(width: 4),
-                                        Text(
-                                          'Usa GPS',
-                                          style: TextStyle(
-                                            fontFamily: 'Helvetica',
-                                            fontSize: 10,
-                                            color: Colors.white,
-                                            fontWeight: FontWeight.w600,
-                                          ),
-                                        ),
-                                      ],
+                              // Toggle GPS: acceso ricentra sulla posizione
+                              // reale, spento riporta la ricerca sulla città.
+                              const SizedBox(width: 8),
+                              GestureDetector(
+                                onTap: () => _toggleGps(!isGpsForced),
+                                child: Container(
+                                  padding: const EdgeInsets.symmetric(
+                                      horizontal: 8, vertical: 4),
+                                  decoration: BoxDecoration(
+                                    color: isGpsForced
+                                        ? OnlistColors.blueElectric
+                                            .withValues(alpha: 0.18)
+                                        : OnlistColors.blueDeep,
+                                    borderRadius: BorderRadius.circular(7),
+                                    border: Border.all(
+                                      color: isGpsForced
+                                          ? OnlistColors.blueElectric
+                                          : OnlistColors.blueElectric
+                                              .withValues(alpha: 0.35),
+                                      width: isGpsForced ? 1.5 : 1,
                                     ),
                                   ),
+                                  child: Row(
+                                    mainAxisSize: MainAxisSize.min,
+                                    children: [
+                                      Icon(
+                                        isGpsForced
+                                            ? Icons.close
+                                            : Icons.my_location,
+                                        color: Colors.white,
+                                        size: 12,
+                                      ),
+                                      const SizedBox(width: 4),
+                                      Text(
+                                        isGpsForced ? 'Rimuovi GPS' : 'Usa GPS',
+                                        style: TextStyle(
+                                          fontFamily: 'Helvetica',
+                                          fontSize: 10,
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w600,
+                                        ),
+                                      ),
+                                    ],
+                                  ),
                                 ),
-                              ],
+                              ),
                             ],
                           );
                         },
@@ -726,7 +704,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
               ),
             ),
 
-            // ── Search bar ────────────────────────────────────────────────
+            // ── Search bar unificata (locali + città) ─────────────────────
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
               child: Container(
@@ -737,26 +715,46 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                   border: Border.all(color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
                 ),
                 child: TextField(
+                  controller: _searchCtrl,
+                  focusNode: _searchFocus,
+                  textInputAction: TextInputAction.search,
                   style: TextStyle(
                       fontFamily: 'Helvetica',
                       fontSize: 14,
                       color: Colors.white,
                       fontWeight: FontWeight.w500),
                   decoration: InputDecoration(
-                    hintText: 'Cerca locale…',
+                    hintText: 'Cerca locale o città…',
                     hintStyle: TextStyle(
                         fontFamily: 'Helvetica',
                         fontSize: 14,
                         color: Colors.white38),
                     prefixIcon: const Icon(Icons.search,
                         color: Colors.white38, size: 20),
+                    suffixIcon: _searchQuery.isEmpty
+                        ? null
+                        : GestureDetector(
+                            behavior: HitTestBehavior.opaque,
+                            onTap: () {
+                              _searchCtrl.clear();
+                              _onSearchChanged('');
+                            },
+                            child: const Icon(Icons.close,
+                                color: Colors.white38, size: 18),
+                          ),
                     border: InputBorder.none,
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
-                  onChanged: (v) => setState(() => _searchQuery = v),
+                  onChanged: _onSearchChanged,
                 ),
               ),
             ),
+
+            // ── Suggerimenti città ────────────────────────────────────────
+            // Compaiono sotto la barra mentre si scrive: "Jesolo" propone di
+            // ricentrare la ricerca su Jesolo, mentre la lista sotto continua
+            // a filtrare i locali per nome.
+            _buildCitySuggestions(),
 
             // ── Sort chips ─────────────────────────────────────────────────
             Padding(
@@ -808,75 +806,6 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                     ),
                   ],
                 ],
-              ),
-            ),
-
-            // ── Ricerca per città ──────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: GestureDetector(
-                onTap: _showCityPicker,
-                child: Container(
-                  height: 40,
-                  decoration: BoxDecoration(
-                    color: _customCity != null
-                        ? OnlistColors.blueElectric.withValues(alpha: 0.12)
-                        : OnlistColors.blueDeep,
-                    borderRadius: BorderRadius.circular(10),
-                    border: Border.all(
-                      color: _customCity != null
-                          ? OnlistColors.blueElectric.withValues(alpha: 0.5)
-                          : OnlistColors.blueElectric.withValues(alpha: 0.35),
-                    ),
-                  ),
-                  child: Row(
-                    children: [
-                      const SizedBox(width: 10),
-                      Icon(
-                        Icons.location_city,
-                        color: _customCity != null
-                            ? OnlistColors.blueElectric
-                            : Colors.white38,
-                        size: 16,
-                      ),
-                      const SizedBox(width: 8),
-                      Expanded(
-                        child: Text(
-                          _customCity?.nomeCitta ?? 'Cerca per città…',
-                          style: TextStyle(
-                            fontFamily: 'Helvetica',
-                            fontSize: 13,
-                            color: _customCity != null
-                                ? Colors.white
-                                : Colors.white38,
-                          ),
-                        ),
-                      ),
-                      if (_customCity != null)
-                        GestureDetector(
-                          behavior: HitTestBehavior.opaque,
-                          onTap: () {
-                            setState(() => _customCity = null);
-                            final newFuture = _load();
-                            setState(() {
-                              _future = newFuture;
-                            });
-                          },
-                          child: const Padding(
-                            padding: EdgeInsets.all(10),
-                            child: Icon(Icons.close,
-                                color: Colors.white54, size: 15),
-                          ),
-                        )
-                      else
-                        const Padding(
-                          padding: EdgeInsets.only(right: 10),
-                          child: Icon(Icons.search,
-                              color: Colors.white38, size: 15),
-                        ),
-                    ],
-                  ),
-                ),
               ),
             ),
 
@@ -1058,6 +987,82 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   }
 
   // ── Filter widgets ─────────────────────────────────────────────────────────
+
+  /// Pannello dei suggerimenti città sotto la barra di ricerca.
+  /// Vuoto (zero altezza) finché non c'è qualcosa da proporre, così non
+  /// sottrae spazio alla lista dei locali nel caso normale.
+  Widget _buildCitySuggestions() {
+    if (_searchQuery.trim().length < 2) return const SizedBox.shrink();
+    if (_cityLoading && _cityResults.isEmpty) {
+      return const Padding(
+        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        child: SizedBox(
+          height: 2,
+          child: LinearProgressIndicator(
+            backgroundColor: Colors.transparent,
+            color: OnlistColors.blueElectric,
+            minHeight: 2,
+          ),
+        ),
+      );
+    }
+    if (_cityResults.isEmpty) return const SizedBox.shrink();
+
+    return Container(
+      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+      constraints: const BoxConstraints(maxHeight: 180),
+      decoration: BoxDecoration(
+        color: OnlistColors.blueDeep,
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+            color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
+      ),
+      child: ListView.builder(
+        shrinkWrap: true,
+        padding: const EdgeInsets.symmetric(vertical: 4),
+        itemCount: _cityResults.length,
+        itemBuilder: (_, i) {
+          final c = _cityResults[i];
+          return GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => _selectCity(c),
+            child: Padding(
+              padding:
+                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              child: Row(
+                children: [
+                  const Icon(Icons.location_city,
+                      color: OnlistColors.blueElectric, size: 16),
+                  const SizedBox(width: 10),
+                  Expanded(
+                    child: Text(
+                      c.nomeCitta,
+                      style: TextStyle(
+                        fontFamily: 'Helvetica',
+                        fontSize: 14,
+                        color: Colors.white,
+                      ),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                    ),
+                  ),
+                  Text(
+                    'Cerca qui',
+                    style: TextStyle(
+                      fontFamily: 'Helvetica',
+                      fontSize: 11,
+                      fontWeight: FontWeight.w600,
+                      color: OnlistColors.blueElectric,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          );
+        },
+      ),
+    );
+  }
 
   Widget _buildPriceRow() {
     return Padding(

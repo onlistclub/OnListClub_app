@@ -77,6 +77,28 @@ class AppRoutes {
     paymentSuccessScreen,
   };
 
+  /// Schermate SENZA swipe-back. Sono il flusso pre-home (splash → auth →
+  /// registrazione → posizione), dove "indietro" non deve esistere perché più
+  /// indietro della home non c'è nulla, più `paymentSuccess`: lì la prenotazione
+  /// è già creata e tornare al carrello non ha senso.
+  ///
+  /// Tutto il resto (club, booking, cart, ordini, profilo, notifiche…) è
+  /// navigazione gerarchica a valle della home e il gesto è attivo. È comunque
+  /// una difesa in più: `AppPageRoute` disabilita il gesto da sé quando la rotta
+  /// è la prima dello stack, come sono di fatto queste schermate (ci si arriva
+  /// con `pushNamedAndRemoveUntil`).
+  static const Set<String> _noBackGestureRoutes = {
+    splashScreen,
+    authenticationScreen,
+    signUpScreen,
+    verificationScreen,
+    verificationFailureScreen,
+    completeProfileScreen,
+    locationPermissionScreen,
+    homeScreen,
+    paymentSuccessScreen,
+  };
+
   /// Genera ogni rotta applicando la transizione unica dell'app. Sostituisce la
   /// mappa `routes:` di `MaterialApp` per dare a TUTTE le schermate lo stesso
   /// linguaggio di movimento (vedi `main.dart`).
@@ -86,7 +108,12 @@ class AppRoutes {
     final transition = _fadeRoutes.contains(settings.name)
         ? AppTransition.fade
         : AppTransition.sharedAxis;
-    return buildAppRoute(settings, builder, transition);
+    return buildAppRoute(
+      settings,
+      builder,
+      transition,
+      enableBackGesture: !_noBackGestureRoutes.contains(settings.name),
+    );
   }
 
   static Map<String, WidgetBuilder> get routes => {

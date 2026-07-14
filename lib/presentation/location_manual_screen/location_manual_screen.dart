@@ -49,10 +49,14 @@ class _LocationManualScreenState extends State<LocationManualScreen> with Screen
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
-        child: BlocConsumer<LocationManualBloc, LocationManualState>(
+    // Gradiente fuori dallo Scaffold: così resta a schermo pieno anche quando
+    // la tastiera accorcia il body, altrimenti l'ellisse si comprime e lo
+    // sfondo cambia aspetto mentre si cerca la città.
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: BlocConsumer<LocationManualBloc, LocationManualState>(
           listener: (context, state) {
             if (state.isSuccess) {
               NavigatorService.pushNamedAndRemoveUntil(

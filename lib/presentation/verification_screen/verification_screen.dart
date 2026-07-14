@@ -29,15 +29,15 @@ class VerificationScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Sfondo nero: evita la striscia bianca dello scaffold di default sui bordi
-      // (stesso accorgimento dell'authentication_screen).
-      backgroundColor: OnlistColors.black,
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
-        child: BlocConsumer<verificationBloc, verificationState>(
+    // Gradiente fuori dallo Scaffold: così resta a schermo pieno anche quando
+    // la tastiera accorcia il body, altrimenti l'ellisse si comprime e lo
+    // sfondo cambia aspetto mentre si digita il codice. Lo Scaffold
+    // trasparente copre comunque il bianco di default del Material.
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        body: BlocConsumer<verificationBloc, verificationState>(
         listener: (context, state) {
           if (state.isVerified) {
             LocationService.shouldShowLocationPrompt().then((show) {

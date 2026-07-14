@@ -1,3 +1,5 @@
+import 'dart:math' as math;
+
 import 'package:flutter/foundation.dart';
 import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
@@ -187,6 +189,65 @@ class LocationService {
 
     return results;
   }
+
+  /// Città con coordinate, scaricate una sola volta per sessione.
+  /// Sono ~100 righe: sta in memoria senza problemi ed evita una RPC PostGIS
+  /// (che andrebbe deployata a mano sul DB).
+  static List<CittaModel>? _cittaConCoordCache;
+
+  static Future<List<CittaModel>> _getCittaConCoord() async {
+    if (_cittaConCoordCache != null) return _cittaConCoordCache!;
+    final response = await Supabase.instance.client
+        .from('citta')
+        .select('id_citta, nome_citta, lat, lng, cap')
+        .not('lat', 'is', null)
+        .not('lng', 'is', null);
+    final list = (response as List)
+        .map((e) => CittaModel.fromJson(e as Map<String, dynamic>))
+        .where((c) => c.lat != null && c.lng != null)
+        .toList(growable: false);
+    _cittaConCoordCache = list;
+    return list;
+  }
+
+  /// Città della tabella `citta` più vicina a [lat]/[lng], o null se la fetch
+  /// fallisce o non ci sono città con coordinate.
+  static Future<CittaModel?> getNearestCitta(double lat, double lng) async {
+    try {
+      final citta = await _getCittaConCoord();
+      if (citta.isEmpty) return null;
+      CittaModel? best;
+      double bestDist = double.infinity;
+      for (final c in citta) {
+        final d = _haversineKm(lat, lng, c.lat!, c.lng!);
+        if (d < bestDist) {
+          bestDist = d;
+          best = c;
+        }
+      }
+      debugPrint(
+          '[LocationService] 📍 getNearestCitta: ${best?.nomeCitta} (${bestDist.toStringAsFixed(1)} km)');
+      return best;
+    } catch (e) {
+      debugPrint('[LocationService] getNearestCitta fallita: $e');
+      return null;
+    }
+  }
+
+  static double _haversineKm(
+      double lat1, double lng1, double lat2, double lng2) {
+    const r = 6371.0;
+    final dLat = _toRad(lat2 - lat1);
+    final dLng = _toRad(lng2 - lng1);
+    final a = math.sin(dLat / 2) * math.sin(dLat / 2) +
+        math.cos(_toRad(lat1)) *
+            math.cos(_toRad(lat2)) *
+            math.sin(dLng / 2) *
+            math.sin(dLng / 2);
+    return r * 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a));
+  }
+
+  static double _toRad(double deg) => deg * math.pi / 180;
 
   // ---------------------------------------------------------------------------
   // Manual location persistence

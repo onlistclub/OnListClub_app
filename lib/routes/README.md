@@ -14,6 +14,26 @@ stringhe magiche sparse nei push del Navigator.
 
   `initialRoute` è impostata su `splashScreen`.
 
+- **`page_transitions.dart`** — transizione unica dell'app (`AppTransition.fade` /
+  `AppTransition.sharedAxis`) e `AppPageRoute`, la `PageRoute` che implementa lo
+  **swipe-back**.
+
+## Swipe-back
+
+Si torna indietro trascinando dal bordo sinistro verso destra. Il gesto non ha
+un'animazione propria: pilota all'indietro il controller della rotta, cioè
+"scrubba" con il dito la stessa transizione di uscita che si vede premendo il
+back. Attivo su iOS e Android.
+
+È acceso su tutte le rotte tranne quelle in `AppRoutes._noBackGestureRoutes`: il
+flusso pre-home (splash → auth → registrazione → posizione), la home stessa
+(più indietro non c'è nulla) e `paymentSuccess` (ordine già creato, tornare al
+carrello non ha senso). `AppPageRoute` lo disabilita comunque da sé quando la
+rotta è la prima dello stack, quando un `PopScope` blocca il pop o quando c'è
+un'animazione in corso.
+
+Test: [`test/routes/page_transitions_test.dart`](../../test/routes/page_transitions_test.dart).
+
 ## Note
 
 - `AppRoutes.eventDetailScreen` è un **alias retrocompatibile** che punta a

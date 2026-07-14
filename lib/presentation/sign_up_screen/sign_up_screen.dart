@@ -54,19 +54,20 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      // Il tema globale non imposta scaffoldBackgroundColor (default Material
-      // bianco). Senza questo, un frame di transizione/animazione tastiera
-      // può far intravedere un lampo bianco sotto il DecoratedBox scuro
-      // (visto in particolare nel flusso Google, dove il form è più corto
-      // senza il campo password e quindi più soggetto a questo artefatto).
-      backgroundColor: Colors.black,
+    // Il gradiente sta FUORI dallo Scaffold: `resizeToAvoidBottomInset`
+    // accorcia il body all'apertura della tastiera e, siccome il raggio
+    // dell'ellisse è una frazione della dimensione del box, il gradiente si
+    // comprimerebbe cambiando aspetto mentre si scrive. Qui resta a schermo
+    // pieno; lo Scaffold trasparente ci si appoggia sopra (e copre anche il
+    // default Material bianco che causava lampi bianchi in transizione).
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+      child: Scaffold(
+      backgroundColor: Colors.transparent,
       body: GestureDetector(
         // Tap fuori dai campi → chiude la tastiera (richiesta UX dell'utente).
         behavior: HitTestBehavior.opaque,
         onTap: () => FocusScope.of(context).unfocus(),
-        child: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
         child: BlocConsumer<SignUpBloc, SignUpState>(
           listener: (context, state) {
             if (state.isSuccess) {
@@ -181,6 +182,10 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                         label: 'Email',
                         controller: state.emailController,
                         keyboardType: TextInputType.emailAddress,
+                        // Con OAuth l'email è quella verificata dal provider e
+                        // identifica l'account: modificarla qui creerebbe un
+                        // disallineamento con l'identità Google/Apple.
+                        readOnly: state.oauthVerified,
                         validator: (v) {
                           if (v == null || v.isEmpty) return 'Inserisci la tua email';
                           if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
@@ -415,6 +420,7 @@ class _UnderlineField extends StatelessWidget {
     this.keyboardType,
     this.validator,
     this.onChanged,
+    this.readOnly = false,
   });
 
   final String label;
@@ -422,6 +428,7 @@ class _UnderlineField extends StatelessWidget {
   final TextInputType? keyboardType;
   final FormFieldValidator<String>? validator;
   final ValueChanged<String>? onChanged;
+  final bool readOnly;
 
   @override
   Widget build(BuildContext context) {
@@ -432,7 +439,12 @@ class _UnderlineField extends StatelessWidget {
         TextFormField(
           controller: controller,
           keyboardType: keyboardType,
-          style: _kInputStyle,
+          readOnly: readOnly,
+          // Grigio "disabilitato" del design system: rende evidente che il
+          // campo non è editabile, senza toglierlo dal form.
+          style: readOnly
+              ? _kInputStyle.copyWith(color: OnlistColors.textSecondary)
+              : _kInputStyle,
           decoration: _underlineDecoration(),
           validator: validator,
           onChanged: onChanged,
