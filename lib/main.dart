@@ -114,6 +114,16 @@ Future<void> main() async {
   await Supabase.initialize(
     url: supabaseUrl,
     anonKey: supabaseAnonKey,
+    // Implicit invece del default PKCE: i link di reset password/verifica
+    // email arrivano via email e vengono aperti in un browser esterno
+    // all'app (non nel suo storage sicuro). Con PKCE il code_verifier resta
+    // solo nell'app che ha fatto la richiesta, quindi il browser non riesce
+    // mai a completare lo scambio — il link sembra "non valido" al primo
+    // click. Con implicit i token arrivano nell'URL e qualunque browser può
+    // completare il flusso.
+    authOptions: const FlutterAuthClientOptions(
+      authFlowType: AuthFlowType.implicit,
+    ),
   );
 
   // Inizializza l'SDK Google una sola volta: la 7.x richiede initialize()
