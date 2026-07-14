@@ -32,7 +32,7 @@ class SharedFooter extends StatelessWidget {
   // l'asset, centrata (il margine laterale è quello che ne risulta).
   static const double _designCapsuleW = 213;
   static const double _designCapsuleH = 48;
-  static const double _designIconSize = 32; // icone grandi come nel Figma
+  static const double _designIconSize = 33; // icone grandi come nel Figma
   static const double _designClearanceExtra = 28; // spazio sopra/sotto la pillola
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
