@@ -26,12 +26,14 @@ class SharedFooter extends StatelessWidget {
     required this.currentIndex,
   }) : super(key: key);
 
-  // Dimensioni design (px Figma), scalate con R.sp ovunque siano usate.
-  static const double _designMargin = 38; // (393-317)/2: margine laterale capsula
-  static const double _designMaxW = 317; // tetto larghezza (non gonfiarsi su tablet)
-  static const double _designCapsuleH = 52; // altezza pillola compatta
-  static const double _designIconSize = 30; // icone quadrate, stessa taglia
-  static const double _designSelectedCircle = 44; // icona 30 + margine confortevole
+  // Dimensioni design (px Figma) — dimensioni NATIVE dell'asset
+  // `Rectangle 261.svg` (213×48), scalate con R.sp. Niente calcolo da
+  // margine/larghezza schermo: la capsula è larga esattamente quanto
+  // l'asset, centrata (il margine laterale è quello che ne risulta).
+  static const double _designCapsuleW = 213;
+  static const double _designCapsuleH = 48;
+  static const double _designIconSize = 32; // icone grandi come nel Figma
+  static const double _designSelectedCircle = 40; // icona 32 + margine sottile
   static const double _designClearanceExtra = 28; // spazio sopra/sotto la pillola
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
@@ -41,11 +43,10 @@ class SharedFooter extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Capsula larga (schermo − margini scalati), con tetto per non gonfiarsi
-    // sui tablet. Tutto passa da R.sp: niente px fissi né mix con R.width grezzo.
-    final margin = R.sp(_designMargin);
-    final capsuleW =
-        (R.width - margin * 2).clamp(0.0, R.sp(_designMaxW * 1.15));
+    // Capsula larga esattamente quanto l'asset ufficiale (213×48 design px),
+    // scalata con R.sp — nessun calcolo derivato da R.width/margini: R.sp
+    // ha già il proprio tetto per i tablet (scale clampato a 1.30).
+    final capsuleW = R.sp(_designCapsuleW);
     final capsuleH = R.sp(_designCapsuleH);
     final iconSize = R.sp(_designIconSize);
     final selectedCircleSize = R.sp(_designSelectedCircle);
