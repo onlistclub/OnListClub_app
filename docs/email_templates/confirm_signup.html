@@ -1,34 +1,4 @@
-<!--
-  Template email "Confirm signup" per Supabase Auth — APP OnListClub.
-  Dove incollarlo: Supabase Dashboard → Authentication → Email Templates → "Confirm signup".
-  Variabile usata: {{ .ConfirmationURL }} (generata da Supabase; grazie a
-    emailRedirectTo già impostato nel codice Dart — vedi sign_up_bloc.dart e
-    authentication_bloc.dart — punta a https://www.onlistclub.com/auth/email-confirmed
-    con token/redirect già incorporati da Supabase).
 
-  STILE: identico alle email che il sito invia oggi per i suoi form
-  (src/lib/email-templates.ts nel repo del sito) — Space Grotesk/Inter,
-  card chiara con variante scura automatica via prefers-color-scheme,
-  badge pillola, CTA a gradiente blu. Unica differenza: logo dell'app al
-  posto del logo del sito, e testi riferiti all'app (non al sito/gestionale).
-
-  Font: Space Grotesk e Inter non sono web-safe e la maggior parte dei
-  client email li ignora comunque — qui sono dichiarati con fallback
-  Helvetica/Arial, esattamente come fa già il sito.
-
-  Logo: due file ospitati sul sito (stesso hosting statico del logo del
-  sito, cartella public/), ricavati dal wordmark dell'app
-  (assets/images/logo_onlist.png), con swap automatico chiaro/scuro:
-    - https://www.onlistclub.com/email-logo-app-dark.png (scuro, per sfondo chiaro)
-    - https://www.onlistclub.com/email-logo-app.png (bianco, per sfondo scuro)
-
-  Nota su {{ .Data.nome }}: il signup dell'app passa "nome" nei metadata
-  utente in un solo dei due punti di signUp esistenti nel codice (vedi
-  report FASE 0 — sign_up_bloc.dart lo passa, authentication_bloc.dart no).
-  Per non rischiare un saluto vuoto/rotto quando manca, qui il saluto resta
-  generico ("Ciao,"). Se in futuro entrambi i flussi passano sempre "nome",
-  si può personalizzare con {{ .Data.nome }}.
--->
 <!DOCTYPE html>
 <html lang="it">
   <head>
