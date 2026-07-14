@@ -53,11 +53,15 @@ flutter:
         - asset: assets/fonts/HelveticaNeueBold.otf
           weight: 700
 
-flutter_icons:
+flutter_launcher_icons:
   android: true
   ios: true
-  image_path: "assets/images/logo_onlist.png"
+  # Sorgente icona GIÀ appiattita su nero (opaca, senza alpha): flutter_launcher_icons
+  # sbagliava il compositing del glow viola semi-trasparente su nero producendo un
+  # artefatto verde. Pre-appiattendo con Pillow il tool non deve comporre l'alpha.
+  # File fuori da assets/ così non viene incluso nel bundle a runtime (serve solo al build).
+  image_path: "launcher/logo_onlist_icon.png"
   remove_alpha_ios: true
   background_color_ios: "#000000"
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "assets/images/logo_onlist.png"
+  adaptive_icon_foreground: "launcher/logo_onlist_icon.png"
