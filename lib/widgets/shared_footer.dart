@@ -94,7 +94,15 @@ class SharedFooter extends StatelessWidget {
                       children: [
                         Expanded(
                             child: _buildNavItem(iconSize,
-                                ImageConstant.imgNavTicket, 0, AppRoutes.ordersScreen)),
+                                ImageConstant.imgNavTicket, 0, AppRoutes.ordersScreen,
+                                // Ticket_Voucher.svg ha molto vuoto interno nel suo
+                                // viewBox 24×24 (il disegno occupa solo x:[3,21]
+                                // y:[6,18]): a parità di box appare più piccolo
+                                // degli altri due, che riempiono quasi tutto il
+                                // loro canvas. Ritaglio il riquadro effettivo del
+                                // disegno (stessa tecnica di custom_top_bar.dart
+                                // per il logo, nessuna modifica al file .svg).
+                                contentCrop: const Size(22, 16))),
                         Expanded(
                             child: _buildNavItem(iconSize,
                                 ImageConstant.imgNavHome, 1, AppRoutes.homeScreen)),
@@ -114,8 +122,26 @@ class SharedFooter extends StatelessWidget {
   }
 
   Widget _buildNavItem(double iconSize, String iconPath, int index,
-      String routeName) {
+      String routeName, {Size? contentCrop}) {
     final isSelected = currentIndex == index;
+    // Icona nativa 24×24 (dimensione di tutti gli asset ufficiali footer,
+    // tranne Home che è 33×33 ma riempie già tutto il suo canvas).
+    const nativeSize = 24.0;
+    final Widget svg = contentCrop == null
+        ? SvgPicture.asset(iconPath, fit: BoxFit.contain)
+        : FittedBox(
+            fit: BoxFit.contain,
+            child: SizedBox(
+              width: contentCrop.width,
+              height: contentCrop.height,
+              child: OverflowBox(
+                maxWidth: nativeSize,
+                maxHeight: nativeSize,
+                child: SvgPicture.asset(iconPath,
+                    width: nativeSize, height: nativeSize),
+              ),
+            ),
+          );
     return GestureDetector(
       onTap: () {
         if (!isSelected && routeName.isNotEmpty) {
@@ -132,7 +158,7 @@ class SharedFooter extends StatelessWidget {
           height: iconSize,
           child: Opacity(
             opacity: isSelected ? 1.0 : 0.5,
-            child: SvgPicture.asset(iconPath, fit: BoxFit.contain),
+            child: svg,
           ),
         ),
       ),
