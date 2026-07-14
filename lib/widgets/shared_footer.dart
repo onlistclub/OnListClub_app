@@ -33,7 +33,6 @@ class SharedFooter extends StatelessWidget {
   static const double _designCapsuleW = 213;
   static const double _designCapsuleH = 48;
   static const double _designIconSize = 32; // icone grandi come nel Figma
-  static const double _designSelectedCircle = 40; // icona 32 + margine sottile
   static const double _designClearanceExtra = 28; // spazio sopra/sotto la pillola
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
@@ -49,7 +48,6 @@ class SharedFooter extends StatelessWidget {
     final capsuleW = R.sp(_designCapsuleW);
     final capsuleH = R.sp(_designCapsuleH);
     final iconSize = R.sp(_designIconSize);
-    final selectedCircleSize = R.sp(_designSelectedCircle);
 
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
@@ -95,13 +93,13 @@ class SharedFooter extends StatelessWidget {
                     Row(
                       children: [
                         Expanded(
-                            child: _buildNavItem(iconSize, selectedCircleSize,
+                            child: _buildNavItem(iconSize,
                                 ImageConstant.imgNavTicket, 0, AppRoutes.ordersScreen)),
                         Expanded(
-                            child: _buildNavItem(iconSize, selectedCircleSize,
+                            child: _buildNavItem(iconSize,
                                 ImageConstant.imgNavHome, 1, AppRoutes.homeScreen)),
                         Expanded(
-                            child: _buildNavItem(iconSize, selectedCircleSize,
+                            child: _buildNavItem(iconSize,
                                 ImageConstant.imgNavCart, 2, AppRoutes.cartScreen)),
                       ],
                     ),
@@ -115,8 +113,8 @@ class SharedFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(double iconSize, double selectedCircleSize,
-      String iconPath, int index, String routeName) {
+  Widget _buildNavItem(double iconSize, String iconPath, int index,
+      String routeName) {
     final isSelected = currentIndex == index;
     return GestureDetector(
       onTap: () {
@@ -125,36 +123,18 @@ class SharedFooter extends StatelessWidget {
         }
       },
       behavior: HitTestBehavior.opaque,
-      child: Stack(
-        clipBehavior: Clip.none,
-        alignment: Alignment.center,
-        children: [
-          // Anello sottile dietro l'icona attiva (nessun asset dedicato nel
-          // design): solo bordo, centro trasparente — si vede il vetro della
-          // capsula anche dentro il cerchio, non un disco bianco pieno.
-          if (isSelected)
-            Container(
-              width: selectedCircleSize,
-              height: selectedCircleSize,
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(
-                  color: Colors.white.withOpacity(0.55),
-                  width: 1.4,
-                ),
-              ),
-            ),
-          // Icona bianca (nativa dal design). Attiva: piena. Inattiva:
-          // attenuata (come Figma), nessun effetto extra oltre l'opacità.
-          SizedBox(
-            width: iconSize,
-            height: iconSize,
-            child: Opacity(
-              opacity: isSelected ? 1.0 : 0.5,
-              child: SvgPicture.asset(iconPath, fit: BoxFit.contain),
-            ),
+      child: Center(
+        // Nessuna forma decorativa dietro l'icona attiva (niente cerchio/anello):
+        // come nel Figma, la selezione si vede solo dall'icona a piena opacità
+        // contro le altre attenuate.
+        child: SizedBox(
+          width: iconSize,
+          height: iconSize,
+          child: Opacity(
+            opacity: isSelected ? 1.0 : 0.5,
+            child: SvgPicture.asset(iconPath, fit: BoxFit.contain),
           ),
-        ],
+        ),
       ),
     );
   }
