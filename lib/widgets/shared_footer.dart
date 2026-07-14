@@ -33,14 +33,19 @@ class SharedFooter extends StatelessWidget {
   // l'asset, centrata (il margine laterale è quello che ne risulta).
   static const double _designCapsuleW = 213;
   static const double _designCapsuleH = 48;
-  // Altezza comune delle 3 icone (px design). La larghezza segue l'aspect
-  // ratio nativo di ciascun asset (ticket è naturalmente più largo che alto,
-  // come un vero biglietto) — tutti e tre riempiono quasi interamente il
-  // proprio viewBox, quindi nessun ritaglio/compensazione è più necessario.
-  static const double _designIconSize = 33;
-  static const double _ticketAspect = 41 / 29; // Vector.svg (ticket)
-  static const double _homeAspect = 33 / 33; // home.svg
-  static const double _cartAspect = 31 / 32; // Shopping_Cart_01.svg
+
+  // Dimensioni bilanciate delle 3 icone (px design) per mantenere lo stesso peso visivo
+  // e garantire che la spaziatura tra di esse rimanga perfettamente simmetrica
+  // ed equispaziata (evitando che la home sembri spostata a sinistra).
+  static const double _ticketWidth = 35;
+  static const double _ticketHeight = 25; // Mantiene l'aspect ratio originale 41x29
+
+  static const double _homeWidth = 32;
+  static const double _homeHeight = 32; // Mantiene l'aspect ratio originale 33x33
+
+  static const double _cartWidth = 31;
+  static const double _cartHeight = 32; // Mantiene l'aspect ratio originale 31x32
+
   static const double _designClearanceExtra = 28; // spazio sopra/sotto la pillola
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
@@ -55,7 +60,6 @@ class SharedFooter extends StatelessWidget {
     // ha già il proprio tetto per i tablet (scale clampato a 1.30).
     final capsuleW = R.sp(_designCapsuleW);
     final capsuleH = R.sp(_designCapsuleH);
-    final iconSize = R.sp(_designIconSize);
 
     final bottomInset = MediaQuery.of(context).padding.bottom;
 
@@ -96,19 +100,31 @@ class SharedFooter extends StatelessWidget {
                         ),
                       ),
                     ),
-                    // Icone equispaziate (3 slot uguali), stessa dimensione
-                    // per tutte e tre (come Figma — Home non è più grande).
+                    // Icone equispaziate (3 slot uguali), stessa larghezza/spazio
+                    // per tutte e tre (come Figma — Home non è spostata).
                     Row(
                       children: [
                         Expanded(
-                            child: _buildNavItem(iconSize, _ticketAspect,
-                                ImageConstant.imgNavTicket, 0, AppRoutes.ordersScreen)),
+                            child: _buildNavItem(
+                                R.sp(_ticketWidth),
+                                R.sp(_ticketHeight),
+                                ImageConstant.imgNavTicket,
+                                0,
+                                AppRoutes.ordersScreen)),
                         Expanded(
-                            child: _buildNavItem(iconSize, _homeAspect,
-                                ImageConstant.imgNavHome, 1, AppRoutes.homeScreen)),
+                            child: _buildNavItem(
+                                R.sp(_homeWidth),
+                                R.sp(_homeHeight),
+                                ImageConstant.imgNavHome,
+                                1,
+                                AppRoutes.homeScreen)),
                         Expanded(
-                            child: _buildNavItem(iconSize, _cartAspect,
-                                ImageConstant.imgNavCart, 2, AppRoutes.cartScreen)),
+                            child: _buildNavItem(
+                                R.sp(_cartWidth),
+                                R.sp(_cartHeight),
+                                ImageConstant.imgNavCart,
+                                2,
+                                AppRoutes.cartScreen)),
                       ],
                     ),
                   ],
@@ -121,7 +137,7 @@ class SharedFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(double iconHeight, double aspect, String iconPath,
+  Widget _buildNavItem(double width, double height, String iconPath,
       int index, String routeName) {
     final isSelected = currentIndex == index;
     return GestureDetector(
@@ -134,12 +150,10 @@ class SharedFooter extends StatelessWidget {
       child: Center(
         // Nessuna forma decorativa dietro l'icona attiva (niente cerchio/anello):
         // come nel Figma, la selezione si vede solo dall'icona a piena opacità
-        // contro le altre attenuate. Altezza comune, larghezza secondo
-        // l'aspect ratio nativo dell'asset (il ticket è naturalmente più
-        // largo che alto).
+        // contro le altre attenuate. Altezza e larghezza calibrate.
         child: SizedBox(
-          width: iconHeight * aspect,
-          height: iconHeight,
+          width: width,
+          height: height,
           child: Opacity(
             opacity: isSelected ? 1.0 : 0.5,
             child: SvgPicture.asset(iconPath, fit: BoxFit.contain),

@@ -38,8 +38,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   @override
   String get screenName => 'booking_selection';
 
-  // La schermata parte dalla pagina di selezione Tavolo/Prevendita.
-  BookingStep _currentStep = BookingStep.selection;
+  // La schermata parte direttamente dalla lista prevendite (la selezione Tavolo/Prevendita è temporaneamente nascosta).
+  BookingStep _currentStep = BookingStep.ticketList;
 
   // Dati letti SEMPRE dal DB (Supabase). Nessun sample/placeholder: se il DB
   // non restituisce nulla la UI mostra l'empty state, non dati finti.
@@ -176,47 +176,41 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       return _buildNoSerataView();
     }
 
-    // Gradient applicato come "sfondo schermo" dietro l'intero Scaffold (incluso
-    // il footer): stesso fix del carrello — il footer semi-trasparente lasciava
-    // intravedere il nero piatto dello Scaffold sotto la card ticket.
-    return DecoratedBox(
-      decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
-      child: Scaffold(
-        backgroundColor: Colors.transparent,
-        // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
-        extendBody: true,
-        bottomNavigationBar: const SharedFooter(currentIndex: 1),
-        body: SafeArea(
+    return Scaffold(
+      backgroundColor: Colors.black,
+      // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
+      extendBody: true,
+      bottomNavigationBar: const SharedFooter(currentIndex: 2),
+      body: DecoratedBox(
+        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+        child: SafeArea(
           bottom: false,
           child: Column(
             children: [
               const CustomTopBar(),
               _buildTopBar(),
               Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: SharedFooter.height),
-                  child: _isLoading
-                    ? const AppLoadingIndicator()
-                    : _wrapAgeGate(
-                        serata,
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          transitionBuilder: (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0.1, 0),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: _buildBody(locale, serata),
-                        ),
+                child: _isLoading
+                  ? const AppLoadingIndicator()
+                  : _wrapAgeGate(
+                      serata,
+                      AnimatedSwitcher(
+                        duration: const Duration(milliseconds: 400),
+                        transitionBuilder: (Widget child, Animation<double> animation) {
+                          return FadeTransition(
+                            opacity: animation,
+                            child: SlideTransition(
+                              position: Tween<Offset>(
+                                begin: const Offset(0.1, 0),
+                                end: Offset.zero,
+                              ).animate(animation),
+                              child: child,
+                            ),
+                          );
+                        },
+                        child: _buildBody(locale, serata),
                       ),
-                ),
+                    ),
               ),
             ],
           ),
@@ -346,11 +340,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
       child: GestureDetector(
         onTap: () {
-          if (_currentStep == BookingStep.selection) {
-            NavigatorService.goBack();
-          } else if (_currentStep == BookingStep.ticketList ||
+          if (_currentStep == BookingStep.selection ||
+              _currentStep == BookingStep.ticketList ||
               _currentStep == BookingStep.tableConfig) {
-            setState(() => _currentStep = BookingStep.selection);
+            NavigatorService.goBack();
           } else if (_currentStep == BookingStep.ticketDetail) {
             setState(() => _currentStep = BookingStep.ticketList);
           } else if (_currentStep == BookingStep.bottles) {
@@ -388,7 +381,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   Widget _buildSelectionStep(LocaleModel? locale, SerataModel? serata) {
     return SingleChildScrollView(
       key: const ValueKey("selection"),
-      padding: const EdgeInsets.only(bottom: 24),
+      padding: EdgeInsets.only(bottom: 24 + SharedFooter.height),
       child: Column(
         children: [
           _buildClubHeader(locale, serata),
@@ -519,7 +512,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           child: _prevendite.isEmpty 
           ? Center(child: Text("Nessuna prevendita disponibile", style: OnlistTextStyles.hn(color: Colors.white54)))
           : ListView.builder(
-            padding: const EdgeInsets.symmetric(horizontal: 15),
+            padding: EdgeInsets.fromLTRB(15, 0, 15, SharedFooter.height),
             itemCount: _prevendite.length,
             itemBuilder: (context, index) {
               final p = _prevendite[index];
@@ -769,7 +762,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           ),
         ),
         Padding(
-          padding: const EdgeInsets.fromLTRB(12, 12, 12, 20),
+          padding: EdgeInsets.fromLTRB(12, 12, 12, 20 + SharedFooter.height),
           child: OnlistPrimaryButton(
             label: 'AGGIUNGI AL CARRELLO',
             onPressed: () {
@@ -791,6 +784,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   Widget _buildTableConfigStep(LocaleModel? locale, SerataModel? serata) {
     return SingleChildScrollView(
       key: const ValueKey("tableConfig"),
+      padding: EdgeInsets.only(bottom: 24 + SharedFooter.height),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -1019,60 +1013,63 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   }
 
   Widget _buildBottlesStep(SerataModel? serata) {
-    return Column(
-      key: const ValueKey("bottles"),
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        const SizedBox(height: 20),
-        Expanded(
-          child: Container(
-            margin: const EdgeInsets.symmetric(horizontal: 15),
-            decoration: BoxDecoration(
-              color: const Color(0xFF1D00FF),
-              borderRadius: BorderRadius.circular(15),
-            ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Padding(
-                  padding: const EdgeInsets.all(20),
-                  child: Text(
-                    "Bottiglie",
-                    style: OnlistTextStyles.hn(
-                      color: Colors.white,
-                      fontSize: R.sp(32),
-                      fontWeight: FontWeight.bold,
+    return Padding(
+      padding: EdgeInsets.only(bottom: SharedFooter.height),
+      child: Column(
+        key: const ValueKey("bottles"),
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          const SizedBox(height: 20),
+          Expanded(
+            child: Container(
+              margin: const EdgeInsets.symmetric(horizontal: 15),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1D00FF),
+                borderRadius: BorderRadius.circular(15),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Padding(
+                    padding: const EdgeInsets.all(20),
+                    child: Text(
+                      "Bottiglie",
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(32),
+                        fontWeight: FontWeight.bold,
+                      ),
                     ),
                   ),
-                ),
-                Expanded(
-                  child: ListView.builder(
-                    scrollDirection: Axis.horizontal,
-                    padding: const EdgeInsets.symmetric(horizontal: 15),
-                    itemCount: _bottiglie.length,
-                    itemBuilder: (context, index) {
-                      final b = _bottiglie[index];
-                      return _buildBottleCard(b, serata?.id);
-                    },
-                  ),
-                ),
-                const SizedBox(height: 20),
-                Center(
-                  child: Container(
-                    width: 100,
-                    height: 4,
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(2),
+                  Expanded(
+                    child: ListView.builder(
+                      scrollDirection: Axis.horizontal,
+                      padding: const EdgeInsets.symmetric(horizontal: 15),
+                      itemCount: _bottiglie.length,
+                      itemBuilder: (context, index) {
+                        final b = _bottiglie[index];
+                        return _buildBottleCard(b, serata?.id);
+                      },
                     ),
                   ),
-                ),
-                const SizedBox(height: 20),
-              ],
+                  const SizedBox(height: 20),
+                  Center(
+                    child: Container(
+                      width: 100,
+                      height: 4,
+                      decoration: BoxDecoration(
+                        color: Colors.white,
+                        borderRadius: BorderRadius.circular(2),
+                      ),
+                    ),
+                  ),
+                  const SizedBox(height: 20),
+                ],
+              ),
             ),
           ),
-        ),
-      ],
+        ],
+      ),
     );
   }
 
