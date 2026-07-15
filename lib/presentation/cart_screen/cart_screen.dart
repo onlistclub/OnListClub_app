@@ -10,6 +10,7 @@ import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
+import '../../widgets/onlist_price_text.dart';
 import '../../widgets/onlist_primary_button.dart';
 import '../../widgets/app_error_dialog.dart';
 import '../../core/services/badge_service.dart';
@@ -184,7 +185,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text("$total€", style: OnlistTextStyles.price96),
+                    OnlistPriceText("$total€", style: OnlistTextStyles.price96),
                     if (description.isNotEmpty) ...[
                       const SizedBox(width: 10),
                       // Descrizione sale verso il centro verticale del prezzo

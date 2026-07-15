@@ -6,6 +6,7 @@ import '../../core/services/orders_service.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/onlist_price_text.dart';
 import '../../widgets/shared_footer.dart';
 
 /// Dettaglio di una singola prevendita acquistata (18 — con QR).
@@ -185,7 +186,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                       crossAxisAlignment:
                                           CrossAxisAlignment.end,
                                       children: [
-                                        Text(prezzoStr,
+                                        OnlistPriceText(prezzoStr,
                                             style: OnlistTextStyles.price96),
                                         if (extraText != null) ...[
                                           const SizedBox(width: 10),

@@ -18,6 +18,7 @@ import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/image_fallback.dart';
+import '../../widgets/onlist_price_text.dart';
 import '../../widgets/onlist_primary_button.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/custom_top_bar.dart';
@@ -605,7 +606,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   mainAxisSize: MainAxisSize.min,
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
-                    Text(
+                    OnlistPriceText(
                       price,
                       style: OnlistTextStyles.hn(
                         color: Colors.white,
@@ -739,7 +740,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 FittedBox(
                   fit: BoxFit.scaleDown,
                   alignment: Alignment.centerLeft,
-                  child: Text(price, style: OnlistTextStyles.price192),
+                  child: OnlistPriceText(price,
+                      style: OnlistTextStyles.price192),
                 ),
                 Align(
                   alignment: Alignment.centerRight,
