@@ -91,6 +91,13 @@ class EventInfoPopupScreen extends StatelessWidget {
   }
 }
 
+/// Key del banner radiale superiore, usata dai test di layout per verificare
+/// che la pillola data non ci finisca mai sotto.
+const Key bannerKey = Key('popup_banner');
+
+/// Key della pillola data/orario (Rectangle 213), usata dai test di layout.
+const Key datePillKey = Key('popup_date_pill');
+
 class _PopupCard extends StatelessWidget {
   const _PopupCard({required this.serata, required this.club});
 
@@ -100,15 +107,45 @@ class _PopupCard extends StatelessWidget {
   // ── Costanti Figma (px design) ─────────────────────────────────────────────
   // Riferite alla card 354×663. Le posizioni X dei contenuti sono sottratte
   // di 19 (offset card) per ottenere offset interni alla card.
-  // Altezza del banner radiale superiore (Rectangle 211). Deve fermarsi
-  // SUBITO DOPO l'indirizzo, PRIMA della pillola data (confronto con
-  // l'ufficiale: il bagliore lì è una linea dritta che finisce sopra la
-  // pillola, non curva/estesa fin dentro "STILE MUSICALE").
-  static const double _bannerH = 112;
+  // Altezza del banner radiale superiore (Rectangle 211) col titolo su UNA
+  // riga: Figma top=105 h=134, card top=105 → 134 relativi al bordo card.
+  // Finisce 9px sopra la pillola data (Rectangle 213 @143): il bagliore non
+  // deve MAI toccare la pillola.
+  static const double _bannerBaseH = 134;
+  // Il titolo può andare a capo (vedi _titleMaxLines): ogni riga extra spinge
+  // giù indirizzo e pillola di una line-height, e il banner deve seguirli.
+  static const double _titleLineH = 45;
+  static const int _titleMaxLines = 2;
   // Padding di contenuto: la maggior parte usa ~16, la pill data e i box
   // usano ~12 (più stretti dal bordo card).
   static const double _padContent = 16; // x=35 → 16 da card-left
   static const double _padPill = 12;    // x=31 → 12 da card-left
+
+  /// Stile del titolo serata (Figma: Helvetica Neue 45/45 w700 LS -0.08em).
+  /// Condiviso tra il [Text] e il [TextPainter] che conta le righe: devono
+  /// misurare esattamente lo stesso testo, altrimenti il banner sballa.
+  TextStyle _titleStyle() => OnlistTextStyles.hn(
+        fontSize: R.sp(45),
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+        height: 45 / 45,
+        letterSpacing: -0.08 * 45,
+      );
+
+  /// Quante righe occupa il titolo alla larghezza disponibile (1 o 2).
+  /// Misurato sui glifi reali, non su una soglia di caratteri: è il wrap vero
+  /// di Flutter, quindi il banner non può mai disallinearsi dal testo.
+  int _titleLineCount(BuildContext context, double maxWidth) {
+    final painter = TextPainter(
+      text: TextSpan(text: serata.nome.toUpperCase(), style: _titleStyle()),
+      maxLines: _titleMaxLines,
+      textDirection: TextDirection.ltr,
+      textScaler: MediaQuery.textScalerOf(context),
+    )..layout(maxWidth: maxWidth);
+    final lines = painter.computeLineMetrics().length;
+    painter.dispose();
+    return lines.clamp(1, _titleMaxLines);
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -118,7 +155,15 @@ class _PopupCard extends StatelessWidget {
     // con line-up+parcheggio popolati il contenuto reale supera già questo
     // minimo, quindi 611 lasciava un vuoto vistoso sotto "Acquista il tuo
     // ticket". Resta comunque un floor per eventi con poche info.
-    return Container(
+    return LayoutBuilder(builder: (context, constraints) {
+      // Il titolo è inserito a _padContent (16px design) da entrambi i bordi
+      // della card: è la larghezza su cui va misurato il wrap.
+      final titleLines = _titleLineCount(
+          context, constraints.maxWidth - R.sp(_padContent) * 2);
+      // Banner ancorato al titolo: ogni riga extra lo allunga di una
+      // line-height, così resta sempre a 9px sopra la pillola data.
+      final bannerH = _bannerBaseH + (titleLines - 1) * _titleLineH;
+      return Container(
       width: double.infinity,
       decoration: BoxDecoration(
         gradient: const LinearGradient(
@@ -146,7 +191,8 @@ class _PopupCard extends StatelessWidget {
               right: 0,
               child: IgnorePointer(
                 child: Container(
-                  height: R.sp(_bannerH),
+                  key: bannerKey,
+                  height: R.sp(bannerH),
                   decoration: const BoxDecoration(
                     // Stessi colori Figma (nessun nuovo hex), ma radius più
                     // stretto: il bagliore risulta più concentrato/intenso
@@ -165,7 +211,8 @@ class _PopupCard extends StatelessWidget {
           ],
         ),
       ),
-    );
+      );
+    });
   }
 
   /// Contenuto della card con spaziature Figma esatte (in design px → R.sp).
@@ -179,7 +226,7 @@ class _PopupCard extends StatelessWidget {
       // ulteriore inset orizzontale di 4 sui sotto-blocchi.
       padding: EdgeInsets.fromLTRB(
         R.sp(_padPill),
-        R.sp(6),  // top banner → primo elemento (QUESTA SERA): 6px
+        R.sp(20), // top card → badge (Figma: Rectangle 212 @125, card @105)
         R.sp(_padPill),
         R.sp(8),  // bottom card
       ),
@@ -188,15 +235,17 @@ class _PopupCard extends StatelessWidget {
         children: [
           // QUESTA SERA badge + close (X) — gap interno standard pill
           _topBadgeAndClose(context),
-          // Gap compattato (era 20px Figma): con line-up+parcheggio popolati
-          // il contenuto è già alto, deve stare tutto senza scroll forzato.
-          SizedBox(height: R.sp(14)),
+          // Gap badge → titolo: Figma 20 (badge bottom rel 43, titolo rel 63).
+          SizedBox(height: R.sp(20)),
           // Padding interno extra di +4px (16-12) per allineare titolo/indirizzo
           Padding(
             padding: EdgeInsets.symmetric(horizontal: R.sp(_padContent - _padPill)),
             child: _titleAndAddress(),
           ),
-          SizedBox(height: R.sp(12)),
+          // Gap indirizzo → pillola data: Figma 17 (indirizzo bottom rel 126,
+          // Rectangle 213 rel 143). Il banner finisce a rel 134 → 9px di
+          // stacco pulito, la pillola non tocca mai il bagliore viola.
+          SizedBox(height: R.sp(17)),
           _datePill(),
           SizedBox(height: R.sp(10)),
           if (hasGeneri) ...[
@@ -325,41 +374,36 @@ class _PopupCard extends StatelessWidget {
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // FittedBox forza il titolo su UNA riga sola, rimpicciolendolo se
-        // serve invece di andare a capo. maxLines:2 andava a capo su
-        // viewport leggermente più stretti dell'ufficiale (es. "SPRING
-        // PARTY" su due righe), sballando tutto il layout sotto.
-        FittedBox(
-          fit: BoxFit.scaleDown,
-          alignment: Alignment.centerLeft,
-          child: ShaderMask(
-            shaderCallback: (Rect bounds) {
-              return const RadialGradient(
-                center: Alignment.center,
-                radius: 0.7,
-                colors: [Color(0xFFFFFFFF), Color(0xFFE0E1FF)],
-              ).createShader(bounds);
-            },
-            blendMode: BlendMode.srcIn,
-            child: Text(
-              serata.nome.toUpperCase(),
-              style: OnlistTextStyles.hn(
-                fontSize: R.sp(45),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                height: 45 / 45,
-                letterSpacing: -0.08 * 45,
-              ).copyWith(
-                shadows: [
-                  Shadow(
-                    color: const Color(0xA12600FF),
-                    offset: Offset(0, R.sp(4)),
-                    blurRadius: R.sp(4),
-                  ),
-                ],
-              ),
-              maxLines: 1,
+        // Titolo a 45px FISSI, mai rimpicciolito. Qui c'era un FittedBox
+        // scaleDown che teneva il titolo su una riga: scalando però riduceva
+        // anche l'ALTEZZA del blocco, quindi con nomi lunghi indirizzo e
+        // pillola data risalivano finendo dentro il banner viola (ed era
+        // anche il motivo per cui il titolo sembrava meno grassetto del
+        // Figma). Ora va a capo su max 2 righe quando non ci sta in
+        // larghezza — il banner segue via _titleLineCount, quindi il layout
+        // sotto non si sposta in modo incontrollato: al massimo +45px.
+        ShaderMask(
+          shaderCallback: (Rect bounds) {
+            return const RadialGradient(
+              center: Alignment.center,
+              radius: 0.7,
+              colors: [Color(0xFFFFFFFF), Color(0xFFE0E1FF)],
+            ).createShader(bounds);
+          },
+          blendMode: BlendMode.srcIn,
+          child: Text(
+            serata.nome.toUpperCase(),
+            style: _titleStyle().copyWith(
+              shadows: [
+                Shadow(
+                  color: const Color(0xA12600FF),
+                  offset: Offset(0, R.sp(4)),
+                  blurRadius: R.sp(4),
+                ),
+              ],
             ),
+            maxLines: _titleMaxLines,
+            overflow: TextOverflow.ellipsis,
           ),
         ),
         // Titolo h=45, baseline a y=45+rel49=94, indirizzo a 96 → 2px gap
@@ -385,6 +429,7 @@ class _PopupCard extends StatelessWidget {
         ? '$date · ${orario.replaceAll(' - ', ' → ')}'
         : date;
     return Container(
+      key: datePillKey,
       width: double.infinity,
       // Figma height 41, font 20 → ~10 padding verticale
       padding: EdgeInsets.symmetric(
