@@ -1,19 +1,57 @@
 import 'package:flutter/material.dart';
+import '../core/constants/image_constant.dart';
 import '../theme/onlist_colors.dart';
 import '../theme/onlist_text_styles.dart';
 
-/// Fallback grafico UNICO per quando un'immagine reale (foto del locale o
-/// locandina dell'evento) manca o non si carica.
+/// Fallback UNICO per quando un'immagine reale (foto del locale o locandina
+/// dell'evento) manca o non si carica.
 ///
-/// Coerente col design system: fondo `blueDeep`, icona discreta e testo
-/// "Nessuna immagine disponibile". Non è MAI una foto finta che possa essere
-/// scambiata per un dato reale. Si adatta allo spazio: nei riquadri piccoli
-/// (thumbnail) mostra solo l'icona, in quelli grandi anche il testo.
+/// Ha due rese, scelte da [seed]:
+///
+/// - **Con [seed]** (l'id del locale/evento): mostra una delle immagini di
+///   stock in `assets/images/stock_club_<n>.jpg`, scelta in modo deterministico.
+///   Serve perché gli URL remoti del seed non sono garantiti nel tempo — 4 dei
+///   19 ID Unsplash usati sono già stati rimossi a monte, lasciando dei buchi
+///   in griglia. L'asset locale non può 404-are.
+/// - **Senza [seed]**: fondo `blueDeep`, icona discreta e "Nessuna immagine
+///   disponibile". Da usare dove non c'è un id stabile a cui agganciarsi.
+///
+/// Nota: fino al 2026-07-16 questo widget non mostrava mai una foto, per non
+/// spacciare uno stock per un dato reale. La regola aveva senso in astratto ma
+/// non descriveva la realtà: nel DB *tutte* le foto di locali ed eventi sono
+/// già stock del seed, nessuna è una foto vera del locale. Il fallback stock
+/// non aggiunge quindi finzione — la toglie dal caso "buco visibile". Quando i
+/// locali caricheranno foto reali, il compromesso va rivalutato: uno stock al
+/// posto della foto vera di un club diventa fuorviante per chi prenota.
 class ImageFallback extends StatelessWidget {
-  const ImageFallback({Key? key}) : super(key: key);
+  const ImageFallback({Key? key, this.seed}) : super(key: key);
+
+  /// Id stabile (locale o evento) da cui derivare quale stock mostrare. Se null
+  /// o vuoto, si ricade sul fallback grafico "Nessuna immagine disponibile".
+  final String? seed;
+
+  /// Hash stabile fra run e piattaforme: `String.hashCode` in Dart non lo è, e
+  /// un locale che cambia foto a ogni riavvio sembrerebbe un bug.
+  static String _stockFor(String seed) {
+    var h = 0;
+    for (final unit in seed.codeUnits) {
+      h = (h * 31 + unit) & 0x7fffffff;
+    }
+    return ImageConstant.stockClub[h % ImageConstant.stockClub.length];
+  }
 
   @override
   Widget build(BuildContext context) {
+    final s = seed;
+    if (s != null && s.isNotEmpty) {
+      return Image.asset(
+        _stockFor(s),
+        fit: BoxFit.cover,
+        width: double.infinity,
+        height: double.infinity,
+      );
+    }
+
     return DecoratedBox(
       decoration: const BoxDecoration(color: OnlistColors.blueDeep),
       child: LayoutBuilder(

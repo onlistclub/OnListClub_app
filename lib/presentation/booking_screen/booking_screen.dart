@@ -431,9 +431,12 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
 
   Widget _buildClubHeader(LocaleModel? locale, SerataModel? serata) {
     // Immagine dal DB: priorità alla locandina della serata, poi alla foto del
-    // locale. Niente più sfondo hardcoded: se mancano entrambe si mostra il
-    // fallback unico, mai una foto finta.
+    // locale. Niente più sfondo hardcoded: se mancano entrambe (o l'URL non
+    // carica) si mostra il fallback unico.
     final imageUrl = serata?.locandinaUrl ?? locale?.fotoUrl;
+    // Il seed segue la stessa priorità dell'URL, così lo stock mostrato resta
+    // legato all'entità di cui stiamo mostrando l'immagine.
+    final seed = serata?.id ?? locale?.id;
 
     return Container(
       // minHeight (non height fissa): se il titolo va a capo su 2 righe il box
@@ -453,9 +456,9 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       fit: BoxFit.cover,
                       placeholder: (_, __) =>
                           const ColoredBox(color: OnlistColors.blueDeep),
-                      errorWidget: (_, __, ___) => const ImageFallback(),
+                      errorWidget: (_, __, ___) => ImageFallback(seed: seed),
                     )
-                  : const ImageFallback(),
+                  : ImageFallback(seed: seed),
             ),
             // Overlay scuro per la leggibilità del testo.
             const Positioned.fill(

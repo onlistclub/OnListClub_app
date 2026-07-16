@@ -196,6 +196,7 @@ class _EventDetailScreenState extends State<EventDetailScreen>
                                   name: state.eventoOggi!.nome,
                                   time: state.eventoOggi!.orarioString,
                                   imageUrl: state.eventoOggi!.locandinaUrl,
+                                  seed: state.eventoOggi!.id,
                                 ),
                               ),
                             ),
@@ -241,9 +242,10 @@ class _EventDetailScreenState extends State<EventDetailScreen>
               ? CachedNetworkImage(
                   imageUrl: fotoUrl,
                   fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) => const ImageFallback(),
+                  errorWidget: (_, __, ___) =>
+                      ImageFallback(seed: state.hottestClub?.id),
                 )
-              : const ImageFallback(),
+              : ImageFallback(seed: state.hottestClub?.id),
         ),
       ),
     );
@@ -339,6 +341,7 @@ class _EventDetailScreenState extends State<EventDetailScreen>
     required String name,
     required String time,
     String? imageUrl,
+    String? seed,
   }) {
     return _AnimatedPressButton(
       onPressed: () {},
@@ -362,9 +365,9 @@ class _EventDetailScreenState extends State<EventDetailScreen>
                         fit: BoxFit.cover,
                         memCacheWidth: 495,
                         memCacheHeight: 285,
-                        errorWidget: (_, __, ___) => const ImageFallback(),
+                        errorWidget: (_, __, ___) => ImageFallback(seed: seed),
                       )
-                    : const ImageFallback(),
+                    : ImageFallback(seed: seed),
               ),
             ),
             const SizedBox(width: 9),

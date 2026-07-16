@@ -255,6 +255,37 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
 
   // ── Filtering ──────────────────────────────────────────────────────────────
 
+  /// Predicato di filtro condiviso: lo usa sia la lista sia il popup filtri
+  /// per contare i locali risultanti ("Mostra N locali") senza duplicare le
+  /// regole. Non ordina: l'ordinamento resta responsabilità del chiamante.
+  static List<LocaleModel> _applyFilters(
+    List<LocaleModel> clubs, {
+    required String searchQuery,
+    required Set<String> generi,
+    required Set<String> citta,
+    required int? prezzo,
+  }) {
+    return clubs.where((c) {
+      // Testo
+      if (searchQuery.isNotEmpty) {
+        final q = searchQuery.toLowerCase();
+        if (!c.nome.toLowerCase().contains(q) &&
+            !(c.nomeCitta?.toLowerCase().contains(q) ?? false)) {
+          return false;
+        }
+      }
+      // Genere
+      if (generi.isNotEmpty && !c.generiMusicali.any(generi.contains)) {
+        return false;
+      }
+      // Città
+      if (citta.isNotEmpty && !citta.contains(c.nomeCitta)) return false;
+      // Prezzo
+      if (prezzo != null && c.prezzoIndicativo != prezzo) return false;
+      return true;
+    }).toList();
+  }
+
   List<LocaleModel>? _filteredCache;
   String? _filteredCacheKey;
 
@@ -266,30 +297,13 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       return _filteredCache!;
     }
 
-    var list = clubs.where((c) {
-      // Testo
-      if (_searchQuery.isNotEmpty) {
-        final q = _searchQuery.toLowerCase();
-        if (!c.nome.toLowerCase().contains(q) &&
-            !(c.nomeCitta?.toLowerCase().contains(q) ?? false)) {
-          return false;
-        }
-      }
-      // Genere
-      if (_selectedGeneri.isNotEmpty &&
-          !c.generiMusicali.any(_selectedGeneri.contains)) {
-        return false;
-      }
-      // Città
-      if (_selectedCitta.isNotEmpty && !_selectedCitta.contains(c.nomeCitta)) {
-        return false;
-      }
-      // Prezzo
-      if (_selectedPrezzo != null && c.prezzoIndicativo != _selectedPrezzo) {
-        return false;
-      }
-      return true;
-    }).toList();
+    var list = _applyFilters(
+      clubs,
+      searchQuery: _searchQuery,
+      generi: _selectedGeneri,
+      citta: _selectedCitta,
+      prezzo: _selectedPrezzo,
+    );
 
     if (_sortMode == _SortMode.popolarita) {
       list.sort((a, b) => b.famosita.compareTo(a.famosita));
@@ -300,16 +314,47 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     return list;
   }
 
-  bool get _hasActiveFilters =>
-      _selectedGeneri.isNotEmpty ||
-      _selectedCitta.isNotEmpty ||
-      _selectedPrezzo != null;
+  bool get _hasActiveFilters => _activeFilterCount > 0;
 
-  void _clearFilters() => setState(() {
-        _selectedGeneri.clear();
-        _selectedCitta.clear();
-        _selectedPrezzo = null;
-      });
+  /// Numero di filtri attivi, mostrato come badge sul bottone "Filtri":
+  /// ogni genere e ogni città contano uno, il prezzo conta uno in tutto.
+  int get _activeFilterCount =>
+      _selectedGeneri.length +
+      _selectedCitta.length +
+      (_selectedPrezzo != null ? 1 : 0);
+
+  /// Apre il popup dei filtri (genere, città, prezzo). I filtri si applicano
+  /// live a ogni tocco: chiudere il popup con lo swipe non perde le scelte.
+  Future<void> _showFiltersSheet(_NearbyData data) async {
+    await showModalBottomSheet<void>(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: OnlistColors.black,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
+      ),
+      builder: (_) => _FiltersSheet(
+        clubs: data.clubs,
+        allGeneri: data.allGeneri,
+        allCitta: data.allCitta,
+        searchQuery: _searchQuery,
+        initialGeneri: _selectedGeneri,
+        initialCitta: _selectedCitta,
+        initialPrezzo: _selectedPrezzo,
+        onChanged: (generi, citta, prezzo) {
+          setState(() {
+            _selectedGeneri
+              ..clear()
+              ..addAll(generi);
+            _selectedCitta
+              ..clear()
+              ..addAll(citta);
+            _selectedPrezzo = prezzo;
+          });
+        },
+      ),
+    );
+  }
 
   // ── Radius dialog ──────────────────────────────────────────────────────────
 
@@ -775,36 +820,22 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                     onTap: () =>
                         setState(() => _sortMode = _SortMode.popolarita),
                   ),
-                  if (_hasActiveFilters) ...[
-                    const SizedBox(width: 8),
-                    GestureDetector(
-                      onTap: _clearFilters,
-                      child: Container(
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 10, vertical: 7),
-                        decoration: BoxDecoration(
-                          color: const Color(0xFF2A1A1A),
-                          borderRadius: BorderRadius.circular(7),
-                          border: Border.all(
-                              color: Colors.redAccent.withValues(alpha: 0.5),
-                              width: 1),
-                        ),
-                        child: Row(
-                          mainAxisSize: MainAxisSize.min,
-                          children: [
-                            const Icon(Icons.close,
-                                size: 12, color: Colors.redAccent),
-                            const SizedBox(width: 4),
-                            Text('Azzera',
-                                style: TextStyle(
-                                    fontFamily: 'Helvetica',
-                                    fontSize: 12,
-                                    color: Colors.redAccent)),
-                          ],
-                        ),
-                      ),
-                    ),
-                  ],
+                  const Spacer(),
+                  // Bottone filtri: raccoglie genere/città/prezzo in un popup
+                  // così non occupano tre righe fisse sopra la lista.
+                  // Attivo solo a dati pronti: senza `data` non sappiamo quali
+                  // generi e città proporre.
+                  FutureBuilder<_NearbyData>(
+                    future: _future,
+                    builder: (_, snap) {
+                      final data = snap.data;
+                      return _FiltersButton(
+                        count: _activeFilterCount,
+                        onTap:
+                            data == null ? null : () => _showFiltersSheet(data),
+                      );
+                    },
+                  ),
                 ],
               ),
             ),
@@ -898,39 +929,6 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                             ],
                           ),
                         ),
-                      // ── Filtro prezzo ──────────────────────────────────
-                      _buildPriceRow(),
-
-                      // ── Filtro genere ──────────────────────────────────
-                      if (data.allGeneri.isNotEmpty)
-                        _buildChipRow(
-                          items: data.allGeneri,
-                          selected: _selectedGeneri,
-                          onToggle: (g) => setState(() {
-                            if (_selectedGeneri.contains(g)) {
-                              _selectedGeneri.remove(g);
-                            } else {
-                              _selectedGeneri.add(g);
-                            }
-                          }),
-                          icon: Icons.music_note,
-                        ),
-
-                      // ── Filtro città ───────────────────────────────────
-                      if (data.allCitta.length > 1)
-                        _buildChipRow(
-                          items: data.allCitta,
-                          selected: _selectedCitta,
-                          onToggle: (c) => setState(() {
-                            if (_selectedCitta.contains(c)) {
-                              _selectedCitta.remove(c);
-                            } else {
-                              _selectedCitta.add(c);
-                            }
-                          }),
-                          icon: Icons.location_city,
-                        ),
-
                       // ── Lista locali ───────────────────────────────────
                       if (filtered.isEmpty)
                         Expanded(
@@ -986,7 +984,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     );
   }
 
-  // ── Filter widgets ─────────────────────────────────────────────────────────
+  // ── Suggerimenti città ─────────────────────────────────────────────────────
 
   /// Pannello dei suggerimenti città sotto la barra di ricerca.
   /// Vuoto (zero altezza) finché non c'è qualcosa da proporre, così non
@@ -1014,8 +1012,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       decoration: BoxDecoration(
         color: OnlistColors.blueDeep,
         borderRadius: BorderRadius.circular(10),
-        border: Border.all(
-            color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
+        border:
+            Border.all(color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
       ),
       child: ListView.builder(
         shrinkWrap: true,
@@ -1027,8 +1025,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
             behavior: HitTestBehavior.opaque,
             onTap: () => _selectCity(c),
             child: Padding(
-              padding:
-                  const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
               child: Row(
                 children: [
                   const Icon(Icons.location_city,
@@ -1063,110 +1060,342 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       ),
     );
   }
+}
 
-  Widget _buildPriceRow() {
-    return Padding(
-      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
-        child: Row(
-          children: [1, 2, 3].map((p) {
-            final label = '€' * p;
-            final sel = _selectedPrezzo == p;
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () => setState(() => _selectedPrezzo = sel ? null : p),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: sel
-                        ? OnlistColors.blueElectric.withValues(alpha: 0.18)
-                        : OnlistColors.blueDeep,
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(
-                      color: sel
-                          ? OnlistColors.blueElectric
-                          : OnlistColors.blueElectric.withValues(alpha: 0.35),
-                      width: sel ? 1.5 : 0.5,
+// ── Bottone filtri ───────────────────────────────────────────────────────────
+
+/// Apre il popup dei filtri. Il badge mostra quanti filtri sono attivi, così
+/// l'utente sa che la lista è filtrata anche se i controlli non sono a video.
+class _FiltersButton extends StatelessWidget {
+  final int count;
+  final VoidCallback? onTap;
+
+  const _FiltersButton({required this.count, this.onTap});
+
+  @override
+  Widget build(BuildContext context) {
+    final active = count > 0;
+    return Opacity(
+      opacity: onTap == null ? 0.4 : 1,
+      child: GestureDetector(
+        onTap: onTap,
+        child: AnimatedContainer(
+          duration: const Duration(milliseconds: 180),
+          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+          decoration: BoxDecoration(
+            color: active
+                ? OnlistColors.blueElectric.withValues(alpha: 0.18)
+                : OnlistColors.blueDeep,
+            borderRadius: BorderRadius.circular(7),
+            border: Border.all(
+              color: active
+                  ? OnlistColors.blueElectric
+                  : OnlistColors.blueElectric.withValues(alpha: 0.35),
+              width: active ? 1.5 : 0.5,
+            ),
+          ),
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Icon(Icons.tune,
+                  size: 14,
+                  color: active ? OnlistColors.blueElectric : Colors.white38),
+              const SizedBox(width: 5),
+              Text(
+                'Filtri',
+                style: TextStyle(
+                  fontFamily: 'Helvetica',
+                  fontSize: 13,
+                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
+                  color: active ? Colors.white : Colors.white54,
+                ),
+              ),
+              if (active) ...[
+                const SizedBox(width: 6),
+                Container(
+                  width: 16,
+                  height: 16,
+                  alignment: Alignment.center,
+                  decoration: const BoxDecoration(
+                    color: OnlistColors.blueElectric,
+                    shape: BoxShape.circle,
+                  ),
+                  child: Text(
+                    '$count',
+                    style: TextStyle(
+                      fontFamily: 'Helvetica',
+                      fontSize: 10,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Popup filtri ─────────────────────────────────────────────────────────────
+
+/// Bottom sheet con genere musicale, città e prezzo. Le scelte si applicano
+/// live via [onChanged]: chiudere con lo swipe non le perde. Il bottone in
+/// fondo mostra quanti locali restano, per dare un'idea dell'effetto prima di
+/// tornare alla lista.
+class _FiltersSheet extends StatefulWidget {
+  final List<LocaleModel> clubs;
+  final List<String> allGeneri;
+  final List<String> allCitta;
+  final String searchQuery;
+  final Set<String> initialGeneri;
+  final Set<String> initialCitta;
+  final int? initialPrezzo;
+  final void Function(Set<String> generi, Set<String> citta, int? prezzo)
+      onChanged;
+
+  const _FiltersSheet({
+    required this.clubs,
+    required this.allGeneri,
+    required this.allCitta,
+    required this.searchQuery,
+    required this.initialGeneri,
+    required this.initialCitta,
+    required this.initialPrezzo,
+    required this.onChanged,
+  });
+
+  @override
+  State<_FiltersSheet> createState() => _FiltersSheetState();
+}
+
+class _FiltersSheetState extends State<_FiltersSheet> {
+  late final Set<String> _generi = {...widget.initialGeneri};
+  late final Set<String> _citta = {...widget.initialCitta};
+  late int? _prezzo = widget.initialPrezzo;
+
+  void _emit() {
+    setState(() {});
+    widget.onChanged(_generi, _citta, _prezzo);
+  }
+
+  int get _count => _NearbyClubsScreenState._applyFilters(
+        widget.clubs,
+        searchQuery: widget.searchQuery,
+        generi: _generi,
+        citta: _citta,
+        prezzo: _prezzo,
+      ).length;
+
+  bool get _hasAny => _generi.isNotEmpty || _citta.isNotEmpty || _prezzo != null;
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: ConstrainedBox(
+        constraints: BoxConstraints(
+          maxHeight: MediaQuery.of(context).size.height * 0.75,
+        ),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            // Maniglia di trascinamento
+            Container(
+              width: 36,
+              height: 4,
+              margin: const EdgeInsets.only(top: 10, bottom: 6),
+              decoration: BoxDecoration(
+                color: Colors.white24,
+                borderRadius: BorderRadius.circular(1000),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
+              child: Row(
+                children: [
+                  Text(
+                    'Filtri',
+                    style: TextStyle(
+                      fontFamily: 'Helvetica',
+                      fontSize: 17,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                    ),
+                  ),
+                  const Spacer(),
+                  if (_hasAny)
+                    GestureDetector(
+                      behavior: HitTestBehavior.opaque,
+                      onTap: () {
+                        _generi.clear();
+                        _citta.clear();
+                        _prezzo = null;
+                        _emit();
+                      },
+                      child: Text(
+                        'Azzera',
+                        style: TextStyle(
+                          fontFamily: 'Helvetica',
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: OnlistColors.blueElectric,
+                        ),
+                      ),
+                    ),
+                ],
+              ),
+            ),
+            Flexible(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    _section(
+                      'Prezzo',
+                      [1, 2, 3]
+                          .map((p) => _chip(
+                                label: '€' * p,
+                                selected: _prezzo == p,
+                                // Ritocco sullo stesso prezzo = nessun filtro:
+                                // è un gruppo a scelta singola, non cumulativo.
+                                onTap: () {
+                                  _prezzo = _prezzo == p ? null : p;
+                                  _emit();
+                                },
+                              ))
+                          .toList(),
+                    ),
+                    if (widget.allGeneri.isNotEmpty)
+                      _section(
+                        'Genere musicale',
+                        widget.allGeneri
+                            .map((g) => _chip(
+                                  label: g,
+                                  icon: Icons.music_note,
+                                  selected: _generi.contains(g),
+                                  onTap: () {
+                                    if (!_generi.remove(g)) _generi.add(g);
+                                    _emit();
+                                  },
+                                ))
+                            .toList(),
+                      ),
+                    if (widget.allCitta.length > 1)
+                      _section(
+                        'Città',
+                        widget.allCitta
+                            .map((c) => _chip(
+                                  label: c,
+                                  icon: Icons.location_city,
+                                  selected: _citta.contains(c),
+                                  onTap: () {
+                                    if (!_citta.remove(c)) _citta.add(c);
+                                    _emit();
+                                  },
+                                ))
+                            .toList(),
+                      ),
+                  ],
+                ),
+              ),
+            ),
+            Padding(
+              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
+              child: SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: () => Navigator.pop(context),
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: OnlistColors.blueElectric,
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(10),
                     ),
                   ),
                   child: Text(
-                    label,
+                    _count == 1 ? 'Mostra 1 locale' : 'Mostra $_count locali',
                     style: TextStyle(
                       fontFamily: 'Helvetica',
-                      fontSize: 13,
-                      fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
-                      color: sel ? Colors.white : Colors.white54,
+                      fontSize: 15,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
                     ),
                   ),
                 ),
               ),
-            );
-          }).toList(),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  Widget _buildChipRow({
-    required List<String> items,
-    required Set<String> selected,
-    required void Function(String) onToggle,
-    required IconData icon,
+  Widget _section(String title, List<Widget> chips) {
+    return Column(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        const SizedBox(height: 10),
+        Text(
+          title,
+          style: TextStyle(
+            fontFamily: 'Helvetica',
+            fontSize: 13,
+            fontWeight: FontWeight.w600,
+            color: Colors.white54,
+          ),
+        ),
+        const SizedBox(height: 10),
+        Wrap(spacing: 8, runSpacing: 8, children: chips),
+      ],
+    );
+  }
+
+  Widget _chip({
+    required String label,
+    required bool selected,
+    required VoidCallback onTap,
+    IconData? icon,
   }) {
-    return Padding(
-      padding: const EdgeInsets.only(left: 12, right: 12, bottom: 4),
-      child: SingleChildScrollView(
-        scrollDirection: Axis.horizontal,
+    return GestureDetector(
+      onTap: onTap,
+      child: AnimatedContainer(
+        duration: const Duration(milliseconds: 180),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+        decoration: BoxDecoration(
+          color: selected
+              ? OnlistColors.blueElectric.withValues(alpha: 0.18)
+              : OnlistColors.blueDeep,
+          borderRadius: BorderRadius.circular(7),
+          border: Border.all(
+            color: selected
+                ? OnlistColors.blueElectric
+                : OnlistColors.blueElectric.withValues(alpha: 0.35),
+            width: selected ? 1.5 : 0.5,
+          ),
+        ),
         child: Row(
-          children: items.map((item) {
-            final sel = selected.contains(item);
-            return Padding(
-              padding: const EdgeInsets.only(right: 8),
-              child: GestureDetector(
-                onTap: () => onToggle(item),
-                child: AnimatedContainer(
-                  duration: const Duration(milliseconds: 180),
-                  padding:
-                      const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-                  decoration: BoxDecoration(
-                    color: sel
-                        ? OnlistColors.blueElectric.withValues(alpha: 0.18)
-                        : OnlistColors.blueDeep,
-                    borderRadius: BorderRadius.circular(7),
-                    border: Border.all(
-                      color: sel
-                          ? OnlistColors.blueElectric
-                          : OnlistColors.blueElectric.withValues(alpha: 0.35),
-                      width: sel ? 1.5 : 0.5,
-                    ),
-                  ),
-                  child: Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Icon(icon,
-                          size: 13,
-                          color:
-                              sel ? OnlistColors.blueElectric : Colors.white38),
-                      const SizedBox(width: 5),
-                      Text(
-                        item,
-                        style: TextStyle(
-                          fontFamily: 'Helvetica',
-                          fontSize: 13,
-                          fontWeight: sel ? FontWeight.w600 : FontWeight.w400,
-                          color: sel ? Colors.white : Colors.white54,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            if (icon != null) ...[
+              Icon(icon,
+                  size: 13,
+                  color: selected ? OnlistColors.blueElectric : Colors.white38),
+              const SizedBox(width: 5),
+            ],
+            Text(
+              label,
+              style: TextStyle(
+                fontFamily: 'Helvetica',
+                fontSize: 13,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
+                color: selected ? Colors.white : Colors.white54,
               ),
-            );
-          }).toList(),
+            ),
+          ],
         ),
       ),
     );
@@ -1325,9 +1554,10 @@ class _ClubListTile extends StatelessWidget {
                           fit: BoxFit.cover,
                           memCacheWidth: 192,
                           memCacheHeight: 192,
-                          errorWidget: (_, __, ___) => const ImageFallback(),
+                          errorWidget: (_, __, ___) =>
+                              ImageFallback(seed: club.id),
                         )
-                      : const ImageFallback(),
+                      : ImageFallback(seed: club.id),
                 ),
               ),
             ),

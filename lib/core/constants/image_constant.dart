@@ -6,13 +6,24 @@
 /// nei widget, mai stringhe hardcoded.
 class ImageConstant {
   // Base path for all assets
-  static String _basePath = 'assets/images/';
+  static const String _basePath = 'assets/images/';
 
   // Placeholder image for fallback
   static String imgPlaceholder = '${_basePath}placeholder.png';
 
   // Custom Image View Screen
   static String imgImageNotFound = '${_basePath}image_not_found.png';
+
+  // Immagini di stock "stile disco" usate da ImageFallback quando la foto
+  // remota di un locale/evento manca o non carica. Gli URL Unsplash del seed
+  // non sono garantiti nel tempo (4 ID su 19 sono già stati rimossi a monte):
+  // questi asset locali evitano che l'utente veda un buco.
+  static const List<String> stockClub = [
+    '${_basePath}stock_club_1.jpg',
+    '${_basePath}stock_club_2.jpg',
+    '${_basePath}stock_club_3.jpg',
+    '${_basePath}stock_club_4.jpg',
+  ];
 
   // Logo
   static String imgLogoOnlist = '${_basePath}logo_onlist.png';

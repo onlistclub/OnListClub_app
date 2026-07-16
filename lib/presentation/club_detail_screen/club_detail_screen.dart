@@ -340,9 +340,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                     ? CachedNetworkImage(
                         imageUrl: state.locale.fotoUrl!,
                         fit: BoxFit.cover,
-                        errorWidget: (_, __, ___) => const ImageFallback(),
+                        errorWidget: (_, __, ___) =>
+                            ImageFallback(seed: state.locale.id),
                       )
-                    : const ImageFallback(),
+                    : ImageFallback(seed: state.locale.id),
               ),
             ),
           ),
@@ -624,9 +625,10 @@ class _SerataCard extends StatelessWidget {
                               imageUrl: serata.locandinaUrl!,
                               fit: BoxFit.cover,
                               memCacheWidth: 285,
-                              errorWidget: (_, __, ___) => const ImageFallback(),
+                              errorWidget: (_, __, ___) =>
+                                  ImageFallback(seed: serata.id),
                             )
-                          : const ImageFallback(),
+                          : ImageFallback(seed: serata.id),
                     ),
                   ),
                 ),
