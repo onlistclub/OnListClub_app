@@ -20,6 +20,7 @@ import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/image_fallback.dart';
 import '../../widgets/onlist_price_text.dart';
 import '../../widgets/onlist_primary_button.dart';
+import '../../widgets/onlist_ticket_title.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
@@ -565,38 +566,26 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               // Ticket + tipo (alto-sinistra)
               Align(
                 alignment: Alignment.topLeft,
-                child: Column(
-                  mainAxisSize: MainAxisSize.min,
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      "Ticket",
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(40),
-                        fontWeight: FontWeight.w400,
-                        height: 45 / 40,
-                        letterSpacing: -0.1 * 40,
-                      ),
-                    ),
-                    // Sottotipo indentato sotto la "K" di "Ticket" come da
-                    // Figma (carrello-ticket.css: "Ticket" left 29/254,
-                    // tipologia left 64/296) — stesso pattern già usato in
-                    // _buildTicketDetailStep.
-                    Padding(
-                      padding: EdgeInsets.only(left: R.sp(40)),
-                      child: Text(
-                        _displayType(type),
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(24),
-                          fontWeight: FontWeight.w300,
-                          height: 29 / 24,
-                          letterSpacing: -0.06 * 24,
-                        ),
-                      ),
-                    ),
-                  ],
+                // Sottotipo ancorato sotto la "k" di "Ticket". Δ verticale dal
+                // Figma (carrello-ticket.css: "Ticket" top 13, "Normale" top 43
+                // su font 39.52 → 0.76em).
+                child: OnlistTicketTitle(
+                  type: _displayType(type),
+                  titleStyle: OnlistTextStyles.hn(
+                    color: Colors.white,
+                    fontSize: R.sp(40),
+                    fontWeight: FontWeight.w400,
+                    height: 45 / 40,
+                    letterSpacing: -0.1 * 40,
+                  ),
+                  typeStyle: OnlistTextStyles.hn(
+                    color: Colors.white,
+                    fontSize: R.sp(24),
+                    fontWeight: FontWeight.w300,
+                    height: 29 / 24,
+                    letterSpacing: -0.06 * 24,
+                  ),
+                  typeTopEm: 0.76,
                 ),
               ),
               // Prezzo + specifica (alto-destra)
@@ -727,14 +716,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             child: Column(
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
-                Text("Ticket", style: OnlistTextStyles.ticketTitleLg),
-                // Sottotipo "Vip"/"Normale": Capitalized (NON tutto maiuscolo) e
-                // indentato ~40px sotto "Ticket" come il design
-                // (carrello-ticket-vip.css: "Ticket" left 32, "Normale" left 72).
-                Padding(
-                  padding: const EdgeInsets.only(left: 40),
-                  child: Text(_displayType(type),
-                      style: OnlistTextStyles.ticketSubtitleLg),
+                // Sottotipo "Vip"/"Normale": Capitalized (NON tutto maiuscolo),
+                // ancorato sotto la "k" di "Ticket". Δ verticale dal Figma
+                // (carrello-ticket-vip.css: "Ticket" top 171, "Normale" top 204
+                // su font 40 → 0.825em).
+                OnlistTicketTitle(
+                  type: _displayType(type),
+                  titleStyle: OnlistTextStyles.ticketTitleLg,
+                  typeStyle: OnlistTextStyles.ticketSubtitleLg,
+                  typeTopEm: 0.825,
                 ),
                 const Spacer(),
                 FittedBox(
