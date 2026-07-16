@@ -1,0 +1,415 @@
+<!doctype html>
+<!--
+  Pagina del sito OnListClub raggiunta dal link dell'email "Conferma la
+  cancellazione del tuo account".
+  URL finale: https://www.onlistclub.com/auth/delete-account?token=...
+
+  Flusso:
+    1. Legge il token dalla query string e chiama confirm-account-deletion in
+       modalità { check: true }: serve a sapere se l'account ha una password
+       (registrazione via email) o no (solo Apple/Google). Il token NON viene
+       consumato.
+    2. Chi ha una password la digita; chi è entrato solo con Apple/Google
+       ricopia la frase di conferma, perché una password non ce l'ha proprio.
+    3. Alla conferma chiama confirm-account-deletion, che anonimizza i dati e
+       cancella l'account. Poi redirect a /auth/account-deleted.
+
+  A differenza di reset-password.html qui NON serve una sessione Supabase:
+  l'utente non è loggato nel browser e l'autorizzazione è il token stesso.
+
+  Prima del deploy sostituire SUPABASE_ANON_KEY con il valore reale
+  (è pubblica lato client, come nelle altre pagine).
+-->
+<html lang="it">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover" />
+  <meta name="robots" content="noindex,nofollow" />
+  <title>Elimina account — Onlist Club</title>
+  <style>
+    :root {
+      --black: #000000;
+      --white: #FFFFFF;
+      --blue-brand: #1900D8;
+      --blue-electric: #1E00FF;
+      --blue-deep: #060037;
+      --blue-violet: #201064;
+      --blue-intense: #1500B3;
+      --grey: #8E8E93;
+      --error: #FF453A;
+    }
+
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Helvetica, "Helvetica Neue", Arial, sans-serif;
+      color: var(--white);
+      background: var(--black);
+      background-image: linear-gradient(180deg, #000000 0%, #060037 100%);
+      min-height: 100dvh;
+      -webkit-font-smoothing: antialiased;
+      -moz-osx-font-smoothing: grayscale;
+    }
+
+    .page {
+      min-height: 100dvh;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+
+    .wordmark {
+      font-size: 20px;
+      font-weight: 700;
+      letter-spacing: 4px;
+      margin-bottom: 24px;
+      user-select: none;
+    }
+
+    .card {
+      width: 100%;
+      max-width: 480px;
+      background: linear-gradient(180deg, #1500B3 0%, #201064 100%);
+      border-radius: 24px;
+      padding: 36px 28px;
+      box-shadow: 0 24px 64px rgba(30, 0, 255, 0.18);
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 24px;
+      font-weight: 700;
+      letter-spacing: -0.5px;
+    }
+
+    p.lead {
+      margin: 0 0 24px;
+      font-size: 16px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.85);
+    }
+
+    label {
+      display: block;
+      font-size: 14px;
+      color: rgba(255, 255, 255, 0.7);
+      margin: 14px 0 6px;
+    }
+
+    .field { position: relative; }
+
+    input[type="password"],
+    input[type="text"] {
+      width: 100%;
+      background: transparent;
+      border: 0;
+      border-bottom: 1px solid var(--white);
+      color: var(--white);
+      font-family: inherit;
+      font-size: 16px;
+      padding: 8px 36px 8px 0;
+      outline: none;
+    }
+    input::placeholder { color: rgba(255, 255, 255, 0.4); }
+    input:focus { border-bottom-color: var(--blue-electric); }
+
+    .toggle {
+      position: absolute;
+      right: 0;
+      top: 50%;
+      transform: translateY(-50%);
+      background: transparent;
+      border: 0;
+      color: rgba(255, 255, 255, 0.7);
+      cursor: pointer;
+      font-size: 13px;
+      padding: 4px 0;
+    }
+
+    .error {
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--error);
+      min-height: 18px;
+    }
+
+    /* Riquadro con l'avviso di irreversibilità: qui non si torna indietro,
+       e l'utente deve vederlo prima del pulsante. */
+    .warning {
+      margin: 0 0 24px;
+      padding: 14px 16px;
+      border-radius: 10px;
+      background: rgba(0, 0, 0, 0.35);
+      border: 1px solid rgba(255, 69, 58, 0.5);
+      font-size: 14px;
+      line-height: 1.5;
+      color: rgba(255, 255, 255, 0.9);
+    }
+    .warning strong { color: var(--error); }
+    .warning ul { margin: 8px 0 0; padding-left: 18px; }
+    .warning li { margin: 4px 0; }
+
+    /* La frase da ricopiare: monospace per rendere ovvio ogni carattere. */
+    .phrase {
+      display: block;
+      margin: 6px 0 0;
+      padding: 10px 12px;
+      border-radius: 7px;
+      background: rgba(0, 0, 0, 0.35);
+      font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+      font-size: 14px;
+      line-height: 1.4;
+      user-select: all;
+      word-break: break-word;
+    }
+
+    .cta {
+      display: block;
+      width: 100%;
+      margin-top: 24px;
+      padding: 14px 16px;
+      border: 0;
+      border-radius: 7px;
+      background: var(--error);
+      color: var(--white);
+      font-family: inherit;
+      font-size: 16px;
+      font-weight: 700;
+      cursor: pointer;
+      transition: opacity 0.15s ease, transform 0.1s ease;
+    }
+    .cta:hover { opacity: 0.92; }
+    .cta:active { transform: translateY(1px); }
+    .cta:disabled { opacity: 0.55; cursor: not-allowed; transform: none; }
+
+    .spinner {
+      display: inline-block;
+      width: 16px;
+      height: 16px;
+      border: 2px solid rgba(255, 255, 255, 0.4);
+      border-top-color: var(--white);
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+      vertical-align: -3px;
+      margin-right: 8px;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    .footer {
+      margin-top: 24px;
+      font-size: 12px;
+      color: var(--grey);
+      text-align: center;
+    }
+
+    .invalid { text-align: center; }
+    .invalid h1 { margin-bottom: 8px; }
+    .invalid p { font-size: 14px; line-height: 1.5; color: rgba(255, 255, 255, 0.8); }
+  </style>
+</head>
+<body>
+  <main class="page">
+    <div class="wordmark">ONLIST&nbsp;CLUB</div>
+
+    <section class="card" id="card">
+      <!-- Stato iniziale: verifica del token -->
+      <div id="state-loading">
+        <h1>Verifica in corso…</h1>
+        <p class="lead"><span class="spinner"></span>Stiamo controllando il tuo link.</p>
+      </div>
+
+      <!-- Form di conferma -->
+      <form id="state-form" style="display:none" autocomplete="off" novalidate>
+        <h1>Elimina account</h1>
+        <p class="lead">
+          Stai per eliminare definitivamente il tuo account Onlist Club
+          <strong id="email-hint"></strong>.
+        </p>
+
+        <div class="warning">
+          <strong>L'operazione è definitiva.</strong>
+          <ul>
+            <li>I tuoi dati personali vengono rimossi e non sono recuperabili.</li>
+            <li>Perdi l'accesso ai ticket e alle prevendite già acquistate.</li>
+            <li>Non potrai più entrare con questo account.</li>
+          </ul>
+        </div>
+
+        <!-- Account con password -->
+        <div id="block-password" style="display:none">
+          <label for="password">Conferma con la tua password</label>
+          <div class="field">
+            <input id="password" name="password" type="password" placeholder="La tua password" />
+            <button type="button" class="toggle" data-target="password">Mostra</button>
+          </div>
+        </div>
+
+        <!-- Account solo Apple/Google: nessuna password da digitare -->
+        <div id="block-phrase" style="display:none">
+          <label for="conferma">Per confermare, ricopia questa frase</label>
+          <code class="phrase" id="phrase-text"></code>
+          <div class="field">
+            <input id="conferma" name="conferma" type="text" placeholder="Scrivi qui la frase" />
+          </div>
+        </div>
+
+        <div class="error" id="error"></div>
+
+        <button type="submit" id="submit" class="cta">ELIMINA DEFINITIVAMENTE</button>
+      </form>
+
+      <!-- Link non valido / scaduto / già usato -->
+      <div id="state-invalid" class="invalid" style="display:none">
+        <h1>Link non valido</h1>
+        <p id="invalid-text">
+          Il link per eliminare l'account non è valido, è scaduto o è già stato
+          usato. Apri di nuovo l'app Onlist Club e richiedi la cancellazione
+          dalla schermata Profilo.
+        </p>
+      </div>
+    </section>
+
+    <p class="footer">© Onlist Club</p>
+  </main>
+
+  <script type="module">
+    import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
+
+    // ───────────────────────────────────────────────────────────────
+    // CONFIG — sostituire prima del deploy con i valori reali
+    // ───────────────────────────────────────────────────────────────
+    const SUPABASE_URL = 'https://ppbxhedbludoqnagzugm.supabase.co';
+    const SUPABASE_ANON_KEY = 'REPLACE_WITH_PUBLISHABLE_ANON_KEY';
+
+    // Deve combaciare con FRASE_CONFERMA nella Edge Function
+    // confirm-account-deletion (il confronto lì ignora maiuscole e accenti).
+    const FRASE_CONFERMA = "Si, voglio eliminare definitivamente l'account";
+
+    const supabase = createClient(SUPABASE_URL, SUPABASE_ANON_KEY, {
+      auth: { persistSession: false, autoRefreshToken: false },
+    });
+
+    const $ = (id) => document.getElementById(id);
+    const stateLoading = $('state-loading');
+    const stateForm = $('state-form');
+    const stateInvalid = $('state-invalid');
+    const errorBox = $('error');
+    const submitBtn = $('submit');
+
+    const token = new URLSearchParams(location.search).get('token') ?? '';
+    let haPassword = false;
+
+    function mostraInvalido(testo) {
+      stateLoading.style.display = 'none';
+      stateForm.style.display = 'none';
+      stateInvalid.style.display = 'block';
+      if (testo) $('invalid-text').textContent = testo;
+    }
+
+    // Mostra/nascondi password (stesso comportamento di reset-password.html)
+    document.querySelectorAll('.toggle').forEach((btn) => {
+      btn.addEventListener('click', () => {
+        const input = $(btn.dataset.target);
+        const mostra = input.type === 'password';
+        input.type = mostra ? 'text' : 'password';
+        btn.textContent = mostra ? 'Nascondi' : 'Mostra';
+      });
+    });
+
+    // ── 1. Verifica del token ────────────────────────────────────────
+    async function verificaToken() {
+      if (!token) return mostraInvalido();
+
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          'confirm-account-deletion',
+          { body: { token, check: true } },
+        );
+        if (error || !data?.ok) {
+          return mostraInvalido(
+            data?.error === 'expired_token'
+              ? 'Il link è scaduto. Apri di nuovo l\'app Onlist Club e richiedi la cancellazione dalla schermata Profilo.'
+              : undefined,
+          );
+        }
+
+        haPassword = data.haPassword === true;
+        if (data.email) $('email-hint').textContent = `(${data.email})`;
+
+        if (haPassword) {
+          $('block-password').style.display = 'block';
+        } else {
+          $('phrase-text').textContent = FRASE_CONFERMA;
+          $('block-phrase').style.display = 'block';
+        }
+
+        stateLoading.style.display = 'none';
+        stateForm.style.display = 'block';
+      } catch (e) {
+        console.error(e);
+        mostraInvalido();
+      }
+    }
+
+    // ── 2. Conferma ed esecuzione ────────────────────────────────────
+    stateForm.addEventListener('submit', async (ev) => {
+      ev.preventDefault();
+      errorBox.textContent = '';
+
+      const body = { token };
+      if (haPassword) {
+        const pwd = $('password').value;
+        if (!pwd) {
+          errorBox.textContent = 'Inserisci la tua password.';
+          return;
+        }
+        body.password = pwd;
+      } else {
+        const frase = $('conferma').value;
+        if (!frase.trim()) {
+          errorBox.textContent = 'Ricopia la frase di conferma.';
+          return;
+        }
+        body.conferma = frase;
+      }
+
+      submitBtn.disabled = true;
+      const labelOriginale = submitBtn.textContent;
+      submitBtn.innerHTML = '<span class="spinner"></span>Eliminazione in corso…';
+
+      try {
+        const { data, error } = await supabase.functions.invoke(
+          'confirm-account-deletion',
+          { body },
+        );
+
+        if (error || !data?.ok) {
+          const messaggi = {
+            invalid_password: 'Password errata. Riprova.',
+            invalid_conferma: 'La frase non coincide. Ricopiala esattamente come scritta sopra.',
+            expired_token: 'Il link è scaduto. Richiedi di nuovo la cancellazione dall\'app.',
+            invalid_token: 'Questo link non è più valido. Richiedi di nuovo la cancellazione dall\'app.',
+          };
+          errorBox.textContent = messaggi[data?.error] ??
+            'Qualcosa è andato storto. Riprova tra poco.';
+          submitBtn.disabled = false;
+          submitBtn.textContent = labelOriginale;
+          return;
+        }
+
+        location.replace('/auth/account-deleted');
+      } catch (e) {
+        console.error(e);
+        errorBox.textContent = 'Qualcosa è andato storto. Riprova tra poco.';
+        submitBtn.disabled = false;
+        submitBtn.textContent = labelOriginale;
+      }
+    });
+
+    verificaToken();
+  </script>
+</body>
+</html>
