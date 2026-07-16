@@ -559,25 +559,23 @@ class _SerataCard extends StatelessWidget {
   String _formatData(DateTime d) =>
       '${_giorniLunghi[d.weekday - 1]} ${d.day} ${_mesiLunghi[d.month - 1]}';
 
-  bool get _isToday {
-    final now = DateTime.now();
-    return serata.data.year == now.year &&
-        serata.data.month == now.month &&
-        serata.data.day == now.day;
-  }
-
-  /// Etichetta giorni: "OGGI" se la serata è oggi, altrimenti countdown
-  /// stile Figma ("-3 giorni" = mancano 3 giorni). Per le serate già passate
-  /// restituisce stringa vuota (non vengono mostrate nella lista).
+  /// Etichetta giorno: solo per le serate imminenti. Per tutte le altre resta
+  /// vuota e la card mostra la sola data completa, già presente sotto.
+  ///
+  /// Nel Figma (vetrina-club.css) la slot a (106,39) contiene soltanto "OGGI":
+  /// il countdown "-N giorni" che stava qui non è mai esistito nel design.
+  ///
+  /// Il confronto è tra giorni normalizzati a mezzanotte, non tra istanti: una
+  /// serata che inizia alle 23:00 di stasera è "OGGI", non "fra 0 giorni".
   String get _dayLabel {
-    if (_isToday) return 'OGGI';
-    final today = DateTime.now();
-    final todayDate = DateTime(today.year, today.month, today.day);
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
     final serataDate =
         DateTime(serata.data.year, serata.data.month, serata.data.day);
-    final diff = serataDate.difference(todayDate).inDays;
-    if (diff <= 0) return '';
-    return '-$diff ${diff == 1 ? 'giorno' : 'giorni'}';
+    final diff = serataDate.difference(today).inDays;
+    if (diff == 0) return 'OGGI';
+    if (diff == 1) return 'DOMANI';
+    return '';
   }
 
   @override
@@ -650,7 +648,7 @@ class _SerataCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Label giorno @ (106,39): "OGGI" o "-N giorni" (countdown).
+                // Label giorno @ (106,39): "OGGI"/"DOMANI", assente sulle altre.
                 if (_dayLabel.isNotEmpty)
                   Positioned(
                     left: 106,
