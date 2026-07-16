@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_export.dart';
+import '../../core/services/account_deletion_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/badge_service.dart';
 import '../../core/services/orders_service.dart';
@@ -311,6 +312,74 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     }
   }
 
+  /// Avvia la cancellazione account: conferma, poi richiesta dell'email col
+  /// link. Qui non si cancella nulla — il punto di non ritorno è sul sito.
+  Future<void> _confirmDeleteAccount() async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+        title: Text('Elimina account',
+            style: OnlistTextStyles.hn(
+                color: OnlistColors.white, fontWeight: FontWeight.bold)),
+        content: Text(
+          'Ti invieremo un\'email con un link per completare la '
+          'cancellazione.\n\nL\'operazione è definitiva: i tuoi dati personali '
+          'verranno rimossi e perderai l\'accesso ai ticket già acquistati.',
+          style:
+              OnlistTextStyles.hn(color: OnlistColors.white.withValues(alpha: 0.7)),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: Text('Annulla',
+                style: OnlistTextStyles.hn(
+                    color: OnlistColors.white.withValues(alpha: 0.54))),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: Text('Invia email',
+                style: OnlistTextStyles.hn(
+                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirm != true) return;
+
+    final ok = await AccountDeletionService.requestDeletion();
+    if (!mounted) return;
+
+    if (!ok) {
+      showAppErrorDialog(
+          context, 'Non siamo riusciti a inviare l\'email. Riprova tra poco.');
+      return;
+    }
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.mark_email_read_outlined,
+                color: OnlistColors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(
+                'Email inviata. Apri il link per completare la cancellazione.',
+                style: OnlistTextStyles.hn(color: OnlistColors.white),
+              ),
+            ),
+          ],
+        ),
+        backgroundColor: OnlistColors.blueElectric,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -510,6 +579,16 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           label: 'Disconnetti',
           color: Colors.redAccent,
           onTap: _confirmLogout,
+        ),
+        // Richiesto da Apple (App Store Review 5.1.1(v)): la cancellazione
+        // dell'account deve poter partire dall'app. Qui parte; si completa sul
+        // sito, dopo il link inviato per email.
+        _buildActionTile(
+          icon: Icons.delete_forever_outlined,
+          label: 'Elimina account',
+          subtitle: 'Cancella definitivamente i tuoi dati',
+          color: Colors.redAccent,
+          onTap: _confirmDeleteAccount,
         ),
       ],
     );
