@@ -11,7 +11,6 @@
 .svn/
 .swiftpm/
 migrate_working_dir/
-supabase/
 test/
 
 # IntelliJ related
@@ -52,3 +51,10 @@ app.*.map.json
 /android/app/profile
 /android/app/release
 Thumbs.db
+
+# Supabase — si versionano functions/, migrations/ e sql/ (sono codice
+# sorgente). Resta fuori solo lo stato locale della CLI e i segreti.
+supabase/.temp/
+supabase/.branches/
+supabase/.env
+supabase/.env.local
