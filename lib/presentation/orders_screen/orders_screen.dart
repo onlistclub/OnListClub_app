@@ -7,6 +7,7 @@ import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/onlist_price_text.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/staggered_item.dart';
 
@@ -220,7 +221,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
                   crossAxisAlignment: CrossAxisAlignment.end,
                   children: [
                     if (prezzo != null)
-                      Text(
+                      OnlistPriceText(
                         '${_fmtPrezzo(prezzo)}€',
                         style: OnlistTextStyles.hn(
                           color: Colors.white,
