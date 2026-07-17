@@ -46,6 +46,7 @@ Route<dynamic> buildAppRoute(
       return AppPageRoute<dynamic>(
         settings: settings,
         enableBackGesture: enableBackGesture,
+        transition: AppTransition.fade,
         transitionDuration: const Duration(milliseconds: 240),
         reverseTransitionDuration: const Duration(milliseconds: 200),
         pageBuilder: (context, _, __) => builder(context),
@@ -55,6 +56,7 @@ Route<dynamic> buildAppRoute(
       return AppPageRoute<dynamic>(
         settings: settings,
         enableBackGesture: enableBackGesture,
+        transition: AppTransition.sharedAxis,
         transitionDuration: const Duration(milliseconds: 300),
         reverseTransitionDuration: const Duration(milliseconds: 260),
         pageBuilder: (context, _, __) => builder(context),
@@ -122,13 +124,15 @@ Widget _fadeThrough(
 }
 
 // ── Swipe-back ────────────────────────────────────────────────────────────────
-// Il gesto non ha un'animazione propria: pilota all'indietro il controller della
-// rotta, cioè "scrubba" con il dito la STESSA transizione di uscita che si vede
-// premendo il back. Così il movimento resta quello del design system e non
-// paghiamo widget o layer aggiuntivi durante il drag.
+// Il gesto pilota all'indietro il controller della rotta col dito. Il rendering
+// del drag è gestito da `AppPageRoute.buildTransitions`: durante il gesto la
+// pagina fa uno slide orizzontale coerente su OGNI schermata (anche i fade come
+// club_detail, che altrimenti svanirebbero in opacità invece di seguire il dito)
+// senza `saveLayer` a schermo intero, così resta fluido su device datati.
 
-/// Larghezza della zona sensibile sul bordo sinistro (come iOS).
-const double _kBackGestureWidth = 20.0;
+/// Larghezza della zona sensibile sul bordo sinistro (come iOS). Leggermente più
+/// larga dei 20px canonici per rendere l'innesco più affidabile col pollice.
+const double _kBackGestureWidth = 24.0;
 
 /// Velocità (in schermate al secondo) oltre la quale il drag è un "fling".
 const double _kMinFlingVelocity = 1.0;
@@ -148,11 +152,17 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
     required super.transitionDuration,
     required super.reverseTransitionDuration,
     required this.enableBackGesture,
+    required this.transition,
   });
 
   /// Se il gesto è ammesso su questa schermata (decisione di navigazione, presa
   /// in `AppRoutes`). Non basta da solo: vedi `_isBackGestureEnabled`.
   final bool enableBackGesture;
+
+  /// Tipo di transizione della rotta. Serve a `buildTransitions` per riprodurre
+  /// fade / shared-axis nella struttura unificata usata dalle rotte con
+  /// swipe-back (vedi sotto).
+  final AppTransition transition;
 
   /// Vero solo se il gesto è ammesso *e* lo stato corrente lo consente: c'è una
   /// schermata sotto, nessuno ha bloccato il pop (`PopScope`), non ci sono
@@ -185,17 +195,69 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
   ) {
     // Il detector sta DENTRO la transizione: si muove insieme alla pagina e non
     // intercetta nulla quando la rotta è coperta da un'altra.
-    return super.buildTransitions(
-      context,
-      animation,
-      secondaryAnimation,
-      enableBackGesture
-          ? _BackGestureDetector<T>(
-              enabledCallback: () => _isBackGestureEnabled,
-              onStartGesture: _startBackGesture,
-              child: child,
-            )
-          : child,
+    final Widget page = enableBackGesture
+        ? _BackGestureDetector<T>(
+            enabledCallback: () => _isBackGestureEnabled,
+            onStartGesture: _startBackGesture,
+            child: child,
+          )
+        : child;
+
+    // Rotte senza swipe-back: transizione standard invariata.
+    if (!enableBackGesture) {
+      return super.buildTransitions(context, animation, secondaryAnimation, page);
+    }
+
+    // Rotte con swipe-back: la pagina passa SEMPRE per la stessa struttura
+    // (Opacity → slide → scale), ricalcolata per frame variando solo i valori,
+    // mai i tipi di widget. Così l'elemento pagina resta stabile (niente
+    // reparenting/flash quando parte o finisce il gesto).
+    //
+    // - Durante un back-gesture dell'utente: slide orizzontale puro che segue il
+    //   dito, opacità piena e scala 1 → nessuna `saveLayer` a schermo intero,
+    //   quindi resta fluido anche su S7 (prima club_detail "scrubbava" un fade).
+    // - Fuori dal gesto: riproduce fedelmente fade o shared-axis (push / back a
+    //   pulsante), inclusa l'uscita quando la rotta viene coperta da un'altra
+    //   (`secondaryAnimation`).
+    return AnimatedBuilder(
+      animation: Listenable.merge(<Listenable>[animation, secondaryAnimation]),
+      child: page,
+      builder: (context, c) {
+        final bool dragging = navigator?.userGestureInProgress ?? false;
+        final double v = animation.value;
+
+        double opacity;
+        double dx;
+        double scale;
+
+        if (dragging) {
+          opacity = 1.0;
+          dx = 1.0 - v; // frazione di larghezza: la pagina segue il dito
+          scale = 1.0;
+        } else {
+          final double cv = Curves.easeOutCubic.transform(v.clamp(0.0, 1.0));
+          final double csv = Curves.easeOutCubic
+              .transform(secondaryAnimation.value.clamp(0.0, 1.0));
+          switch (transition) {
+            case AppTransition.fade:
+              opacity = (cv * (1.0 - csv)).clamp(0.0, 1.0);
+              dx = 0.0;
+              scale = 0.98 + 0.02 * cv;
+            case AppTransition.sharedAxis:
+              opacity = cv;
+              dx = 0.06 * (1.0 - cv) - 0.04 * csv;
+              scale = 1.0;
+          }
+        }
+
+        return Opacity(
+          opacity: opacity,
+          child: FractionalTranslation(
+            translation: Offset(dx, 0),
+            child: Transform.scale(scale: scale, child: c),
+          ),
+        );
+      },
     );
   }
 }
@@ -319,15 +381,22 @@ class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
   }
 
   void _handleDragUpdate(DragUpdateDetails details) {
+    // Difesa: se la size non è ancora nota (o è 0), o l'update arriva dopo lo
+    // smontaggio, evita l'eccezione che troncherebbe il gesto a metà.
+    final double? width = context.size?.width;
+    if (width == null || width == 0) return;
     _gestureController?.dragUpdate(
-      _toLogical(details.primaryDelta! / context.size!.width),
+      _toLogical((details.primaryDelta ?? 0) / width),
     );
   }
 
   void _handleDragEnd(DragEndDetails details) {
-    _gestureController?.dragEnd(_toLogical(
-      details.velocity.pixelsPerSecond.dx / context.size!.width,
-    ));
+    final double width = context.size?.width ?? 0;
+    _gestureController?.dragEnd(
+      width == 0
+          ? 0.0
+          : _toLogical(details.velocity.pixelsPerSecond.dx / width),
+    );
     _gestureController = null;
   }
 
