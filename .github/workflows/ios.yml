@@ -24,6 +24,20 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
+      # Il runner macos-14 ha più Xcode installati ma quello di default può avere
+      # un SDK troppo vecchio: device_info_plus (13.x) chiama `isiOSAppOnVision`
+      # su NSProcessInfo, selettore presente solo dall'SDK iOS 17+. Con l'Xcode
+      # di default il build fallisce con "No visible @interface ... isiOSAppOnVision".
+      # Selezioniamo il più recente Xcode presente sul runner.
+      - name: Select newest Xcode (SDK iOS 17+)
+        run: |
+          latest=$(ls -d /Applications/Xcode_*.app 2>/dev/null | sort -V | tail -1)
+          if [ -n "$latest" ]; then
+            echo "Selezionato $latest"
+            sudo xcode-select -s "$latest/Contents/Developer"
+          fi
+          xcodebuild -version
+
       - name: Setup Flutter
         uses: subosito/flutter-action@v2
         with:
