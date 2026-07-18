@@ -282,7 +282,9 @@ class _PopupCard extends StatelessWidget {
           // stacco pulito, la pillola non tocca mai il bagliore viola.
           SizedBox(height: R.sp(17)),
           _datePill(),
-          SizedBox(height: R.sp(10)),
+          // Gap pillola data → STILE MUSICALE: Figma 15 (pillola bottom rel 170,
+          // sezione rel 185).
+          SizedBox(height: R.sp(15)),
           if (hasGeneri) ...[
             Padding(
               padding: EdgeInsets.symmetric(
@@ -291,7 +293,8 @@ class _PopupCard extends StatelessWidget {
             ),
             SizedBox(height: R.sp(4)),
             _chipsRow(serata.generiMusicali),
-            SizedBox(height: R.sp(8)),
+            // Gap chip → box info: Figma 12 (chip bottom rel 228, box rel 240).
+            SizedBox(height: R.sp(12)),
           ],
           // Box info allineati al titolo/indirizzo (16px dal bordo card):
           // +4px rispetto al padding base _padPill, come nel CSS (x≈36).
@@ -301,13 +304,15 @@ class _PopupCard extends StatelessWidget {
             child: _infoBoxesGrid(),
           ),
           if (hasLineup) ...[
-            SizedBox(height: R.sp(8)),
+            // Gap box info → LINE-UP: Figma 11 (box bottom rel 406, sezione rel 417).
+            SizedBox(height: R.sp(11)),
             Padding(
               padding: EdgeInsets.symmetric(
                   horizontal: R.sp(_padContent - _padPill)),
               child: _section('LINE-UP'),
             ),
-            SizedBox(height: R.sp(7)),
+            // Gap LINE-UP → 1° DJ: Figma 9 (sezione bottom rel 433, riga DJ rel 442).
+            SizedBox(height: R.sp(9)),
             for (final dj in serata.lineup) ...[
               // Righe DJ allineate al titolo (16px), come i box info.
               Padding(
@@ -315,7 +320,8 @@ class _PopupCard extends StatelessWidget {
                     horizontal: R.sp(_padContent - _padPill)),
                 child: _djRow(dj),
               ),
-              SizedBox(height: R.sp(7)),
+              // Gap tra righe DJ: Figma 9 (riga1 bottom rel 492, riga2 rel 501).
+              SizedBox(height: R.sp(9)),
             ],
           ],
           // Gap finale prima del CTA (con lineup: 7px già dato dal loop + 20
@@ -447,14 +453,19 @@ class _PopupCard extends StatelessWidget {
         ),
         // Titolo h=45, baseline a y=45+rel49=94, indirizzo a 96 → 2px gap
         SizedBox(height: R.sp(2)),
-        Text(
-          club.indirizzoCompleto,
-          style: OnlistTextStyles.hn(
-            fontSize: R.sp(16),
-            fontWeight: FontWeight.w400,
-            color: Colors.white.withValues(alpha: 0.77),
-            height: 16 / 16,
-            letterSpacing: -0.08 * 16,
+        // Indirizzo indentato +4px rispetto al titolo: Figma titolo x=35 (rel16),
+        // indirizzo x=39 (rel20).
+        Padding(
+          padding: EdgeInsets.only(left: R.sp(4)),
+          child: Text(
+            club.indirizzoCompleto,
+            style: OnlistTextStyles.hn(
+              fontSize: R.sp(16),
+              fontWeight: FontWeight.w400,
+              color: Colors.white.withValues(alpha: 0.77),
+              height: 16 / 16,
+              letterSpacing: -0.08 * 16,
+            ),
           ),
         ),
       ],
@@ -655,10 +666,9 @@ class _PopupCard extends StatelessWidget {
     return Container(
       // Figma box DJ: 320×50, x=35 (cioè 16 dal bordo card). Riempie la card
       // con _padPill=12; aggiungiamo solo un margine interno coerente.
-      // Padding verticale leggermente ridotto (7→5) per stare in una
-      // schermata senza scroll forzato quando la line-up è popolata.
+      // Padding verticale ~7: avatar 35 + 2×7 ≈ 49 ≈ altezza Figma 50.
       padding: EdgeInsets.symmetric(
-          horizontal: R.sp(11), vertical: R.sp(5)),
+          horizontal: R.sp(11), vertical: R.sp(7)),
       decoration: BoxDecoration(
         color: const Color(0x291E00FF),
         // Bordo bianco 1px ~20%, coerente con box info e chip.
