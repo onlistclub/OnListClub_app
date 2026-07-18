@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_export.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/services/account_deletion_service.dart';
 import '../../core/services/auth_service.dart';
 import '../../core/services/badge_service.dart';
@@ -107,8 +108,12 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         _isLoading = false;
         _hasChanges = false;
       });
+      // Dati profilo pronti → tempo di caricamento (load_time_profilo).
+      reportLoadTime('load_time_profilo');
     } catch (e) {
       setState(() => _isLoading = false);
+      // Registra l'errore di caricamento profilo per la TAB Errori.
+      AnalyticsService.reportError(e, screen: 'profile');
       debugPrint('[ProfileScreen] Errore caricamento: $e');
     }
   }
@@ -349,12 +354,11 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
 
     if (confirm != true) return;
 
-    final ok = await AccountDeletionService.requestDeletion();
+    final res = await AccountDeletionService.requestDeletion();
     if (!mounted) return;
 
-    if (!ok) {
-      showAppErrorDialog(
-          context, 'Non siamo riusciti a inviare l\'email. Riprova tra poco.');
+    if (!res.ok) {
+      showAppErrorDialog(context, _deletionErrorMessage(res.error));
       return;
     }
 
@@ -378,6 +382,31 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
       ),
     );
+  }
+
+  /// Messaggio d'errore in base allo stadio fallito (vedi
+  /// [AccountDeletionService.requestDeletion]). Il codice tecnico resta tra
+  /// parentesi per diagnosticare al volo senza aprire i log.
+  String _deletionErrorMessage(String? code) {
+    switch (code) {
+      case 'unauthorized':
+        return 'Sessione scaduta. Esci e rientra, poi riprova.';
+      case 'no_email':
+        return 'Il tuo account non ha un\'email associata: non c\'è dove '
+            'inviare il link di conferma.';
+      case 'db_error':
+        return 'Errore del server nel registrare la richiesta. Riprova più '
+            'tardi. (db_error)';
+      case 'email_error':
+        return 'Richiesta registrata, ma l\'invio dell\'email è fallito. '
+            'Riprova tra poco. (email_error)';
+      case 'unexpected':
+        return 'Errore imprevisto del server. Riprova più tardi.';
+      default:
+        return code == null
+            ? 'Non siamo riusciti a inviare l\'email. Riprova tra poco.'
+            : 'Non siamo riusciti a inviare l\'email. Riprova tra poco. ($code)';
+    }
   }
 
   @override

@@ -18,28 +18,40 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AccountDeletionService {
   static SupabaseClient get _client => Supabase.instance.client;
 
-  /// Chiede l'invio dell'email di conferma. Ritorna `true` se la richiesta è
-  /// stata accettata.
+  /// Chiede l'invio dell'email di conferma.
+  ///
+  /// Ritorna `(ok, error)`: `ok` true se la richiesta è stata accettata; in caso
+  /// di fallimento `error` è il codice dello stadio che ha fallito, così l'app
+  /// può dire ALL'UTENTE cosa non ha funzionato invece di un generico "riprova":
+  ///   - `unauthorized` → JWT mancante/scaduto
+  ///   - `no_email`     → l'account non ha un'email a cui mandare il link
+  ///   - `db_error`     → insert in `richieste_cancellazione` fallito
+  ///                      (tabella mancante? migration non applicata?)
+  ///   - `email_error`  → la `send-email` è fallita (Brevo: api key/mittente…)
+  ///   - `http_<n>` / null → altro
+  /// Il dettaglio Brevo (missing_api_key / brevo_error) resta nei log della
+  /// Edge Function: qui arriva al massimo `email_error`.
   ///
   /// Nota: la function risponde `ok` anche quando il rate limit blocca un
-  /// secondo invio ravvicinato — l'email precedente è ancora valida, quindi
-  /// per l'utente il risultato è lo stesso.
-  static Future<bool> requestDeletion() async {
+  /// secondo invio ravvicinato — l'email precedente è ancora valida.
+  static Future<({bool ok, String? error})> requestDeletion() async {
+    String? errorOf(dynamic data) =>
+        (data is Map && data['error'] != null) ? data['error'].toString() : null;
     try {
       final res = await _client.functions.invoke('request-account-deletion');
-      final ok = res.status == 200 && (res.data?['ok'] == true);
-      if (!ok) {
-        debugPrint('[AccountDeletionService] non ok: '
-            'status=${res.status} data=${res.data}');
+      if (res.status == 200 && (res.data?['ok'] == true)) {
+        return (ok: true, error: null);
       }
-      return ok;
+      debugPrint('[AccountDeletionService] non ok: '
+          'status=${res.status} data=${res.data}');
+      return (ok: false, error: errorOf(res.data) ?? 'http_${res.status}');
     } on FunctionException catch (e) {
       debugPrint('[AccountDeletionService] FunctionException: '
           '${e.status} ${e.details}');
-      return false;
+      return (ok: false, error: errorOf(e.details) ?? 'http_${e.status}');
     } catch (e) {
       debugPrint('[AccountDeletionService] error: $e');
-      return false;
+      return (ok: false, error: null);
     }
   }
 }
