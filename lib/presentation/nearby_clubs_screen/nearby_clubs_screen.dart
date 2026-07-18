@@ -57,6 +57,16 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   // (es. utente digita "mil" mentre "mi" è ancora in volo).
   int _citySeq = 0;
 
+  // ── Fallback ricerca locali (BUG A) ─────────────────────────────────────────
+  // Quando la ricerca nella zona corrente è VUOTA, si allarga per nome a TUTTE
+  // le città in due sezioni. Compaiono solo in quel caso (vedi _buildEmptyOrFallback).
+  List<LocaleModel> _fbStrong = []; // "Forse stai cercando" (match per nome)
+  List<LocaleModel> _fbRelated = []; // "Altri in linea" (stessa zona dei match)
+  bool _fbLoading = false;
+  int _fbSeq = 0;
+  String? _fbQuery; // query per cui il fallback corrente è calcolato/in corso
+  Timer? _fbDebounce;
+
   @override
   void initState() {
     super.initState();
@@ -66,6 +76,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   @override
   void dispose() {
     _cityDebounce?.cancel();
+    _fbDebounce?.cancel();
     _searchCtrl.dispose();
     _searchFocus.dispose();
     super.dispose();
@@ -251,6 +262,74 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       locationAvailable: locationAvailable,
       gpsAttempted: gpsAttempted,
     );
+  }
+
+  // ── Fallback ricerca (BUG A) ────────────────────────────────────────────────
+
+  /// Se la ricerca nella zona corrente è vuota, allarga la ricerca per nome a
+  /// TUTTE le città (una sola volta per query). Chiamata da `build`: la fetch è
+  /// dietro un debounce (Timer), quindi il `setState` avviene fuori dal build.
+  void _maybeLoadFallback(String query, _NearbyData data) {
+    if (_fbQuery == query) return; // già calcolato o in corso per questa query
+    _fbQuery = query;
+    _fbSeq++;
+    final mySeq = _fbSeq;
+    _fbLoading = true;
+    _fbStrong = [];
+    _fbRelated = [];
+    // Debounce come per la ricerca città: niente query DB a ogni tasto.
+    _fbDebounce?.cancel();
+    _fbDebounce = Timer(
+      const Duration(milliseconds: 300),
+      () => _loadFallback(query, data, mySeq),
+    );
+  }
+
+  Future<void> _loadFallback(String query, _NearbyData data, int mySeq) async {
+    try {
+      // Sezione 1: match per nome su tutte le città (ilike '%query%').
+      final strong = await ClubService.searchClubsByName(query);
+      final strongIds = strong.map((c) => c.id).toSet();
+      // Sezione 2: altri locali nella stessa zona dei match (stesse città),
+      // esclusi quelli già mostrati sopra.
+      final cityIds =
+          strong.map((c) => c.idCitta).whereType<String>().toSet().toList();
+      final sameZone = await ClubService.getClubsInCities(cityIds);
+      final related = <LocaleModel>[
+        for (final c in sameZone)
+          if (!strongIds.contains(c.id)) c,
+      ];
+      if (!mounted || mySeq != _fbSeq) return;
+      setState(() {
+        _fbStrong = _sortByProximity(strong, data.lat, data.lng);
+        _fbRelated = _sortByProximity(related, data.lat, data.lng);
+        _fbLoading = false;
+      });
+    } catch (e) {
+      debugPrint('[NearbyClubs] fallback ricerca fallito: $e');
+      if (!mounted || mySeq != _fbSeq) return;
+      setState(() => _fbLoading = false);
+    }
+  }
+
+  /// Ordina per vicinanza all'utente. Locale senza coordinate → in fondo;
+  /// senza posizione utente → ripiega su famosità.
+  List<LocaleModel> _sortByProximity(
+      List<LocaleModel> list, double? uLat, double? uLng) {
+    final l = [...list];
+    if (uLat == null || uLng == null) {
+      l.sort((a, b) => b.famosita.compareTo(a.famosita));
+      return l;
+    }
+    double dist(LocaleModel c) => (c.lat == null || c.lng == null)
+        ? double.infinity
+        : ClubService.distanceKm(uLat, uLng, c.lat!, c.lng!);
+    l.sort((a, b) {
+      final da = dist(a), db = dist(b);
+      if (da == db) return b.famosita.compareTo(a.famosita);
+      return da.compareTo(db);
+    });
+    return l;
   }
 
   // ── Filtering ──────────────────────────────────────────────────────────────
@@ -931,24 +1010,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                         ),
                       // ── Lista locali ───────────────────────────────────
                       if (filtered.isEmpty)
-                        Expanded(
-                          child: Center(
-                            child: Padding(
-                              padding: const EdgeInsets.all(24),
-                              child: Text(
-                                _hasActiveFilters || _searchQuery.isNotEmpty
-                                    ? 'Nessun locale corrisponde ai filtri.'
-                                    : 'Nessun locale trovato nel raggio di ${data.raggio} km.',
-                                style: TextStyle(
-                                  fontFamily: 'Helvetica',
-                                  fontSize: 15,
-                                  color: Colors.white54,
-                                ),
-                                textAlign: TextAlign.center,
-                              ),
-                            ),
-                          ),
-                        )
+                        Expanded(child: _buildEmptyOrFallback(data))
                       else
                         Expanded(
                           child: ListView.separated(
@@ -983,6 +1045,94 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       ),
     );
   }
+
+  // ── Empty / fallback ricerca (BUG A) ────────────────────────────────────────
+
+  /// Cosa mostrare quando la lista filtrata è vuota:
+  /// - senza ricerca testuale → messaggio standard (filtri / raggio);
+  /// - con ricerca testuale vuota nella zona → si allarga la ricerca a TUTTE le
+  ///   città e si mostrano le due sezioni "Forse stai cercando" / "Altri in
+  ///   linea con la tua ricerca".
+  Widget _buildEmptyOrFallback(_NearbyData data) {
+    final q = _searchQuery.trim();
+    // Il fallback a due sezioni scatta SOLO quando l'unico vincolo è il testo
+    // cercato. Con filtri genere/città/prezzo attivi resta il messaggio standard
+    // (allargare a tutte le città ignorando quei filtri sarebbe incoerente).
+    if (q.isEmpty || _hasActiveFilters) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            (_hasActiveFilters || q.isNotEmpty)
+                ? 'Nessun locale corrisponde ai filtri.'
+                : 'Nessun locale trovato nel raggio di ${data.raggio} km.',
+            style: TextStyle(
+                fontFamily: 'Helvetica', fontSize: 15, color: Colors.white54),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    // Zona corrente vuota → allarga la ricerca alle altre città (una volta).
+    _maybeLoadFallback(q, data);
+
+    if (_fbLoading) return const _NearbySkeleton();
+
+    if (_fbStrong.isEmpty && _fbRelated.isEmpty) {
+      return Center(
+        child: Padding(
+          padding: const EdgeInsets.all(24),
+          child: Text(
+            'Nessun locale trovato per “$q”.',
+            style: TextStyle(
+                fontFamily: 'Helvetica', fontSize: 15, color: Colors.white54),
+            textAlign: TextAlign.center,
+          ),
+        ),
+      );
+    }
+
+    return ListView(
+      padding: EdgeInsets.fromLTRB(12, 4, 12, 8 + SharedFooter.height),
+      children: [
+        if (_fbStrong.isNotEmpty) ...[
+          _fallbackHeader('Forse stai cercando:'),
+          for (var i = 0; i < _fbStrong.length; i++)
+            StaggeredItem(
+              index: i,
+              child: _ClubListTile(
+                club: _fbStrong[i],
+                userLat: data.lat,
+                userLng: data.lng,
+              ),
+            ),
+        ],
+        if (_fbRelated.isNotEmpty) ...[
+          _fallbackHeader('Altri in linea con la tua ricerca:'),
+          for (final c in _fbRelated)
+            _ClubListTile(
+              club: c,
+              userLat: data.lat,
+              userLng: data.lng,
+            ),
+        ],
+      ],
+    );
+  }
+
+  Widget _fallbackHeader(String text) => Padding(
+        padding: const EdgeInsets.fromLTRB(2, 14, 2, 6),
+        child: Text(
+          text,
+          style: TextStyle(
+            fontFamily: 'Helvetica',
+            fontSize: 15,
+            fontWeight: FontWeight.w700,
+            color: Colors.white,
+          ),
+        ),
+      );
 
   // ── Suggerimenti città ─────────────────────────────────────────────────────
 

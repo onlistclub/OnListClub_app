@@ -194,6 +194,44 @@ class ClubService {
         .eq('locale_id', localeId);
   }
 
+  /// Cerca locali per NOME su TUTTE le città (ilike '%q%'), a prescindere dal
+  /// raggio. Usato come fallback dalla ricerca quando la zona corrente non ha
+  /// risultati (BUG A: prima la ricerca vedeva solo i locali entro il raggio).
+  static Future<List<LocaleModel>> searchClubsByName(
+    String query, {
+    int limit = 30,
+  }) async {
+    final q = query.trim();
+    if (q.isEmpty) return [];
+    final response = await _client
+        .from('locali')
+        .select(_localiSelect)
+        .ilike('nome', '%$q%')
+        .limit(limit);
+    return (response as List<dynamic>)
+        .whereType<Map<String, dynamic>>()
+        .map((m) => LocaleModel.fromMap(m))
+        .toList();
+  }
+
+  /// Locali che appartengono a una delle città indicate. Serve alla sezione
+  /// "Altri in linea con la tua ricerca" (stessa zona dei match per nome).
+  static Future<List<LocaleModel>> getClubsInCities(
+    List<String> idCitta, {
+    int limit = 40,
+  }) async {
+    if (idCitta.isEmpty) return [];
+    final response = await _client
+        .from('locali')
+        .select(_localiSelect)
+        .inFilter('id_citta', idCitta)
+        .limit(limit);
+    return (response as List<dynamic>)
+        .whereType<Map<String, dynamic>>()
+        .map((m) => LocaleModel.fromMap(m))
+        .toList();
+  }
+
   /// Lista locali ordinati per famosità (per la home).
   static Future<List<LocaleModel>> getLocaliByFamosita({int limit = 20}) async {
     final response = await _client
