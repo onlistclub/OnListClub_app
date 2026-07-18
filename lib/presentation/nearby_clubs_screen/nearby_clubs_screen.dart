@@ -12,6 +12,7 @@ import '../../core/services/location_service.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/user_profile_manager.dart';
 import '../../routes/app_routes.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
@@ -70,7 +71,15 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   @override
   void initState() {
     super.initState();
+    // Funnel: apertura della schermata di ricerca (source 'open').
+    AnalyticsService.logSearch(source: 'open');
     _future = _load();
+    // Tempo di caricamento della ricerca: quando i dati (posizione + locali)
+    // sono pronti la prima volta. reportLoadTime è guardato → una sola volta,
+    // anche se _future viene rigenerato da refresh/cambi raggio.
+    _future.then((_) {
+      if (mounted) reportLoadTime('load_time_ricerca');
+    });
   }
 
   @override
@@ -121,6 +130,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   /// Ricentra la ricerca sulla città scelta e svuota il campo: la città
   /// diventa il contesto (chip in alto), non un filtro testuale sui nomi.
   void _selectCity(CittaModel citta) {
+    // Funnel: ricerca attiva di un locale per città.
+    AnalyticsService.logSearch(query: citta.nomeCitta, source: 'city');
     _cityDebounce?.cancel();
     _citySeq++;
     _searchCtrl.clear();
@@ -870,6 +881,14 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                     contentPadding: const EdgeInsets.symmetric(vertical: 12),
                   ),
                   onChanged: _onSearchChanged,
+                  // Funnel: ricerca attiva quando l'utente conferma il testo
+                  // (azione "cerca" della tastiera), non a ogni tasto.
+                  onSubmitted: (value) {
+                    final q = value.trim();
+                    if (q.isNotEmpty) {
+                      AnalyticsService.logSearch(query: q, source: 'submit');
+                    }
+                  },
                 ),
               ),
             ),

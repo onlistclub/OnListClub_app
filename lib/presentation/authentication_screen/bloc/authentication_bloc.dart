@@ -9,6 +9,7 @@ import '../../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/user_profile_manager.dart';
 import '../../../core/services/register_service.dart';
+import '../../../core/services/analytics_service.dart';
 // La config Google (client/server ID) è applicata una volta in main.dart via
 // GoogleSignIn.instance.initialize(): qui basta chiamare authenticate().
 
@@ -286,6 +287,7 @@ class AuthenticationBloc
         errorMessage: 'Google login fallito (${e.code.name}).',
       ));
     } on AuthException catch (e) {
+      AnalyticsService.reportError(e, screen: 'authentication');
       debugPrint('[AuthBloc] Google sign-in - AuthException: ${e.message}');
       emit(state.copyWith(isLoading: false, errorMessage: e.message));
     } catch (e) {
@@ -342,6 +344,7 @@ class AuthenticationBloc
         ));
       }
     } on AuthException catch (e) {
+      AnalyticsService.reportError(e, screen: 'authentication');
       debugPrint('[AuthBloc] Apple sign-in - AuthException: ${e.message}');
       emit(state.copyWith(isLoading: false, errorMessage: e.message));
     } catch (e) {

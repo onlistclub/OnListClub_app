@@ -3,6 +3,7 @@ import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/image_fallback.dart';
@@ -54,6 +55,9 @@ class _EventDetailScreenState extends State<EventDetailScreen>
   @override
   void initState() {
     super.initState();
+
+    // Funnel: apertura dettaglio (type 'evento').
+    AnalyticsService.logViewDetail(type: 'evento');
 
     _staggerController = AnimationController(
       vsync: this,

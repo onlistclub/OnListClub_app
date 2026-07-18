@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'analytics_service.dart';
 
 /// Registrazione utente: insert atomico su `utenti` + `utenti_numeri_telefono` via RPC.
 ///
@@ -41,6 +42,7 @@ class RegisterService {
       debugPrint('[RegisterService] RPC register_user_transaction result: $result');
       return result;
     } on PostgrestException catch (e) {
+      AnalyticsService.reportError(e, screen: 'register');
       debugPrint('[RegisterService] RPC error: ${e.message}');
       rethrow;
     } catch (e) {

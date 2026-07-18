@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'analytics_service.dart';
 import 'notification_service.dart';
 
 /// Accesso alle tabelle `prevendite` e `prenotazioni_tavolo` su Supabase.
@@ -184,6 +185,8 @@ class BookingService {
           if (validDrinkId != null) 'quantita': bottleQuantity,
         });
       } on PostgrestException catch (e) {
+        // Registra l'errore Supabase per la TAB Errori (http_error).
+        AnalyticsService.reportError(e, screen: 'booking');
         // 23505 = unique_violation -> uq_prenotazioni_tavolo_attiva ha bloccato
         // un overbooking. Annulliamo la prenotazione madre appena creata e
         // segnaliamo all'utente.
@@ -205,11 +208,22 @@ class BookingService {
 
       for (var holder in holders) {
         final fullName = (holder['name'] ?? '').trim();
-        final parts = fullName.isNotEmpty ? fullName.split(' ') : <String>[];
-        final nome = parts.isNotEmpty
-            ? parts[0]
-            : (emailLocalPart.isNotEmpty ? emailLocalPart : 'Cliente');
-        final cognome = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+        String nome = '';
+        String cognome = '';
+        
+        if (fullName.isNotEmpty) {
+          final parts = fullName.split(' ');
+          nome = parts[0];
+          cognome = parts.length > 1 ? parts.sublist(1).join(' ') : '';
+        } else {
+          nome = profilo?['nome'] as String? ?? '';
+          cognome = profilo?['cognome'] as String? ?? '';
+          
+          if (nome.isEmpty && cognome.isEmpty) {
+            nome = emailLocalPart.isNotEmpty ? emailLocalPart : 'Cliente';
+          }
+        }
+        
         final dob = (holder['dob'] ?? '').trim();
 
         await _client.from('prenotazioni_prevendite').insert({

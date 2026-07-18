@@ -89,6 +89,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       final locale = ModalRoute.of(context)?.settings.arguments as LocaleModel?;
       if (locale != null) {
         AnalyticsService.logClubViewed(clubId: locale.id, clubName: locale.nome);
+        // Funnel: apertura dettaglio (type 'locale').
+        AnalyticsService.logViewDetail(
+          type: 'locale',
+          id: locale.id,
+          name: locale.nome,
+        );
       }
     });
 
@@ -207,8 +213,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: BlocConsumer<ClubDetailBloc, ClubDetailState>(
         listenWhen: (prev, curr) =>
-            prev.showFavoriteBadge != curr.showFavoriteBadge,
-        listener: (context, state) => _syncBadgeAnimation(state.showFavoriteBadge),
+            prev.showFavoriteBadge != curr.showFavoriteBadge ||
+            (prev.isLoading && !curr.isLoading),
+        listener: (context, state) {
+          _syncBadgeAnimation(state.showFavoriteBadge);
+          // Dati del dettaglio locale pronti → tempo di caricamento.
+          if (!state.isLoading) reportLoadTime('load_time_dettaglio_locale');
+        },
         buildWhen: (prev, curr) =>
             prev.locale != curr.locale ||
             prev.eventoOggi != curr.eventoOggi ||

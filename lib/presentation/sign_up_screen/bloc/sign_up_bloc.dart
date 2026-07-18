@@ -4,6 +4,7 @@ import 'package:flutter_bloc/flutter_bloc.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/sign_up_model.dart';
 import '../../../core/services/register_service.dart';
+import '../../../core/services/analytics_service.dart';
 import 'package:intl/intl.dart';
 
 part 'sign_up_event.dart';
@@ -208,6 +209,7 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
           );
           emit(state.copyWith(isLoading: false, isSuccess: true));
         } on PostgrestException catch (e) {
+          AnalyticsService.reportError(e, screen: 'sign_up');
           // Telefono già usato da un altro account, ecc.
           final msg = e.message.toLowerCase();
           if (msg.contains('phone') || msg.contains('telefono')) {
@@ -298,6 +300,7 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       }
 
     } on AuthException catch (e) {
+      AnalyticsService.reportError(e, screen: 'sign_up');
       // Supabase può rispondere "User already registered" se l'email esiste già
       // in auth.users: lo mappiamo sul messaggio amichevole con azione "Accedi".
       final msg = e.message.toLowerCase();

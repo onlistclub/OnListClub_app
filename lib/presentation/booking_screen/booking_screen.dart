@@ -761,6 +761,12 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           child: OnlistPrimaryButton(
             label: 'AGGIUNGI AL CARRELLO',
             onPressed: () {
+              // Funnel: aggiunta prevendita al carrello.
+              AnalyticsService.logAddToCart(
+                type: 'ticket',
+                eventId: (t['serataId'] ?? serata?.id) as String?,
+                price: price,
+              );
               NavigatorService.pushNamed(AppRoutes.cartScreen, arguments: {
                 'type': 'ticket',
                 'ticketType': type,
@@ -1071,6 +1077,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   Widget _buildBottleCard(Map<String, dynamic> b, String? serataId) {
     return AnimatedPress(
       onPressed: () {
+        // Funnel: aggiunta tavolo (+ bottiglia) al carrello.
+        AnalyticsService.logAddToCart(type: 'table', eventId: serataId);
         NavigatorService.pushNamed(AppRoutes.cartScreen, arguments: {
           'type': 'table',
           'table': _selectedTable,

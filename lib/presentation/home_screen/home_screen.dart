@@ -126,15 +126,24 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: BlocConsumer<HomeBloc, HomeState>(
-        // Messaggio quando il GPS forzato non è disponibile (permesso negato,
-        // preview web, timeout): manteniamo l'ultima posizione già mostrata.
-        listenWhen: (prev, curr) => !prev.gpsUnavailable && curr.gpsUnavailable,
+        // Reagisce a: (1) GPS forzato non disponibile → messaggio; (2) fine del
+        // caricamento dati (isLoading true→false) → tempo di caricamento Home.
+        listenWhen: (prev, curr) =>
+            (!prev.gpsUnavailable && curr.gpsUnavailable) ||
+            (prev.isLoading && !curr.isLoading),
         listener: (context, state) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('GPS non disponibile. Mostro l\'ultima posizione.'),
-            ),
-          );
+          if (!state.isLoading) {
+            // Dati Home pronti: registra il tempo di caricamento (load_time_home).
+            reportLoadTime('load_time_home');
+          }
+          if (state.gpsUnavailable) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content:
+                    Text('GPS non disponibile. Mostro l\'ultima posizione.'),
+              ),
+            );
+          }
         },
         buildWhen: (prev, curr) =>
             prev.localeVicino != curr.localeVicino ||

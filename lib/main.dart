@@ -13,6 +13,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 
 // Assicurati che 'core/app_export.dart' non contenga logica bloccante sincrona.
 import 'core/app_export.dart';
+import 'core/services/analytics_service.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -152,6 +153,25 @@ Future<void> main() async {
   // Flutter userebbe la modalità "traditional" e lascerebbe un cerchio grigio
   // di focus sull'ultima cella toccata (es. nel CalendarDatePicker Material).
   FocusManager.instance.highlightStrategy = FocusHighlightStrategy.alwaysTouch;
+
+  // Info dispositivo (modello + versione OS) per il monitoraggio: letta una
+  // sola volta e allegata a ogni evento analytics.
+  await AnalyticsService.initDeviceInfo();
+
+  // Handler d'errore globali → TAB "Errori" del foglio di monitoraggio.
+  // Catturano gli errori non gestiti (framework + async) senza cambiarne il
+  // comportamento: presentano l'errore come prima e in più lo registrano.
+  final previousOnError = FlutterError.onError;
+  FlutterError.onError = (FlutterErrorDetails details) {
+    previousOnError?.call(details);
+    AnalyticsService.reportError(details.exception);
+  };
+  WidgetsBinding.instance.platformDispatcher.onError = (error, stack) {
+    AnalyticsService.reportError(error);
+    // false: non consideriamo l'errore "gestito", lasciando che si propaghi
+    // come farebbe di default (comportamento invariato).
+    return false;
+  };
 
   debugPrint('[Startup] Initialization complete.');
 

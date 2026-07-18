@@ -36,6 +36,16 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   bool _cartSynced = false;
 
   @override
+  void initState() {
+    super.initState();
+    // Il carrello è tenuto in memoria (CartService), non caricato da Supabase:
+    // il "tempo di caricamento" è di fatto il tempo fino al primo render.
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      reportLoadTime('load_time_carrello');
+    });
+  }
+
+  @override
   void didChangeDependencies() {
     super.didChangeDependencies();
     if (!_cartSynced) {
@@ -69,11 +79,19 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
           'amount': args?['price'] ?? '150€',
         },
       );
+      // Funnel: prenotazione completata (evento richiesto dal foglio).
+      AnalyticsService.logBookingComplete(
+        type: args?['type'] ?? 'table',
+        eventId: args?['id_evento'] as String?,
+        amount: args?['price'],
+      );
 
       CartService().clear();
       BadgeService().incrementNotificationBadge();
       NavigatorService.pushNamed(AppRoutes.paymentSuccessScreen);
     } catch (e) {
+      // Registra l'errore per la TAB Errori (http_error se è un errore Supabase).
+      AnalyticsService.reportError(e, screen: 'cart');
       if (mounted) showAppErrorDialog(context, "Errore durante l'ordine: $e");
     } finally {
       if (mounted) setState(() => _isPaying = false);
