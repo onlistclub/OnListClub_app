@@ -1004,7 +1004,35 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
         ),
       );
     }
-    if (_cityResults.isEmpty) return const SizedBox.shrink();
+    if (_cityResults.isEmpty) {
+      // Nessuna città/luogo reale corrisponde: lo diciamo esplicitamente invece
+      // di proporre il testo digitato come città (era il bug: "Il muretto" —
+      // un locale — veniva accettato come città).
+      return Container(
+        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+        decoration: BoxDecoration(
+          color: OnlistColors.blueDeep,
+          borderRadius: BorderRadius.circular(10),
+          border: Border.all(
+              color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.location_off, color: Colors.white38, size: 16),
+            const SizedBox(width: 10),
+            Text(
+              'Nessuna città trovata',
+              style: TextStyle(
+                fontFamily: 'Helvetica',
+                fontSize: 13,
+                color: Colors.white54,
+              ),
+            ),
+          ],
+        ),
+      );
+    }
 
     return Container(
       margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

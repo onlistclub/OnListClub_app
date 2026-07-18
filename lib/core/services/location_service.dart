@@ -1,7 +1,6 @@
 import 'dart:math' as math;
 
 import 'package:flutter/foundation.dart';
-import 'package:geocoding/geocoding.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -149,7 +148,7 @@ class LocationService {
       debugPrint('[LocationService] searchCitta - query citta fallita: $e');
     }
 
-    // 2. Supabase (Tabella posti_famosi)
+    // 2. Supabase (Tabella posti_famosi — luoghi/venue famosi già nel DB)
     if (results.length < 8) {
       try {
         final responsePosti = await Supabase.instance.client
@@ -169,24 +168,11 @@ class LocationService {
       }
     }
 
-    // 2. Fallback su Geocoding (se non trova nulla o per POI specifici)
-    if (results.isEmpty) {
-      try {
-        final locs = await locationFromAddress(q).timeout(const Duration(seconds: 4));
-        if (locs.isNotEmpty) {
-          final loc = locs.first;
-          results.add(CittaModel(
-            idCitta: 'custom_poi',
-            nomeCitta: q, // il testo inserito dall'utente fungerà da nome
-            lat: loc.latitude,
-            lng: loc.longitude,
-          ));
-        }
-      } catch (e) {
-        debugPrint('[LocationService] searchCitta - geocoding fallback fallito: $e');
-      }
-    }
-
+    // NIENTE fallback su geocoding: prima creava una "città" finta con
+    // idCitta='custom_poi' e nome = testo grezzo digitato, così qualsiasi testo
+    // (es. un LOCALE come "Il muretto") veniva proposto come città valida. Il
+    // selettore città deve accettare SOLO valori reali presenti nel DB
+    // (tabelle citta + posti_famosi). Se non matcha nulla → lista vuota.
     return results;
   }
 
