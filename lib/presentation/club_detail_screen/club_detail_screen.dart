@@ -530,14 +530,26 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             ),
           )
         else
-          ...serate.map((s) => _SerataCard(
-                serata: s,
-                locale: locale,
-              )),
+          // Oggi/domani → card grande con etichetta OGGI/DOMANI (evidenziata).
+          // Le altre date → card compatta in stile "Club consigliati" (stessa
+          // grandezza delle card club) col GENERE al posto del luogo.
+          ...serate.map((s) => _isOggiODomani(s.data)
+              ? _SerataCard(serata: s, locale: locale)
+              : _SerataCompactCard(serata: s, locale: locale)),
       ],
     );
   }
 
+}
+
+/// Vero se la serata è oggi o domani (data di calendario, mezzanotte-normalizzata).
+/// Stessa regola di `_SerataCard._dayLabel`: decide quale card usare.
+bool _isOggiODomani(DateTime data) {
+  final now = DateTime.now();
+  final today = DateTime(now.year, now.month, now.day);
+  final d = DateTime(data.year, data.month, data.day);
+  final diff = d.difference(today).inDays;
+  return diff == 0 || diff == 1;
 }
 
 // ── Serata card (Figma 10-aggiornato) ──────────────────────────────────────────
@@ -731,6 +743,207 @@ class _SerataCard extends StatelessWidget {
                         // PRENOTA standard d'app (Figma `Rectangle 164`):
                         // #1E00FF → #201064 verticale. Stesso stile usato dalla
                         // card ticket booking — fonte unica `bookButton`.
+                        gradient: isSoldOut ? null : OnlistColors.bookButton,
+                        color: isSoldOut
+                            ? Colors.white.withValues(alpha: 0.18)
+                            : null,
+                        borderRadius: BorderRadius.circular(6.48),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            offset: const Offset(0, 4),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        isSoldOut ? 'ESAURITO' : 'PRENOTA',
+                        style: OnlistTextStyles.hn(
+                          fontSize: 15.55,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 18 / 15.55,
+                          letterSpacing: -0.1 * 15.55,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+// ── Serata card compatta (serate NON oggi/domani) ─────────────────────────────
+// Stesso stile identico delle card "Club consigliati" della home (369×108,
+// immagine orizzontale a sinistra, testo a destra, bottone PRENOTA). Rispetto a
+// quella, al posto della CITTÀ mostra il GENERE musicale (siamo già dentro il
+// club, il luogo è ridondante). Le serate di oggi/domani usano invece la card
+// grande [_SerataCard] con l'etichetta OGGI/DOMANI evidenziata.
+class _SerataCompactCard extends StatelessWidget {
+  final SerataModel serata;
+  final LocaleModel locale;
+
+  const _SerataCompactCard({required this.serata, required this.locale});
+
+  static const _giorniBrevi = [
+    'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'
+  ];
+  static const _mesiBrevi = [
+    'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
+    'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
+  ];
+
+  String _dataBreve(DateTime d) =>
+      '${_giorniBrevi[d.weekday - 1]} ${d.day} ${_mesiBrevi[d.month - 1]}';
+
+  @override
+  Widget build(BuildContext context) {
+    final isSoldOut = serata.statusPosti == 'Sold Out';
+    final generi = serata.generiMusicali.isNotEmpty
+        ? serata.generiMusicali.join(' - ')
+        : locale.generiString;
+
+    return Padding(
+      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      child: GestureDetector(
+        behavior: HitTestBehavior.opaque,
+        // Tap sulla card → pop-up info serata (come la card grande).
+        onTap: () => NavigatorService.pushNamed(
+          AppRoutes.eventInfoPopupScreen,
+          arguments: {'serata': serata, 'club': locale},
+        ),
+        child: _scaleToWidth(
+          designW: 369,
+          designH: 108,
+          child: Container(
+            width: 369,
+            height: 108,
+            clipBehavior: Clip.antiAlias,
+            decoration: BoxDecoration(
+              gradient: OnlistColors.cardEvent,
+              borderRadius: BorderRadius.circular(10),
+            ),
+            child: Stack(
+              children: [
+                // Immagine 165×96 @ (6,6) — orizzontale, come le card club.
+                Positioned(
+                  left: 6,
+                  top: 6,
+                  child: ClipRRect(
+                    borderRadius: BorderRadius.circular(10),
+                    child: SizedBox(
+                      width: 165,
+                      height: 96,
+                      child: serata.locandinaUrl != null
+                          ? CachedNetworkImage(
+                              imageUrl: serata.locandinaUrl!,
+                              fit: BoxFit.cover,
+                              memCacheWidth: 495,
+                              errorWidget: (_, __, ___) =>
+                                  ImageFallback(seed: serata.id),
+                            )
+                          : ImageFallback(seed: serata.id),
+                    ),
+                  ),
+                ),
+                // Nome serata @ (189,7)
+                Positioned(
+                  left: 189,
+                  top: 7,
+                  child: SizedBox(
+                    width: 159,
+                    child: Text(
+                      serata.nome,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: OnlistTextStyles.hn(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 37 / 32,
+                        letterSpacing: -0.08 * 32,
+                      ),
+                    ),
+                  ),
+                ),
+                // Data @ (189,46)
+                Positioned(
+                  left: 189,
+                  top: 46,
+                  child: Text(
+                    _dataBreve(serata.data),
+                    style: OnlistTextStyles.hn(
+                      fontSize: 12,
+                      fontWeight: FontWeight.w500,
+                      color: Colors.white,
+                      height: 12 / 12,
+                    ),
+                  ),
+                ),
+                // Ora @ (189,64) — stesso formato della card grande.
+                if (serata.orarioString.isNotEmpty)
+                  Positioned(
+                    left: 189,
+                    top: 64,
+                    child: SizedBox(
+                      width: 80,
+                      child: Text(
+                        serata.orarioString,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: OnlistTextStyles.hn(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white,
+                          height: 12 / 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                // Genere @ (189,88) — AL POSTO della città (come card club).
+                Positioned(
+                  left: 189,
+                  top: 88,
+                  child: Opacity(
+                    opacity: 0.8,
+                    child: SizedBox(
+                      width: 84,
+                      child: Text(
+                        generi,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: OnlistTextStyles.hn(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 12 / 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // PRENOTA @ (274,62) — 86×38, stesso stile card grande/club.
+                Positioned(
+                  left: 274,
+                  top: 62,
+                  child: GestureDetector(
+                    behavior: HitTestBehavior.opaque,
+                    onTap: isSoldOut
+                        ? null
+                        : () => NavigatorService.pushNamed(
+                              AppRoutes.bookingScreen,
+                              arguments: {'serata': serata, 'club': locale},
+                            ),
+                    child: Container(
+                      width: 86,
+                      height: 38,
+                      decoration: BoxDecoration(
                         gradient: isSoldOut ? null : OnlistColors.bookButton,
                         color: isSoldOut
                             ? Colors.white.withValues(alpha: 0.18)
