@@ -1,0 +1,44 @@
+# Native splash di OnList Club.
+#
+# Obiettivo: la schermata nativa (disegnata dall'OS prima che Flutter carichi)
+# deve essere IDENTICA allo splash dell'app, così l'utente vede un solo
+# passaggio invece di "nero di sistema → splash Flutter".
+#
+# Come replichiamo lo splash app (gradiente radiale #0107D6→#000000 + logo):
+#   - background_image = PNG del gradiente (replica onboardingBackground),
+#     usato su iOS e Android < 12.
+#   - image = logo OnList centrato (stesso asset del Flutter splash).
+#   - color = nero, base dei gradienti (fallback + sfondo pieno su Android 12+,
+#     dove l'OS NON consente immagini di sfondo, solo colore + icona centrata).
+#
+# L'app è sempre dark: le varianti *_dark sono identiche così su Android in
+# light-mode non compare il flash bianco di default.
+#
+# ⚠️ Dopo ogni modifica qui (o al gradiente/logo) rigenerare gli asset nativi:
+#     flutter pub get
+#     dart run flutter_native_splash:create
+flutter_native_splash:
+  color: "#000000"
+  background_image: "assets/native_splash/splash_bg.png"
+  image: "assets/images/logo_onlist.png"
+
+  color_dark: "#000000"
+  background_image_dark: "assets/native_splash/splash_bg.png"
+  image_dark: "assets/images/logo_onlist.png"
+
+  # Android 12+: l'OS impone il suo formato (colore pieno + icona centrata
+  # mascherata a cerchio). Niente gradiente possibile qui: restiamo sul nero
+  # base del design system.
+  android_12:
+    color: "#000000"
+    image: "assets/images/logo_onlist.png"
+    color_dark: "#000000"
+    image_dark: "assets/images/logo_onlist.png"
+
+  android: true
+  ios: true
+  web: false
+
+  # Copre l'area sotto status/nav bar col brand (niente barre di sistema stonate
+  # durante l'avvio).
+  fullscreen: true

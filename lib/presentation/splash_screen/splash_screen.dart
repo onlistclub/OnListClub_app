@@ -20,11 +20,24 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
   @override
   String get screenName => 'splash';
 
+  /// La freccia "su" entra in dissolvenza subito DOPO l'handoff dalla native
+  /// splash: la native mostra solo gradiente + logo (l'OS non può disegnare la
+  /// freccia), quindi farla comparire dolcemente fa leggere l'insieme come un
+  /// unico splash animato invece che come una seconda schermata che appare.
+  bool _showArrow = false;
+
   @override
   void initState() {
     super.initState();
     AnalyticsService.log(event: 'app_open');
+    _revealArrowSoon();
     _checkSession();
+  }
+
+  void _revealArrowSoon() {
+    Future.delayed(const Duration(milliseconds: 220), () {
+      if (mounted) setState(() => _showArrow = true);
+    });
   }
 
   Future<void> _checkSession() async {
@@ -59,16 +72,13 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
     }
   }
 
-  // Canvas Figma di riferimento per la 01 Prima pagina.
-  static const double _figmaW = 393;
-  static const double _figmaH = 852;
-  static const double _logoSize = 311;
-  static const double _logoLeft = 41;
-  static const double _logoTop = 270;
-  static const double _logoRadius = 77;
-  static const double _arrowSize = 48;
-  static const double _arrowLeft = 173;
-  static const double _arrowTop = 557;
+  /// Lato del logo in logical px. DEVE combaciare con la dimensione a cui
+  /// flutter_native_splash rende il logo nella native splash, altrimenti al
+  /// passaggio nativa→Flutter il logo "salta". Il tool tratta il sorgente
+  /// (`logo_onlist.png`, 1024px) come 4x → 1024/4 = 256 logical px, centrato.
+  /// (Su iOS il tool può scalarlo un filo diversamente: verificare su device;
+  /// se il logo cambia dimensione all'avvio, aggiustare qui.)
+  static const double _kLogoSize = 256.0;
 
   @override
   Widget build(BuildContext context) {
@@ -79,54 +89,47 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
       body: DecoratedBox(
         decoration:
             const BoxDecoration(gradient: OnlistColors.onboardingBackground),
-        child: LayoutBuilder(
-            builder: (context, constraints) {
-              final scaleX = constraints.maxWidth / _figmaW;
-              final scaleY = constraints.maxHeight / _figmaH;
-              return Stack(
-                children: [
-                  Positioned(
-                    left: _logoLeft * scaleX,
-                    top: _logoTop * scaleY,
-                    width: _logoSize * scaleX,
-                    height: _logoSize * scaleX, // square — uso scaleX per mantenere proporzioni
-                    child: ClipRRect(
-                      borderRadius: BorderRadius.circular(_logoRadius * scaleX),
-                      child: Image.asset(
-                        ImageConstant.imgLogoOnlist,
-                        fit: BoxFit.contain,
-                      ),
-                    ),
+        child: Stack(
+          children: [
+            // Logo centrato, stessa posizione e dimensione della native splash:
+            // l'handoff OS→Flutter è invisibile (un solo passaggio).
+            Center(
+              child: SizedBox(
+                width: _kLogoSize,
+                height: _kLogoSize,
+                child: Image.asset(
+                  ImageConstant.imgLogoOnlist,
+                  fit: BoxFit.contain,
+                ),
+              ),
+            ),
+            // Freccia "su" poco sotto il centro, in dissolvenza (vedi _showArrow).
+            Align(
+              alignment: const Alignment(0, 0.34),
+              child: AnimatedOpacity(
+                opacity: _showArrow ? 1.0 : 0.0,
+                duration: const Duration(milliseconds: 320),
+                curve: Curves.easeOut,
+                child: Container(
+                  width: 44,
+                  height: 44,
+                  alignment: Alignment.center,
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    // Tratto sottile come in Figma off/01.
+                    border: Border.all(color: OnlistColors.white, width: 1.6),
                   ),
-                  Positioned(
-                    left: _arrowLeft * scaleX,
-                    top: _arrowTop * scaleY,
-                    width: _arrowSize * scaleX,
-                    height: _arrowSize * scaleX,
-                    child: Container(
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        // Tratto sottile come in Figma off/01 (l'anello era ~4px,
-                        // troppo spesso): ~1.8px sul canvas 393 → scalato.
-                        border: Border.all(
-                          color: OnlistColors.white,
-                          width: 1.8 * scaleX,
-                        ),
-                      ),
-                      alignment: Alignment.center,
-                      child: Icon(
-                        // Freccia a linea sottile come nel Figma.
-                        Icons.arrow_upward,
-                        color: OnlistColors.white,
-                        size: 26 * scaleX,
-                      ),
-                    ),
+                  child: const Icon(
+                    Icons.arrow_upward,
+                    color: OnlistColors.white,
+                    size: 24,
                   ),
-                ],
-              );
-            },
-          ),
+                ),
+              ),
+            ),
+          ],
         ),
+      ),
     );
   }
 }

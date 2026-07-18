@@ -29,6 +29,10 @@ dev_dependencies:
   flutter_test:    # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
     sdk: flutter   # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
   flutter_launcher_icons: ^0.14.4
+  # Genera la native splash (iOS/Android) uguale allo splash dell'app: nessuno
+  # stacco tra schermata di sistema e primo frame Flutter. Config in
+  # flutter_native_splash.yaml. Rigenerare con: dart run flutter_native_splash:create
+  flutter_native_splash: ^2.4.4
 # ...resto del file...   
 
 flutter:
