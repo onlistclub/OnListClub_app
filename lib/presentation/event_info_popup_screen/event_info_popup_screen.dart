@@ -762,13 +762,15 @@ class _PopupCard extends StatelessWidget {
         // Figma 323×45, font 32 → padding ~6 vert
         padding: EdgeInsets.symmetric(vertical: R.sp(6)),
         decoration: BoxDecoration(
-          // CSS Rectangle 229: gradient blu 51% (#1F00FF→#1900D8), r15.
+          // CSS Rectangle 229: gradient blu 51% (#1F00FF→#1900D8). Il Figma
+          // esporta r15, ma su richiesta gli angoli sono più arrotondati (r26)
+          // per un look più morbido, senza arrivare alla capsula piena.
           gradient: const LinearGradient(
             begin: Alignment.centerLeft,
             end: Alignment.centerRight,
             colors: [Color(0x821F00FF), Color(0x821900D8)],
           ),
-          borderRadius: BorderRadius.circular(R.sp(15)),
+          borderRadius: BorderRadius.circular(R.sp(26)),
         ),
         alignment: Alignment.center,
         child: Text(
