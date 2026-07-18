@@ -112,39 +112,73 @@ class _PopupCard extends StatelessWidget {
   // Finisce 9px sopra la pillola data (Rectangle 213 @143): il bagliore non
   // deve MAI toccare la pillola.
   static const double _bannerBaseH = 134;
-  // Il titolo può andare a capo (vedi _titleMaxLines): ogni riga extra spinge
-  // giù indirizzo e pillola di una line-height, e il banner deve seguirli.
-  static const double _titleLineH = 45;
-  static const int _titleMaxLines = 2;
+
+  // ── Titolo adattivo ────────────────────────────────────────────────────────
+  // Il blocco titolo ha ALTEZZA FISSA = 1 riga a _titleMaxFs (45px): così il
+  // contenuto sotto (indirizzo, pillola data, tutto il resto) NON si sposta mai,
+  // qualunque sia la lunghezza del nome serata. Comportamento in 3 stadi
+  // (vedi _fitTitle):
+  //   1. normale         → 1 riga a 45px piena
+  //   2. più lungo        → shrink graduale su 1 riga fino a _titleMinFs (22px)
+  //   3. oltre ~28 char   → 2 righe a 22px, che stanno nell'altezza di 1 riga a
+  //                         45px (2×22=44 ≤ 45) → sotto non si muove nulla.
+  static const double _titleMaxFs = 45;
+  // 22px è il MASSIMO a cui 2 righe entrano nell'altezza di 1 riga a 45px. Non
+  // alzarlo senza alzare anche l'altezza del blocco, o il layout sotto si sposta.
+  static const double _titleMinFs = 22;
+
   // Padding di contenuto: la maggior parte usa ~16, la pill data e i box
   // usano ~12 (più stretti dal bordo card).
   static const double _padContent = 16; // x=35 → 16 da card-left
   static const double _padPill = 12;    // x=31 → 12 da card-left
 
-  /// Stile del titolo serata (Figma: Helvetica Neue 45/45 w700 LS -0.08em).
-  /// Condiviso tra il [Text] e il [TextPainter] che conta le righe: devono
-  /// misurare esattamente lo stesso testo, altrimenti il banner sballa.
-  TextStyle _titleStyle() => OnlistTextStyles.hn(
-        fontSize: R.sp(45),
+  /// Stile del titolo serata (Figma: Helvetica Neue w700 LS -0.08em). [fsDesign]
+  /// è in px-design (scalato con R.sp); il letter-spacing scala in proporzione
+  /// così la spaziatura resta coerente a ogni dimensione.
+  TextStyle _titleStyleFs(double fsDesign) => OnlistTextStyles.hn(
+        fontSize: R.sp(fsDesign),
         fontWeight: FontWeight.w700,
         color: Colors.white,
-        height: 45 / 45,
-        letterSpacing: -0.08 * 45,
+        height: 1.0,
+        letterSpacing: -0.08 * fsDesign,
       );
 
-  /// Quante righe occupa il titolo alla larghezza disponibile (1 o 2).
-  /// Misurato sui glifi reali, non su una soglia di caratteri: è il wrap vero
-  /// di Flutter, quindi il banner non può mai disallinearsi dal testo.
-  int _titleLineCount(BuildContext context, double maxWidth) {
-    final painter = TextPainter(
-      text: TextSpan(text: serata.nome.toUpperCase(), style: _titleStyle()),
-      maxLines: _titleMaxLines,
-      textDirection: TextDirection.ltr,
-      textScaler: MediaQuery.textScalerOf(context),
-    )..layout(maxWidth: maxWidth);
-    final lines = painter.computeLineMetrics().length;
-    painter.dispose();
-    return lines.clamp(1, _titleMaxLines);
+  /// Sceglie dimensione font e numero di righe del titolo alla [maxWidth]
+  /// disponibile, misurando sui glifi reali: 1 riga il più a lungo possibile
+  /// (45→22px), poi 2 righe a 22px. Le 2 righe a 22px stanno nell'altezza fissa
+  /// di 1 riga a 45px → il layout sotto non si muove mai.
+  _TitleFit _fitTitle(BuildContext context, String text, double maxWidth) {
+    final scaler = MediaQuery.textScalerOf(context);
+    double oneLineWidth(double fsDesign) {
+      final tp = TextPainter(
+        text: TextSpan(text: text, style: _titleStyleFs(fsDesign)),
+        maxLines: 1,
+        textDirection: TextDirection.ltr,
+        textScaler: scaler,
+      )..layout();
+      final w = tp.width;
+      tp.dispose();
+      return w;
+    }
+
+    // Sta già su 1 riga a piena dimensione?
+    if (oneLineWidth(_titleMaxFs) <= maxWidth) {
+      return const _TitleFit(_titleMaxFs, 1);
+    }
+    // Font più grande in [min,max] che sta su 1 riga (ricerca binaria, ~5 giri).
+    int lo = _titleMinFs.toInt(), hi = _titleMaxFs.toInt(), best = -1;
+    while (lo <= hi) {
+      final mid = (lo + hi) ~/ 2;
+      if (oneLineWidth(mid.toDouble()) <= maxWidth) {
+        best = mid;
+        lo = mid + 1;
+      } else {
+        hi = mid - 1;
+      }
+    }
+    if (best >= 0) return _TitleFit(best.toDouble(), 1);
+    // Nemmeno a 22px sta su 1 riga → 2 righe a 22px.
+    return const _TitleFit(_titleMinFs, 2);
   }
 
   @override
@@ -157,12 +191,13 @@ class _PopupCard extends StatelessWidget {
     // ticket". Resta comunque un floor per eventi con poche info.
     return LayoutBuilder(builder: (context, constraints) {
       // Il titolo è inserito a _padContent (16px design) da entrambi i bordi
-      // della card: è la larghezza su cui va misurato il wrap.
-      final titleLines = _titleLineCount(
-          context, constraints.maxWidth - R.sp(_padContent) * 2);
-      // Banner ancorato al titolo: ogni riga extra lo allunga di una
-      // line-height, così resta sempre a 9px sopra la pillola data.
-      final bannerH = _bannerBaseH + (titleLines - 1) * _titleLineH;
+      // della card: è la larghezza su cui va misurata la resa adattiva.
+      final titleFit = _fitTitle(context, serata.nome.toUpperCase(),
+          constraints.maxWidth - R.sp(_padContent) * 2);
+      // Banner FISSO: il blocco titolo ha ora altezza costante (vedi _fitTitle),
+      // quindi il banner resta sempre a 9px sopra la pillola data senza doverlo
+      // allungare per le righe extra.
+      const double bannerH = _bannerBaseH;
       return Container(
       width: double.infinity,
       decoration: BoxDecoration(
@@ -207,7 +242,7 @@ class _PopupCard extends StatelessWidget {
               ),
             ),
             // Contenuto: badge, titolo, indirizzo, data, info, line-up, CTA.
-            _buildContent(context),
+            _buildContent(context, titleFit),
           ],
         ),
       ),
@@ -216,7 +251,7 @@ class _PopupCard extends StatelessWidget {
   }
 
   /// Contenuto della card con spaziature Figma esatte (in design px → R.sp).
-  Widget _buildContent(BuildContext context) {
+  Widget _buildContent(BuildContext context, _TitleFit titleFit) {
     final hasGeneri = serata.generiMusicali.isNotEmpty;
     final hasLineup = serata.lineup.isNotEmpty;
 
@@ -240,7 +275,7 @@ class _PopupCard extends StatelessWidget {
           // Padding interno extra di +4px (16-12) per allineare titolo/indirizzo
           Padding(
             padding: EdgeInsets.symmetric(horizontal: R.sp(_padContent - _padPill)),
-            child: _titleAndAddress(),
+            child: _titleAndAddress(titleFit),
           ),
           // Gap indirizzo → pillola data: Figma 17 (indirizzo bottom rel 126,
           // Rectangle 213 rel 143). Il banner finisce a rel 134 → 9px di
@@ -367,43 +402,47 @@ class _PopupCard extends StatelessWidget {
     );
   }
 
-  Widget _titleAndAddress() {
+  Widget _titleAndAddress(_TitleFit fit) {
     // Titolo con gradient text bianco→azzurrino + ombra blu (Figma):
     // background: radial-gradient(50% 50% at 50% 50%, #FFFFFF 0%, #E0E1FF 100%)
     // text-shadow: 0px 4px 4px rgba(38, 0, 255, 0.63)
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
-        // Titolo a 45px FISSI, mai rimpicciolito. Qui c'era un FittedBox
-        // scaleDown che teneva il titolo su una riga: scalando però riduceva
-        // anche l'ALTEZZA del blocco, quindi con nomi lunghi indirizzo e
-        // pillola data risalivano finendo dentro il banner viola (ed era
-        // anche il motivo per cui il titolo sembrava meno grassetto del
-        // Figma). Ora va a capo su max 2 righe quando non ci sta in
-        // larghezza — il banner segue via _titleLineCount, quindi il layout
-        // sotto non si sposta in modo incontrollato: al massimo +45px.
-        ShaderMask(
-          shaderCallback: (Rect bounds) {
-            return const RadialGradient(
-              center: Alignment.center,
-              radius: 0.7,
-              colors: [Color(0xFFFFFFFF), Color(0xFFE0E1FF)],
-            ).createShader(bounds);
-          },
-          blendMode: BlendMode.srcIn,
-          child: Text(
-            serata.nome.toUpperCase(),
-            style: _titleStyle().copyWith(
-              shadows: [
-                Shadow(
-                  color: const Color(0xA12600FF),
-                  offset: Offset(0, R.sp(4)),
-                  blurRadius: R.sp(4),
+        // Blocco titolo ad ALTEZZA FISSA (1 riga a 45px): dimensione font e
+        // numero righe li sceglie _fitTitle (1 riga piena → shrink su 1 riga →
+        // 2 righe a 22px), senza MAI spostare il contenuto sotto. Il titolo è
+        // centrato in verticale nel blocco così, quando è rimpicciolito, non
+        // lascia buchi né verso il badge né verso l'indirizzo.
+        SizedBox(
+          height: R.sp(_titleMaxFs),
+          width: double.infinity,
+          child: Align(
+            alignment: Alignment.centerLeft,
+            child: ShaderMask(
+              shaderCallback: (Rect bounds) {
+                return const RadialGradient(
+                  center: Alignment.center,
+                  radius: 0.7,
+                  colors: [Color(0xFFFFFFFF), Color(0xFFE0E1FF)],
+                ).createShader(bounds);
+              },
+              blendMode: BlendMode.srcIn,
+              child: Text(
+                serata.nome.toUpperCase(),
+                style: _titleStyleFs(fit.fsDesign).copyWith(
+                  shadows: [
+                    Shadow(
+                      color: const Color(0xA12600FF),
+                      offset: Offset(0, R.sp(4)),
+                      blurRadius: R.sp(4),
+                    ),
+                  ],
                 ),
-              ],
+                maxLines: fit.lines,
+                overflow: TextOverflow.ellipsis,
+              ),
             ),
-            maxLines: _titleMaxLines,
-            overflow: TextOverflow.ellipsis,
           ),
         ),
         // Titolo h=45, baseline a y=45+rel49=94, indirizzo a 96 → 2px gap
@@ -780,4 +819,12 @@ class _InfoBox {
   final String title;
   final String value;
   const _InfoBox(this.title, this.value);
+}
+
+/// Risultato di [_PopupCard._fitTitle]: dimensione font (px-design) e numero di
+/// righe con cui rendere il titolo serata.
+class _TitleFit {
+  final double fsDesign;
+  final int lines;
+  const _TitleFit(this.fsDesign, this.lines);
 }
