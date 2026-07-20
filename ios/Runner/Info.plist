@@ -1,92 +1,94 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0">
-<dict>
-	<key>CFBundleDevelopmentRegion</key>
-	<string>$(DEVELOPMENT_LANGUAGE)</string>
-	<key>CFBundleExecutable</key>
-	<string>$(EXECUTABLE_NAME)</string>
-	<key>CFBundleIdentifier</key>
-	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
-	<key>CFBundleInfoDictionaryVersion</key>
-	<string>6.0</string>
-	<key>CFBundleName</key>
-	<string>OnListClub</string>
-	<key>CFBundleDisplayName</key>
-	<string>OnListClub V1</string>
-	<key>CFBundlePackageType</key>
-	<string>APPL</string>
-	<key>CFBundleShortVersionString</key>
-	<string>$(FLUTTER_BUILD_NAME)</string>
-	<key>CFBundleSignature</key>
-	<string>????</string>
-	<key>CFBundleVersion</key>
-	<string>$(FLUTTER_BUILD_NUMBER)</string>
-	<key>LSRequiresIPhoneOS</key>
-	<true/>
-	<key>UILaunchStoryboardName</key>
-	<string>LaunchScreen</string>
-	<key>UIMainStoryboardFile</key>
-	<string>Main</string>
-	<key>UISupportedInterfaceOrientations</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>UISupportedInterfaceOrientations~ipad</key>
-	<array>
-		<string>UIInterfaceOrientationPortrait</string>
-		<string>UIInterfaceOrientationPortraitUpsideDown</string>
-		<string>UIInterfaceOrientationLandscapeLeft</string>
-		<string>UIInterfaceOrientationLandscapeRight</string>
-	</array>
-	<key>NSLocationWhenInUseUsageDescription</key>
-	<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
-	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
-	<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
-	<key>CADisableMinimumFrameDurationOnPhone</key>
-	<true/>
-	<key>UIApplicationSupportsIndirectInputEvents</key>
-	<true/>
-	<!-- Status bar chiara su tutta l'app (sfondi dark). UIViewControllerBasedStatusBarAppearance=NO
+	<dict>
+		<key>CFBundleDevelopmentRegion</key>
+		<string>$(DEVELOPMENT_LANGUAGE)</string>
+		<key>CFBundleExecutable</key>
+		<string>$(EXECUTABLE_NAME)</string>
+		<key>CFBundleIdentifier</key>
+		<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+		<key>CFBundleInfoDictionaryVersion</key>
+		<string>6.0</string>
+		<key>CFBundleName</key>
+		<string>OnListClub</string>
+		<key>CFBundleDisplayName</key>
+		<string>OnListClub V1</string>
+		<key>CFBundlePackageType</key>
+		<string>APPL</string>
+		<key>CFBundleShortVersionString</key>
+		<string>$(FLUTTER_BUILD_NAME)</string>
+		<key>CFBundleSignature</key>
+		<string>????</string>
+		<key>CFBundleVersion</key>
+		<string>$(FLUTTER_BUILD_NUMBER)</string>
+		<key>LSRequiresIPhoneOS</key>
+		<true/>
+		<key>UILaunchStoryboardName</key>
+		<string>LaunchScreen</string>
+		<key>UIMainStoryboardFile</key>
+		<string>Main</string>
+		<key>UISupportedInterfaceOrientations</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>UISupportedInterfaceOrientations~ipad</key>
+		<array>
+			<string>UIInterfaceOrientationPortrait</string>
+			<string>UIInterfaceOrientationPortraitUpsideDown</string>
+			<string>UIInterfaceOrientationLandscapeLeft</string>
+			<string>UIInterfaceOrientationLandscapeRight</string>
+		</array>
+		<key>NSLocationWhenInUseUsageDescription</key>
+		<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
+		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+		<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
+		<key>CADisableMinimumFrameDurationOnPhone</key>
+		<true/>
+		<key>UIApplicationSupportsIndirectInputEvents</key>
+		<true/>
+		<!-- Status bar chiara su tutta l'app (sfondi dark). UIViewControllerBasedStatusBarAppearance=NO
 	     forza lo stile a livello app, evitando che i view controller di iOS oscurino orario/segnale/batteria. -->
-	<key>UIStatusBarStyle</key>
-	<string>UIStatusBarStyleLightContent</string>
-	<key>UIViewControllerBasedStatusBarAppearance</key>
-	<false/>
-	<key>NSAppTransportSecurity</key>
-    <dict>
-        <key>NSAllowsArbitraryLoads</key>
-        <true />
-    </dict>
-	<!-- Google Sign-In: iOS Client ID + URL scheme inverso per il redirect OAuth.
-	     Senza il CFBundleURLTypes il login Google nativo crasha/non torna all'app. -->
-	<key>GIDClientID</key>
-	<string>73394688512-kt2hojans7apksgvu1rs3d72ofmgistd.apps.googleusercontent.com</string>
-	<key>CFBundleURLTypes</key>
-	<array>
+		<key>UIStatusBarStyle</key>
+		<string>UIStatusBarStyleLightContent</string>
+		<key>UIViewControllerBasedStatusBarAppearance</key>
+		<false/>
+		<key>NSAppTransportSecurity</key>
 		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>com.googleusercontent.apps.73394688512-kt2hojans7apksgvu1rs3d72ofmgistd</string>
-			</array>
+			<key>NSAllowsArbitraryLoads</key>
+			<true/>
 		</dict>
-		<!-- Custom scheme dell'app: usato per i deep link di ritorno dal sito
+		<!-- Google Sign-In: iOS Client ID + URL scheme inverso per il redirect OAuth.
+	     Senza il CFBundleURLTypes il login Google nativo crasha/non torna all'app. -->
+		<key>GIDClientID</key>
+		<string>73394688512-kt2hojans7apksgvu1rs3d72ofmgistd.apps.googleusercontent.com</string>
+		<key>CFBundleURLTypes</key>
+		<array>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>com.googleusercontent.apps.73394688512-kt2hojans7apksgvu1rs3d72ofmgistd</string>
+				</array>
+			</dict>
+			<!-- Custom scheme dell'app: usato per i deep link di ritorno dal sito
 		     (es. /auth/email-confirmed, /auth/password-changed) e da Stripe
 		     (vedi docs/database/stripe_integration_plan.md). -->
-		<dict>
-			<key>CFBundleTypeRole</key>
-			<string>Editor</string>
-			<key>CFBundleURLName</key>
-			<string>com.onlistclub.app</string>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>onlistclub</string>
-			</array>
-		</dict>
-	</array>
-</dict>
+			<dict>
+				<key>CFBundleTypeRole</key>
+				<string>Editor</string>
+				<key>CFBundleURLName</key>
+				<string>com.onlistclub.app</string>
+				<key>CFBundleURLSchemes</key>
+				<array>
+					<string>onlistclub</string>
+				</array>
+			</dict>
+		</array>
+		<key>UIStatusBarHidden</key>
+		<true/>
+	</dict>
 </plist>

@@ -18,11 +18,13 @@
 #     flutter pub get
 #     dart run flutter_native_splash:create
 flutter_native_splash:
-  color: "#000000"
+  # NB: niente `color` a questo livello. Se c'è, flutter_native_splash lo usa
+  # come sfondo (un pixel 1×1 stirato) e IGNORA background_image → si perde il
+  # gradiente. Con solo background_image, iOS e Android<12 usano il PNG del
+  # gradiente. Il colore serve solo ad android_12 (l'OS lì vieta le immagini).
   background_image: "assets/native_splash/splash_bg.png"
   image: "assets/images/logo_onlist.png"
 
-  color_dark: "#000000"
   background_image_dark: "assets/native_splash/splash_bg.png"
   image_dark: "assets/images/logo_onlist.png"
 
