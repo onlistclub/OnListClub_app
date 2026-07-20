@@ -41,6 +41,9 @@ flutter_native_splash:
   ios: true
   web: false
 
-  # Copre l'area sotto status/nav bar col brand (niente barre di sistema stonate
-  # durante l'avvio).
-  fullscreen: true
+  # NON fullscreen: con `true` il tool nasconde la status bar durante lo splash
+  # (Android windowFullscreen, iOS UIStatusBarHidden) e all'uscita le icone di
+  # sistema (ora/batteria/segnale) perdono lo stile chiaro dell'app e restano
+  # nere/invisibili sugli sfondi scuri. Lo splash col gradiente dietro una status
+  # bar normale (icone bianche, vedi main.dart) va benissimo.
+  fullscreen: false
