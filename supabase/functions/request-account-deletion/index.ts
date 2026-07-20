@@ -34,32 +34,149 @@ async function sha256Hex(input: string): Promise<string> {
     .join("");
 }
 
+// ── Design system email (allineato al sito, src/lib/email-templates.ts) ──────
+// Stesso stile delle altre email transazionali di OnListClub: sfondo chiaro di
+// default (fallback universale per i client che ignorano prefers-color-scheme),
+// variante scura via @media per chi la supporta. Card in vetro, logo trasparente
+// alternato (scuro su fondo chiaro / bianco su fondo scuro), CTA in gradiente blu.
+// Colori come resa sRGB delle custom property oklch() del sito.
+const LOGO_DARK_URL = "https://www.onlistclub.com/email-logo-dark.png"; // logo scuro, per sfondo chiaro
+const LOGO_LIGHT_URL = "https://www.onlistclub.com/email-logo.png"; // logo bianco, per sfondo scuro
+
+const LIGHT = {
+  bgOuter: "#eef1f8",
+  card: "#ffffff",
+  cardBorder: "#e1e5f0",
+  heading: "#12131c",
+  body: "#525b70",
+  muted: "#727b90",
+  badgeBg: "rgba(19,62,255,0.08)",
+  badgeBorder: "rgba(19,62,255,0.28)",
+  badgeText: "#1b3fd6",
+  link: "#1b3fd6",
+};
+const DARK = {
+  bgOuter: "#05050f",
+  card: "#0d0f24",
+  cardBorder: "#24304d",
+  heading: "#f4f6fb",
+  body: "#a9b3c6",
+  muted: "#8b93a7",
+  badgeBg: "rgba(19,62,255,0.16)",
+  badgeBorder: "rgba(19,62,255,0.35)",
+  badgeText: "#8fb4ff",
+  link: "#8fb4ff",
+};
+const GRADIENT_FROM = "#133eff";
+const GRADIENT_TO = "#0098ff";
+const FONT_DISPLAY = "'Space Grotesk', Helvetica, Arial, sans-serif";
+const FONT_SANS = "'Inter', Helvetica, Arial, sans-serif";
+
+function escapeHtml(value: string): string {
+  return value
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#39;");
+}
+
 function emailHtml(nome: string, link: string): string {
-  // Palette e font dal design system (CLAUDE.md §2). Stili inline: i client
-  // di posta ignorano quasi sempre il <style> in head.
-  return `
-<div style="margin:0;padding:32px 16px;background:#000000;font-family:Helvetica,'Helvetica Neue',Arial,sans-serif;">
-  <div style="max-width:520px;margin:0 auto;background:linear-gradient(180deg,#000000 0%,#060037 100%);border-radius:10px;padding:32px;">
-    <h1 style="margin:0 0 24px;color:#FFFFFF;font-size:24px;font-weight:700;">Vuoi eliminare il tuo account?</h1>
-    <p style="margin:0 0 16px;color:#FFFFFF;font-size:16px;line-height:24px;">
-      Ciao ${nome}, hai chiesto di eliminare definitivamente il tuo account Onlist Club.
-    </p>
-    <p style="margin:0 0 24px;color:#FFFFFF;font-size:16px;line-height:24px;">
-      Per completare, apri la pagina qui sotto e conferma. Il link vale
-      ${TOKEN_VALIDITA_MINUTI} minuti e puo essere usato una sola volta.
-    </p>
-    <a href="${link}" style="display:inline-block;background:#1E00FF;color:#FFFFFF;text-decoration:none;font-size:16px;font-weight:700;padding:14px 28px;border-radius:7px;">
-      ELIMINA IL MIO ACCOUNT
-    </a>
-    <p style="margin:24px 0 0;color:#8E8E93;font-size:14px;line-height:20px;">
-      L'operazione e definitiva: i tuoi dati personali verranno rimossi e non
-      sara possibile recuperare l'account.
-    </p>
-    <p style="margin:16px 0 0;color:#8E8E93;font-size:14px;line-height:20px;">
-      Se non sei stato tu, ignora questa email: senza la conferma non succede nulla.
-    </p>
-  </div>
-</div>`.trim();
+  const saluto = nome ? `Ciao ${escapeHtml(nome)}, ` : "";
+  return `<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>Conferma la cancellazione del tuo account</title>
+    <style>
+      body, .bg-outer { background-color: ${LIGHT.bgOuter}; }
+      .card { background-color: ${LIGHT.card}; border-color: ${LIGHT.cardBorder} !important; }
+      .text-heading { color: ${LIGHT.heading} !important; }
+      .text-body { color: ${LIGHT.body} !important; }
+      .text-muted { color: ${LIGHT.muted} !important; }
+      .badge { background-color: ${LIGHT.badgeBg} !important; border-color: ${LIGHT.badgeBorder} !important; color: ${LIGHT.badgeText} !important; }
+      .footer-link { color: ${LIGHT.link} !important; }
+      .logo-for-light { display: block; }
+      .logo-for-dark { display: none; }
+
+      @media (prefers-color-scheme: dark) {
+        body, .bg-outer { background-color: ${DARK.bgOuter} !important; }
+        .card { background-color: ${DARK.card} !important; border-color: ${DARK.cardBorder} !important; }
+        .text-heading { color: ${DARK.heading} !important; }
+        .text-body { color: ${DARK.body} !important; }
+        .text-muted { color: ${DARK.muted} !important; }
+        .badge { background-color: ${DARK.badgeBg} !important; border-color: ${DARK.badgeBorder} !important; color: ${DARK.badgeText} !important; }
+        .footer-link { color: ${DARK.link} !important; }
+        .logo-for-light { display: none !important; }
+        .logo-for-dark { display: block !important; }
+      }
+    </style>
+  </head>
+  <body class="bg-outer" style="margin:0;padding:0;background-color:${LIGHT.bgOuter};">
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="bg-outer" bgcolor="${LIGHT.bgOuter}" style="background-color:${LIGHT.bgOuter};padding:36px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+            <tr>
+              <td align="center" style="padding-bottom:28px;">
+                <img src="${LOGO_DARK_URL}" alt="OnListClub" width="140" class="logo-for-light" style="display:block;width:140px;height:auto;border:0;margin:0 auto;" />
+                <img src="${LOGO_LIGHT_URL}" alt="OnListClub" width="140" class="logo-for-dark" style="display:none;width:140px;height:auto;border:0;margin:0 auto;" />
+              </td>
+            </tr>
+            <tr>
+              <td class="card" bgcolor="${LIGHT.card}" style="background-color:${LIGHT.card};border:1px solid ${LIGHT.cardBorder};border-radius:24px;padding:36px 32px;">
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+                  <tr>
+                    <td class="badge" bgcolor="${LIGHT.badgeBg}" style="border-radius:999px;background-color:${LIGHT.badgeBg};border:1px solid ${LIGHT.badgeBorder};padding:6px 14px;font-family:${FONT_SANS};font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:${LIGHT.badgeText};">
+                      Cancellazione account
+                    </td>
+                  </tr>
+                </table>
+                <h1 class="text-heading" style="margin:0 0 14px;font-family:${FONT_DISPLAY};font-size:24px;line-height:1.25;color:${LIGHT.heading};letter-spacing:-0.02em;">
+                  Vuoi eliminare il tuo account?
+                </h1>
+                <p class="text-body" style="margin:0 0 20px;font-family:${FONT_SANS};font-size:15px;line-height:1.6;color:${LIGHT.body};">
+                  ${saluto}hai chiesto di eliminare definitivamente il tuo account OnListClub.
+                </p>
+                <p class="text-body" style="margin:0 0 28px;font-family:${FONT_SANS};font-size:15px;line-height:1.6;color:${LIGHT.body};">
+                  Per completare, apri la pagina qui sotto e conferma. Il link vale <strong class="text-heading" style="color:${LIGHT.heading};">${TOKEN_VALIDITA_MINUTI} minuti</strong> e può essere usato una sola volta.
+                </p>
+                <table role="presentation" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td bgcolor="${GRADIENT_TO}" style="border-radius:999px;background-color:${GRADIENT_TO};background-image:linear-gradient(135deg, ${GRADIENT_FROM}, ${GRADIENT_TO});">
+                      <a href="${link}" style="display:inline-block;padding:13px 28px;font-family:${FONT_SANS};font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
+                        Elimina il mio account →
+                      </a>
+                    </td>
+                  </tr>
+                </table>
+                <p class="text-muted" style="margin:28px 0 0;font-family:${FONT_SANS};font-size:13px;line-height:1.6;color:${LIGHT.muted};">
+                  L'operazione è definitiva: i tuoi dati personali verranno rimossi e non sarà possibile recuperare l'account.
+                </p>
+                <p class="text-muted" style="margin:12px 0 0;font-family:${FONT_SANS};font-size:13px;line-height:1.6;color:${LIGHT.muted};">
+                  Se non sei stato tu, ignora questa email: senza la conferma non succede nulla.
+                </p>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding-top:28px;">
+                <p class="text-body" style="margin:0 0 6px;font-family:${FONT_SANS};font-size:12px;color:${LIGHT.body};">
+                  OnListClub — Il controllo del tuo locale, tutto in uno.
+                </p>
+                <p class="text-body" style="margin:0;font-family:${FONT_SANS};font-size:12px;color:${LIGHT.body};">
+                  Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="color:${LIGHT.link};text-decoration:none;">info@onlistclub.com</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>`;
 }
 
 serve(async (req) => {
