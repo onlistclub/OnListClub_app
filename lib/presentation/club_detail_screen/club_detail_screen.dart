@@ -605,6 +605,8 @@ class _SerataCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSoldOut = serata.statusPosti == 'Sold Out';
+    // Card grande OGGI/DOMANI: mostra ENTRAMBI i generi (es. "House - Deep House").
+    // La card compatta [_SerataCompactCard] mostra invece solo il primo.
     final generi = serata.generiMusicali.isNotEmpty
         ? serata.generiMusicali.join(' - ')
         : locale.generiString;
@@ -816,9 +818,12 @@ class _SerataCompactCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final isSoldOut = serata.statusPosti == 'Sold Out';
-    final generi = serata.generiMusicali.isNotEmpty
-        ? serata.generiMusicali.join(' - ')
-        : locale.generiString;
+    // Card compatta: mostra SOLO il primo genere (niente "House - Deep House"
+    // troncato). La card grande OGGI/DOMANI mostra invece entrambi i generi.
+    final generiList = serata.generiMusicali.isNotEmpty
+        ? serata.generiMusicali
+        : locale.generiMusicali;
+    final generi = generiList.isNotEmpty ? generiList.first : '';
 
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),

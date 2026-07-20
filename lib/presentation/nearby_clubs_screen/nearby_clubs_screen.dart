@@ -1580,7 +1580,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
             if (icon != null) ...[
               Icon(icon,
                   size: 13,
-                  color: selected ? OnlistColors.blueElectric : Colors.white38),
+                  color: selected ? OnlistColors.blueElectric : Colors.white),
               const SizedBox(width: 5),
             ],
             Text(
@@ -1588,8 +1588,8 @@ class _FiltersSheetState extends State<_FiltersSheet> {
               style: TextStyle(
                 fontFamily: 'Helvetica',
                 fontSize: 13,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? Colors.white : Colors.white54,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: Colors.white,
               ),
             ),
           ],
@@ -1636,15 +1636,15 @@ class _SortChip extends StatelessWidget {
           children: [
             Icon(icon,
                 size: 14,
-                color: selected ? OnlistColors.blueElectric : Colors.white38),
+                color: selected ? OnlistColors.blueElectric : Colors.white),
             const SizedBox(width: 5),
             Text(
               label,
               style: TextStyle(
                 fontFamily: 'Helvetica',
                 fontSize: 13,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w400,
-                color: selected ? Colors.white : Colors.white54,
+                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
+                color: Colors.white,
               ),
             ),
           ],
