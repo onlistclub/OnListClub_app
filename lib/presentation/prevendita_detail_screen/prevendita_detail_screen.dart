@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
 import '../../core/app_export.dart';
@@ -6,10 +7,21 @@ import '../../core/services/orders_service.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
-import '../../widgets/onlist_price_text.dart';
 import '../../widgets/shared_footer.dart';
+import '../../widgets/ticket_shape.dart';
 
-/// Dettaglio di una singola prevendita acquistata (18 — con QR).
+/// Dettaglio di una singola prevendita acquistata — "ticket aperto".
+///
+/// Design ufficiale "(NUOVO) - Riepilogo Ticket Specifico": card-scontrino
+/// 350×600 (Rectangle 268) a forma di biglietto ([TicketShape], tacche alla
+/// seconda linea tratteggiata), con nome locale, "Ticket x N" + descrizione,
+/// dati personali reali, pill PREZZO, nome evento e CODICE A BARRE decorativo.
+///
+/// Il barcode è GRAFICO (design): il codice funzionale resta il QR — tap sul
+/// barcode → overlay bianco a schermo intero col QR vero (massima
+/// scansionabilità nei locali bui). Il sito /staff scansiona il QR e chiama
+/// `scan_ticket`; nessuna modifica all'infrastruttura.
+///
 /// Riceve come arguments la Map proveniente da OrdersService.getPrevenditeOrdini().
 class PrevenditaDetailScreen extends StatefulWidget {
   const PrevenditaDetailScreen({Key? key}) : super(key: key);
@@ -69,6 +81,61 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     }
   }
 
+  /// Overlay a schermo intero col QR VERO (il codice funzionale). Fondo bianco
+  /// pieno → contrasto massimo per lo scanner dello staff nei locali bui.
+  void _showQrOverlay(String qrData, String codice) {
+    showDialog(
+      context: context,
+      builder: (ctx) => Dialog.fullscreen(
+        backgroundColor: Colors.white,
+        child: GestureDetector(
+          onTap: () => Navigator.pop(ctx),
+          behavior: HitTestBehavior.opaque,
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                QrImageView(
+                  data: qrData,
+                  version: QrVersions.auto,
+                  size: (R.width * 0.75).clamp(200.0, 320.0),
+                  backgroundColor: Colors.white,
+                ),
+                SizedBox(height: R.sp(16)),
+                Text(
+                  codice,
+                  style: GoogleFonts.inter(
+                    color: Colors.black,
+                    fontSize: R.sp(16),
+                    fontWeight: FontWeight.w500,
+                    letterSpacing: 2,
+                  ),
+                ),
+                SizedBox(height: R.sp(24)),
+                Text(
+                  'Tocca per chiudere',
+                  style: GoogleFonts.inter(
+                    color: Colors.black45,
+                    fontSize: R.sp(13),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Numero leggibile sotto il barcode (design "59012"): etichetta VISIVA
+  // derivata dall'UUID del biglietto (prime 5 cifre), non un codice
+  // interrogabile — il codice funzionale è il QR.
+  String _barcodeLabel(String? uuid) {
+    if (uuid == null || uuid.isEmpty) return '00000';
+    final digits = uuid.replaceAll(RegExp(r'[^0-9]'), '');
+    return digits.length >= 5 ? digits.substring(0, 5) : digits.padRight(5, '0');
+  }
+
   @override
   Widget build(BuildContext context) {
     final item = ModalRoute.of(context)?.settings.arguments
@@ -77,8 +144,14 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
 
     final prenotazione = item['prenotazioni'] as Map<String, dynamic>?;
     final prevendita = item['prevendite'] as Map<String, dynamic>?;
+    final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
 
-    final tipo = prevendita?['tipo'] ?? 'Normale';
+    final localeNome =
+        ((evento?['locali'] as Map<String, dynamic>?)?['nome'] ?? 'Locale')
+            .toString();
+    final eventoNome = (evento?['nome'] ?? '').toString();
+    final nome = (item['nome'] ?? '—').toString();
+    final cognome = (item['cognome'] ?? '—').toString();
     final prezzo = prevendita?['prezzo'];
     final stato = _annullata
         ? 'annullata'
@@ -102,16 +175,11 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     final prezzoStr = prezzoNum == null
         ? '—'
         : '${prezzoNum % 1 == 0 ? prezzoNum.toInt() : prezzoNum}€';
-    // Quantità dai dati reali della prenotazione.
     final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
-    // Testo "extra" accanto al prezzo: descrizione reale della prevendita dal
-    // DB (es. "+ 2 drink omaggio"). NOTA: `drink_omaggio` non è una colonna
-    // esistente in `prevendite`/`eventi` — l'unica sorgente vera è
-    // `descrizione`. Qui è già protetto dall'overflow dal FittedBox del
-    // prezzo, che rimpicciolisce tutta la riga se serve.
+    // Descrizione reale della prevendita dal DB (es. "+ 2 drink omaggio").
     final descrizione = (prevendita?['descrizione'] as String?)?.trim();
-    final String? extraText =
-        (descrizione != null && descrizione.isNotEmpty) ? descrizione : null;
+    final barcodeLabel = _barcodeLabel(idPrenotazionePrevendita);
+    final isAnnullata = stato.toString().toLowerCase() == 'annullata';
 
     return Scaffold(
       backgroundColor: Colors.black,
@@ -126,227 +194,286 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
               const CustomTopBar(),
               _buildBackRow(),
               Expanded(
-                // La card e il blocco "Chiudi QR Code" condividono ora lo
-                // stesso sfondo (Figma aggiornato: il gradiente della card
-                // si estende fino a includere "Chiudi QR Code" e la
-                // freccia, non finisce subito dopo ANNULLA). ATTENZIONE:
-                // questa schermata contiene un QrImageView (pacchetto
-                // qr_flutter), che avvolge SEMPRE il proprio contenuto in
-                // un LayoutBuilder interno (non modificabile, è nel codice
-                // del pacchetto): IntrinsicHeight e SliverFillRemaining
-                // calcolano le dimensioni intrinseche dei discendenti e
-                // vanno in crash non appena raggiungono quel LayoutBuilder.
-                // Qui non serve nessuna delle due: niente Spacer/Expanded
-                // dentro la card, quindi un semplice Column dentro
-                // SingleChildScrollView si dimensiona sul contenuto senza
-                // richiedere dimensioni intrinseche — sicuro anche col QR.
                 child: SingleChildScrollView(
+                  // CSS: card 350 su 393 → ~21px per lato; top card 163 con
+                  // "Torna indietro" che finisce a 149.
                   padding: EdgeInsets.fromLTRB(
-                      16, 12, 16, 24 + SharedFooter.height),
-                  child: Container(
+                      R.sp(21), R.sp(14), R.sp(21), R.sp(24) + SharedFooter.height),
+                  child: SizedBox(
+                    // Altezza fissa del biglietto come da CSS (Rectangle 268:
+                    // 350×600): i gap interni sommano esattamente a 600.
+                    height: R.sp(600),
                     width: double.infinity,
-                    constraints: BoxConstraints(minHeight: R.sp(420)),
-                    padding: const EdgeInsets.fromLTRB(16, 16, 16, 20),
-                    decoration: BoxDecoration(
-                      gradient: OnlistColors.cardSummary,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                                  // "Ticket x N" + "Ticket {tipo}" con più
-                                  // respiro tra i due (Figma 18: il
-                                  // sottotitolo è staccato dal numero).
-                                  Row(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
-                                    children: [
-                                      Text('Ticket x $quantita',
-                                          style: OnlistTextStyles.ticketLabel),
-                                      const SizedBox(width: 18),
-                                      Expanded(
-                                        child: Padding(
-                                          padding: const EdgeInsets.only(
-                                              top: 14),
-                                          child: Text('Ticket $tipo',
-                                              style: OnlistTextStyles
-                                                  .ticketSubtitleXs,
-                                              maxLines: 1,
-                                              overflow:
-                                                  TextOverflow.ellipsis),
-                                        ),
-                                      ),
-                                    ],
+                    child: TicketShape(
+                      // CSS Ellipse 18: centro tacche a y 490 su card a 163
+                      // → 327/600, esattamente sulla linea tratteggiata 2.
+                      notchCenterYFraction: 327 / 600,
+                      notchRadiusDesign: 20, // Ellipse 18: Ø~41
+                      borderWidthDesign: 3,
+                      borderColor: OnlistColors.ticketCardBorderOpen,
+                      child: Column(
+                        children: [
+                          SizedBox(height: R.sp(24)),
+                          // Nome locale (CSS "Gattopardo": 64/w500/-0.1em).
+                          SizedBox(
+                            height: R.sp(63),
+                            width: double.infinity,
+                            child: Padding(
+                              padding:
+                                  EdgeInsets.symmetric(horizontal: R.sp(26)),
+                              child: FittedBox(
+                                fit: BoxFit.scaleDown,
+                                child: Text(
+                                  localeNome,
+                                  style: OnlistTextStyles.hn(
+                                    color: Colors.white,
+                                    fontSize: R.sp(64),
+                                    fontWeight: FontWeight.w500,
+                                    height: 63 / 64,
+                                    letterSpacing: -0.1 * 64,
                                   ),
-                                  FittedBox(
-                                    fit: BoxFit.scaleDown,
-                                    alignment: Alignment.centerLeft,
-                                    child: Row(
-                                      mainAxisSize: MainAxisSize.min,
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.end,
-                                      children: [
-                                        OnlistPriceText(prezzoStr,
-                                            style: OnlistTextStyles.price96),
-                                        if (extraText != null) ...[
-                                          const SizedBox(width: 10),
-                                          Padding(
-                                            padding: const EdgeInsets.only(
-                                                bottom: 32),
-                                            child: Text(extraText,
-                                                style: OnlistTextStyles
-                                                    .body24Regular),
-                                          ),
-                                        ],
-                                      ],
-                                    ),
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: R.sp(14)),
+                          // "Ticket x 1" + "+ 2 drink omaggio" (24/-0.05em).
+                          Padding(
+                            padding: EdgeInsets.only(left: R.sp(26), right: R.sp(20)),
+                            child: Row(
+                              children: [
+                                Text(
+                                  'Ticket x $quantita',
+                                  style: OnlistTextStyles.hn(
+                                    color: Colors.white,
+                                    fontSize: R.sp(24),
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.0,
+                                    letterSpacing: -0.05 * 24,
                                   ),
-                                  // Gap fisso (era Spacer flessibile): il QR
-                                  // deve stare vicino al prezzo come nel
-                                  // Figma ufficiale, non centrato a metà
-                                  // dello spazio libero. Il target misurato
-                                  // (ink-to-QR ~42.6 su frame 393, da
-                                  // docs/figma_screen/off/
-                                  // image-1783954807532.webp) include già
-                                  // lo spazio "invisibile" sotto il testo
-                                  // dato dal line-height di price96
-                                  // (110/96, senza discendenti in "18€"):
-                                  // impostare qui lo stesso 43 sommava un
-                                  // gap doppio (misurato ~70 reale). Ridotto
-                                  // per compensare quello spazio già
-                                  // presente nel font.
-                                  SizedBox(height: R.sp(16)),
-                                  Center(
-                                    child: Container(
-                                      padding: const EdgeInsets.all(10),
-                                      decoration: BoxDecoration(
+                                ),
+                                if (descrizione != null &&
+                                    descrizione.isNotEmpty) ...[
+                                  SizedBox(width: R.sp(28)),
+                                  Flexible(
+                                    child: Text(
+                                      descrizione,
+                                      maxLines: 1,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: OnlistTextStyles.hn(
                                         color: Colors.white,
-                                        // Angoli arrotondati (richiesto):
-                                        // il raggio resta piccolo rispetto
-                                        // al box (~260px) e al padding
-                                        // interno (10px), quindi non taglia
-                                        // i pattern-finder del QR agli
-                                        // angoli — resta scannerizzabile.
-                                        borderRadius:
-                                            BorderRadius.circular(R.sp(16)),
-                                      ),
-                                      // ShaderMask ricolora solo i pixel
-                                      // opachi del QR (i moduli scuri) con
-                                      // la sfumatura viola ufficiale — il QR
-                                      // resta un vero QrImageView generato
-                                      // dai dati reali (qrData), quindi
-                                      // scannerizzabile e collegato
-                                      // all'ordine. backgroundColor deve
-                                      // restare transparent: il bianco è
-                                      // dato dal Container esterno, così lo
-                                      // sfondo non viene toccato dallo
-                                      // shader (BlendMode.srcIn colora solo
-                                      // ciò che ha alpha > 0).
-                                      child: ShaderMask(
-                                        shaderCallback: (bounds) =>
-                                            const LinearGradient(
-                                          begin: Alignment.topCenter,
-                                          end: Alignment.bottomCenter,
-                                          colors: [
-                                            OnlistColors.blueElectric,
-                                            OnlistColors.blueDeep,
-                                          ],
-                                        ).createShader(bounds),
-                                        blendMode: BlendMode.srcIn,
-                                        child: QrImageView(
-                                          data: qrData,
-                                          version: QrVersions.auto,
-                                          // Box totale (QR + padding 10x2) proporzionato
-                                          // al Figma ufficiale: 258/393
-                                          // misurato pixel-precisamente sul
-                                          // riferimento (rapporto 0.6554,
-                                          // 280/393 usato prima sforava),
-                                          // responsive via R.width invece di
-                                          // px fissi.
-                                          size: ((R.width * (258 / 393)) - 20)
-                                              .clamp(160.0, 320.0),
-                                          backgroundColor: Colors.transparent,
-                                        ),
+                                        fontSize: R.sp(24),
+                                        fontWeight: FontWeight.w400,
+                                        height: 1.0,
+                                        letterSpacing: -0.05 * 24,
                                       ),
                                     ),
                                   ),
-                                  // Gap fisso (era Spacer flessibile): ANNULLA
-                                  // deve stare vicino al QR come nel Figma,
-                                  // non spinto in fondo a un container ora
-                                  // dimensionato sul contenuto. Valore
-                                  // misurato sul riferimento ufficiale
-                                  // (image-1783954807532.webp): gap
-                                  // QR-bottom -> ANNULLA-top ~23.
-                                  SizedBox(height: R.sp(23)),
-                                  // ANNULLA PREVENDITA (pill)
-                                  if (stato.toString().toLowerCase() !=
-                                      'annullata')
-                                    Center(
-                                      child: GestureDetector(
-                                        onTap: _isAnnullando
-                                            ? null
-                                            : () =>
-                                                _annulla(idPrenotazione),
-                                        child: Container(
-                                          width: 219,
-                                          height: 35,
-                                          decoration: BoxDecoration(
-                                            color: Colors.white
-                                                .withValues(alpha: 0.13),
-                                            borderRadius:
-                                                BorderRadius.circular(10),
-                                          ),
-                                          alignment: Alignment.center,
-                                          child: _isAnnullando
-                                              ? const SizedBox(
-                                                  width: 18,
-                                                  height: 18,
-                                                  child:
-                                                      CircularProgressIndicator(
-                                                          color:
-                                                              Colors.white,
-                                                          strokeWidth: 2),
-                                                )
-                                              : Text('ANNULLA PREVENDITA',
-                                                  style: OnlistTextStyles
-                                                      .button20Bold),
-                                        ),
-                                      ),
-                                    )
-                                  else
-                                    Center(
-                                      child: Text('PREVENDITA ANNULLATA',
-                                          style: OnlistTextStyles
-                                              .button20Bold
-                                              .copyWith(
-                                                  color: Colors.redAccent)),
-                                    ),
-                          SizedBox(height: R.sp(8)),
-                          // Chiudi QR Code — ora dentro la card, stesso
-                          // sfondo gradiente (Figma aggiornato: prima
-                          // stava fuori su sfondo nero).
-                          Center(
-                            child: GestureDetector(
-                              onTap: () => NavigatorService.goBack(),
-                              behavior: HitTestBehavior.opaque,
+                                ],
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: R.sp(15)),
+                          // Linea tratteggiata 1 (CSS Line 15: 297, dashed 1px).
+                          _dashedLine(width: 297),
+                          SizedBox(height: R.sp(18)),
+                          // "Dati personali" (40/w500/-0.1em).
+                          Padding(
+                            padding: EdgeInsets.only(left: R.sp(25)),
+                            child: Align(
+                              alignment: Alignment.centerLeft,
+                              child: Text(
+                                'Dati personali',
+                                style: OnlistTextStyles.hn(
+                                  color: Colors.white,
+                                  fontSize: R.sp(40),
+                                  fontWeight: FontWeight.w500,
+                                  height: 1.0,
+                                  letterSpacing: -0.1 * 40,
+                                ),
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: R.sp(10)),
+                          _personalDataRow('Nome : $nome', leftDesign: 29),
+                          SizedBox(height: R.sp(5)),
+                          _personalDataRow('Cognome : $cognome', leftDesign: 28),
+                          SizedBox(height: R.sp(17)),
+                          // Pill PREZZO (CSS Rectangle 269: 297×37, radius 13).
+                          Container(
+                            width: R.sp(297),
+                            height: R.sp(37),
+                            decoration: BoxDecoration(
+                              color: OnlistColors.ticketPricePill,
+                              borderRadius: BorderRadius.circular(R.sp(13)),
+                            ),
+                            padding: EdgeInsets.only(
+                                left: R.sp(7), right: R.sp(11)),
+                            child: Row(
+                              mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                              children: [
+                                Text(
+                                  'PREZZO',
+                                  style: OnlistTextStyles.hn(
+                                    color: Colors.white,
+                                    fontSize: R.sp(32),
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.0,
+                                  ),
+                                ),
+                                Text(
+                                  prezzoStr,
+                                  style: OnlistTextStyles.hn(
+                                    color: Colors.white,
+                                    fontSize: R.sp(32),
+                                    fontWeight: FontWeight.w500,
+                                    height: 1.0,
+                                  ),
+                                ),
+                              ],
+                            ),
+                          ),
+                          SizedBox(height: R.sp(28)),
+                          // Linea tratteggiata 2 (CSS Line 16: 278) —
+                          // all'altezza esatta delle tacche laterali.
+                          _dashedLine(width: 278),
+                          SizedBox(height: R.sp(19)),
+                          // Nome evento (16/w500/-0.03em, centrato).
+                          Padding(
+                            padding: EdgeInsets.symmetric(horizontal: R.sp(26)),
+                            child: Text(
+                              eventoNome,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: OnlistTextStyles.hn(
+                                color: Colors.white,
+                                fontSize: R.sp(16),
+                                fontWeight: FontWeight.w500,
+                                height: 1.0,
+                                letterSpacing: -0.03 * 16,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: R.sp(7)),
+                          // Barcode decorativo (CSS barcode 2: 289×97) +
+                          // numero. Tap → overlay col QR VERO scansionabile.
+                          GestureDetector(
+                            onTap: () => _showQrOverlay(qrData, barcodeLabel),
+                            behavior: HitTestBehavior.opaque,
+                            child: SizedBox(
+                              width: R.sp(289),
+                              height: R.sp(97),
                               child: Column(
                                 children: [
-                                  Text('Chiudi QR Code',
-                                      style: OnlistTextStyles.link15),
-                                  const SizedBox(height: 6),
-                                  Container(
-                                    width: 28,
-                                    height: 28,
-                                    decoration: BoxDecoration(
-                                      shape: BoxShape.circle,
-                                      border: Border.all(
-                                          color: Colors.white, width: 2),
+                                  SizedBox(height: R.sp(7)),
+                                  SizedBox(
+                                    width: R.sp(289),
+                                    height: R.sp(68),
+                                    child: const CustomPaint(
+                                      painter: _BarcodeBarsPainter(),
                                     ),
-                                    child: const Icon(Icons.arrow_upward,
-                                        color: Colors.white, size: 18),
+                                  ),
+                                  SizedBox(height: R.sp(7)),
+                                  // CSS "5901234123457": Inter 12 centrato.
+                                  Text(
+                                    barcodeLabel,
+                                    style: GoogleFonts.inter(
+                                      color: Colors.white,
+                                      fontSize: R.sp(12),
+                                      height: 15 / 12,
+                                    ),
                                   ),
                                 ],
                               ),
+                            ),
+                          ),
+                          SizedBox(height: R.sp(17)),
+                          // ANNULLA PREVENDITA (CSS Rectangle 270: 186×33,
+                          // bianco 20%, bordo 1px bianco 45%, radius 18).
+                          SizedBox(
+                            height: R.sp(33),
+                            child: isAnnullata
+                                ? Center(
+                                    child: Text(
+                                      'PREVENDITA ANNULLATA',
+                                      style: OnlistTextStyles.hn(
+                                        color: Colors.redAccent,
+                                        fontSize: R.sp(16),
+                                        fontWeight: FontWeight.w500,
+                                        letterSpacing: -0.1 * 16,
+                                      ),
+                                    ),
+                                  )
+                                : GestureDetector(
+                                    onTap: _isAnnullando
+                                        ? null
+                                        : () => _annulla(idPrenotazione),
+                                    child: Container(
+                                      width: R.sp(186),
+                                      height: R.sp(33),
+                                      decoration: BoxDecoration(
+                                        color: Colors.white
+                                            .withValues(alpha: 0.2),
+                                        border: Border.all(
+                                          color: Colors.white
+                                              .withValues(alpha: 0.45),
+                                          width: 1,
+                                        ),
+                                        borderRadius:
+                                            BorderRadius.circular(R.sp(18)),
+                                      ),
+                                      alignment: Alignment.center,
+                                      child: _isAnnullando
+                                          ? const SizedBox(
+                                              width: 18,
+                                              height: 18,
+                                              child: CircularProgressIndicator(
+                                                  color: Colors.white,
+                                                  strokeWidth: 2),
+                                            )
+                                          : Text(
+                                              'ANNULLA PREVENDITA',
+                                              style: OnlistTextStyles.hn(
+                                                color: Colors.white,
+                                                fontSize: R.sp(16),
+                                                fontWeight: FontWeight.w500,
+                                                height: 1.0,
+                                                letterSpacing: -0.1 * 16,
+                                              ),
+                                            ),
+                                    ),
+                                  ),
+                          ),
+                          SizedBox(height: R.sp(20)),
+                          // "Nascondi QR Code" + cerchio freccia su → chiude.
+                          GestureDetector(
+                            onTap: () => NavigatorService.goBack(),
+                            behavior: HitTestBehavior.opaque,
+                            child: Column(
+                              children: [
+                                Text(
+                                  'Nascondi QR Code',
+                                  style: OnlistTextStyles.hn(
+                                    color: Colors.white,
+                                    fontSize: R.sp(15),
+                                    fontWeight: FontWeight.w400,
+                                    height: 1.0,
+                                    letterSpacing: -0.1 * 15,
+                                  ),
+                                ),
+                                SizedBox(height: R.sp(8)),
+                                Container(
+                                  width: R.sp(28),
+                                  height: R.sp(28),
+                                  decoration: BoxDecoration(
+                                    shape: BoxShape.circle,
+                                    border: Border.all(
+                                        color: Colors.white, width: 2),
+                                  ),
+                                  child: Icon(Icons.arrow_upward,
+                                      color: Colors.white, size: R.sp(18)),
+                                ),
+                              ],
                             ),
                           ),
                         ],
@@ -354,11 +481,41 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                     ),
                   ),
                 ),
+              ),
             ],
           ),
         ),
       ),
       bottomNavigationBar: const SharedFooter(currentIndex: 0),
+    );
+  }
+
+  // Riga dati personali (CSS "Nome : Mario": 16/-0.1em).
+  Widget _personalDataRow(String text, {required double leftDesign}) {
+    return Padding(
+      padding: EdgeInsets.only(left: R.sp(leftDesign)),
+      child: Align(
+        alignment: Alignment.centerLeft,
+        child: Text(
+          text,
+          style: OnlistTextStyles.hn(
+            color: Colors.white,
+            fontSize: R.sp(16),
+            fontWeight: FontWeight.w400,
+            height: 1.0,
+            letterSpacing: -0.1 * 16,
+          ),
+        ),
+      ),
+    );
+  }
+
+  // Linea tratteggiata stile scontrino (CSS: `1px dashed #FFFFFF`).
+  Widget _dashedLine({required double width}) {
+    return SizedBox(
+      width: R.sp(width),
+      height: R.sp(1),
+      child: const CustomPaint(painter: _DashedLinePainter()),
     );
   }
 
@@ -378,4 +535,64 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
       ),
     );
   }
+}
+
+/// Tratteggio orizzontale bianco (dash ~6px, gap ~4px come nel PNG ufficiale).
+class _DashedLinePainter extends CustomPainter {
+  const _DashedLinePainter();
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = Colors.white
+      ..strokeWidth = size.height;
+    final dash = R.sp(6);
+    final gap = R.sp(4);
+    final y = size.height / 2;
+    double x = 0;
+    while (x < size.width) {
+      canvas.drawLine(
+          Offset(x, y), Offset((x + dash).clamp(0, size.width), y), paint);
+      x += dash + gap;
+    }
+  }
+
+  @override
+  bool shouldRepaint(_DashedLinePainter oldDelegate) => false;
+}
+
+/// Barre del codice a barre DECORATIVO, riprodotte esattamente dall'SVG del
+/// design (CSS "barcode 2": ogni barra come coppia left%/right% del blocco).
+/// Non codifica nulla: il codice funzionale è il QR nell'overlay.
+class _BarcodeBarsPainter extends CustomPainter {
+  const _BarcodeBarsPainter();
+
+  // Coppie (left%, right%) dei Vector del CSS ufficiale.
+  static const List<List<double>> _bars = [
+    [1.32, 97.1], [3.69, 95.51], [6.07, 91.56], [10.03, 87.6],
+    [14.78, 83.64], [17.15, 82.06], [18.73, 79.68], [21.9, 76.52],
+    [24.27, 74.14], [27.44, 70.18], [30.61, 67.81], [32.98, 64.64],
+    [36.15, 62.27], [40.11, 59.1], [43.27, 55.94], [44.85, 52.77],
+    [48.02, 50.4], [50.4, 47.23], [53.56, 45.65], [55.14, 42.48],
+    [58.31, 40.11], [62.27, 35.36], [65.44, 33.77], [67.02, 29.82],
+    [70.98, 26.65], [74.14, 24.27], [76.52, 21.11], [79.68, 17.94],
+    [82.85, 15.57], [86.02, 13.19], [88.39, 10.03], [92.35, 5.28],
+    [95.51, 3.69], [97.1, 1.32],
+  ];
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()..color = Colors.white;
+    for (final bar in _bars) {
+      final left = bar[0] / 100 * size.width;
+      final right = bar[1] / 100 * size.width;
+      canvas.drawRect(
+        Rect.fromLTRB(left, 0, size.width - right, size.height),
+        paint,
+      );
+    }
+  }
+
+  @override
+  bool shouldRepaint(_BarcodeBarsPainter oldDelegate) => false;
 }

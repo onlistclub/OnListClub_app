@@ -25,16 +25,27 @@ class TicketShape extends StatelessWidget {
   /// Quota verticale (0..1) del centro delle tacche laterali.
   final double notchCenterYFraction;
 
+  /// Raggio tacche in px design. Card lista (Ellipse 20/21: Ø44) → 22
+  /// (default); card ticket aperto (Ellipse 18: Ø~41) → 20.
+  final double notchRadiusDesign;
+
+  /// Spessore bordo in px design: 2 nella card lista, 3 nel ticket aperto.
+  final double borderWidthDesign;
+
+  /// Colore bordo: bianco 41% nella lista, bianco 44% nel ticket aperto.
+  final Color borderColor;
+
   const TicketShape({
     Key? key,
     required this.child,
     required this.notchCenterYFraction,
+    this.notchRadiusDesign = 22,
+    this.borderWidthDesign = 2,
+    this.borderColor = OnlistColors.ticketCardBorder,
   }) : super(key: key);
 
   // Valori design (px Figma, frame 393×852) dal CSS ufficiale.
   static const double _designCornerRadius = 32;
-  static const double _designNotchRadius = 22; // Ellipse 20/21: Ø44
-  static const double _designBorderWidth = 2;
   static const double _designGlowSigma = 50; // blur CSS 100 → sigma ≈ 50
   static const double _designGlowOffsetY = 2;
 
@@ -43,9 +54,10 @@ class TicketShape extends StatelessWidget {
     return CustomPaint(
       painter: _TicketPainter(
         cornerRadius: R.sp(_designCornerRadius),
-        notchRadius: R.sp(_designNotchRadius),
+        notchRadius: R.sp(notchRadiusDesign),
         notchCenterYFraction: notchCenterYFraction,
-        borderWidth: R.sp(_designBorderWidth),
+        borderWidth: R.sp(borderWidthDesign),
+        borderColor: borderColor,
         glowSigma: R.sp(_designGlowSigma),
         glowOffsetY: R.sp(_designGlowOffsetY),
       ),
@@ -59,6 +71,7 @@ class _TicketPainter extends CustomPainter {
   final double notchRadius;
   final double notchCenterYFraction;
   final double borderWidth;
+  final Color borderColor;
   final double glowSigma;
   final double glowOffsetY;
 
@@ -67,6 +80,7 @@ class _TicketPainter extends CustomPainter {
     required this.notchRadius,
     required this.notchCenterYFraction,
     required this.borderWidth,
+    required this.borderColor,
     required this.glowSigma,
     required this.glowOffsetY,
   });
@@ -115,7 +129,7 @@ class _TicketPainter extends CustomPainter {
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = borderWidth
-        ..color = OnlistColors.ticketCardBorder,
+        ..color = borderColor,
     );
   }
 
@@ -125,6 +139,7 @@ class _TicketPainter extends CustomPainter {
       notchRadius != oldDelegate.notchRadius ||
       notchCenterYFraction != oldDelegate.notchCenterYFraction ||
       borderWidth != oldDelegate.borderWidth ||
+      borderColor != oldDelegate.borderColor ||
       glowSigma != oldDelegate.glowSigma ||
       glowOffsetY != oldDelegate.glowOffsetY;
 }

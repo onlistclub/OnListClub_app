@@ -161,11 +161,17 @@ class OnlistColors {
     stops: [0.0, 0.9471],
   );
 
-  /// Bordo card biglietto: `rgba(255, 255, 255, 0.41)`
+  /// Bordo card biglietto (lista): `rgba(255, 255, 255, 0.41)`
   static const Color ticketCardBorder = Color(0x69FFFFFF);
+
+  /// Bordo card ticket aperto: `rgba(255, 255, 255, 0.44)` (3px nel CSS)
+  static const Color ticketCardBorderOpen = Color(0x70FFFFFF);
 
   /// Glow interno card biglietto: `inset 0px 2px 100px #00E6FF`
   static const Color ticketCardGlow = Color(0xFF00E6FF);
+
+  /// Pill "PREZZO" del ticket aperto: `rgba(0, 21, 255, 0.49)`
+  static const Color ticketPricePill = Color(0x7D0015FF);
 
   /// Card "Ticket disponibili" (lista prevendite, booking).
   /// Valore UFFICIALE: `linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,21,255,.5))`
