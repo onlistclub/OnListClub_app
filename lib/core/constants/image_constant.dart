@@ -57,5 +57,6 @@ class ImageConstant {
   static String imgNavSearch = '${_svgUfficiali}Search_Magnifying_Glass.svg'; // 24×24
   static String imgNavProfile = '${_svgUfficiali}User_01.svg';              // 24×24
   static String imgProfileBadgeDot = '${_svgUfficiali}Ellipse 17.svg';      // 16×16
-  static String imgFooterCapsule = '${_svgUfficiali}Rectangle 261.svg';     // 213×48
+  // NB: `Rectangle 261.svg` (capsula footer) non è più referenziato: la capsula
+  // è disegnata in Flutter (bordo + blur) secondo `footer-bar-ufficiale.css`.
 }

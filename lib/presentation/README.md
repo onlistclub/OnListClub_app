@@ -50,7 +50,6 @@ elencate qui sotto senza link non hanno (ancora) un README dedicato.
 - [`nearby_clubs_screen/`](nearby_clubs_screen/README.md) — lista locali filtrati per raggio + mappa
 - [`club_detail_screen/`](club_detail_screen/README.md) — scheda club
 - `event_info_popup_screen/` — pop-up info serata (Figma 19), aperto dal tap su una serata nel club
-- `main_layout_screen/` — layout con bottom nav usato come shell delle tab
 
 ### Acquisto & ordini
 - [`booking_screen/`](booking_screen/README.md) — prevendite/tavoli + carrello

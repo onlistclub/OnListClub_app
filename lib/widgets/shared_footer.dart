@@ -6,12 +6,15 @@ import '../../core/app_export.dart';
 
 /// Bottom navigation bar condivisa dalle schermate principali.
 ///
-/// Usa gli asset UFFICIALI del design (`assets/svg/ufficiali/`):
-/// - capsula: `Rectangle 261.svg`, resa "vetro smerigliato" con
-///   `BackdropFilter` (sfoca il contenuto sotto) invece di un fill piatto
-/// - icone: `Vector.svg` (ticket) / `home.svg` / `Shopping_Cart_01.svg`
-///   (carrello), stessa altezza per tutte, larghezza secondo l'aspect
-///   ratio nativo di ciascun asset (bianche)
+/// Design ufficiale `footer-bar-ufficiale.css` (frame Figma 393×852):
+/// - capsula 243×54, bordo 2px `rgba(255,255,255,0.13)`, fill trasparente,
+///   raggio pill (34 nel CSS, clampato a h/2). Il "vetro smerigliato" del
+///   Figma è reso con `BackdropFilter` (sfoca il contenuto che scorre sotto).
+/// - icone (asset ufficiali `assets/svg/ufficiali/`): `Vector.svg` (ticket
+///   44×30) / `home.svg` (33×33) / `Shopping_Cart_01.svg` (carrello 33×34),
+///   bianche, attiva opacità 1.0 / inattive 0.5.
+/// - distanza dal bordo fisico inferiore: 21px design (top 777 + h 54 su 852),
+///   fedele al CSS anche sotto l'home indicator iOS.
 ///
 /// Ordine icone: 0 = Ticket (riepilogo ordini), 1 = Home, 2 = Carrello.
 /// Le notifiche non sono più una tab della footer — si raggiungono dalla
@@ -22,113 +25,120 @@ import '../../core/app_export.dart';
 class SharedFooter extends StatelessWidget {
   final int currentIndex;
 
+  /// Se valorizzato, il tap su una tab NON naviga: invoca questo callback con
+  /// l'indice (0 = Ticket/Ordini, 1 = Home, 2 = Carrello). È la modalità usata
+  /// dallo shell persistente ([RootShell]), dove le tab sono un IndexedStack e
+  /// cambiare tab deve preservare lo stato (nessun push/rebuild).
+  /// Se null, resta il comportamento legacy: `pushNamedAndRemoveUntil` verso la
+  /// rotta della tab (usato dalle schermate non ancora migrate allo shell).
+  final void Function(int index)? onTabSelected;
+
   const SharedFooter({
     Key? key,
     required this.currentIndex,
+    this.onTabSelected,
   }) : super(key: key);
 
-  // Dimensioni design (px Figma) — dimensioni NATIVE dell'asset
-  // `Rectangle 261.svg` (213×48), scalate con R.sp. Niente calcolo da
-  // margine/larghezza schermo: la capsula è larga esattamente quanto
-  // l'asset, centrata (il margine laterale è quello che ne risulta).
-  static const double _designCapsuleW = 213;
-  static const double _designCapsuleH = 48;
+  // Dimensioni design (px Figma, frame 393×852) dal CSS ufficiale
+  // `footer-bar-ufficiale.css`, scalate con R.sp. Capsula centrata (nel CSS i
+  // margini laterali 71/79 differiscono di 8px: imprecisione Figma).
+  static const double _designCapsuleW = 243;
+  static const double _designCapsuleH = 54;
+  static const double _designBorderW = 2;
 
-  // Dimensioni bilanciate delle 3 icone (px design) per mantenere lo stesso peso visivo
-  // e garantire che la spaziatura tra di esse rimanga perfettamente simmetrica
-  // ed equispaziata (evitando che la home sembri spostata a sinistra).
-  static const double _ticketWidth = 35;
-  static const double _ticketHeight = 25; // Mantiene l'aspect ratio originale 41x29
+  // Distanza della capsula dal bordo FISICO inferiore dello schermo
+  // (CSS: top 777 + h 54 su frame 852 → 21px). Fedele al design: niente
+  // SafeArea, la pill entra nella zona home-indicator su iOS.
+  static const double _designBottomMargin = 21;
 
-  static const double _homeWidth = 32;
-  static const double _homeHeight = 32; // Mantiene l'aspect ratio originale 33x33
+  // Dimensioni icone dal CSS ufficiale (box esterni, stroke incluso).
+  static const double _ticketWidth = 44;
+  static const double _ticketHeight = 30; // Aspect ratio nativo 41×29
 
-  static const double _cartWidth = 31;
-  static const double _cartHeight = 32; // Mantiene l'aspect ratio originale 31x32
+  static const double _homeWidth = 33;
+  static const double _homeHeight = 33;
 
-  static const double _designClearanceExtra = 28; // spazio sopra/sotto la pillola
+  static const double _cartWidth = 33;
+  static const double _cartHeight = 34; // Aspect ratio nativo 31×32
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
   /// padding di fondo, così l'ultimo contenuto scrollabile supera la capsula.
-  /// Non è più una costante fissa: scala con R.sp come tutto il resto.
-  static double get height => R.sp(_designCapsuleH) + R.sp(_designClearanceExtra);
+  /// Coincide con l'ingombro reale del widget: capsula + margine inferiore.
+  static double get height =>
+      R.sp(_designCapsuleH) + R.sp(_designBottomMargin);
 
   @override
   Widget build(BuildContext context) {
-    // Capsula larga esattamente quanto l'asset ufficiale (213×48 design px),
-    // scalata con R.sp — nessun calcolo derivato da R.width/margini: R.sp
-    // ha già il proprio tetto per i tablet (scale clampato a 1.30).
+    // Misure esatte dal CSS ufficiale (243×54 design px), scalate con R.sp —
+    // nessun calcolo derivato da R.width/margini: R.sp ha già il proprio
+    // tetto per i tablet (scale clampato a 1.30).
     final capsuleW = R.sp(_designCapsuleW);
     final capsuleH = R.sp(_designCapsuleH);
 
-    final bottomInset = MediaQuery.of(context).padding.bottom;
-
     return Material(
       type: MaterialType.transparency,
-      child: SafeArea(
-        top: false,
-        child: SizedBox(
-          height: height,
-          child: Padding(
-            // Spinge leggermente la capsula in basso (Figma 07-aggiornato:
-            // capsula a top 781 / altezza schermo 852, margine sotto ridotto).
-            padding: EdgeInsets.only(bottom: bottomInset == 0 ? R.sp(6) : 0),
-            child: Center(
-              child: SizedBox(
-                width: capsuleW,
-                height: capsuleH,
-                child: Stack(
-                  alignment: Alignment.center,
-                  children: [
-                    // Capsula "vetro smerigliato": sfoca il contenuto che
-                    // scorre sotto (BackdropFilter) e ci stende sopra il fill
-                    // ufficiale (Rectangle 261.svg) — così la capsula resta
-                    // realmente trasparente/traslucida come nel Figma, non un
-                    // riquadro opaco. Raggio = metà altezza, pillola piena.
-                    // Nessun velo scurente esterno: era un layer del vecchio
-                    // design (pill opaca) e in conflitto con l'obiettivo
-                    // "si vede la card sotto" — rimosso.
-                    Positioned.fill(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(capsuleH / 2),
-                        child: BackdropFilter(
-                          filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-                          child: SvgPicture.asset(
-                            ImageConstant.imgFooterCapsule,
-                            fit: BoxFit.fill,
+      child: SizedBox(
+        height: height,
+        child: Padding(
+          padding: EdgeInsets.only(bottom: R.sp(_designBottomMargin)),
+          child: Center(
+            child: SizedBox(
+              width: capsuleW,
+              height: capsuleH,
+              child: Stack(
+                alignment: Alignment.center,
+                children: [
+                  // Capsula "vetro smerigliato" come da CSS ufficiale:
+                  // fill trasparente (rgba(0,0,0,0.004) ≈ nullo), bordo
+                  // 2px bianco al 13%, raggio pill (34 clampato a h/2).
+                  // Il BackdropFilter sfoca il contenuto che scorre sotto,
+                  // rendendo l'effetto vetro del Figma.
+                  Positioned.fill(
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(capsuleH / 2),
+                      child: BackdropFilter(
+                        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
+                        child: DecoratedBox(
+                          decoration: BoxDecoration(
+                            border: Border.all(
+                              color: const Color(0x21FFFFFF), // bianco 13%
+                              width: R.sp(_designBorderW),
+                            ),
+                            borderRadius:
+                                BorderRadius.circular(capsuleH / 2),
                           ),
                         ),
                       ),
                     ),
-                    // Icone equispaziate (3 slot uguali), stessa larghezza/spazio
-                    // per tutte e tre (come Figma — Home non è spostata).
-                    Row(
-                      children: [
-                        Expanded(
-                            child: _buildNavItem(
-                                R.sp(_ticketWidth),
-                                R.sp(_ticketHeight),
-                                ImageConstant.imgNavTicket,
-                                0,
-                                AppRoutes.ordersScreen)),
-                        Expanded(
-                            child: _buildNavItem(
-                                R.sp(_homeWidth),
-                                R.sp(_homeHeight),
-                                ImageConstant.imgNavHome,
-                                1,
-                                AppRoutes.homeScreen)),
-                        Expanded(
-                            child: _buildNavItem(
-                                R.sp(_cartWidth),
-                                R.sp(_cartHeight),
-                                ImageConstant.imgNavCart,
-                                2,
-                                AppRoutes.cartScreen)),
-                      ],
-                    ),
-                  ],
-                ),
+                  ),
+                  // Icone equispaziate (3 slot uguali), stessa larghezza/spazio
+                  // per tutte e tre (come Figma — Home non è spostata).
+                  Row(
+                    children: [
+                      Expanded(
+                          child: _buildNavItem(
+                              R.sp(_ticketWidth),
+                              R.sp(_ticketHeight),
+                              ImageConstant.imgNavTicket,
+                              0,
+                              AppRoutes.ordersScreen)),
+                      Expanded(
+                          child: _buildNavItem(
+                              R.sp(_homeWidth),
+                              R.sp(_homeHeight),
+                              ImageConstant.imgNavHome,
+                              1,
+                              AppRoutes.homeScreen)),
+                      Expanded(
+                          child: _buildNavItem(
+                              R.sp(_cartWidth),
+                              R.sp(_cartHeight),
+                              ImageConstant.imgNavCart,
+                              2,
+                              AppRoutes.cartScreen)),
+                    ],
+                  ),
+                ],
               ),
             ),
           ),
@@ -142,6 +152,12 @@ class SharedFooter extends StatelessWidget {
     final isSelected = currentIndex == index;
     return GestureDetector(
       onTap: () {
+        // Modalità shell: cambia tab senza navigare (stato preservato).
+        if (onTabSelected != null) {
+          onTabSelected!(index);
+          return;
+        }
+        // Modalità legacy: naviga alla rotta della tab.
         if (!isSelected && routeName.isNotEmpty) {
           NavigatorService.pushNamedAndRemoveUntil(routeName);
         }
