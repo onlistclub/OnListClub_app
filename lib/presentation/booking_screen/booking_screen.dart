@@ -182,7 +182,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       backgroundColor: Colors.black,
       // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
       extendBody: true,
-      bottomNavigationBar: const SharedFooter(currentIndex: 2),
+      // Footer: unica e globale, montata da RootShell (non qui).
       body: DecoratedBox(
         decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
         child: SafeArea(

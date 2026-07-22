@@ -97,7 +97,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
           ),
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: -1),
+      // Footer: unica e globale, montata da RootShell (non qui).
     );
   }
 

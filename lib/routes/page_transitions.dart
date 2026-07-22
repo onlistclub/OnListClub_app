@@ -14,7 +14,7 @@
 /// vedi `AppPageRoute` in fondo al file.
 library;
 
-import 'dart:math' show max, min;
+import 'dart:math' show min;
 import 'dart:ui' show lerpDouble;
 
 import 'package:flutter/gestures.dart';
@@ -123,16 +123,22 @@ Widget _fadeThrough(
   );
 }
 
-// ── Swipe-back ────────────────────────────────────────────────────────────────
-// Il gesto pilota all'indietro il controller della rotta col dito. Il rendering
+// ── Swipe-back (verticale, stile WhatsApp) ──────────────────────────────────────
+// Il gesto pilota all'indietro il controller della rotta col dito: si trascina
+// la pagina VERSO IL BASSO dal bordo superiore per tornare indietro. Il rendering
 // del drag è gestito da `AppPageRoute.buildTransitions`: durante il gesto la
-// pagina fa uno slide orizzontale coerente su OGNI schermata (anche i fade come
+// pagina fa uno slide verticale coerente su OGNI schermata (anche i fade come
 // club_detail, che altrimenti svanirebbero in opacità invece di seguire il dito)
 // senza `saveLayer` a schermo intero, così resta fluido su device datati.
+//
+// La pagina sottostante resta visibile durante il trascinamento (il Navigator la
+// mantiene montata mentre il gesto è in corso). La footer, montata dallo shell
+// FUORI dalle route, non è coinvolta dal Transform: resta ancorata.
 
-/// Larghezza della zona sensibile sul bordo sinistro (come iOS). Leggermente più
-/// larga dei 20px canonici per rendere l'innesco più affidabile col pollice.
-const double _kBackGestureWidth = 24.0;
+/// Altezza della zona sensibile sul bordo superiore. Copre l'area della barra di
+/// stato + header (non scrollabile), così il gesto non litiga con lo scroll dei
+/// contenuti. Valore tarabile.
+const double _kBackGestureHeight = 56.0;
 
 /// Velocità (in schermate al secondo) oltre la quale il drag è un "fling".
 const double _kMinFlingVelocity = 1.0;
@@ -228,11 +234,15 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
 
         double opacity;
         double dx;
+        double dy;
         double scale;
 
         if (dragging) {
+          // Swipe verticale: la pagina segue il dito verso il basso. `v` va da 1
+          // (pagina piena) a 0 (fuori dal fondo schermo) → dy = 1 - v.
           opacity = 1.0;
-          dx = 1.0 - v; // frazione di larghezza: la pagina segue il dito
+          dx = 0.0;
+          dy = 1.0 - v; // frazione di altezza
           scale = 1.0;
         } else {
           final double cv = Curves.easeOutCubic.transform(v.clamp(0.0, 1.0));
@@ -242,10 +252,12 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
             case AppTransition.fade:
               opacity = (cv * (1.0 - csv)).clamp(0.0, 1.0);
               dx = 0.0;
+              dy = 0.0;
               scale = 0.98 + 0.02 * cv;
             case AppTransition.sharedAxis:
               opacity = cv;
               dx = 0.06 * (1.0 - cv) - 0.04 * csv;
+              dy = 0.0;
               scale = 1.0;
           }
         }
@@ -253,7 +265,7 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
         return Opacity(
           opacity: opacity,
           child: FractionalTranslation(
-            translation: Offset(dx, 0),
+            translation: Offset(dx, dy),
             child: Transform.scale(scale: scale, child: c),
           ),
         );
@@ -350,12 +362,12 @@ class _BackGestureDetector<T> extends StatefulWidget {
 
 class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
   _BackGestureController<T>? _gestureController;
-  late final HorizontalDragGestureRecognizer _recognizer;
+  late final VerticalDragGestureRecognizer _recognizer;
 
   @override
   void initState() {
     super.initState();
-    _recognizer = HorizontalDragGestureRecognizer(debugOwner: this)
+    _recognizer = VerticalDragGestureRecognizer(debugOwner: this)
       ..onStart = _handleDragStart
       ..onUpdate = _handleDragUpdate
       ..onEnd = _handleDragEnd
@@ -383,19 +395,17 @@ class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
   void _handleDragUpdate(DragUpdateDetails details) {
     // Difesa: se la size non è ancora nota (o è 0), o l'update arriva dopo lo
     // smontaggio, evita l'eccezione che troncherebbe il gesto a metà.
-    final double? width = context.size?.width;
-    if (width == null || width == 0) return;
-    _gestureController?.dragUpdate(
-      _toLogical((details.primaryDelta ?? 0) / width),
-    );
+    final double? height = context.size?.height;
+    if (height == null || height == 0) return;
+    // Trascinamento verso il basso (primaryDelta > 0) → il controller scende
+    // verso 0, cioè verso la schermata sottostante.
+    _gestureController?.dragUpdate((details.primaryDelta ?? 0) / height);
   }
 
   void _handleDragEnd(DragEndDetails details) {
-    final double width = context.size?.width ?? 0;
+    final double height = context.size?.height ?? 0;
     _gestureController?.dragEnd(
-      width == 0
-          ? 0.0
-          : _toLogical(details.velocity.pixelsPerSecond.dx / width),
+      height == 0 ? 0.0 : details.velocity.pixelsPerSecond.dy / height,
     );
     _gestureController = null;
   }
@@ -410,28 +420,22 @@ class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
     if (widget.enabledCallback()) _recognizer.addPointer(event);
   }
 
-  double _toLogical(double value) {
-    return Directionality.of(context) == TextDirection.rtl ? -value : value;
-  }
-
   @override
   Widget build(BuildContext context) {
-    // Almeno quanto l'inset di sistema, così la striscia non finisce sotto il
-    // notch/gesture bar in landscape.
-    final double dragAreaWidth = max(
-      _kBackGestureWidth,
-      MediaQuery.paddingOf(context).left,
-    );
+    // La striscia parte dal bordo superiore e include l'inset di sistema (barra
+    // di stato/notch), così il gesto si innesca comodamente dall'alto.
+    final double dragAreaHeight =
+        _kBackGestureHeight + MediaQuery.paddingOf(context).top;
 
     return Stack(
       fit: StackFit.passthrough,
       children: [
         widget.child,
-        PositionedDirectional(
-          start: 0,
+        Positioned(
+          left: 0,
+          right: 0,
           top: 0,
-          bottom: 0,
-          width: dragAreaWidth,
+          height: dragAreaHeight,
           child: Listener(
             onPointerDown: _handlePointerDown,
             behavior: HitTestBehavior.translucent,

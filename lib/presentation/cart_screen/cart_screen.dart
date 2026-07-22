@@ -143,7 +143,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
             ],
           ),
         ),
-        bottomNavigationBar: const SharedFooter(currentIndex: 2),
+        // La footer è quella globale dello shell (non montata qui).
       ),
     );
   }

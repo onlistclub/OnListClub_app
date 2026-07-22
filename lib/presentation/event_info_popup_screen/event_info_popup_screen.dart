@@ -85,7 +85,7 @@ class EventInfoPopupScreen extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: const SharedFooter(currentIndex: 1),
+        // Footer: unica e globale, montata da RootShell (non qui).
       ),
     );
   }

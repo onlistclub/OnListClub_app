@@ -486,7 +486,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 0),
+      // Footer: unica e globale, montata da RootShell (non qui).
     );
   }
 

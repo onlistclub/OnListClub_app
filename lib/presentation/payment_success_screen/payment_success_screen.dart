@@ -70,7 +70,7 @@ class PaymentSuccessScreen extends StatelessWidget {
             ],
           ),
         ),
-        bottomNavigationBar: const SharedFooter(currentIndex: 2),
+        // Footer: unica e globale, montata da RootShell (non qui).
       ),
     );
   }

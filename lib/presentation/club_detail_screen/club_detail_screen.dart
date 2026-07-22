@@ -310,7 +310,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         },
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 1),
+      // Footer: unica e globale, montata da RootShell (non qui).
     );
   }
 

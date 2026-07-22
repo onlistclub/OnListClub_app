@@ -12,7 +12,7 @@ import '../presentation/authentication_screen/authentication_screen.dart';
 import '../presentation/sign_up_screen/sign_up_screen.dart';
 import '../presentation/verification_screen/verification_screen.dart';
 import '../presentation/verification_failure_screen/verification_failure_screen.dart';
-import '../presentation/home_screen/home_screen.dart';
+import '../presentation/root_shell/root_shell.dart';
 import '../presentation/complete_profile_screen/complete_profile_screen.dart';
 import '../presentation/location_permission_screen/location_permission_screen.dart';
 import '../presentation/location_manual_screen/location_manual_screen.dart';
@@ -99,6 +99,25 @@ class AppRoutes {
     paymentSuccessScreen,
   };
 
+  /// Rotte di DETTAGLIO che vivono dentro lo shell persistente ([RootShell]):
+  /// vengono spinte sul suo Navigator annidato (footer fissa + swipe verticale +
+  /// schermata precedente preservata). Tutto ciò che NON è qui (splash, auth,
+  /// flusso posizione, `homeScreen`/shell) resta sul Navigator radice.
+  /// Usato da [NavigatorService] per decidere il navigator di destinazione.
+  static const Set<String> shellRoutes = {
+    clubDetailScreen,
+    bookingScreen,
+    nearbyClubsScreen,
+    profileScreen,
+    notificationsScreen,
+    cartScreen,
+    ordersScreen,
+    paymentSuccessScreen,
+    prevenditaDetailScreen,
+    tavoloDetailScreen,
+    eventInfoPopupScreen,
+  };
+
   /// Genera ogni rotta applicando la transizione unica dell'app. Sostituisce la
   /// mappa `routes:` di `MaterialApp` per dare a TUTTE le schermate lo stesso
   /// linguaggio di movimento (vedi `main.dart`).
@@ -122,7 +141,10 @@ class AppRoutes {
         signUpScreen:              SignUpScreen.builder,
         verificationScreen:        VerificationScreen.builder,
         verificationFailureScreen: VerificationFailureScreen.builder,
-        homeScreen:                HomeScreen.builder,
+        // La Home è ospitata dallo shell persistente (footer fissa + tab con
+        // stato preservato). Le vecchie navigazioni verso `homeScreen` (splash,
+        // footer legacy, ecc.) montano quindi lo shell sulla tab Home.
+        homeScreen:                RootShell.builder,
         completeProfileScreen:     CompleteProfileScreen.builder,
         locationPermissionScreen:  LocationPermissionScreen.builder,
         locationManualScreen:      LocationManualScreen.builder,

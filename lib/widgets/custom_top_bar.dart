@@ -66,11 +66,16 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
           GestureDetector(
-            onTap: isHome ? null : () => NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen),
-            child: Hero(
-              tag: 'app_logo',
-              child: _buildLogo(),
-            ),
+            // `pushNamed` (non `...AndRemoveUntil`): dentro lo shell viene
+            // intercettato come CAMBIO TAB verso la Home (niente nuovo shell,
+            // stato preservato). Vedi NavigatorService.pushNamed.
+            onTap: isHome ? null : () => NavigatorService.pushNamed(AppRoutes.homeScreen),
+            // Niente più Hero(tag:'app_logo'): i 3 tab dello shell restano
+            // montati insieme nell'IndexedStack e tre Hero con lo stesso tag nel
+            // medesimo sottoalbero farebbero crashare il primo volo Hero. Il
+            // logo è comunque nella stessa posizione su ogni schermata, quindi
+            // il morph era impercettibile.
+            child: _buildLogo(),
           ),
           const Spacer(),
           if (showSearch)

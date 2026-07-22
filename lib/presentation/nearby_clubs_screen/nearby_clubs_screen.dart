@@ -671,7 +671,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       // Footer flottante: il gradiente si estende dietro la capsula così sotto
       // non resta la fascia nera dello Scaffold.
       extendBody: true,
-      bottomNavigationBar: const SharedFooter(currentIndex: -1),
+      // Footer: unica e globale, montata da RootShell (non qui).
       body: DecoratedBox(
         decoration:
             const BoxDecoration(gradient: OnlistColors.screenBackground),

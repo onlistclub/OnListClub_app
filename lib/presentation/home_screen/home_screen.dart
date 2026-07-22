@@ -8,7 +8,6 @@ import '../../core/models/locale_model.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
-import '../../widgets/shared_footer.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/animated_press.dart';
@@ -48,8 +47,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   late Animation<Offset> _sectionSlide;
   late Animation<double> _cardsFade;
   late Animation<Offset> _cardsSlide;
-  late Animation<double> _navFade;
-  late Animation<Offset> _navSlide;
 
   @override
   void initState() {
@@ -73,8 +70,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     _sectionSlide = _slide(const Offset(0, 0.3), 0.43, 0.72);
     _cardsFade    = _fade(0.54, 0.86);
     _cardsSlide   = _slide(const Offset(0.15, 0), 0.54, 0.86);
-    _navFade      = _fade(0.64, 1.00);
-    _navSlide     = _slide(const Offset(0, 1), 0.64, 1.00);
 
     _staggerCtrl.forward();
 
@@ -255,13 +250,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         },
         ),
       ),
-      bottomNavigationBar: SlideTransition(
-        position: _navSlide,
-        child: FadeTransition(
-          opacity: _navFade,
-          child: const SharedFooter(currentIndex: 1),
-        ),
-      ),
+      // La footer NON è più qui: la monta lo shell globale ([RootShell]), così
+      // resta fissa. La Home vive sempre come tab dentro lo shell.
     );
   }
 

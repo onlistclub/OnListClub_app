@@ -13,14 +13,9 @@ import '../../widgets/ticket_shape.dart';
 import '../root_shell/root_shell.dart';
 
 class OrdersScreen extends StatefulWidget {
-  /// Quando `false` la schermata non monta la propria [SharedFooter]: è il caso
-  /// in cui vive come tab dentro [RootShell], che monta la footer globale.
-  final bool showFooter;
+  const OrdersScreen({Key? key}) : super(key: key);
 
-  const OrdersScreen({Key? key, this.showFooter = true}) : super(key: key);
-
-  static Widget builder(BuildContext context, {bool showFooter = true}) =>
-      OrdersScreen(showFooter: showFooter);
+  static Widget builder(BuildContext context) => const OrdersScreen();
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -115,8 +110,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
           ),
         ),
       ),
-      bottomNavigationBar:
-          widget.showFooter ? const SharedFooter(currentIndex: 0) : null,
+      // La footer è quella globale dello shell (non montata qui).
     );
   }
 

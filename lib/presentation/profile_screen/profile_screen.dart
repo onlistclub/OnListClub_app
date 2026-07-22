@@ -480,7 +480,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           ),
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: -1),
+      // Footer: unica e globale, montata da RootShell (non qui).
     );
   }
 
