@@ -7,14 +7,20 @@ import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
-import '../../widgets/onlist_price_text.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/staggered_item.dart';
+import '../../widgets/ticket_shape.dart';
+import '../root_shell/root_shell.dart';
 
 class OrdersScreen extends StatefulWidget {
-  const OrdersScreen({Key? key}) : super(key: key);
+  /// Quando `false` la schermata non monta la propria [SharedFooter]: è il caso
+  /// in cui vive come tab dentro [RootShell], che monta la footer globale.
+  final bool showFooter;
 
-  static Widget builder(BuildContext context) => const OrdersScreen();
+  const OrdersScreen({Key? key, this.showFooter = true}) : super(key: key);
+
+  static Widget builder(BuildContext context, {bool showFooter = true}) =>
+      OrdersScreen(showFooter: showFooter);
 
   @override
   State<OrdersScreen> createState() => _OrdersScreenState();
@@ -26,6 +32,10 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
 
   List<Map<String, dynamic>> _prevendite = [];
   bool _isLoading = true;
+
+  /// Sezioni-data collassate dall'utente (chiave = label sezione). "Oggi" non
+  /// è collassabile (nel design non ha la freccia), le altre date sì.
+  final Set<String> _collapsedSections = {};
 
   @override
   void initState() {
@@ -50,6 +60,13 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
   }
 
   void _onBackTap() {
+    // Dentro lo shell: "indietro" = torna alla Home come tab (niente rebuild).
+    final shell = RootShellScope.of(context);
+    if (shell != null) {
+      shell.switchToTab(1);
+      return;
+    }
+    // Fallback legacy (schermata usata come route standalone).
     if (Navigator.canPop(context)) {
       NavigatorService.goBack();
     } else {
@@ -98,7 +115,8 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
           ),
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 0),
+      bottomNavigationBar:
+          widget.showFooter ? const SharedFooter(currentIndex: 0) : null,
     );
   }
 
@@ -113,20 +131,38 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
       );
     }
     final sections = _groupByDate(_prevendite, _prevenditaDate);
+    // Margini laterali dal CSS "(NUOVO) - Riepilogo Ticket": card 350 su 393
+    // → ~21px per lato; header "Oggi" a top 155 poco sotto "Torna indietro".
     return ListView.builder(
-      padding: EdgeInsets.fromLTRB(16, R.sp(12), 16, R.sp(24) + SharedFooter.height),
+      padding: EdgeInsets.fromLTRB(
+          R.sp(21), R.sp(6), R.sp(21), R.sp(24) + SharedFooter.height),
       itemCount: sections.length,
       itemBuilder: (context, i) {
         final section = sections[i];
+        // "Oggi" è sempre espansa (senza freccia, come da design); le altre
+        // date hanno il cerchietto-freccia per collassare/espandere.
+        final collapsible = section.label != 'Oggi';
+        final collapsed =
+            collapsible && _collapsedSections.contains(section.label);
         return StaggeredItem(
           index: i,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              _buildSectionHeader(section.label),
-              SizedBox(height: R.sp(10)),
-              ...section.items.map(_buildPrevenditaCard),
-              SizedBox(height: R.sp(18)),
+              _buildSectionHeader(section.label,
+                  collapsible: collapsible, collapsed: collapsed),
+              SizedBox(height: R.sp(18)), // CSS: "Oggi" bottom 196 → card 214
+              AnimatedSize(
+                duration: const Duration(milliseconds: 250),
+                curve: Curves.easeInOut,
+                alignment: Alignment.topCenter,
+                child: collapsed
+                    ? const SizedBox(width: double.infinity)
+                    : Column(
+                        children:
+                            section.items.map(_buildPrevenditaCard).toList(),
+                      ),
+              ),
             ],
           ),
         );
@@ -135,39 +171,70 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
   }
 
   // ── Header sezione (Oggi / Domani / data) ──────────────────────────────────
-  Widget _buildSectionHeader(String label) {
-    return Padding(
-      padding: EdgeInsets.only(left: R.sp(4)),
-      child: Text(
-        label,
-        style: OnlistTextStyles.hn(
-          color: Colors.white,
-          fontSize: R.sp(36), // CSS "Oggi": 36/w700/-0.07
-          fontWeight: FontWeight.w700,
-          height: 41 / 36,
-          letterSpacing: -0.07 * 36,
+  Widget _buildSectionHeader(String label,
+      {bool collapsible = false, bool collapsed = false}) {
+    final title = Text(
+      label,
+      style: OnlistTextStyles.hn(
+        color: Colors.white,
+        fontSize: R.sp(36), // CSS "Oggi"/"17 Luglio": 36/w700/-0.07
+        fontWeight: FontWeight.w700,
+        height: 41 / 36,
+        letterSpacing: -0.07 * 36,
+      ),
+    );
+    if (!collapsible) {
+      return Padding(padding: EdgeInsets.only(left: R.sp(4)), child: title);
+    }
+    // Data futura: label + cerchietto-freccia (CSS Group 410: cerchio 28 bordo
+    // 2 a ~11px dal testo) che collassa/espande la sezione. Freccia in giù da
+    // espansa (come nel design), ruotata in su da collassata.
+    return GestureDetector(
+      onTap: () => setState(() {
+        collapsed
+            ? _collapsedSections.remove(label)
+            : _collapsedSections.add(label);
+      }),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: EdgeInsets.only(left: R.sp(4)),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            title,
+            SizedBox(width: R.sp(11)),
+            AnimatedRotation(
+              turns: collapsed ? -0.5 : 0,
+              duration: const Duration(milliseconds: 250),
+              child: Container(
+                width: R.sp(28),
+                height: R.sp(28),
+                alignment: Alignment.center,
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  border: Border.all(color: Colors.white, width: 2),
+                ),
+                child: Icon(Icons.arrow_downward,
+                    color: Colors.white, size: R.sp(16)),
+              ),
+            ),
+          ],
         ),
       ),
     );
   }
 
-  // ── Card prevendita (gradiente blu cardSummary, Figma 17) ──────────────────
+  // ── Card prevendita: biglietto con tacche (CSS "(NUOVO) - Riepilogo Ticket")
+  // Card 350×167 design px: solo nome del locale grande al centro +
+  // "Visualizza QR Code" con cerchietto-freccia. Prezzo/tipo/quantità vivono
+  // nella schermata di dettaglio (ticket aperto).
   Widget _buildPrevenditaCard(Map<String, dynamic> item) {
     final prenotazione = item['prenotazioni'] as Map<String, dynamic>?;
-    final prevendita = item['prevendite'] as Map<String, dynamic>?;
-
-    final tipo = (prevendita?['tipo'] ?? 'normale').toString().toLowerCase();
-    final prezzo = prevendita?['prezzo'];
-    final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
+    final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
+    final locale =
+        ((evento?['locali'] as Map<String, dynamic>?)?['nome'] ?? 'Locale')
+            .toString();
     final stato = (prenotazione?['stato'] ?? 'in_attesa').toString();
-    // Testo "extra" accanto al prezzo: descrizione reale della prevendita dal
-    // DB (es. "+ 2 drink omaggio", "Ingresso + 1 shot"). NOTA: `drink_omaggio`
-    // non è una colonna esistente in `prevendite`/`eventi` — l'unica sorgente
-    // vera è `descrizione`. L'overflow che aveva causato la rimozione di
-    // questo campo è ora gestito da Flexible+maxLines+ellipsis sotto.
-    final descrizione = (prevendita?['descrizione'] as String?)?.trim();
-    final String? extraText =
-        (descrizione != null && descrizione.isNotEmpty) ? descrizione : null;
 
     return GestureDetector(
       onTap: () => NavigatorService.pushNamed(
@@ -175,124 +242,74 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
         arguments: item,
       ),
       child: Container(
-        margin: EdgeInsets.only(bottom: R.sp(14)),
-        padding: EdgeInsets.symmetric(horizontal: R.sp(18), vertical: R.sp(16)),
-        decoration: BoxDecoration(
-          gradient: OnlistColors.cardSummary,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Stack(
-          children: [
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // "Ticket x N" + "Ticket {tipo}"
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
+        margin: EdgeInsets.only(bottom: R.sp(23)), // CSS: gap 23 tra card
+        height: R.sp(167),
+        width: double.infinity,
+        child: TicketShape(
+          // CSS Ellipse 20: top 299 su card a 214, Ø43 → centro a 106.5/167.
+          notchCenterYFraction: 106.5 / 167,
+          child: Stack(
+            children: [
+              Padding(
+                // CSS: nome a top 242 (card 214) → 28 dal bordo alto; margini
+                // laterali larghi per non invadere le tacche.
+                padding: EdgeInsets.fromLTRB(R.sp(30), R.sp(28), R.sp(30), 0),
+                child: Column(
                   children: [
-                    Text(
-                      'Ticket x $quantita',
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(40), // CSS "Ticket x 1": 39.52
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -0.1 * 40,
-                        height: 1.0,
-                      ),
-                    ),
-                    SizedBox(width: R.sp(10)),
-                    Padding(
-                      padding: EdgeInsets.only(bottom: R.sp(6)),
-                      child: Text(
-                        'Ticket ${_capitalize(tipo)}',
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(20), // CSS "Ticket normale": 20 Light
-                          fontWeight: FontWeight.w300,
-                          letterSpacing: -0.06 * 20,
-                        ),
-                      ),
-                    ),
-                  ],
-                ),
-                SizedBox(height: R.sp(6)),
-                // Prezzo gigante + "+ X drink omaggio"
-                Row(
-                  crossAxisAlignment: CrossAxisAlignment.end,
-                  children: [
-                    if (prezzo != null)
-                      OnlistPriceText(
-                        '${_fmtPrezzo(prezzo)}€',
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(96), // CSS prezzo: 96/-0.1
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: -0.1 * 96,
-                          height: 1.0,
-                        ),
-                      ),
-                    if (extraText != null) ...[
-                      SizedBox(width: R.sp(8)),
-                      Flexible(
-                        child: Padding(
-                          padding: EdgeInsets.only(bottom: R.sp(18)),
-                          child: Text(
-                            extraText,
-                            maxLines: 2,
-                            overflow: TextOverflow.ellipsis,
-                            style: OnlistTextStyles.hn(
-                              color: Colors.white,
-                              fontSize: R.sp(24), // CSS "+drink omaggio": 24/-0.1
-                              fontWeight: FontWeight.w400,
-                              letterSpacing: -0.1 * 24,
-                            ),
+                    // Nome locale: 64/w500/-0.1em centrato; FittedBox riduce
+                    // solo i nomi troppo lunghi, senza mai andare a capo.
+                    SizedBox(
+                      height: R.sp(63),
+                      width: double.infinity,
+                      child: FittedBox(
+                        fit: BoxFit.scaleDown,
+                        child: Text(
+                          locale,
+                          style: OnlistTextStyles.hn(
+                            color: Colors.white,
+                            fontSize: R.sp(64),
+                            fontWeight: FontWeight.w500,
+                            height: 63 / 64,
+                            letterSpacing: -0.1 * 64,
                           ),
                         ),
                       ),
-                    ],
+                    ),
+                    SizedBox(height: R.sp(8)), // CSS: nome bottom 305 → testo 313
+                    Text(
+                      'Visualizza QR Code',
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(15),
+                        fontWeight: FontWeight.w400,
+                        letterSpacing: -0.1 * 15,
+                      ),
+                    ),
+                    SizedBox(height: R.sp(9)), // CSS: testo bottom 328 → cerchio 337
+                    // CSS Ellipse 9: cerchio 28 bordo 2px con freccia giù.
+                    Container(
+                      width: R.sp(28),
+                      height: R.sp(28),
+                      alignment: Alignment.center,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        border: Border.all(color: Colors.white, width: 2),
+                      ),
+                      child: Icon(Icons.arrow_downward,
+                          color: Colors.white, size: R.sp(16)),
+                    ),
                   ],
                 ),
-                SizedBox(height: R.sp(10)),
-                // "Visualizza QR Code" + freccia giù
-                Center(
-                  child: Column(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      Text(
-                        'Visualizza QR Code',
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(15),
-                          fontWeight: FontWeight.w400,
-                          letterSpacing: -0.1 * 15,
-                        ),
-                      ),
-                      SizedBox(height: R.sp(6)),
-                      // CSS Ellipse 9: cerchio 28 bordo 2px con freccia giù dentro.
-                      Container(
-                        width: R.sp(28),
-                        height: R.sp(28),
-                        alignment: Alignment.center,
-                        decoration: BoxDecoration(
-                          shape: BoxShape.circle,
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: Icon(Icons.arrow_downward,
-                            color: Colors.white, size: R.sp(16)),
-                      ),
-                    ],
-                  ),
-                ),
-              ],
-            ),
-            // Stato (solo se annullata/usato — altrimenti card pulita come Figma)
-            if (_shouldShowStatePill(stato))
-              Positioned(
-                top: 0,
-                right: 0,
-                child: _buildStatePill(stato),
               ),
-          ],
+              // Stato (solo "usato" — le annullate sono filtrate a monte).
+              if (_shouldShowStatePill(stato))
+                Positioned(
+                  top: R.sp(10),
+                  right: R.sp(14),
+                  child: _buildStatePill(stato),
+                ),
+            ],
+          ),
         ),
       ),
     );
@@ -372,10 +389,10 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
     return list.map((b) => _DateSection(_dateLabel(b.date), b.items)).toList();
   }
 
-  // Etichetta data della sezione:
+  // Etichetta data della sezione (formato design "17 Luglio"):
   // - oggi → "Oggi", ieri → "Ieri", domani → "Domani"
-  // - stesso anno di quello corrente → "27 giu" (giorno + mese)
-  // - anno diverso → "27 giu 2026" (con anno)
+  // - stesso anno di quello corrente → "17 Luglio"
+  // - anno diverso → "17 Luglio 2027"
   String _dateLabel(DateTime? d) {
     if (d == null) return 'Senza data';
     final now = DateTime.now();
@@ -385,21 +402,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
     if (diff == 0) return 'Oggi';
     if (diff == 1) return 'Domani';
     if (diff == -1) return 'Ieri';
-    return d.year == now.year
-        ? DateFormatter.formatDayMonth(d)
-        : DateFormatter.formatLong(d);
-  }
-
-  String _capitalize(String s) {
-    if (s.isEmpty) return s;
-    return '${s[0].toUpperCase()}${s.substring(1)}';
-  }
-
-  // Prezzo senza decimali quando è un intero (10.0 → "10", 12.5 → "12.5").
-  String _fmtPrezzo(dynamic v) {
-    final n = v is num ? v : num.tryParse('$v');
-    if (n == null) return '$v';
-    return n % 1 == 0 ? n.toInt().toString() : n.toString();
+    return DateFormatter.formatDayMonthFull(d, withYear: d.year != now.year);
   }
 }
 

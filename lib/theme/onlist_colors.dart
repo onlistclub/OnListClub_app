@@ -151,6 +151,22 @@ class OnlistColors {
     stops: [0.2837, 0.7933],
   );
 
+  /// Card a forma di biglietto (NUOVO riepilogo ticket / ticket aperto).
+  /// CSS ufficiale `(NUOVO) - Riepilogo Ticket.css`, Rectangle 265:
+  /// `linear-gradient(180deg, #0000F7 0%, #0000A9 94.71%)`
+  static const LinearGradient ticketCard = LinearGradient(
+    begin: Alignment.topCenter,
+    end: Alignment.bottomCenter,
+    colors: [Color(0xFF0000F7), Color(0xFF0000A9)],
+    stops: [0.0, 0.9471],
+  );
+
+  /// Bordo card biglietto: `rgba(255, 255, 255, 0.41)`
+  static const Color ticketCardBorder = Color(0x69FFFFFF);
+
+  /// Glow interno card biglietto: `inset 0px 2px 100px #00E6FF`
+  static const Color ticketCardGlow = Color(0xFF00E6FF);
+
   /// Card "Ticket disponibili" (lista prevendite, booking).
   /// Valore UFFICIALE: `linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,21,255,.5))`
   /// (blu semitrasparente, NON il solido viola #1900D8 usato prima).
