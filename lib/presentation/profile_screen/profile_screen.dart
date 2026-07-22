@@ -7,7 +7,8 @@ import '../../core/app_export.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/account_deletion_service.dart';
 import '../../core/services/auth_service.dart';
-import '../../core/services/badge_service.dart';
+// NOTIFICHE DISATTIVATE (MVP): usato solo dalla voce notifiche commentata.
+// import '../../core/services/badge_service.dart';
 import '../../core/services/orders_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
@@ -591,7 +592,11 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     return Column(
       children: [
         const Divider(height: 1, color: Colors.white10, indent: 24, endIndent: 24),
-        _buildNotificationsTile(),
+        // NOTIFICHE DISATTIVATE (MVP): la pagina notifiche non deve essere
+        // visibile per ora. Commentata — riattivare in futuro insieme a
+        // `_buildNotificationsTile()`, al badge in `custom_top_bar.dart` e alla
+        // route `notificationsScreen` in `app_routes.dart`.
+        // _buildNotificationsTile(),
         _buildActionTile(
           icon: Icons.receipt_long_outlined,
           label: 'Riepilogo Ordini',
@@ -625,6 +630,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
 
   // Riga "Notifiche": stesso stile delle altre azioni account, ma con badge
   // live dal contatore non lette (spostato qui dalla footer).
+  // NOTIFICHE DISATTIVATE (MVP): metodo commentato per nascondere la pagina
+  // notifiche. Riattivare insieme alla chiamata in `_buildAccountActions()`.
+  /*
   Widget _buildNotificationsTile() {
     return InkWell(
       onTap: () {
@@ -677,6 +685,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       ),
     );
   }
+  */
 
   Widget _buildActionTile({
     required IconData icon,

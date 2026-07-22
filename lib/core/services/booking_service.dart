@@ -241,7 +241,7 @@ class BookingService {
     }
 
     // 3. Creazione notifica di successo
-    final titoloNotifica = bookingType == 'table' ? 'Tavolo Prenotato! 🥂' : 'Prevendita Acquistata! 🎟️';
+    final titoloNotifica = bookingType == 'table' ? 'Tavolo Prenotato!' : 'Prevendita Acquistata!';
     final msgNotifica = bookingType == 'table'
       ? 'La tua prenotazione per il tavolo e\' andata a buon fine. Ci vediamo alla serata!'
       : 'Hai acquistato correttamente le prevendite. Trovi il riepilogo nella sezione ordini.';
@@ -278,7 +278,7 @@ class BookingService {
         final cinqueOrePrima = inizio.subtract(const Duration(hours: 5));
         if (cinqueOrePrima.isAfter(DateTime.now())) {
           await NotificationService.createNotification(
-            titolo: 'Tra poco si balla! 🕺',
+            titolo: 'Tra poco si balla!',
             messaggio:
                 'Mancano 5 ore alla tua serata. Preparati a divertirti!',
             tipo: 'promemoria_evento',
@@ -291,7 +291,7 @@ class BookingService {
       // ~30 minuti dopo la prenotazione — il tap apre la posizione/mappa del club.
       if (clubId != null) {
         await NotificationService.createNotification(
-          titolo: 'Come arrivare 📍',
+          titolo: 'Come arrivare',
           messaggio:
               'Tocca per vedere la posizione del club e come raggiungerlo.',
           tipo: 'posizione_club',

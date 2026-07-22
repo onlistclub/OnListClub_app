@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../core/app_export.dart';
-import '../core/services/badge_service.dart';
+// NOTIFICHE DISATTIVATE (MVP): import non piu usato dopo aver nascosto il badge
+// notifiche. Riattivare insieme al pallino nella build.
+// import '../core/services/badge_service.dart';
 
 /// App bar custom condivisa dalle schermate principali.
 ///
@@ -97,8 +99,10 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                   children: [
                     SvgPicture.asset(ImageConstant.imgNavProfile,
                         width: 34, height: 34),
-                    // Pallino "hai notifiche non lette" — sostituisce il
-                    // badge che prima stava sulla campanella della footer.
+                    // NOTIFICHE DISATTIVATE (MVP): pallino "hai notifiche non
+                    // lette" nascosto insieme alla pagina notifiche. Riattivare
+                    // ripristinando anche l'import di BadgeService sopra.
+                    /*
                     Positioned(
                       top: -2,
                       right: -2,
@@ -113,6 +117,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                         },
                       ),
                     ),
+                    */
                   ],
                 ),
               ),

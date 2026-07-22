@@ -74,7 +74,7 @@ class NotificationService {
 
     // Invia consiglio
     await createNotification(
-      titolo: 'Consiglio per te! 🌟',
+      titolo: 'Consiglio per te!',
       messaggio: 'Abbiamo individuato una serata che potrebbe piacerti. Scoprila ora!',
       tipo: 'consiglio',
     );
@@ -113,7 +113,7 @@ class NotificationService {
         final eventName = ev['nome'] ?? 'una nuova serata';
         
         await createNotification(
-          titolo: 'Nuova Serata! 🎉',
+          titolo: 'Nuova Serata!',
           messaggio: '$clubName ha aggiunto un nuovo evento: $eventName. Non mancare!',
           tipo: 'nuova_serata',
         );

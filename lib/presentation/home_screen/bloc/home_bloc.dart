@@ -129,7 +129,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           if (freqLoc != null) {
             lat = freqLoc['lat'];
             lng = freqLoc['lng'];
-            sourceLabel = '⭐ Selezione per te';
+            sourceLabel = 'Selezione per te';
           }
         }
 
@@ -155,7 +155,7 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
       String analyticsSource;
       if (state.isGpsForced) {
         analyticsSource = 'gps_forced';
-      } else if (sourceLabel.startsWith('⭐')) {
+      } else if (sourceLabel == 'Selezione per te') {
         analyticsSource = 'storico';
       } else if (lat != null && sourceLabel.startsWith('Posizione')) {
         analyticsSource = 'gps';
