@@ -17,6 +17,15 @@
 # ⚠️ Dopo ogni modifica qui (o al gradiente/logo) rigenerare gli asset nativi:
 #     flutter pub get
 #     dart run flutter_native_splash:create
+#
+# 🛑 TRAPPOLA NOTA — RIFARE A MANO DOPO OGNI RIGENERAZIONE:
+#   Il tool accoppia `fullscreen` a `windowDrawsSystemBarBackgrounds`: con
+#   `fullscreen: false` genera ENTRAMBI a false nei 4 res/values*/styles.xml.
+#   Ma con windowDrawsSystemBarBackgrounds=false Android IGNORA la brightness
+#   delle icone → status bar con icone scure invisibili sugli sfondi dark.
+#   Dopo `flutter_native_splash:create` rimettere a mano in tutti e 4 i file:
+#       <item name="android:windowDrawsSystemBarBackgrounds">true</item>
+#   (mantenendo windowFullscreen=false). Nessuna opzione del tool lo evita.
 flutter_native_splash:
   # NB: niente `color` a questo livello. Se c'è, flutter_native_splash lo usa
   # come sfondo (un pixel 1×1 stirato) e IGNORA background_image → si perde il

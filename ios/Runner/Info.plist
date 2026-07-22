@@ -49,12 +49,17 @@
 		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
 		<true/>
-		<!-- Status bar chiara su tutta l'app (sfondi dark). UIViewControllerBasedStatusBarAppearance=NO
-	     forza lo stile a livello app, evitando che i view controller di iOS oscurino orario/segnale/batteria. -->
+		<!-- Status bar chiara su tutta l'app (sfondi dark).
+		     UIViewControllerBasedStatusBarAppearance=YES: lo stile lo controlla
+		     Flutter (SystemChrome / AnnotatedRegion con statusBarBrightness.dark
+		     -> icone bianche), unica fonte di verita' cross-platform. Con NO iOS
+		     ignorava il controllo di Flutter e le icone restavano scure.
+		     UIStatusBarStyle qui sotto e' solo il fallback per l'istante di lancio
+		     nativo (pre-Flutter); a runtime prevale la scelta di Flutter. -->
 		<key>UIStatusBarStyle</key>
 		<string>UIStatusBarStyleLightContent</string>
 		<key>UIViewControllerBasedStatusBarAppearance</key>
-		<false/>
+		<true/>
 		<key>NSAppTransportSecurity</key>
 		<dict>
 			<key>NSAllowsArbitraryLoads</key>

@@ -233,7 +233,15 @@ class MyApp extends StatelessWidget {
                 ),
               );
             }
-            return content;
+            // Default GLOBALE: icone status bar chiare (bianche) su tutte le
+            // schermate, ri-asserito ad ogni frame. Vale sia Android sia iOS
+            // (con UIViewControllerBasedStatusBarAppearance=YES). Una singola
+            // schermata su sfondo chiaro puo' sovrascrivere avvolgendosi in un
+            // altro AnnotatedRegion<SystemUiOverlayStyle>.
+            return AnnotatedRegion<SystemUiOverlayStyle>(
+              value: _kLightStatusBar,
+              child: content,
+            );
           },
           // 🚨 END CRITICAL SECTION
           navigatorKey: NavigatorService.navigatorKey,
