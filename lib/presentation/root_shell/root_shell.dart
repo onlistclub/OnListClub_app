@@ -33,7 +33,8 @@ class RootShell extends StatefulWidget {
   State<RootShell> createState() => _RootShellState();
 }
 
-class _RootShellState extends State<RootShell> {
+class _RootShellState extends State<RootShell>
+    with SingleTickerProviderStateMixin {
   /// Nome della route "host dei tab" nel Navigator annidato.
   static const String _shellHomeRoute = 'shell_home';
 
@@ -42,6 +43,18 @@ class _RootShellState extends State<RootShell> {
 
   final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
   final ValueNotifier<int> _tab = ValueNotifier<int>(_tabHome);
+
+  // Animazione del cambio tab: fade + micro-scala (stessa "personalità" della
+  // transizione `fade` dell'app). Solo Opacity/Transform → niente layout.
+  late final AnimationController _tabAnim = AnimationController(
+    vsync: this,
+    duration: const Duration(milliseconds: 220),
+    value: 1.0, // primo build già visibile
+  );
+  late final Animation<double> _tabFade =
+      CurvedAnimation(parent: _tabAnim, curve: Curves.easeOutCubic);
+  late final Animation<double> _tabScale =
+      Tween<double>(begin: 0.985, end: 1.0).animate(_tabFade);
 
   // Costruiti UNA sola volta: l'IndexedStack li tiene tutti montati (stato
   // preservato tra i cambi tab). Non montano una footer propria: quella valida
@@ -69,6 +82,7 @@ class _RootShellState extends State<RootShell> {
     if (NavigatorService.switchTab == switchToTab) {
       NavigatorService.switchTab = null;
     }
+    _tabAnim.dispose();
     _tab.dispose();
     super.dispose();
   }
@@ -77,7 +91,10 @@ class _RootShellState extends State<RootShell> {
     if (index < 0 || index >= _tabs.length) return;
     // Chiude eventuali dettagli aperti e torna alla radice della tab scelta.
     _navKey.currentState?.popUntil((r) => r.isFirst);
+    final bool changed = index != _tab.value;
     _tab.value = index;
+    // Anima l'ingresso della nuova tab solo se è cambiata davvero.
+    if (changed) _tabAnim.forward(from: 0.0);
   }
 
   /// Host dei 3 tab, in ascolto di [_tab]: cambiare tab ricostruisce solo
@@ -89,7 +106,13 @@ class _RootShellState extends State<RootShell> {
       reverseTransitionDuration: Duration.zero,
       pageBuilder: (_, __, ___) => ValueListenableBuilder<int>(
         valueListenable: _tab,
-        builder: (_, index, __) => IndexedStack(index: index, children: _tabs),
+        builder: (_, index, __) => FadeTransition(
+          opacity: _tabFade,
+          child: ScaleTransition(
+            scale: _tabScale,
+            child: IndexedStack(index: index, children: _tabs),
+          ),
+        ),
       ),
     );
   }

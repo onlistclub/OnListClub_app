@@ -37,6 +37,11 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   @override
   String get screenName => 'search_nearby';
 
+  // Cache in memoria condivisa tra le aperture: riaprendo la Ricerca si mostrano
+  // subito gli ultimi dati (niente spinner/ricaricamento a schermo intero),
+  // mentre un refresh silenzioso in background li aggiorna.
+  static _NearbyData? _cachedData;
+
   late Future<_NearbyData> _future;
   String _searchQuery = '';
   _SortMode _sortMode = _SortMode.distanza;
@@ -73,12 +78,28 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     super.initState();
     // Funnel: apertura della schermata di ricerca (source 'open').
     AnalyticsService.logSearch(source: 'open');
-    _future = _load();
-    // Tempo di caricamento della ricerca: quando i dati (posizione + locali)
-    // sono pronti la prima volta. reportLoadTime è guardato → una sola volta,
-    // anche se _future viene rigenerato da refresh/cambi raggio.
-    _future.then((_) {
-      if (mounted) reportLoadTime('load_time_ricerca');
+    if (_cachedData != null) {
+      // Riapertura: dati subito dalla cache (nessun ricaricamento visibile),
+      // poi refresh silenzioso in background.
+      _future = Future.value(_cachedData!);
+      _refreshSilently();
+    } else {
+      _future = _load();
+      // Tempo di caricamento della ricerca: quando i dati (posizione + locali)
+      // sono pronti la prima volta. reportLoadTime è guardato → una sola volta,
+      // anche se _future viene rigenerato da refresh/cambi raggio.
+      _future.then((_) {
+        if (mounted) reportLoadTime('load_time_ricerca');
+      });
+    }
+  }
+
+  /// Ricarica i dati in background e li sostituisce SENZA far ricomparire lo
+  /// spinner (il nuovo `_future` è già completato). Usato alla riapertura per
+  /// aggiornare la cache mostrata.
+  void _refreshSilently() {
+    _load().then((d) {
+      if (mounted) setState(() => _future = Future.value(d));
     });
   }
 
@@ -264,7 +285,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     } catch (e) {
       debugPrint('[NearbyClubs] getLocaliVicini fallito: $e');
     }
-    return _NearbyData(
+    final data = _NearbyData(
       clubs: clubs,
       raggio: raggio,
       lat: lat,
@@ -273,6 +294,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       locationAvailable: locationAvailable,
       gpsAttempted: gpsAttempted,
     );
+    _cachedData = data; // alimenta la cache per le riaperture
+    return data;
   }
 
   // ── Fallback ricerca (BUG A) ────────────────────────────────────────────────

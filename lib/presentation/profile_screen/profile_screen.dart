@@ -40,6 +40,12 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   bool _hasChanges = false;
   List<Map<String, dynamic>> _preferiti = [];
 
+  // Cache in memoria condivisa tra le aperture: riaprendo il Profilo si mostrano
+  // subito gli ultimi dati (niente spinner), mentre un refresh silenzioso in
+  // background li aggiorna. Aggiornata anche al salvataggio del profilo.
+  static Map<String, dynamic>? _cachedProfile;
+  static List<Map<String, dynamic>>? _cachedPreferiti;
+
   // Valori originali per confronto
   String _origNome = '';
   String _origCognome = '';
@@ -48,7 +54,16 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   @override
   void initState() {
     super.initState();
-    _loadData();
+    if (_cachedProfile != null || _cachedPreferiti != null) {
+      // Riapertura: popola subito dai dati in cache (nessuno spinner) e
+      // aggiorna in background senza far ricomparire il loader.
+      _applyControllers(_cachedProfile);
+      _preferiti = _cachedPreferiti ?? _preferiti;
+      _isLoading = false;
+      _loadData(silent: true);
+    } else {
+      _loadData();
+    }
     _nomeCtrl.addListener(_checkChanges);
     _cognomeCtrl.addListener(_checkChanges);
     _dataNascitaCtrl.addListener(_checkChanges);
@@ -73,8 +88,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     if (changed != _hasChanges) setState(() => _hasChanges = changed);
   }
 
-  Future<void> _loadData() async {
-    setState(() => _isLoading = true);
+  Future<void> _loadData({bool silent = false}) async {
+    if (!silent) setState(() => _isLoading = true);
     try {
       final results = await Future.wait([
         OrdersService.getUserProfile(),
@@ -84,39 +99,53 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       final profile = results[0] as Map<String, dynamic>?;
       final preferiti = results[1] as List<Map<String, dynamic>>;
 
-      if (profile != null) {
-        _nomeCtrl.text = profile['nome'] ?? '';
-        _cognomeCtrl.text = profile['cognome'] ?? '';
-        _emailCtrl.text = profile['email'] ?? Supabase.instance.client.auth.currentUser?.email ?? '';
-        final dob = profile['data_nascita'];
-        if (dob != null) {
-          try {
-            final date = DateTime.parse(dob.toString());
-            _dataNascitaCtrl.text = DateFormat('dd/MM/yyyy').format(date);
-          } catch (_) {
-            _dataNascitaCtrl.text = dob.toString();
-          }
-        }
-      }
+      _cachedProfile = profile;
+      _cachedPreferiti = preferiti;
+      if (!mounted) return;
 
-      // Salva valori originali
-      _origNome = _nomeCtrl.text;
-      _origCognome = _cognomeCtrl.text;
-      _origDob = _dataNascitaCtrl.text;
+      // In refresh silenzioso NON sovrascrivere i campi se l'utente li sta
+      // modificando in quel momento.
+      final bool updateFields = !silent || !_hasChanges;
+      if (updateFields) _applyControllers(profile);
 
       setState(() {
         _preferiti = preferiti;
         _isLoading = false;
-        _hasChanges = false;
+        if (updateFields) _hasChanges = false;
       });
-      // Dati profilo pronti → tempo di caricamento (load_time_profilo).
-      reportLoadTime('load_time_profilo');
+      // Tempo di caricamento: solo al primo load reale (non sui refresh cache).
+      if (!silent) reportLoadTime('load_time_profilo');
     } catch (e) {
+      if (!mounted) return;
       setState(() => _isLoading = false);
       // Registra l'errore di caricamento profilo per la TAB Errori.
       AnalyticsService.reportError(e, screen: 'profile');
       debugPrint('[ProfileScreen] Errore caricamento: $e');
     }
+  }
+
+  /// Popola i controller e i valori "originali" dal profilo (fetch o cache).
+  /// Da chiamare FUORI da setState: muta i controller, che notificano da soli.
+  void _applyControllers(Map<String, dynamic>? profile) {
+    if (profile == null) return;
+    _nomeCtrl.text = profile['nome'] ?? '';
+    _cognomeCtrl.text = profile['cognome'] ?? '';
+    _emailCtrl.text = profile['email'] ??
+        Supabase.instance.client.auth.currentUser?.email ??
+        '';
+    final dob = profile['data_nascita'];
+    if (dob != null) {
+      try {
+        final date = DateTime.parse(dob.toString());
+        _dataNascitaCtrl.text = DateFormat('dd/MM/yyyy').format(date);
+      } catch (_) {
+        _dataNascitaCtrl.text = dob.toString();
+      }
+    }
+    // Baseline per _checkChanges.
+    _origNome = _nomeCtrl.text;
+    _origCognome = _cognomeCtrl.text;
+    _origDob = _dataNascitaCtrl.text;
   }
 
   Future<void> _pickDate() async {
@@ -178,6 +207,14 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       _origNome = _nomeCtrl.text;
       _origCognome = _cognomeCtrl.text;
       _origDob = _dataNascitaCtrl.text;
+
+      // Allinea la cache così la prossima apertura mostra subito i valori salvati.
+      _cachedProfile = {
+        ...?_cachedProfile,
+        'nome': _nomeCtrl.text,
+        'cognome': _cognomeCtrl.text,
+        'data_nascita': dataNascitaDb,
+      };
 
       if (mounted) {
         setState(() => _hasChanges = false);
