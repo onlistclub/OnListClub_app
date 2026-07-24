@@ -196,9 +196,10 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
               Expanded(
                 child: SingleChildScrollView(
                   // CSS: card 350 su 393 → ~21px per lato; top card 163 con
-                  // "Torna indietro" che finisce a 149.
+                  // "Torna indietro" che finisce a 149. Gap superiore ridotto
+                  // per avvicinare la card al "Torna indietro" (feedback device).
                   padding: EdgeInsets.fromLTRB(
-                      R.sp(21), R.sp(14), R.sp(21), R.sp(24) + SharedFooter.height),
+                      R.sp(21), R.sp(2), R.sp(21), R.sp(24) + SharedFooter.height),
                   child: SizedBox(
                     // Altezza fissa del biglietto come da CSS (Rectangle 268:
                     // 350×600): i gap interni sommano esattamente a 600.
@@ -214,7 +215,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                       child: Column(
                         children: [
                           SizedBox(height: R.sp(24)),
-                          // Nome locale (CSS "Gattopardo": 64/w500/-0.1em).
+                          // Nome locale (CSS "Gattopardo": 64/-0.1em, grassetto).
                           SizedBox(
                             height: R.sp(63),
                             width: double.infinity,
@@ -228,7 +229,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                   style: OnlistTextStyles.hn(
                                     color: Colors.white,
                                     fontSize: R.sp(64),
-                                    fontWeight: FontWeight.w500,
+                                    fontWeight: FontWeight.w700,
                                     height: 63 / 64,
                                     letterSpacing: -0.1 * 64,
                                   ),
@@ -277,7 +278,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                           // Linea tratteggiata 1 (CSS Line 15: 297, dashed 1px).
                           _dashedLine(width: 297),
                           SizedBox(height: R.sp(18)),
-                          // "Dati personali" (40/w500/-0.1em).
+                          // "Dati personali" (40/-0.1em, grassetto).
                           Padding(
                             padding: EdgeInsets.only(left: R.sp(25)),
                             child: Align(
@@ -287,7 +288,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                                 style: OnlistTextStyles.hn(
                                   color: Colors.white,
                                   fontSize: R.sp(40),
-                                  fontWeight: FontWeight.w500,
+                                  fontWeight: FontWeight.w700,
                                   height: 1.0,
                                   letterSpacing: -0.1 * 40,
                                 ),
