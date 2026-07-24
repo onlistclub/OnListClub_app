@@ -1,5 +1,6 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'messaging_service.dart';
 import 'register_service.dart';
 
 /// Servizio singleton per il profilo utente in `public.utenti`.
@@ -144,6 +145,24 @@ class UserProfileManager {
       );
 
       debugPrint('[UserProfileManager] Profile created successfully (via RPC).');
+
+      // Email di benvenuto — fire-and-forget: non blocca mai il login.
+      try {
+        final displayNome = [
+          nome,
+          cognome,
+        ].where((s) => s.isNotEmpty).join(' ');
+        final email = user.email ?? '';
+        if (email.isNotEmpty) {
+          MessagingService.sendWelcomeEmail(
+            to: email,
+            nome: displayNome,
+          );
+          debugPrint('[UserProfileManager] welcome email fire-and-forget inviata a $email');
+        }
+      } catch (e) {
+        debugPrint('[UserProfileManager] welcome email fallita (non critico): $e');
+      }
     } catch (e) {
       debugPrint('[UserProfileManager] Error ensuring profile: $e');
       // Non rilanciamo: non vogliamo bloccare il flusso di login/verifica.

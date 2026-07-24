@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="it">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <meta name="color-scheme" content="light dark" />
+    <meta name="supported-color-schemes" content="light dark" />
+    <title>Ingresso confermato — OnListClub</title>
+    <style>
+      body, .bg-outer { background-color: #eef1f8; }
+      .card { background-color: #ffffff; border-color: #e1e5f0 !important; }
+      .text-heading { color: #12131c !important; }
+      .text-body { color: #525b70 !important; }
+      .badge { background-color: rgba(22,163,74,0.08) !important; border-color: rgba(22,163,74,0.28) !important; color: #15803d !important; }
+      .info-box { background-color: #f0fdf4 !important; border-color: rgba(22,163,74,0.25) !important; }
+      .footer-link { color: #1b3fd6 !important; }
+
+      @media (prefers-color-scheme: dark) {
+        body, .bg-outer { background-color: #05050f !important; }
+        .card { background-color: #0d0f24 !important; border-color: #24304d !important; }
+        .text-heading { color: #f4f6fb !important; }
+        .text-body { color: #a9b3c6 !important; }
+        .badge { background-color: rgba(22,163,74,0.14) !important; border-color: rgba(22,163,74,0.35) !important; color: #4ade80 !important; }
+        .info-box { background-color: #071a0e !important; border-color: rgba(22,163,74,0.2) !important; }
+        .footer-link { color: #8fb4ff !important; }
+      }
+    </style>
+  </head>
+  <body class="bg-outer" style="margin:0;padding:0;background-color:#eef1f8;">
+    <!-- Preheader nascosto (anteprima inbox) -->
+    <span style="display:none;max-height:0;overflow:hidden;opacity:0;">
+      Il tuo biglietto per {{EVENTO_NOME}} è stato scannerizzato: ingresso confermato! Divertiti.
+    </span>
+    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="bg-outer" bgcolor="#eef1f8" style="background-color:#eef1f8;padding:36px 16px;">
+      <tr>
+        <td align="center">
+          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+            <tr>
+              <td align="center" style="padding-bottom:28px;">
+                <img src="https://www.onlistclub.com/email-logo-app-glow.png" alt="OnListClub" width="140" style="display:block;width:140px;height:auto;border:0;margin:0 auto;" />
+              </td>
+            </tr>
+            <tr>
+              <td class="card" bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #e1e5f0;border-radius:24px;padding:36px 32px;">
+                <!-- Badge verde -->
+                <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
+                  <tr>
+                    <td class="badge" bgcolor="rgba(22,163,74,0.08)" style="border-radius:999px;background-color:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.28);padding:6px 14px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#15803d;">
+                      Ingresso confermato
+                    </td>
+                  </tr>
+                </table>
+                <!-- Heading -->
+                <h1 class="text-heading" style="margin:0 0 14px;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">
+                  Sei entrato! Divertiti 🎟️
+                </h1>
+                <!-- Body -->
+                <p class="text-body" style="margin:0 0 24px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">
+                  Ciao <strong class="text-heading" style="color:#12131c;">{{NOME}}</strong>, il tuo biglietto è stato scannerizzato con successo all'ingresso.
+                </p>
+                <!-- Info box verde -->
+                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                  <tr>
+                    <td class="info-box" bgcolor="#f0fdf4" style="background-color:#f0fdf4;border:1px solid rgba(22,163,74,0.25);border-radius:14px;padding:18px 20px;">
+                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
+                        <tr>
+                          <td style="padding-bottom:10px;">
+                            <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8b93a7;">Locale</p>
+                            <p class="text-heading" style="margin:4px 0 0;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#12131c;">{{LOCALE_NOME}}</p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td style="padding-bottom:10px;">
+                            <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8b93a7;">Serata</p>
+                            <p class="text-heading" style="margin:4px 0 0;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#12131c;">{{EVENTO_NOME}}</p>
+                          </td>
+                        </tr>
+                        <tr>
+                          <td>
+                            <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8b93a7;">Check-in</p>
+                            <p class="text-heading" style="margin:4px 0 0;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#12131c;">{{CHECKIN_TIME}}</p>
+                          </td>
+                        </tr>
+                      </table>
+                    </td>
+                  </tr>
+                </table>
+              </td>
+            </tr>
+            <tr>
+              <td align="center" style="padding-top:28px;">
+                <p class="text-body" style="margin:0 0 6px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#525b70;">
+                  OnListClub — Prenota tavoli, prevendite e drink nei migliori locali.
+                </p>
+                <p class="text-body" style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#525b70;">
+                  Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="color:#1b3fd6;text-decoration:none;">info@onlistclub.com</a>
+                </p>
+              </td>
+            </tr>
+          </table>
+        </td>
+      </tr>
+    </table>
+  </body>
+</html>

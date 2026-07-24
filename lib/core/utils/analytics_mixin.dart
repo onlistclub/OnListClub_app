@@ -30,10 +30,13 @@ mixin ScreenAnalytics<T extends StatefulWidget> on State<T> {
     // (main.dart) per popolare il campo `screen` degli errori non catturati.
     AnalyticsService.currentScreen = screenName;
 
-    // Log apertura pagina
+    // Apertura schermata. La dashboard ("Schermate più aperte") conta gli eventi
+    // con event_name LIKE 'screen_*' e mostra il nome togliendo il prefisso,
+    // quindi l'evento DEVE chiamarsi `screen_<nome>` (es. screen_home).
+    // Il nome resta anche nel metadata (`screen`/`page_name`) per comodità.
     AnalyticsService.log(
-      event: 'page_view',
-      metadata: {'page_name': screenName},
+      event: 'screen_$screenName',
+      metadata: {'screen': screenName, 'page_name': screenName},
     );
   }
 
@@ -56,10 +59,11 @@ mixin ScreenAnalytics<T extends StatefulWidget> on State<T> {
   void dispose() {
     final duration = DateTime.now().difference(_pageOpenedAt).inSeconds;
     
-    // Log uscita pagina con durata
+    // Log uscita pagina con durata (per "Tempo medio (s)" per schermata).
     AnalyticsService.log(
       event: 'page_exit',
       metadata: {
+        'screen': screenName,
         'page_name': screenName,
         'duration_seconds': duration,
       },

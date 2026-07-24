@@ -1,6 +1,8 @@
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+import 'package:intl/intl.dart';
 import 'analytics_service.dart';
+import 'messaging_service.dart';
 import 'notification_service.dart';
 
 /// Accesso alle tabelle `prevendite` e `prenotazioni_tavolo` su Supabase.
@@ -238,6 +240,15 @@ class BookingService {
 
       // Stock prevendite: gestito dal trigger DB trg_decrement_prevendita_stock
       // (decremento atomico server-side, nessuna race condition)
+
+      // 2b. Email di conferma prevendita.
+      // NON await: un invio fallito non deve bloccare il checkout già confermato.
+      _sendTicketConfirmationEmail(
+        user: user,
+        profilo: profilo,
+        eventoId: finalEventoId,
+        ticketId: ticketId,
+      );
     }
 
     // 3. Creazione notifica di successo
@@ -312,5 +323,101 @@ class BookingService {
         .from('drink')
         .select('*');
     return List<Map<String, dynamic>>.from(response);
+  }
+
+  /// Invia email + SMS di conferma prevendita — fire-and-forget.
+  static Future<void> _sendTicketConfirmationEmail({
+    required User user,
+    required Map<String, dynamic>? profilo,
+    required String eventoId,
+    required String ticketId,
+  }) async {
+    try {
+      // Recupera nome utente: profilo > user_metadata > fallback email.
+      final nome = [
+        profilo?['nome'] as String? ?? '',
+        profilo?['cognome'] as String? ?? '',
+      ].where((s) => s.isNotEmpty).join(' ');
+      final nomeDisplay = nome.isNotEmpty
+          ? nome
+          : (user.userMetadata?['nome'] as String? ??
+              user.email?.split('@').first ??
+              '');
+      final email = user.email ?? '';
+      if (email.isEmpty) return;
+
+      // Recupera dati evento e locale.
+      final eventoData = await _client
+          .from('eventi')
+          .select('nome, inizio_evento, locali(nome)')
+          .eq('id', eventoId)
+          .maybeSingle();
+      if (eventoData == null) return;
+
+      final eventoNome = (eventoData['nome'] as String?) ?? '';
+      final localeNome =
+          ((eventoData['locali'] as Map<String, dynamic>?)?['nome'] as String?) ?? '';
+      final inizioRaw = eventoData['inizio_evento'];
+      String dataEvento = '';
+      if (inizioRaw != null) {
+        final dt = DateTime.tryParse(inizioRaw.toString());
+        if (dt != null) {
+          dataEvento = DateFormat('EEEE d MMMM yyyy', 'it_IT').format(dt.toLocal());
+        }
+      }
+
+      // Recupera tipo ticket (opzionale).
+      String? tipoTicket;
+      try {
+        final prev = await _client
+            .from('prevendite')
+            .select('tipo')
+            .eq('id_prevendita', ticketId)
+            .maybeSingle();
+        tipoTicket = prev?['tipo'] as String?;
+      } catch (_) {}
+
+      // ── Email di conferma ──────────────────────────────────────────────────
+      await MessagingService.sendOrderConfirmationEmail(
+        to: email,
+        nome: nomeDisplay,
+        localeNome: localeNome,
+        eventoNome: eventoNome,
+        dataEvento: dataEvento,
+        tipoTicket: tipoTicket,
+      );
+      debugPrint('[BookingService] email conferma prevendita inviata a $email');
+
+      // ── SMS di conferma ───────────────────────────────────────────────────
+      // Recupera il numero primario dell'utente (E.164 o con prefisso +39).
+      try {
+        final phoneRow = await _client
+            .from('utenti_numeri_telefono')
+            .select('telefono')
+            .eq('id_utente', user.id)
+            .eq('is_primary', true)
+            .maybeSingle();
+        final telefono = phoneRow?['telefono'] as String?;
+        if (telefono != null && telefono.isNotEmpty) {
+          final smsText = localeNome.isNotEmpty
+              ? 'OnListClub: prevendita confermata per $localeNome'
+                  '${eventoNome.isNotEmpty ? ' — $eventoNome' : ''}.'
+                  ' Mostra il QR nell\'app all\'ingresso!'
+              : 'OnListClub: la tua prevendita è confermata.'
+                  ' Mostra il QR nell\'app all\'ingresso!';
+          await MessagingService.sendSms(
+            toE164: telefono,
+            content: smsText,
+          );
+          debugPrint('[BookingService] SMS conferma prevendita inviato a $telefono');
+        }
+      } catch (e) {
+        // L'SMS non blocca mai il flusso.
+        debugPrint('[BookingService] SMS conferma prevendita fallito (non critico): $e');
+      }
+    } catch (e) {
+      // L'email non blocca mai il flusso dell'ordine.
+      debugPrint('[BookingService] email conferma prevendita fallita: $e');
+    }
   }
 }
