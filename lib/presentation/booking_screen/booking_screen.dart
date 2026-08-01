@@ -17,9 +17,10 @@ import '../../routes/app_routes.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
+import '../../widgets/dashed_line.dart';
+import '../../widgets/glow_card.dart';
 import '../../widgets/image_fallback.dart';
 import '../../widgets/onlist_price_text.dart';
-import '../../widgets/onlist_primary_button.dart';
 import '../../widgets/onlist_ticket_title.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/custom_top_bar.dart';
@@ -703,7 +704,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     );
   }
 
-  // ── 12/13 — Dettaglio singolo ticket (Normale/Vip) ──────────────────────────
+  // ── Dettaglio singolo ticket (Normale/Vip), design NUOVO ────────────────────
+  // Biglietto-scontrino 350×603/618 (CSS "Carrello - Ticket Normale/Vip"):
+  // titolo 55, "Ticket x N" + descrizione, tratteggio, Dettagli (benefit dalla
+  // descrizione DB), tratteggio, Pagamento (testo + prezzo 96) e PRENOTA ORA
+  // (pill trasparente con glow interno #00BBFF). Nessuna tacca (come da CSS).
   Widget _buildTicketDetailStep(SerataModel? serata) {
     final t = _selectedTicket ?? const {};
     final String type = t['type']?.toString() ?? '';
@@ -711,89 +716,231 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     // a "12€" (per coerenza col Figma, che non mostra mai il decimale .0).
     final String price = _normalizePriceString(t['price']?.toString() ?? '—');
     final String description = t['description']?.toString() ?? '';
-    // Nota di entrata: preferisci il limite d'ingresso della serata; se assente,
-    // usa quella già passata dalla card (fallback a prevendite.validita).
-    final String validity =
-        serata?.notaEntrata ?? (t['validity']?.toString() ?? '');
+    // Benefit "Dettagli": una riga per capoverso della descrizione DB —
+    // nessun benefit inventato che non stia a database.
+    final benefits = description
+        .split(RegExp(r'[\n;]'))
+        .map((s) => s.trim())
+        .where((s) => s.isNotEmpty)
+        .toList();
 
-    return Column(
+    void addToCart() {
+      // Funnel: aggiunta prevendita al carrello.
+      AnalyticsService.logAddToCart(
+        type: 'ticket',
+        eventId: (t['serataId'] ?? serata?.id) as String?,
+        price: price,
+      );
+      NavigatorService.pushNamed(AppRoutes.cartScreen, arguments: {
+        'type': 'ticket',
+        'ticketType': type,
+        'price': price,
+        'description': description,
+        'ticketId': t['ticketId'],
+        'id_evento': t['serataId'] ?? serata?.id,
+      });
+    }
+
+    return SingleChildScrollView(
       key: const ValueKey("ticketDetail"),
-      children: [
-        const SizedBox(height: 8),
-        Expanded(
-          child: Container(
-            // Card inset dai bordi come Figma 12/13 (carrello-ticket-vip.css:
-            // Rectangle 164 a left 21 su 393 → margini laterali ~20px, angoli
-            // arrotondati visibili su tutti i lati).
-            margin: const EdgeInsets.symmetric(horizontal: 16),
-            padding: const EdgeInsets.fromLTRB(22, 24, 22, 24),
-            decoration: BoxDecoration(
-              gradient: OnlistColors.cardSingleTicket,
-              borderRadius: BorderRadius.circular(10),
+      padding: EdgeInsets.fromLTRB(
+          R.sp(21), R.sp(12), R.sp(21), R.sp(24) + SharedFooter.height),
+      child: TicketShape(
+        notches: const [],
+        borderWidthDesign: 3,
+        borderColor: OnlistColors.ticketCardBorderOpen,
+        child: Column(
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            SizedBox(height: R.sp(29)),
+            // "Ticket normale" / "Ticket vip" — 55/500/-0.1em (CSS left 22).
+            Padding(
+              padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  'Ticket ${_displayType(type).toLowerCase()}',
+                  style: OnlistTextStyles.hn(
+                    color: Colors.white,
+                    fontSize: R.sp(55),
+                    fontWeight: FontWeight.w500,
+                    height: 54 / 55,
+                    letterSpacing: -0.1 * 55,
+                  ),
+                ),
+              ),
             ),
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                // Sottotipo "Vip"/"Normale": Capitalized (NON tutto maiuscolo),
-                // ancorato sotto la "k" di "Ticket". Δ verticale dal Figma
-                // (carrello-ticket-vip.css: "Ticket" top 171, "Normale" top 204
-                // su font 40 → 0.825em).
-                OnlistTicketTitle(
-                  type: _displayType(type),
-                  titleStyle: OnlistTextStyles.ticketTitleLg,
-                  typeStyle: OnlistTextStyles.ticketSubtitleLg,
-                  typeTopEm: 0.825,
-                ),
-                const Spacer(),
-                FittedBox(
-                  fit: BoxFit.scaleDown,
-                  alignment: Alignment.centerLeft,
-                  child: OnlistPriceText(price,
-                      style: OnlistTextStyles.price192),
-                ),
-                Align(
-                  alignment: Alignment.centerRight,
-                  child: Text(description,
-                      textAlign: TextAlign.right,
-                      style: OnlistTextStyles.body24Regular),
-                ),
-                // Vuoti proporzionali al Figma (A:B:C ≈ 1:5:1, CSS 24:113:23):
-                // prezzo in alto (~27%), avviso in basso (~86%), niente vuoto
-                // grande in fondo. Spacer1/Spacer3 = flex 1 (default).
-                const Spacer(flex: 5),
-                Center(
-                  child: Text(validity,
-                      textAlign: TextAlign.center,
-                      style: OnlistTextStyles.body24Regular),
-                ),
-                const Spacer(),
-              ],
+            SizedBox(height: R.sp(18)),
+            // "Ticket x 1" + descrizione (24/-0.05em, CSS left 26 / 147).
+            Padding(
+              padding: EdgeInsets.only(left: R.sp(26), right: R.sp(20)),
+              child: Row(
+                children: [
+                  Text(
+                    'Ticket x 1',
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white,
+                      fontSize: R.sp(24),
+                      fontWeight: FontWeight.w400,
+                      height: 1.0,
+                      letterSpacing: -0.05 * 24,
+                    ),
+                  ),
+                  if (description.isNotEmpty) ...[
+                    SizedBox(width: R.sp(28)),
+                    Flexible(
+                      child: Text(
+                        description,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(24),
+                          fontWeight: FontWeight.w400,
+                          height: 1.0,
+                          letterSpacing: -0.05 * 24,
+                        ),
+                      ),
+                    ),
+                  ],
+                ],
+              ),
             ),
-          ),
+            SizedBox(height: R.sp(15)),
+            Padding(
+              padding: EdgeInsets.only(left: R.sp(26)),
+              child: const DashedLine(widthDesign: 297),
+            ),
+            SizedBox(height: R.sp(18)),
+            // "Dettagli" 48/500/-0.1em.
+            Padding(
+              padding: EdgeInsets.only(left: R.sp(26)),
+              child: Text(
+                'Dettagli',
+                style: OnlistTextStyles.hn(
+                  color: Colors.white,
+                  fontSize: R.sp(48),
+                  fontWeight: FontWeight.w500,
+                  height: 47 / 48,
+                  letterSpacing: -0.1 * 48,
+                ),
+              ),
+            ),
+            SizedBox(height: R.sp(8)),
+            // Benefit (24/-0.1em, CSS left 30, passo 34 → gap 10).
+            for (var i = 0; i < benefits.length; i++) ...[
+              if (i > 0) SizedBox(height: R.sp(10)),
+              Padding(
+                padding: EdgeInsets.only(left: R.sp(30), right: R.sp(20)),
+                child: Text(
+                  benefits[i],
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: OnlistTextStyles.hn(
+                    color: Colors.white,
+                    fontSize: R.sp(24),
+                    fontWeight: FontWeight.w400,
+                    height: 1.0,
+                    letterSpacing: -0.1 * 24,
+                  ),
+                ),
+              ),
+            ],
+            SizedBox(height: R.sp(17)),
+            Padding(
+              padding: EdgeInsets.only(left: R.sp(26)),
+              child: const DashedLine(widthDesign: 297),
+            ),
+            SizedBox(height: R.sp(25)),
+            // "Pagamento" 48/500/-0.1em.
+            Padding(
+              padding: EdgeInsets.only(left: R.sp(26)),
+              child: Text(
+                'Pagamento',
+                style: OnlistTextStyles.hn(
+                  color: Colors.white,
+                  fontSize: R.sp(48),
+                  fontWeight: FontWeight.w500,
+                  height: 47 / 48,
+                  letterSpacing: -0.1 * 48,
+                ),
+              ),
+            ),
+            // Zona pagamento: testo 20 a sinistra (rel 16) + prezzo 96 a
+            // destra più in basso (rel 51) — altezza fissa dal CSS (170).
+            SizedBox(
+              height: R.sp(170),
+              child: Stack(
+                children: [
+                  Positioned(
+                    left: R.sp(30),
+                    top: R.sp(16),
+                    child: SizedBox(
+                      width: R.sp(155),
+                      child: Text(
+                        'Il pagamento dovrà essere effettuato in struttura',
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(20),
+                          fontWeight: FontWeight.w400,
+                          height: 20 / 20,
+                          letterSpacing: -0.08 * 20,
+                        ),
+                      ),
+                    ),
+                  ),
+                  Positioned(
+                    right: R.sp(28),
+                    top: R.sp(51),
+                    child: OnlistPriceText(
+                      price,
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(96),
+                        fontWeight: FontWeight.w400,
+                        height: 96 / 96,
+                        letterSpacing: -0.08 * 96,
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            ),
+            // PRENOTA ORA (CSS Rectangle 288: 233×54 r20, fill trasparente +
+            // glow interno inset 0 0 47.3 -6 #00BBFF) → carrello, come prima.
+            Center(
+              child: AnimatedPress(
+                onPressed: addToCart,
+                child: SizedBox(
+                  width: R.sp(233),
+                  height: R.sp(54),
+                  child: GlowCard(
+                    gradient: const LinearGradient(
+                      colors: [Colors.transparent, Colors.transparent],
+                    ),
+                    radius: R.sp(20),
+                    glowColor: const Color(0xFF00BBFF),
+                    glowSigma: R.sp(23.65), // blur CSS 47.3
+                    child: Center(
+                      child: Text(
+                        'PRENOTA ORA',
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(32),
+                          fontWeight: FontWeight.w700,
+                          height: 32 / 32,
+                          letterSpacing: -0.1 * 32,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ),
+            ),
+            SizedBox(height: R.sp(19)),
+          ],
         ),
-        Padding(
-          padding: EdgeInsets.fromLTRB(12, 12, 12, 20 + SharedFooter.height),
-          child: OnlistPrimaryButton(
-            label: 'AGGIUNGI AL CARRELLO',
-            onPressed: () {
-              // Funnel: aggiunta prevendita al carrello.
-              AnalyticsService.logAddToCart(
-                type: 'ticket',
-                eventId: (t['serataId'] ?? serata?.id) as String?,
-                price: price,
-              );
-              NavigatorService.pushNamed(AppRoutes.cartScreen, arguments: {
-                'type': 'ticket',
-                'ticketType': type,
-                'price': price,
-                'description': description,
-                'ticketId': t['ticketId'],
-                'id_evento': t['serataId'] ?? serata?.id,
-              });
-            },
-          ),
-        ),
-      ],
+      ),
     );
   }
 
