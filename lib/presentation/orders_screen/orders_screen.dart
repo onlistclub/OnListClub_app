@@ -241,7 +241,9 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
         width: double.infinity,
         child: TicketShape(
           // CSS Ellipse 20: top 299 su card a 214, Ø43 → centro a 106.5/167.
-          notchCenterYFraction: 106.5 / 167,
+          notches: const [
+            TicketNotch(centerYFraction: 106.5 / 167, radiusDesign: 22),
+          ],
           child: Stack(
             children: [
               Padding(

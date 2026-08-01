@@ -7,6 +7,7 @@ import '../../core/services/orders_service.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/dashed_line.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/ticket_shape.dart';
 
@@ -208,8 +209,11 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                     child: TicketShape(
                       // CSS Ellipse 18: centro tacche a y 490 su card a 163
                       // → 327/600, esattamente sulla linea tratteggiata 2.
-                      notchCenterYFraction: 327 / 600,
-                      notchRadiusDesign: 20, // Ellipse 18: Ø~41
+                      notches: const [
+                        TicketNotch(
+                            centerYFraction: 327 / 600,
+                            radiusDesign: 20), // Ellipse 18: Ø~41
+                      ],
                       borderWidthDesign: 3,
                       borderColor: OnlistColors.ticketCardBorderOpen,
                       child: Column(
@@ -276,7 +280,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                           ),
                           SizedBox(height: R.sp(15)),
                           // Linea tratteggiata 1 (CSS Line 15: 297, dashed 1px).
-                          _dashedLine(width: 297),
+                          const DashedLine(widthDesign: 297),
                           SizedBox(height: R.sp(18)),
                           // "Dati personali" (40/-0.1em, grassetto).
                           Padding(
@@ -337,7 +341,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                           SizedBox(height: R.sp(28)),
                           // Linea tratteggiata 2 (CSS Line 16: 278) —
                           // all'altezza esatta delle tacche laterali.
-                          _dashedLine(width: 278),
+                          const DashedLine(widthDesign: 278),
                           SizedBox(height: R.sp(19)),
                           // Nome evento (16/w500/-0.03em, centrato).
                           Padding(
@@ -511,15 +515,6 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     );
   }
 
-  // Linea tratteggiata stile scontrino (CSS: `1px dashed #FFFFFF`).
-  Widget _dashedLine({required double width}) {
-    return SizedBox(
-      width: R.sp(width),
-      height: R.sp(1),
-      child: const CustomPaint(painter: _DashedLinePainter()),
-    );
-  }
-
   Widget _buildBackRow() {
     return GestureDetector(
       onTap: () => NavigatorService.goBack(),
@@ -536,30 +531,6 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
       ),
     );
   }
-}
-
-/// Tratteggio orizzontale bianco (dash ~6px, gap ~4px come nel PNG ufficiale).
-class _DashedLinePainter extends CustomPainter {
-  const _DashedLinePainter();
-
-  @override
-  void paint(Canvas canvas, Size size) {
-    final paint = Paint()
-      ..color = Colors.white
-      ..strokeWidth = size.height;
-    final dash = R.sp(6);
-    final gap = R.sp(4);
-    final y = size.height / 2;
-    double x = 0;
-    while (x < size.width) {
-      canvas.drawLine(
-          Offset(x, y), Offset((x + dash).clamp(0, size.width), y), paint);
-      x += dash + gap;
-    }
-  }
-
-  @override
-  bool shouldRepaint(_DashedLinePainter oldDelegate) => false;
 }
 
 /// Barre del codice a barre DECORATIVO, riprodotte esattamente dall'SVG del
