@@ -45,6 +45,13 @@
 		<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
 		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 		<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
+		<!-- Foto profilo (schermata Account): image_picker apre la libreria
+		     foto. Senza questa chiave iOS chiude l'app al primo accesso e
+		     App Review rifiuta la build. La fotocamera NON viene usata
+		     (ImageSource.gallery), quindi niente NSCameraUsageDescription:
+		     va aggiunta solo se in futuro si offre lo scatto diretto. -->
+		<key>NSPhotoLibraryUsageDescription</key>
+		<string>Scegli una foto dalla tua libreria per impostarla come immagine del profilo.</string>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>
