@@ -5,6 +5,7 @@ import '../core/utils/responsive.dart';
 import '../theme/onlist_colors.dart';
 import '../theme/onlist_text_styles.dart';
 import 'dashed_line.dart';
+import 'staggered_item.dart';
 import 'ticket_shape.dart';
 
 /// Card-biglietto del design NUOVO condivise da "Ordine Effettuato" e
@@ -17,9 +18,9 @@ import 'ticket_shape.dart';
 /// - [TicketBackCard] — biglietto aperto, RETRO (350×614): nome locale,
 ///   evento e il QR code vero e proprio.
 ///
-/// TODO: animazione flip da repository esterna — fronte e retro sono due
-/// widget separati proprio per poterli montare come le due facce di una
-/// rotazione 3D; per ora il passaggio è immediato.
+/// Fronte e retro sono due widget separati proprio per essere montati come le
+/// due facce di una rotazione 3D: le schermate li passano a [FlipCard]
+/// (`lib/widgets/flip_card.dart`), che gestisce l'animazione.
 ///
 /// Tutte le misure sono px design (frame Figma 393×852) scalate con [R.sp].
 
@@ -383,33 +384,44 @@ class TicketBackCard extends StatelessWidget {
         ],
         borderWidthDesign: 3,
         borderColor: OnlistColors.ticketCardBorderOpen,
+        // I blocchi entrano SFALSATI (stagger) quando il retro compare, cioè
+        // a metà rotazione: slide orizzontale + fade, ritardo crescente —
+        // stesso effetto della flip card di riferimento.
         child: Column(
           children: [
             SizedBox(height: R.sp(29)),
             // Nome locale 55/500 centrato.
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  clubName,
-                  style: OnlistTextStyles.hn(
-                    color: Colors.white,
-                    fontSize: R.sp(55),
-                    fontWeight: FontWeight.w700,
-                    height: 54 / 55,
-                    letterSpacing: -0.1 * 55,
+            _BackStagger(
+              index: 0,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    clubName,
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white,
+                      fontSize: R.sp(55),
+                      fontWeight: FontWeight.w700,
+                      height: 54 / 55,
+                      letterSpacing: -0.1 * 55,
+                    ),
                   ),
                 ),
               ),
             ),
             SizedBox(height: R.sp(20)),
-            _QuantityRow(quantita: quantita, descrizione: descrizione),
+            _BackStagger(
+              index: 1,
+              child: _QuantityRow(quantita: quantita, descrizione: descrizione),
+            ),
             SizedBox(height: R.sp(15)),
-            const DashedLine(widthDesign: 297),
+            const _BackStagger(index: 2, child: DashedLine(widthDesign: 297)),
             SizedBox(height: R.sp(9)),
             // Evento: nome 48/500, sottotitolo 32/500, data 22/500 — centrati.
-            Padding(
+            _BackStagger(
+              index: 3,
+              child: Padding(
               padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
               child: Column(
                 children: [
@@ -450,12 +462,15 @@ class TicketBackCard extends StatelessWidget {
                   ),
                 ],
               ),
+              ),
             ),
             SizedBox(height: R.sp(14)),
             // Pannello QR (CSS Rectangle 295: 350×345 r32, rgba(0,5,214,.2))
             // col QR VERO 228×228 su riquadro bianco 20% r16.
             Expanded(
-              child: Container(
+              child: _BackStagger(
+                index: 4,
+                child: Container(
                 width: double.infinity,
                 decoration: BoxDecoration(
                   color: const Color(0x330005D6),
@@ -491,11 +506,37 @@ class TicketBackCard extends StatelessWidget {
                     TicketPillButton(label: 'NASCONDI', onTap: onHide),
                   ],
                 ),
+                ),
               ),
             ),
           ],
         ),
       ),
+    );
+  }
+}
+
+/// Entrata sfalsata dei blocchi del retro: parte quando il retro viene
+/// montato (metà rotazione), con slide orizzontale + fade e ritardo crescente
+/// per indice — l'equivalente del `transitionDelay: index*100 + 200ms` della
+/// flip card di riferimento.
+class _BackStagger extends StatelessWidget {
+  final int index;
+  final Widget child;
+
+  const _BackStagger({required this.index, required this.child});
+
+  @override
+  Widget build(BuildContext context) {
+    return StaggeredItem(
+      index: index,
+      beginOffset: const Offset(-0.06, 0),
+      step: const Duration(milliseconds: 90),
+      // Il retro compare a metà rotazione: si aspetta che la card sia quasi
+      // frontale prima di far entrare i contenuti.
+      initialDelay: const Duration(milliseconds: 180),
+      duration: const Duration(milliseconds: 300),
+      child: child,
     );
   }
 }

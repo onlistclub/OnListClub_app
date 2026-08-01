@@ -5,6 +5,7 @@ import '../../core/services/orders_service.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/flip_card.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/ticket_cards.dart';
 
@@ -18,8 +19,7 @@ import '../../widgets/ticket_cards.dart';
 /// - retro [TicketBackCard]: locale, evento e QR code reale (lo scanner
 ///   /staff legge l'URL /verify/<uuid> → RPC `scan_ticket`).
 ///
-/// TODO: animazione flip da repository esterna — fronte e retro sono già
-/// widget separati, qui si alternano senza transizione.
+/// Il passaggio fronte↔retro è una rotazione 3D ([FlipCard]).
 ///
 /// Riceve come arguments la Map proveniente da OrdersService.getPrevenditeOrdini().
 class PrevenditaDetailScreen extends StatefulWidget {
@@ -132,34 +132,38 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                   // CSS NUOVO: card 350 su 393 → margini ~21.
                   padding: EdgeInsets.fromLTRB(R.sp(21), R.sp(2), R.sp(21),
                       R.sp(24) + SharedFooter.height),
-                  child: _showQr
-                      ? TicketBackCard(
-                          clubName: localeNome,
-                          quantita: quantita,
-                          descrizione: descrizione,
-                          eventoNome: (evento?['nome'] ?? '').toString(),
-                          eventoSottotitolo: null,
-                          dataEvento: _formatData(evento?['data']),
-                          qrData: qrData,
-                          onHide: () => setState(() => _showQr = false),
-                        )
-                      : TicketFrontCard(
-                          ticketType:
-                              (prevendita?['tipo'] ?? 'normale').toString(),
-                          quantita: quantita,
-                          descrizione: descrizione,
-                          nome: (item['nome'] ?? '—').toString(),
-                          cognome: (item['cognome'] ?? '—').toString(),
-                          prezzo: _formatPrezzo(prevendita?['prezzo']),
-                          onShowQr: () => setState(() => _showQr = true),
-                          onCollapse: () => NavigatorService.goBack(),
-                          onAnnulla: isAnnullata
-                              ? null
-                              : () => _annulla(idPrenotazione),
-                          isAnnullando: _isAnnullando,
-                          annullataLabel:
-                              isAnnullata ? 'PREVENDITA ANNULLATA' : null,
-                        ),
+                  // Il biglietto RUOTA in 3D tra fronte e retro ([FlipCard]):
+                  // si gira col tap ovunque sulla card, oltre che dai bottoni.
+                  child: FlipCard(
+                    showBack: _showQr,
+                    onTap: () => setState(() => _showQr = !_showQr),
+                    back: TicketBackCard(
+                      clubName: localeNome,
+                      quantita: quantita,
+                      descrizione: descrizione,
+                      eventoNome: (evento?['nome'] ?? '').toString(),
+                      eventoSottotitolo: null,
+                      dataEvento: _formatData(evento?['data']),
+                      qrData: qrData,
+                      onHide: () => setState(() => _showQr = false),
+                    ),
+                    front: TicketFrontCard(
+                      ticketType:
+                          (prevendita?['tipo'] ?? 'normale').toString(),
+                      quantita: quantita,
+                      descrizione: descrizione,
+                      nome: (item['nome'] ?? '—').toString(),
+                      cognome: (item['cognome'] ?? '—').toString(),
+                      prezzo: _formatPrezzo(prevendita?['prezzo']),
+                      onShowQr: () => setState(() => _showQr = true),
+                      onCollapse: () => NavigatorService.goBack(),
+                      onAnnulla:
+                          isAnnullata ? null : () => _annulla(idPrenotazione),
+                      isAnnullando: _isAnnullando,
+                      annullataLabel:
+                          isAnnullata ? 'PREVENDITA ANNULLATA' : null,
+                    ),
+                  ),
                 ),
               ),
             ],

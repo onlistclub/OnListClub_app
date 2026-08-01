@@ -6,6 +6,7 @@ import '../../core/utils/responsive.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/flip_card.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/ticket_cards.dart';
 
@@ -15,6 +16,8 @@ import '../../widgets/ticket_cards.dart';
 /// 1. biglietti CHIUSI ([TicketCollapsedCard]) sotto il titolo a cascata;
 /// 2. biglietto APERTO, fronte ([TicketFrontCard]) con dati e pagamento;
 /// 3. biglietto APERTO, retro ([TicketBackCard]) col QR code reale.
+///
+/// Il passaggio fronte↔retro è una rotazione 3D ([FlipCard]).
 ///
 /// I dati arrivano dal DB: si caricano le righe `prenotazioni_prevendite`
 /// della prenotazione più recente (la query di [OrdersService] è già ordinata
@@ -200,10 +203,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
     ];
   }
 
-  /// Biglietto aperto: fronte o retro.
-  ///
-  /// TODO: animazione flip da repository esterna — le due facce sono già due
-  /// widget distinti, qui si alternano senza transizione.
+  /// Biglietto aperto: fronte e retro, con rotazione 3D fra le due facce
+  /// ([FlipCard]).
   Widget _buildOpenTicket(Map<String, dynamic> t) {
     final prenotazione = t['prenotazioni'] as Map<String, dynamic>?;
     final prevendita = t['prevendite'] as Map<String, dynamic>?;
@@ -211,8 +212,12 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
     final descrizione = (prevendita?['descrizione'] as String?)?.trim();
     final quantita = (t['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
 
-    if (_showQr) {
-      return TicketBackCard(
+    return FlipCard(
+      showBack: _showQr,
+      // Tap ovunque sulla card = gira il biglietto (i bottoni interni
+      // mantengono la loro azione).
+      onTap: () => setState(() => _showQr = !_showQr),
+      back: TicketBackCard(
         clubName: _clubName(t),
         quantita: quantita,
         descrizione: descrizione,
@@ -221,21 +226,20 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
         dataEvento: _formatData(evento?['data']),
         qrData: _qrData(t),
         onHide: () => setState(() => _showQr = false),
-      );
-    }
-
-    return TicketFrontCard(
-      ticketType: (prevendita?['tipo'] ?? 'normale').toString(),
-      quantita: quantita,
-      descrizione: descrizione,
-      nome: (t['nome'] ?? '—').toString(),
-      cognome: (t['cognome'] ?? '—').toString(),
-      prezzo: _formatPrezzo(prevendita?['prezzo']),
-      onShowQr: () => setState(() => _showQr = true),
-      onCollapse: () => setState(() {
-        _openedIndex = null;
-        _showQr = false;
-      }),
+      ),
+      front: TicketFrontCard(
+        ticketType: (prevendita?['tipo'] ?? 'normale').toString(),
+        quantita: quantita,
+        descrizione: descrizione,
+        nome: (t['nome'] ?? '—').toString(),
+        cognome: (t['cognome'] ?? '—').toString(),
+        prezzo: _formatPrezzo(prevendita?['prezzo']),
+        onShowQr: () => setState(() => _showQr = true),
+        onCollapse: () => setState(() {
+          _openedIndex = null;
+          _showQr = false;
+        }),
+      ),
     );
   }
 

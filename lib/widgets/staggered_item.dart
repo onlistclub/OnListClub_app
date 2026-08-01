@@ -20,6 +20,15 @@ class StaggeredItem extends StatefulWidget {
   final Duration step;
   final Duration duration;
 
+  /// Punto di partenza dello slide, in frazioni della dimensione dell'item.
+  /// Default: leggero slide-up (liste). Il retro del biglietto usa uno slide
+  /// orizzontale, come la flip card di riferimento.
+  final Offset beginOffset;
+
+  /// Attesa prima che parta il primo item (oltre al ritardo per indice): serve
+  /// quando l'animazione deve iniziare dopo un'altra (es. a rotazione finita).
+  final Duration initialDelay;
+
   const StaggeredItem({
     Key? key,
     required this.index,
@@ -27,6 +36,8 @@ class StaggeredItem extends StatefulWidget {
     this.maxStaggered = 8,
     this.step = const Duration(milliseconds: 45),
     this.duration = const Duration(milliseconds: 320),
+    this.beginOffset = const Offset(0, 0.08),
+    this.initialDelay = Duration.zero,
   }) : super(key: key);
 
   @override
@@ -48,10 +59,10 @@ class _StaggeredItemState extends State<StaggeredItem>
     final ctrl = AnimationController(vsync: this, duration: widget.duration);
     _ctrl = ctrl;
     _fade = CurvedAnimation(parent: ctrl, curve: Curves.easeOut);
-    _slide = Tween<Offset>(begin: const Offset(0, 0.08), end: Offset.zero)
+    _slide = Tween<Offset>(begin: widget.beginOffset, end: Offset.zero)
         .animate(CurvedAnimation(parent: ctrl, curve: Curves.easeOutCubic));
 
-    Future.delayed(widget.step * widget.index, () {
+    Future.delayed(widget.initialDelay + widget.step * widget.index, () {
       if (mounted) ctrl.forward();
     });
   }
