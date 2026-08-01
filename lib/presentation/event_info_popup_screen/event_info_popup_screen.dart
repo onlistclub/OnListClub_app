@@ -3,9 +3,9 @@ import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
-import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/glow_card.dart';
 import '../../widgets/shared_footer.dart';
 
 /// Pop-up info serata (Figma `off/19 - pop up info serata.png`).
@@ -38,11 +38,9 @@ class EventInfoPopupScreen extends StatelessWidget {
       return const Scaffold(backgroundColor: Colors.black);
     }
 
-    // Gradient applicato come "sfondo schermo" dietro l'intero Scaffold (incluso
-    // il footer): stesso fix di carrello/booking — il footer semi-trasparente
-    // lasciava intravedere il nero piatto sotto la card.
-    return DecoratedBox(
-      decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+    // Design NUOVO: sfondo NERO FISSO dietro tutte le schermate.
+    return ColoredBox(
+      color: Colors.black,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
@@ -105,13 +103,11 @@ class _PopupCard extends StatelessWidget {
   final LocaleModel club;
 
   // ── Costanti Figma (px design) ─────────────────────────────────────────────
-  // Riferite alla card 354×663. Le posizioni X dei contenuti sono sottratte
-  // di 19 (offset card) per ottenere offset interni alla card.
-  // Altezza del banner radiale superiore (Rectangle 211) col titolo su UNA
-  // riga: Figma top=105 h=134, card top=105 → 134 relativi al bordo card.
-  // Finisce 9px sopra la pillola data (Rectangle 213 @143): il bagliore non
-  // deve MAI toccare la pillola.
-  static const double _bannerBaseH = 134;
+  // CSS NUOVO "pop up info club": card 354×629 a left 20. Le posizioni dei
+  // contenuti sono relative al bordo card.
+  // Altezza del banner radiale superiore (Rectangle 211): 129 relativi al
+  // bordo card. Finisce sopra la pillola data: il bagliore non la tocca MAI.
+  static const double _bannerBaseH = 129;
 
   // ── Titolo adattivo ────────────────────────────────────────────────────────
   // Il blocco titolo ha ALTEZZA FISSA = 1 riga a _titleMaxFs (45px): così il
@@ -127,10 +123,10 @@ class _PopupCard extends StatelessWidget {
   // alzarlo senza alzare anche l'altezza del blocco, o il layout sotto si sposta.
   static const double _titleMinFs = 22;
 
-  // Padding di contenuto: la maggior parte usa ~16, la pill data e i box
-  // usano ~12 (più stretti dal bordo card).
-  static const double _padContent = 16; // x=35 → 16 da card-left
-  static const double _padPill = 12;    // x=31 → 12 da card-left
+  // Padding di contenuto: nel CSS NUOVO tutto è allineato a ~17 dal bordo
+  // card (badge/pill data/box a x=37 su card a 20; line-up 36, CTA 35).
+  static const double _padContent = 17;
+  static const double _padPill = 17;
 
   /// Stile del titolo serata (Figma: Helvetica Neue w700 LS -0.08em). [fsDesign]
   /// è in px-design (scalato con R.sp); il letter-spacing scala in proporzione
@@ -200,26 +196,33 @@ class _PopupCard extends StatelessWidget {
       const double bannerH = _bannerBaseH;
       return Container(
       width: double.infinity,
-      decoration: BoxDecoration(
-        gradient: const LinearGradient(
-          begin: Alignment.topCenter,
-          end: Alignment.bottomCenter,
-          colors: [Color(0xFF2600FF), Color(0xFF1500B2), Color(0xFF000000)],
-          stops: [0.0, 0.5385, 1.0],
-        ),
+      constraints: BoxConstraints(minHeight: R.sp(500)),
+      // CSS NUOVO Rectangle 210: bordo 1px bianco PIENO sopra tutto.
+      foregroundDecoration: BoxDecoration(
+        border: Border.all(color: Colors.white, width: 1),
         borderRadius: radius,
       ),
-      constraints: BoxConstraints(minHeight: R.sp(500)),
-      // Clip così il banner radiale non sborda dagli angoli arrotondati.
+      // Clip così banner e glow non sbordano dagli angoli arrotondati.
       child: ClipRRect(
         borderRadius: radius,
-        child: Stack(
+        child: GlowCard(
+          // CSS NUOVO: 180deg #2600FF → #00308B (resta blu fino in fondo)
+          // + glow interno `inset 0 0 50px #0033FF` (Frame 416).
+          gradient: const LinearGradient(
+            begin: Alignment.topCenter,
+            end: Alignment.bottomCenter,
+            colors: [Color(0xFF2600FF), Color(0xFF00308B)],
+          ),
+          radius: R.sp(32),
+          glowColor: const Color(0xFF0033FF),
+          glowSigma: R.sp(25), // blur CSS 50
+          child: Stack(
           children: [
             // Banner radiale top (Rectangle 211) — overlay sopra il linear
             // gradient e SOTTO il testo. Lo Stack disegna i figli nell'ordine
             // dichiarato, quindi questo viene prima del contenuto.
-            // CSS: radial-gradient(34.4% 200.32% at 31.78% 68.44%, #0031D2, #2E0098)
-            // Centro (31.78%, 68.44%) → Alignment(-0.36, 0.37).
+            // CSS NUOVO: radial(34.4% at 31.78% 68.44%, #0031D2 → #0077FF),
+            // bordo basso 1px bianco 59% che separa banner e corpo card.
             Positioned(
               top: 0,
               left: 0,
@@ -229,13 +232,13 @@ class _PopupCard extends StatelessWidget {
                   key: bannerKey,
                   height: R.sp(bannerH),
                   decoration: const BoxDecoration(
-                    // Stessi colori Figma (nessun nuovo hex), ma radius più
-                    // stretto: il bagliore risulta più concentrato/intenso
-                    // dietro nome e indirizzo, invece di stemperarsi piatto.
                     gradient: RadialGradient(
                       center: Alignment(-0.36, 0.37),
                       radius: 1.1,
-                      colors: [Color(0xFF0031D2), Color(0xFF2E0098)],
+                      colors: [Color(0xFF0031D2), Color(0xFF0077FF)],
+                    ),
+                    border: Border(
+                      bottom: BorderSide(color: Color(0x96FFFFFF), width: 1),
                     ),
                   ),
                 ),
@@ -244,6 +247,7 @@ class _PopupCard extends StatelessWidget {
             // Contenuto: badge, titolo, indirizzo, data, info, line-up, CTA.
             _buildContent(context, titleFit),
           ],
+          ),
         ),
       ),
       );
@@ -261,17 +265,18 @@ class _PopupCard extends StatelessWidget {
       // ulteriore inset orizzontale di 4 sui sotto-blocchi.
       padding: EdgeInsets.fromLTRB(
         R.sp(_padPill),
-        R.sp(20), // top card → badge (Figma: Rectangle 212 @125, card @105)
+        R.sp(12), // CSS NUOVO: badge a rel y 12 dal bordo card
         R.sp(_padPill),
-        R.sp(8),  // bottom card
+        R.sp(13), // bottom card (CTA bottom rel 618 su card 631)
       ),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // QUESTA SERA badge + close (X) — gap interno standard pill
           _topBadgeAndClose(context),
-          // Gap badge → titolo: Figma 20 (badge bottom rel 43, titolo rel 63).
-          SizedBox(height: R.sp(20)),
+          // Gap badge → titolo: CSS NUOVO — titolo a rel 51; la riga badge è
+          // alta 30 (X inclusa) e parte da rel 12 → 51−42 = 9.
+          SizedBox(height: R.sp(9)),
           // Padding interno extra di +4px (16-12) per allineare titolo/indirizzo
           Padding(
             padding: EdgeInsets.symmetric(horizontal: R.sp(_padContent - _padPill)),
@@ -282,19 +287,19 @@ class _PopupCard extends StatelessWidget {
           // stacco pulito, la pillola non tocca mai il bagliore viola.
           SizedBox(height: R.sp(17)),
           _datePill(),
-          // Gap pillola data → STILE MUSICALE: Figma 15 (pillola bottom rel 170,
-          // sezione rel 185).
-          SizedBox(height: R.sp(15)),
+          // Gap pillola data → STILE MUSICALE: CSS NUOVO 13 (pillola bottom
+          // rel 176, sezione rel 189).
+          SizedBox(height: R.sp(13)),
           if (hasGeneri) ...[
             Padding(
               padding: EdgeInsets.symmetric(
                   horizontal: R.sp(_padContent - _padPill)),
               child: _section('STILE MUSICALE'),
             ),
-            SizedBox(height: R.sp(4)),
+            SizedBox(height: R.sp(8)),
             _chipsRow(serata.generiMusicali),
-            // Gap chip → box info: Figma 12 (chip bottom rel 228, box rel 240).
-            SizedBox(height: R.sp(12)),
+            // Gap chip → box info: CSS NUOVO 10 (chip bottom 236, box 246).
+            SizedBox(height: R.sp(10)),
           ],
           // Box info allineati al titolo/indirizzo (16px dal bordo card):
           // +4px rispetto al padding base _padPill, come nel CSS (x≈36).
@@ -304,15 +309,15 @@ class _PopupCard extends StatelessWidget {
             child: _infoBoxesGrid(),
           ),
           if (hasLineup) ...[
-            // Gap box info → LINE-UP: Figma 11 (box bottom rel 406, sezione rel 417).
-            SizedBox(height: R.sp(11)),
+            // Gap box info → LINE-UP: CSS NUOVO 13 (box bottom 412, sez. 425).
+            SizedBox(height: R.sp(13)),
             Padding(
               padding: EdgeInsets.symmetric(
                   horizontal: R.sp(_padContent - _padPill)),
               child: _section('LINE-UP'),
             ),
-            // Gap LINE-UP → 1° DJ: Figma 9 (sezione bottom rel 433, riga DJ rel 442).
-            SizedBox(height: R.sp(9)),
+            // Gap LINE-UP → 1° DJ: CSS NUOVO 7 (sezione bottom 441, riga 448).
+            SizedBox(height: R.sp(7)),
             for (final dj in serata.lineup) ...[
               // Righe DJ allineate al titolo (16px), come i box info.
               Padding(
@@ -338,7 +343,9 @@ class _PopupCard extends StatelessWidget {
           // semplicemente un po', senza rischio di overflow). Aumentato
           // leggermente su richiesta per staccare di più il CTA dalla
           // line-up.
-          SizedBox(height: R.sp(hasLineup ? 32 : 28)),
+          // CSS NUOVO: ultima riga line-up bottom rel 557 → CTA rel 574 = 17
+          // (senza line-up resta un respiro maggiore).
+          SizedBox(height: R.sp(hasLineup ? 8 : 28)),
           _acquistaCta(context),
         ],
       ),
@@ -347,10 +354,10 @@ class _PopupCard extends StatelessWidget {
 
   Widget _topBadgeAndClose(BuildContext context) {
     final label = _serataDayLabel();
-    return SizedBox(
-      // Figma badge height 23
-      height: R.sp(23),
-      child: Row(
+    // Riga alta quanto la X (30): il badge (23) sta in alto come nel CSS
+    // (badge rel y 12, X rel y 8 — la X sporge un filo sopra).
+    return Row(
+        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           // Badge QUESTA SERA: Rectangle 212, radial gradient teal→blu.
           Container(
@@ -386,25 +393,22 @@ class _PopupCard extends StatelessWidget {
             ),
           ),
           const Spacer(),
-          // Close (X) — cerchio outline 24×24, bordo bianco 72%
+          // Close (X) — CSS NUOVO Ellipse 12: cerchio outline 30×30 bianco.
           GestureDetector(
             onTap: () => NavigatorService.goBack(),
             behavior: HitTestBehavior.opaque,
             child: Container(
-              width: R.sp(24),
-              height: R.sp(24),
+              width: R.sp(30),
+              height: R.sp(30),
               decoration: BoxDecoration(
                 shape: BoxShape.circle,
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.72),
-                    width: R.sp(1)),
+                border: Border.all(color: Colors.white, width: R.sp(1)),
               ),
               alignment: Alignment.center,
-              child: Icon(Icons.close, color: Colors.white, size: R.sp(14)),
+              child: Icon(Icons.close, color: Colors.white, size: R.sp(16)),
             ),
           ),
         ],
-      ),
     );
   }
 
@@ -451,8 +455,8 @@ class _PopupCard extends StatelessWidget {
             ),
           ),
         ),
-        // Titolo h=45, baseline a y=45+rel49=94, indirizzo a 96 → 2px gap
-        SizedBox(height: R.sp(2)),
+        // CSS NUOVO: blocco titolo bottom rel 96 → indirizzo rel 102 = 6px gap
+        SizedBox(height: R.sp(6)),
         // Indirizzo indentato +4px rispetto al titolo: Figma titolo x=35 (rel16),
         // indirizzo x=39 (rel20).
         Padding(
@@ -485,9 +489,10 @@ class _PopupCard extends StatelessWidget {
       padding: EdgeInsets.symmetric(
           horizontal: R.sp(14), vertical: R.sp(10)),
       decoration: BoxDecoration(
-        // CSS Rectangle 213: nero 27%, r11.
-        color: Colors.black.withValues(alpha: 0.27),
-        borderRadius: BorderRadius.circular(R.sp(11)),
+        // CSS NUOVO Rectangle 213: fill trasparente + bordo 1px bianco 38%,
+        // r19 (319×41).
+        border: Border.all(color: const Color(0x61FFFFFF), width: 1),
+        borderRadius: BorderRadius.circular(R.sp(19)),
       ),
       alignment: Alignment.center,
       // FittedBox forza il testo (con la freccia "→") su UNA riga sola,
@@ -536,12 +541,9 @@ class _PopupCard extends StatelessWidget {
               padding: EdgeInsets.symmetric(
                   horizontal: R.sp(12), vertical: R.sp(4)),
               decoration: BoxDecoration(
-                color: i == 0
-                    ? const Color(0x330004FF)
-                    : const Color(0x33000000),
-                // Bordo bianco 1px ~20%, coerente con i box info.
-                border: Border.all(
-                    color: Colors.white.withValues(alpha: 0.2), width: 1),
+                // CSS NUOVO Rectangle 214-217: bianco 20%, r11, senza bordo
+                // (l'attenuazione delle chip non attive resta con Opacity).
+                color: const Color(0x33FFFFFF),
                 borderRadius: BorderRadius.circular(R.sp(11)),
               ),
               child: Text(
@@ -607,9 +609,8 @@ class _PopupCard extends StatelessWidget {
       padding: EdgeInsets.fromLTRB(R.sp(5), R.sp(7), R.sp(5), R.sp(8)),
       decoration: BoxDecoration(
         color: const Color(0x291E00FF),
-        // Bordo bianco 1px ~20%: rende il box leggibile sul gradiente blu
-        // (il fill 16% da solo era quasi invisibile).
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+        // CSS NUOVO Rectangle 218/219/222/224: bordo 1px bianco 36%.
+        border: Border.all(color: const Color(0x5CFFFFFF), width: 1),
         borderRadius: BorderRadius.circular(R.sp(11)),
       ),
       child: Column(
@@ -671,8 +672,8 @@ class _PopupCard extends StatelessWidget {
           horizontal: R.sp(11), vertical: R.sp(7)),
       decoration: BoxDecoration(
         color: const Color(0x291E00FF),
-        // Bordo bianco 1px ~20%, coerente con box info e chip.
-        border: Border.all(color: Colors.white.withValues(alpha: 0.2), width: 1),
+        // CSS NUOVO Rectangle 226/228: bordo 1px bianco ~36%, r19.
+        border: Border.all(color: const Color(0x5CFFFFFF), width: 1),
         borderRadius: BorderRadius.circular(R.sp(19)),
       ),
       child: Row(
@@ -769,18 +770,13 @@ class _PopupCard extends StatelessWidget {
       ),
       child: Container(
         width: double.infinity,
-        // Figma 323×45, font 32 → padding ~6 vert
-        padding: EdgeInsets.symmetric(vertical: R.sp(6)),
+        height: R.sp(44),
         decoration: BoxDecoration(
-          // CSS Rectangle 229: gradient blu 51% (#1F00FF→#1900D8). Il Figma
-          // esporta r15, ma su richiesta gli angoli sono più arrotondati (r26)
-          // per un look più morbido, senza arrivare alla capsula piena.
-          gradient: const LinearGradient(
-            begin: Alignment.centerLeft,
-            end: Alignment.centerRight,
-            colors: [Color(0x821F00FF), Color(0x821900D8)],
-          ),
-          borderRadius: BorderRadius.circular(R.sp(26)),
+          // CSS NUOVO Rectangle 229: fill scuro traslucido rgba(28,0,93,0.22)
+          // + bordo 1px bianco 46%, r20 (323×44).
+          color: const Color(0x381C005D),
+          border: Border.all(color: const Color(0x75FFFFFF), width: 1),
+          borderRadius: BorderRadius.circular(R.sp(20)),
         ),
         alignment: Alignment.center,
         child: Text(
