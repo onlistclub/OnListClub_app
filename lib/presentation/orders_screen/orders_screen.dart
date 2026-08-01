@@ -3,13 +3,12 @@ import '../../core/app_export.dart';
 import '../../core/services/orders_service.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../core/utils/analytics_mixin.dart';
-import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/staggered_item.dart';
-import '../../widgets/ticket_shape.dart';
+import '../../widgets/ticket_cards.dart';
 import '../root_shell/root_shell.dart';
 
 class OrdersScreen extends StatefulWidget {
@@ -72,11 +71,12 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Design NUOVO: sfondo NERO FISSO.
       backgroundColor: Colors.black,
       // Footer flottante: le liste scorrono dietro la capsula (non la oscura).
       extendBody: true,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+      body: ColoredBox(
+        color: Colors.black,
         child: SafeArea(
           bottom: false,
           child: Column(
@@ -230,83 +230,27 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
             .toString();
     final stato = (prenotazione?['stato'] ?? 'in_attesa').toString();
 
-    return GestureDetector(
-      onTap: () => NavigatorService.pushNamed(
-        AppRoutes.prevenditaDetailScreen,
-        arguments: item,
-      ),
-      child: Container(
-        margin: EdgeInsets.only(bottom: R.sp(23)), // CSS: gap 23 tra card
-        height: R.sp(167),
-        width: double.infinity,
-        child: TicketShape(
-          // CSS Ellipse 20: top 299 su card a 214, Ø43 → centro a 106.5/167.
-          notches: const [
-            TicketNotch(centerYFraction: 106.5 / 167, radiusDesign: 22),
-          ],
-          child: Stack(
-            children: [
-              Padding(
-                // CSS: nome a top 242 (card 214) → 28 dal bordo alto; margini
-                // laterali larghi per non invadere le tacche.
-                padding: EdgeInsets.fromLTRB(R.sp(30), R.sp(28), R.sp(30), 0),
-                child: Column(
-                  children: [
-                    // Nome locale: 64/w500/-0.1em centrato; FittedBox riduce
-                    // solo i nomi troppo lunghi, senza mai andare a capo.
-                    SizedBox(
-                      height: R.sp(63),
-                      width: double.infinity,
-                      child: FittedBox(
-                        fit: BoxFit.scaleDown,
-                        child: Text(
-                          locale,
-                          style: OnlistTextStyles.hn(
-                            color: Colors.white,
-                            fontSize: R.sp(64),
-                            fontWeight: FontWeight.w500,
-                            height: 63 / 64,
-                            letterSpacing: -0.1 * 64,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(height: R.sp(8)), // CSS: nome bottom 305 → testo 313
-                    Text(
-                      'Visualizza QR Code',
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(15),
-                        fontWeight: FontWeight.w400,
-                        letterSpacing: -0.1 * 15,
-                      ),
-                    ),
-                    SizedBox(height: R.sp(9)), // CSS: testo bottom 328 → cerchio 337
-                    // CSS Ellipse 9: cerchio 28 bordo 2px con freccia giù.
-                    Container(
-                      width: R.sp(28),
-                      height: R.sp(28),
-                      alignment: Alignment.center,
-                      decoration: BoxDecoration(
-                        shape: BoxShape.circle,
-                        border: Border.all(color: Colors.white, width: 2),
-                      ),
-                      child: Icon(Icons.arrow_downward,
-                          color: Colors.white, size: R.sp(16)),
-                    ),
-                  ],
-                ),
-              ),
-              // Stato (solo "usato" — le annullate sono filtrate a monte).
-              if (_shouldShowStatePill(stato))
-                Positioned(
-                  top: R.sp(10),
-                  right: R.sp(14),
-                  child: _buildStatePill(stato),
-                ),
-            ],
+    // Biglietto chiuso: componente condiviso con la schermata di conferma
+    // ordine ([TicketCollapsedCard]) — una sola definizione in tutta l'app.
+    return Container(
+      margin: EdgeInsets.only(bottom: R.sp(23)), // CSS: gap 23 tra card
+      child: Stack(
+        children: [
+          TicketCollapsedCard(
+            clubName: locale,
+            onTap: () => NavigatorService.pushNamed(
+              AppRoutes.prevenditaDetailScreen,
+              arguments: item,
+            ),
           ),
-        ),
+          // Stato (solo "usato" — le annullate sono filtrate a monte).
+          if (_shouldShowStatePill(stato))
+            Positioned(
+              top: R.sp(10),
+              right: R.sp(14),
+              child: _buildStatePill(stato),
+            ),
+        ],
       ),
     );
   }

@@ -106,6 +106,18 @@ class TicketFrontCard extends StatelessWidget {
   /// Richiude il biglietto ("Nascondi QR Code" + freccia su).
   final VoidCallback onCollapse;
 
+  /// Azione "ANNULLA PREVENDITA", mostrata sotto "Nascondi QR Code" quando
+  /// valorizzata (flusso critico non previsto dal Figma: vedi CLAUDE.md §1).
+  /// Se null la riga non compare (es. prevendita già annullata o schermata
+  /// post-ordine, dove annullare subito non ha senso).
+  final VoidCallback? onAnnulla;
+
+  /// Mostra lo spinner al posto del testo mentre l'annullamento è in corso.
+  final bool isAnnullando;
+
+  /// Testo mostrato al posto del bottone quando la prevendita è annullata.
+  final String? annullataLabel;
+
   const TicketFrontCard({
     Key? key,
     required this.ticketType,
@@ -116,19 +128,25 @@ class TicketFrontCard extends StatelessWidget {
     required this.prezzo,
     required this.onShowQr,
     required this.onCollapse,
+    this.onAnnulla,
+    this.isAnnullando = false,
+    this.annullataLabel,
   }) : super(key: key);
 
   @override
   Widget build(BuildContext context) {
+    // La riga ANNULLA (fuori Figma) allunga la card quando presente.
+    final hasAnnulla = onAnnulla != null || annullataLabel != null;
+    final cardH = hasAnnulla ? 614.0 + 47.0 : 614.0;
     return SizedBox(
-      height: R.sp(614),
+      height: R.sp(cardH),
       width: double.infinity,
       child: TicketShape(
         // Tacche all'altezza ESATTA delle due linee tratteggiate
         // (CSS Line 15 @297 e Line 16 @445 su card a 157, h 614).
-        notches: const [
-          TicketNotch(centerYFraction: 140 / 614, radiusDesign: 20.5),
-          TicketNotch(centerYFraction: 288 / 614, radiusDesign: 20.5),
+        notches: [
+          TicketNotch(centerYFraction: 140 / cardH, radiusDesign: 20.5),
+          TicketNotch(centerYFraction: 288 / cardH, radiusDesign: 20.5),
         ],
         borderWidthDesign: 3,
         borderColor: OnlistColors.ticketCardBorderOpen,
@@ -268,6 +286,56 @@ class TicketFrontCard extends StatelessWidget {
                 ),
               ),
             ),
+            // ANNULLA PREVENDITA — non è nel Figma ma è un flusso critico:
+            // sta dentro il fronte del biglietto, sotto "Nascondi QR Code".
+            if (hasAnnulla) ...[
+              SizedBox(height: R.sp(14)),
+              Center(
+                child: annullataLabel != null
+                    ? Text(
+                        annullataLabel!,
+                        style: OnlistTextStyles.hn(
+                          color: Colors.redAccent,
+                          fontSize: R.sp(16),
+                          fontWeight: FontWeight.w500,
+                          height: 16 / 16,
+                          letterSpacing: -0.1 * 16,
+                        ),
+                      )
+                    : GestureDetector(
+                        onTap: isAnnullando ? null : onAnnulla,
+                        behavior: HitTestBehavior.opaque,
+                        child: Container(
+                          width: R.sp(186),
+                          height: R.sp(33),
+                          decoration: BoxDecoration(
+                            color: const Color(0x33FFFFFF),
+                            border: Border.all(
+                                color: const Color(0x73FFFFFF), width: 1),
+                            borderRadius: BorderRadius.circular(R.sp(18)),
+                          ),
+                          alignment: Alignment.center,
+                          child: isAnnullando
+                              ? SizedBox(
+                                  width: R.sp(16),
+                                  height: R.sp(16),
+                                  child: const CircularProgressIndicator(
+                                      color: Colors.white, strokeWidth: 2),
+                                )
+                              : Text(
+                                  'ANNULLA PREVENDITA',
+                                  style: OnlistTextStyles.hn(
+                                    color: Colors.white,
+                                    fontSize: R.sp(16),
+                                    fontWeight: FontWeight.w500,
+                                    height: 16 / 16,
+                                    letterSpacing: -0.1 * 16,
+                                  ),
+                                ),
+                        ),
+                      ),
+              ),
+            ],
           ],
         ),
       ),
