@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -9,6 +10,7 @@ import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/glow_card.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/image_fallback.dart';
@@ -115,11 +117,13 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Design NUOVO: sfondo NERO FISSO dietro tutte le schermate (niente
+      // gradiente screenBackground).
       backgroundColor: Colors.black,
       // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
       extendBody: true,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+      body: ColoredBox(
+        color: Colors.black,
         child: BlocConsumer<HomeBloc, HomeState>(
         // Reagisce a: (1) GPS forzato non disponibile → messaggio; (2) fine del
         // caricamento dati (isLoading true→false) → tempo di caricamento Home.
@@ -385,11 +389,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
             ),
           ),
         ),
-        // Pill "Il tuo club preferito" — solo se il club è nei preferiti
+        // Pill "Il tuo club preferito" — solo se il club è nei preferiti.
+        // CSS NUOVO/home.css: pill a 12,17 dal bordo della foto.
         if (club != null)
           Positioned(
-            top: 12,
-            left: 16,
+            top: R.sp(17),
+            left: R.sp(12),
             child: _FavoritePill(clubId: club.id),
           ),
       ],
@@ -411,33 +416,23 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   }
 
   // ── Club name ──────────────────────────────────────────────────────────────
+  // CSS NUOVO/home.css: "Amnesia Club" 36/700/-0.08 a left 13, 25px sotto
+  // l'hero. Niente bookmark in Home (resta nel dettaglio club).
 
   Widget _buildClubName(HomeState state) {
     return Padding(
-      padding: const EdgeInsets.only(left: 14, top: 11, right: 14),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          Expanded(
-            child: Text(
-              state.localeVicino?.nome ?? '',
-              style: OnlistTextStyles.hn(
-                fontSize: R.sp(36),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                height: 36 / 36, // Figma: line-height 36px = font-size
-                letterSpacing: -0.08 * 36,
-              ),
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          if (state.localeVicino != null)
-            Padding(
-              padding: const EdgeInsets.only(left: 8.0),
-              child: _AnimatedBookmark(clubId: state.localeVicino!.id),
-            ),
-        ],
+      padding: EdgeInsets.only(left: R.sp(13), top: R.sp(25), right: R.sp(13)),
+      child: Text(
+        state.localeVicino?.nome ?? '',
+        style: OnlistTextStyles.hn(
+          fontSize: R.sp(36),
+          fontWeight: FontWeight.w700,
+          color: Colors.white,
+          height: 36 / 36, // Figma: line-height 36px = font-size
+          letterSpacing: -0.08 * 36,
+        ),
+        maxLines: 1,
+        overflow: TextOverflow.ellipsis,
       ),
     );
   }
@@ -453,17 +448,17 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       if (locale.indirizzo != null && locale.indirizzo!.isNotEmpty) locale.indirizzo!,
     ].join(' - ');
 
-    // Figma 07-aggiornato: sotto l'hero c'è solo l'indirizzo (Helvetica Neue 500 24px).
-    // Le righe orario/prezzo/generi sono state rimosse per aderire al layout Figma.
+    // CSS NUOVO/home.css: indirizzo "Milano - Via Alfonso Gatto" 16/500,
+    // left 13, 6px sotto il nome.
     return Padding(
-      padding: const EdgeInsets.fromLTRB(14, 3, 14, 0),
+      padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(6), R.sp(13), 0),
       child: Text(
         addr,
         style: OnlistTextStyles.hn(
-          fontSize: R.sp(24),
+          fontSize: R.sp(16),
           color: Colors.white,
           fontWeight: FontWeight.w500,
-          height: 24 / 24,
+          height: 16 / 16,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -472,35 +467,44 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   }
 
   // ── Reserve CTA → schermata 10 (club detail) ────────────────────────────
+  // CSS NUOVO/home.css Frame 350: pill 368×49 r18, radial
+  // `#0077FF 32.69% → #0000FF` col picco a sinistra (3.12%, 32.65%) e glow
+  // interno ciano `inset 0 0 23.8 rgba(0,255,255,0.57)`; testo Inter 700 20.
 
   Widget _buildReserveButton(BuildContext context, HomeState state) {
     final club = state.localeVicino;
     if (club == null) return const SizedBox.shrink();
 
     return Padding(
-      padding: const EdgeInsets.fromLTRB(11, 13, 11, 4),
+      padding: EdgeInsets.fromLTRB(R.sp(12.5), R.sp(14), R.sp(12.5), 0),
       child: AnimatedPress(
         onPressed: () => _navigateToClubDetail(context, club),
-        child: Container(
+        child: SizedBox(
           width: double.infinity,
-          height: 49,
-          decoration: BoxDecoration(
-            gradient: const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Color(0x33989898), Color(0x331E00FF)],
+          height: R.sp(49),
+          child: GlowCard(
+            // Raggio CSS 65.9% della larghezza (368 → ~242px); RadialGradient
+            // di Flutter misura sul lato corto (49) → 242/49 ≈ 4.95.
+            gradient: const RadialGradient(
+              center: Alignment(-0.94, -0.35), // 3.12%, 32.65%
+              radius: 4.95,
+              colors: [Color(0xFF0077FF), Color(0xFF0000FF)],
+              stops: [0.3269, 1.0],
             ),
-            borderRadius: BorderRadius.circular(10),
-          ),
-          alignment: Alignment.center,
-          child: Text(
-            'RISERVA IL TUO POSTO ORA',
-            style: OnlistTextStyles.hn(
-              fontSize: R.sp(20),
-              fontWeight: FontWeight.w700,
-              color: OnlistColors.white,
-              height: 23 / 20,
-              letterSpacing: -0.08 * 20,
+            radius: R.sp(18),
+            glowColor: const Color(0x9100FFFF), // rgba(0,255,255,0.57)
+            glowSigma: R.sp(11.9), // blur CSS 23.8 → sigma ≈ 11.9
+            child: Center(
+              child: Text(
+                'RISERVA IL TUO POSTO ORA',
+                style: GoogleFonts.inter(
+                  fontSize: R.sp(20),
+                  fontWeight: FontWeight.w700,
+                  color: OnlistColors.white,
+                  height: 24 / 20,
+                  letterSpacing: -0.08 * R.sp(20),
+                ),
+              ),
             ),
           ),
         ),
@@ -511,8 +515,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   // ── Section title "Club consigliati" ───────────────────────────────────────
 
   Widget _buildSectionTitle() {
+    // CSS NUOVO/home.css: titolo sezione 32/700/-0.08 a left 13, 6px sotto la
+    // CTA e 16px sopra la prima card. (Nel Figma la label è "Prossime serate"
+    // per errore: la sezione mostra CLUB → il testo resta "Club consigliati".)
     return Padding(
-      padding: const EdgeInsets.fromLTRB(10, 12, 10, 9),
+      padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(6), R.sp(13), R.sp(16)),
       child: Text(
         'Club consigliati',
         style: OnlistTextStyles.hn(
@@ -534,7 +541,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       children: [
         for (final club in state.recommendedClubs)
           Padding(
-            padding: const EdgeInsets.fromLTRB(10, 0, 10, 7),
+            // CSS NUOVO: card a left 11, gap verticale 9 tra le card.
+            padding: EdgeInsets.fromLTRB(R.sp(11), 0, R.sp(11), R.sp(9)),
             child: _scaleToWidth(
               designW: 369,
               designH: 108,
@@ -553,153 +561,172 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   }
 
   Widget _buildRecommendedClubCard(BuildContext context, LocaleModel club) {
-    // Riusa il layout della card Figma "Club consigliati" (07-aggiornato):
-    // immagine sinistra, nome + generi + città a destra, bottone PRENOTA.
+    // Card club NUOVO design (home.css Frame 352): 369×108 r10, gradiente
+    // `90deg rgba(0,119,255,.8) 39.42% → rgba(0,0,255,.8)` + ombra interna
+    // nera (inset 0 4 100 25%); foto 165×95 r7 a (6,7); nome 32/700; pill
+    // info blu con l'orario; città 12/700 80%; PRENOTA 86×38 r6.48.
+    // NB: siamo dentro _scaleToWidth(369×108) → px design puri, niente R.sp.
     return AnimatedPress(
       onPressed: () => _navigateToClubDetail(context, club),
-      child: Container(
-        width: 369,
-        height: 108,
-        // Clippa il contenuto al raggio della card così l'immagine non sborda
-        // dagli angoli arrotondati.
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          // Ufficiale "Club consigliati": #000 28% → #000B83 79% (OnlistColors).
-          gradient: OnlistColors.cardEvent,
-          borderRadius: BorderRadius.circular(10),
-        ),
-        child: Stack(
-          children: [
-            // Foto del club — inset 6px come home.css (allineata al bordo card).
-            Positioned(
-              left: 6,
-              top: 6,
-              child: _heroWrap(
-                tag: 'club-img-${club.id}',
-                enabled: club.fotoUrl != null,
-                child: ClipRRect(
-                  borderRadius: BorderRadius.circular(10),
-                  child: Container(
-                    width: 165,
-                    height: 96,
-                    color: const Color(0xFF2A2A2A),
-                    child: club.fotoUrl != null
-                        ? CachedNetworkImage(
-                            imageUrl: club.fotoUrl!,
-                            fit: BoxFit.cover,
-                            memCacheWidth: 495,
-                            memCacheHeight: 285,
-                            errorWidget: (_, __, ___) =>
-                                ImageFallback(seed: club.id),
-                          )
-                        : ImageFallback(seed: club.id),
-                  ),
-                ),
-              ),
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(10),
+        child: SizedBox(
+          width: 369,
+          height: 108,
+          child: GlowCard(
+            gradient: const LinearGradient(
+              begin: Alignment.centerLeft,
+              end: Alignment.centerRight,
+              colors: [Color(0xCC0077FF), Color(0xCC0000FF)],
+              stops: [0.3942, 1.0],
             ),
-            // Nome del club
-            Positioned(
-              left: 189,
-              top: 7,
-              child: SizedBox(
-                width: 159,
-                child: Text(
-                  club.nome,
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                  style: OnlistTextStyles.hn(
-                    fontSize: 32,
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white,
-                    height: 37 / 32,
-                    letterSpacing: -0.08 * 32,
-                  ),
-                ),
-              ),
-            ),
-            // Orario apertura–chiusura (fallback ai generi se il locale non ha
-            // orari). Larghezza vincolata + ellipsis così non sfora la card.
-            if (_recommendedInfoLine(club).isNotEmpty)
-              Positioned(
-                left: 193,
-                top: 54,
-                child: SizedBox(
-                  width: 80,
-                  child: Text(
-                    _recommendedInfoLine(club),
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: OnlistTextStyles.hn(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
-                      height: 12 / 12,
-                    ),
-                  ),
-                ),
-              ),
-            // Città — larghezza vincolata per non finire sotto il bottone PRENOTA.
-            Positioned(
-              left: 189,
-              top: 90,
-              child: Opacity(
-                opacity: 0.8,
-                child: SizedBox(
-                  width: 84,
-                  child: Text(
-                    club.nomeCitta ?? '',
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: OnlistTextStyles.hn(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 12 / 12,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-            // PRENOTA → schermata 10 (club detail). Bordo dx con 9px di respiro
-            // dal margine card (369 - 86 - 9 = 274) come nel Figma 07-aggiornato.
-            Positioned(
-              left: 274,
-              top: 62,
-              child: GestureDetector(
-                onTap: () => _navigateToClubDetail(context, club),
-                child: Container(
-                  width: 86,
-                  height: 38,
-                  decoration: BoxDecoration(
-                    gradient: const LinearGradient(
-                      colors: [Color(0xFF1500B3), Color(0xFF201064)],
-                      begin: Alignment.centerLeft,
-                      end: Alignment.centerRight,
-                    ),
-                    borderRadius: BorderRadius.circular(6.48),
-                    boxShadow: [
-                      BoxShadow(
-                        color: Colors.black.withValues(alpha: 0.25),
-                        offset: const Offset(0, 4),
-                        blurRadius: 4,
+            radius: 10,
+            glowColor: const Color(0x40000000), // rgba(0,0,0,0.25)
+            glowSigma: 50, // blur CSS 100
+            glowOffset: const Offset(0, 4),
+            child: Stack(
+              children: [
+                // Foto del club — 165×95 r7 a (6,7) come da CSS.
+                Positioned(
+                  left: 6,
+                  top: 7,
+                  child: _heroWrap(
+                    tag: 'club-img-${club.id}',
+                    enabled: club.fotoUrl != null,
+                    child: ClipRRect(
+                      borderRadius: BorderRadius.circular(7),
+                      child: Container(
+                        width: 165,
+                        height: 95,
+                        color: const Color(0xFF2A2A2A),
+                        child: club.fotoUrl != null
+                            ? CachedNetworkImage(
+                                imageUrl: club.fotoUrl!,
+                                fit: BoxFit.cover,
+                                memCacheWidth: 495,
+                                memCacheHeight: 285,
+                                errorWidget: (_, __, ___) =>
+                                    ImageFallback(seed: club.id),
+                              )
+                            : ImageFallback(seed: club.id),
                       ),
-                    ],
-                  ),
-                  alignment: Alignment.center,
-                  child: Text(
-                    'PRENOTA',
-                    style: OnlistTextStyles.hn(
-                      fontSize: 15.55,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 18 / 15.55,
-                      letterSpacing: -0.1 * 15.55,
                     ),
                   ),
                 ),
-              ),
+                // Nome del club (CSS: left 187 → 176 rel, top 7, 32/700/-0.08).
+                Positioned(
+                  left: 176,
+                  top: 7,
+                  child: SizedBox(
+                    width: 184,
+                    child: Text(
+                      club.nome,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: OnlistTextStyles.hn(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w700,
+                        color: Colors.white,
+                        height: 37 / 32,
+                        letterSpacing: -0.08 * 32,
+                      ),
+                    ),
+                  ),
+                ),
+                // Pill info (CSS Rectangle 188: 78×30 r4, blu 20% × opacity .3)
+                // con dentro l'orario del club (i dati sono CLUB, niente data).
+                if (_recommendedInfoLine(club).isNotEmpty)
+                  Positioned(
+                    left: 176,
+                    top: 48,
+                    child: Container(
+                      width: 78,
+                      height: 30,
+                      decoration: BoxDecoration(
+                        color: const Color(0x0F002AFF), // 0.2 × 0.3 ≈ 6%
+                        borderRadius: BorderRadius.circular(4),
+                      ),
+                      alignment: Alignment.centerLeft,
+                      padding: const EdgeInsets.symmetric(horizontal: 4),
+                      child: Text(
+                        _recommendedInfoLine(club),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: OnlistTextStyles.hn(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w400,
+                          color: Colors.white,
+                          height: 12 / 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                // Città (CSS: left 176 rel, top 90, 12/700, opacità 80%).
+                Positioned(
+                  left: 176,
+                  top: 90,
+                  child: Opacity(
+                    opacity: 0.8,
+                    child: SizedBox(
+                      width: 90,
+                      child: Text(
+                        club.nomeCitta ?? '',
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: OnlistTextStyles.hn(
+                          fontSize: 12,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 12 / 12,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+                // PRENOTA (CSS Bottoni: 86×38 a (274,61), r6.48, gradiente
+                // 90deg #0066FF→#0084FF scurito dal velo nero 20% — colori
+                // pre-moltiplicati; una card del CSS ha →#000000: svista,
+                // consolidato su #0084FF).
+                Positioned(
+                  left: 274,
+                  top: 61,
+                  child: GestureDetector(
+                    onTap: () => _navigateToClubDetail(context, club),
+                    child: Container(
+                      width: 86,
+                      height: 38,
+                      decoration: BoxDecoration(
+                        gradient: const LinearGradient(
+                          colors: [Color(0xFF0052CC), Color(0xFF006ACC)],
+                          begin: Alignment.centerLeft,
+                          end: Alignment.centerRight,
+                        ),
+                        borderRadius: BorderRadius.circular(6.48),
+                        boxShadow: [
+                          BoxShadow(
+                            color: Colors.black.withValues(alpha: 0.25),
+                            offset: const Offset(0, 4),
+                            blurRadius: 4,
+                          ),
+                        ],
+                      ),
+                      alignment: Alignment.center,
+                      child: Text(
+                        'PRENOTA',
+                        style: OnlistTextStyles.hn(
+                          fontSize: 15.55,
+                          fontWeight: FontWeight.w700,
+                          color: Colors.white,
+                          height: 18 / 15.55,
+                          letterSpacing: -0.1 * 15.55,
+                        ),
+                      ),
+                    ),
+                  ),
+                ),
+              ],
             ),
-          ],
+          ),
         ),
       ),
     );
@@ -872,86 +899,5 @@ class _FavoritePillState extends State<_FavoritePill> {
   }
 }
 
-// ── Animated Bookmark ───────────────────────────────────────────────────────
-
-class _AnimatedBookmark extends StatefulWidget {
-  final String clubId;
-  const _AnimatedBookmark({Key? key, required this.clubId}) : super(key: key);
-  @override
-  _AnimatedBookmarkState createState() => _AnimatedBookmarkState();
-}
-
-class _AnimatedBookmarkState extends State<_AnimatedBookmark> with SingleTickerProviderStateMixin {
-  bool isSaved = false;
-  late AnimationController _ctrl;
-  late Animation<double> _scale;
-
-  @override
-  void initState() {
-    super.initState();
-    _ctrl = AnimationController(vsync: this, duration: const Duration(milliseconds: 200));
-    _scale = TweenSequence<double>([
-      TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.4), weight: 50),
-      TweenSequenceItem(tween: Tween(begin: 1.4, end: 1.0), weight: 50),
-    ]).animate(_ctrl);
-    
-    _checkPreferito();
-  }
-
-  Future<void> _checkPreferito() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-    final saved = await ClubService.isPreferito(user.id, widget.clubId);
-    if (mounted) {
-      setState(() => isSaved = saved);
-    }
-  }
-
-  Future<void> _togglePreferito() async {
-    final user = Supabase.instance.client.auth.currentUser;
-    if (user == null) return;
-
-    final newState = !isSaved;
-    setState(() => isSaved = newState);
-    _ctrl.forward(from: 0.0);
-
-    try {
-      if (newState) {
-        await ClubService.addPreferito(user.id, widget.clubId);
-      } else {
-        await ClubService.removePreferito(user.id, widget.clubId);
-      }
-    } catch (_) {
-      // Revert in caso di errore
-      if (mounted) {
-        setState(() => isSaved = !newState);
-      }
-    }
-  }
-
-  @override
-  void dispose() {
-    _ctrl.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: _togglePreferito,
-      child: AnimatedBuilder(
-        animation: _scale,
-        builder: (context, child) {
-          return Transform.scale(
-            scale: _scale.value,
-            child: Icon(
-              isSaved ? Icons.bookmark : Icons.bookmark_border,
-              color: Colors.white,
-              size: 48,
-            ),
-          );
-        },
-      ),
-    );
-  }
-}
+// (Il bookmark accanto al nome è stato rimosso dalla Home col design NUOVO:
+// il salvataggio del club resta nelle schermate di dettaglio.)
