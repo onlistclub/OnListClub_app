@@ -206,11 +206,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Design NUOVO: sfondo NERO FISSO (niente gradiente screenBackground).
       backgroundColor: Colors.black,
       // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
       extendBody: true,
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+      body: ColoredBox(
+        color: Colors.black,
         child: BlocConsumer<ClubDetailBloc, ClubDetailState>(
         listenWhen: (prev, curr) =>
             prev.showFavoriteBadge != curr.showFavoriteBadge ||
@@ -287,7 +288,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                             child: _buildInfoRows(state.locale, state.eventoOggi),
                           ),
                         ),
-                        const SizedBox(height: 20),
+                        // CSS NUOVO: generi bottom 509 → titolo sezione 519.
+                        SizedBox(height: R.sp(10)),
                         // Prossime serate (la PRENOTA serata naviga alla
                         // bookingScreen, pagina di scelta Tavolo/Prevendita)
                         if (state.serate.isNotEmpty || !state.isLoading)
@@ -393,10 +395,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     );
   }
 
-  // ── Title row: nome club + bookmark a destra (Figma 10) ─────────────────────
+  // ── Title row: nome club + bookmark a destra ────────────────────────────────
+  // CSS NUOVO: nome a left 14, 11px sotto l'hero (382 vs hero bottom 371).
   Widget _buildTitleRow(BuildContext context, ClubDetailState state) {
     return Padding(
-      padding: const EdgeInsets.fromLTRB(13, 25, 13, 0),
+      padding: EdgeInsets.fromLTRB(R.sp(14), R.sp(11), R.sp(13), 0),
       child: Row(
         crossAxisAlignment: CrossAxisAlignment.center,
         children: [
@@ -439,9 +442,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   // ── Subtitle (indirizzo) — tap → Google Maps ────────────────────────────────
   Widget _buildSubtitle(LocaleModel locale) {
     return Padding(
-      // Indirizzo attaccato al nome del club (Figma off): niente gap verticale
-      // sopra, sta sotto la baseline del titolo.
-      padding: const EdgeInsets.fromLTRB(13, 2, 13, 0),
+      // CSS NUOVO: indirizzo a left 15, 5px sotto il nome (428 vs 423).
+      padding: EdgeInsets.fromLTRB(R.sp(15), R.sp(5), R.sp(13), 0),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _openMaps(locale.indirizzoCompleto),
@@ -467,8 +469,11 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         ? evento!.generiMusicali.join(' - ')
         : locale.generiString;
 
+    // CSS NUOVO: clock a (15,459) → 8px sotto l'indirizzo; riga generi 9px
+    // sotto (icona music a 490, clock bottom 479 + Figma sloppiness 13/15
+    // unificata a 15).
     return Padding(
-      padding: const EdgeInsets.fromLTRB(13, 12, 13, 0),
+      padding: EdgeInsets.fromLTRB(R.sp(15), R.sp(8), R.sp(13), 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -489,7 +494,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
               ],
             ),
           if (generi.isNotEmpty) ...[
-            const SizedBox(height: 6),
+            SizedBox(height: R.sp(9)),
             Row(
               children: [
                 Icon(Icons.music_note_rounded,
@@ -520,7 +525,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          padding: const EdgeInsets.fromLTRB(13, 0, 13, 14),
+          // CSS NUOVO: titolo a left 15, 10px sopra la prima card (556→566).
+          padding: EdgeInsets.fromLTRB(R.sp(15), 0, R.sp(13), R.sp(10)),
           child: Text(
             'Prossime serate',
             style: OnlistTextStyles.hn(
@@ -552,6 +558,14 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   }
 
 }
+
+/// Gradiente PRENOTA del design NUOVO (Home Disco singola, Rectangle 164):
+/// `linear-gradient(90deg, #0040A1 0%, #0084FF 100%)`.
+const LinearGradient _prenotaGradient = LinearGradient(
+  begin: Alignment.centerLeft,
+  end: Alignment.centerRight,
+  colors: [Color(0xFF0040A1), Color(0xFF0084FF)],
+);
 
 /// Vero se la serata è oggi o domani (data di calendario, mezzanotte-normalizzata).
 /// Stessa regola di `_SerataCard._dayLabel`: decide quale card usare.
@@ -630,12 +644,31 @@ class _SerataCard extends StatelessWidget {
             width: 369,
             height: 132,
             decoration: BoxDecoration(
-              // Ufficiale "Prossime serate": #000 28% → #000B83 79% (OnlistColors).
-              gradient: OnlistColors.cardEvent,
+              // CSS NUOVO Frame 351: 90deg #0077FF 28.37% → #0002AE 79.33%.
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFF0077FF), Color(0xFF0002AE)],
+                stops: [0.2837, 0.7933],
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Stack(
               children: [
+                // Pill dietro data+orario (CSS Rectangle 273: 162×34 r4 a
+                // (103,69), blu 20% × opacity .3 ≈ 6%).
+                Positioned(
+                  left: 103,
+                  top: 69,
+                  child: Container(
+                    width: 162,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: const Color(0x0F002AFF),
+                      borderRadius: BorderRadius.circular(4),
+                    ),
+                  ),
+                ),
                 // Locandina 95×119 @ (6,6)
                 Positioned(
                   left: 6,
@@ -737,10 +770,10 @@ class _SerataCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // PRENOTA @ (274,88) — 86×38
+                // PRENOTA @ (273,87) — 86×38 (CSS NUOVO)
                 Positioned(
-                  left: 274,
-                  top: 88,
+                  left: 273,
+                  top: 87,
                   child: GestureDetector(
                     behavior: HitTestBehavior.opaque,
                     onTap: isSoldOut
@@ -753,10 +786,8 @@ class _SerataCard extends StatelessWidget {
                       width: 86,
                       height: 38,
                       decoration: BoxDecoration(
-                        // PRENOTA standard d'app (Figma `Rectangle 164`):
-                        // #1E00FF → #201064 verticale. Stesso stile usato dalla
-                        // card ticket booking — fonte unica `bookButton`.
-                        gradient: isSoldOut ? null : OnlistColors.bookButton,
+                        // CSS NUOVO: 90deg #0040A1 → #0084FF.
+                        gradient: isSoldOut ? null : _prenotaGradient,
                         color: isSoldOut
                             ? Colors.white.withValues(alpha: 0.18)
                             : null,
@@ -842,7 +873,13 @@ class _SerataCompactCard extends StatelessWidget {
             height: 108,
             clipBehavior: Clip.antiAlias,
             decoration: BoxDecoration(
-              gradient: OnlistColors.cardEvent,
+              // Palette NUOVO allineata alla card OGGI (stesso gradiente).
+              gradient: const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFF0077FF), Color(0xFF0002AE)],
+                stops: [0.2837, 0.7933],
+              ),
               borderRadius: BorderRadius.circular(10),
             ),
             child: Stack(
@@ -960,7 +997,7 @@ class _SerataCompactCard extends StatelessWidget {
                       width: 86,
                       height: 38,
                       decoration: BoxDecoration(
-                        gradient: isSoldOut ? null : OnlistColors.bookButton,
+                        gradient: isSoldOut ? null : _prenotaGradient,
                         color: isSoldOut
                             ? Colors.white.withValues(alpha: 0.18)
                             : null,
