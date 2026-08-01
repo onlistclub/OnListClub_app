@@ -1,3 +1,5 @@
+import 'dart:io';
+
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -126,11 +128,88 @@ class OrdersService {
   static Future<Map<String, dynamic>?> getUserProfile() async {
     final user = _client.auth.currentUser;
     if (user == null) return null;
-    return _client
-        .from('utenti')
-        .select('id, nome, cognome, data_nascita, email')
-        .eq('id', user.id)
-        .maybeSingle();
+    // `foto_url` esiste solo dopo la migration 2026-08-01_foto_profilo_utenti:
+    // se la colonna non c'è la select fallisce, quindi si ricade su quella
+    // base — la schermata Account continua a funzionare senza foto.
+    try {
+      return await _client
+          .from('utenti')
+          .select('id, nome, cognome, data_nascita, email, foto_url')
+          .eq('id', user.id)
+          .maybeSingle();
+    } catch (_) {
+      return _client
+          .from('utenti')
+          .select('id, nome, cognome, data_nascita, email')
+          .eq('id', user.id)
+          .maybeSingle();
+    }
+  }
+
+  /// Numero di telefono primario dell'utente (E.164), da
+  /// `utenti_numeri_telefono` — NON è una colonna di `utenti`.
+  static Future<String?> getUserTelefono() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return null;
+    try {
+      final row = await _client
+          .from('utenti_numeri_telefono')
+          .select('telefono, is_primary')
+          .eq('id_utente', user.id)
+          .order('is_primary', ascending: false)
+          .limit(1)
+          .maybeSingle();
+      return row?['telefono'] as String?;
+    } catch (e) {
+      debugPrint('[OrdersService] getUserTelefono errore: $e');
+      return null;
+    }
+  }
+
+  /// Quante prevendite ha acquistato l'utente (annullate escluse): è il numero
+  /// mostrato dalla card "Tu e OnList" nella schermata Account.
+  static Future<int> getNumeroSerate() async {
+    final user = _client.auth.currentUser;
+    if (user == null) return 0;
+    try {
+      final rows = await _client
+          .from('prenotazioni_prevendite')
+          .select('id, prenotazioni(stato)')
+          .eq('id_utente', user.id);
+      return rows
+          .where((r) =>
+              ((r['prenotazioni'] as Map<String, dynamic>?)?['stato']
+                      ?.toString()
+                      .toLowerCase()) !=
+              'annullata')
+          .length;
+    } catch (e) {
+      debugPrint('[OrdersService] getNumeroSerate errore: $e');
+      return 0;
+    }
+  }
+
+  /// Carica la foto profilo sul bucket Storage `avatars` e salva l'URL
+  /// pubblico su `utenti.foto_url`. Richiede la migration
+  /// `2026-08-01_foto_profilo_utenti.sql` (colonna + bucket + policy).
+  /// Restituisce l'URL salvato.
+  static Future<String> uploadFotoProfilo(File file) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw Exception('Utente non autenticato');
+    final ext = file.path.split('.').last.toLowerCase();
+    // Un solo file per utente (upsert): niente accumulo di vecchie foto.
+    final path = '${user.id}/avatar.$ext';
+    await _client.storage.from('avatars').upload(
+          path,
+          file,
+          fileOptions: const FileOptions(upsert: true),
+        );
+    final url = _client.storage.from('avatars').getPublicUrl(path);
+    // Cache-busting: l'URL è sempre lo stesso, senza query la vecchia foto
+    // resterebbe in cache dopo il cambio.
+    final versioned = '$url?v=${DateTime.now().millisecondsSinceEpoch}';
+    await _client.from('utenti').update({'foto_url': versioned}).eq('id', user.id);
+    return versioned;
   }
 
   static Future<void> updateProfile({String? nome, String? cognome, String? dataNascita}) async {

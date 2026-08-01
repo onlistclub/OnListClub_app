@@ -26,6 +26,9 @@ dependencies:
   latlong2: ^0.10.1
   qr_flutter: ^4.1.0
   device_info_plus: ^13.2.0
+  # Foto profilo (schermata Account): selezione immagine da galleria/fotocamera,
+  # poi upload su Supabase Storage (bucket `avatars`).
+  image_picker: ^1.1.2
 dev_dependencies:
   flutter_test:    # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
     sdk: flutter   # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE

@@ -1,5 +1,8 @@
+import 'dart:io';
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -15,6 +18,8 @@ import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
+import '../../widgets/dashed_line.dart';
+import '../../widgets/glow_card.dart';
 import '../../widgets/shared_footer.dart';
 
 class ProfileScreen extends StatefulWidget {
@@ -40,6 +45,13 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   bool _hasChanges = false;
   List<Map<String, dynamic>> _preferiti = [];
 
+  // Dati del pannello Account (design NUOVO): telefono da
+  // `utenti_numeri_telefono`, conteggio serate e foto profilo.
+  String? _telefono;
+  int _numeroSerate = 0;
+  String? _fotoUrl;
+  bool _isUploadingFoto = false;
+
   // Cache in memoria condivisa tra le aperture: riaprendo il Profilo si mostrano
   // subito gli ultimi dati (niente spinner), mentre un refresh silenzioso in
   // background li aggiorna. Aggiornata anche al salvataggio del profilo.
@@ -59,6 +71,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       // aggiorna in background senza far ricomparire il loader.
       _applyControllers(_cachedProfile);
       _preferiti = _cachedPreferiti ?? _preferiti;
+      _fotoUrl = _cachedProfile?['foto_url'] as String?;
       _isLoading = false;
       _loadData(silent: true);
     } else {
@@ -94,10 +107,15 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       final results = await Future.wait([
         OrdersService.getUserProfile(),
         OrdersService.getPreferiti(),
+        OrdersService.getUserTelefono(),
+        OrdersService.getNumeroSerate(),
       ]);
 
       final profile = results[0] as Map<String, dynamic>?;
       final preferiti = results[1] as List<Map<String, dynamic>>;
+      _telefono = results[2] as String?;
+      _numeroSerate = results[3] as int;
+      _fotoUrl = profile?['foto_url'] as String?;
 
       _cachedProfile = profile;
       _cachedPreferiti = preferiti;
@@ -184,7 +202,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   }
 
   Future<void> _saveProfile() async {
-    if (!_hasChanges) return;
+    // `_isSaving` fa anche da guardia: il dialog di modifica può essere
+    // riaperto e confermato più volte, il salvataggio parte una sola volta.
+    if (!_hasChanges || _isSaving) return;
     setState(() => _isSaving = true);
     try {
       String? dataNascitaDb;
@@ -450,19 +470,20 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      // Design NUOVO: sfondo NERO FISSO.
       backgroundColor: OnlistColors.black,
       // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
       extendBody: true,
-      body: Container(
-        decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+      body: ColoredBox(
+        color: OnlistColors.black,
         child: SafeArea(
           bottom: false,
           child: Column(
             children: [
               // Navbar fissa condivisa (logo + ricerca + persona) — come Figma.
               // Tap "persona" no-op: si è già sulla pagina Account.
-              // Nessun "Torna indietro": la pagina Account è una tab principale.
               CustomTopBar(onProfileTap: () {}),
+              _buildBackRow(),
               Expanded(
                 child: _isLoading
                     ? const AppLoadingIndicator()
@@ -471,43 +492,10 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                         child: Column(
                           crossAxisAlignment: CrossAxisAlignment.start,
                           children: [
-                            SizedBox(height: R.sp(8)),
-                            // ── Campi dati personali (sottolineati, stile Figma) ──
-                            _buildField(label: 'Nome', controller: _nomeCtrl),
-                            _buildField(label: 'Cognome', controller: _cognomeCtrl),
-                            _buildField(
-                              label: 'Data di nascita',
-                              controller: _dataNascitaCtrl,
-                              readOnly: true,
-                              onTap: _pickDate,
-                            ),
-                            _buildField(label: 'Email', controller: _emailCtrl, readOnly: true),
-                            // Pulsante salva (appare solo se ci sono modifiche)
-                            _buildSaveButton(),
-                            SizedBox(height: R.sp(24)),
-                            // ── Salvati (preferiti) — sezione SEMPRE visibile ──
-                            _buildSectionTitle('Salvati'),
-                            SizedBox(height: R.sp(8)),
-                            if (_preferiti.isEmpty)
-                              Padding(
-                                padding: const EdgeInsets.symmetric(horizontal: 24),
-                                child: Text(
-                                  'Non hai preferiti',
-                                  style: OnlistTextStyles.hn(
-                                    fontSize: R.sp(16),
-                                    fontWeight: FontWeight.w400,
-                                    color: OnlistColors.white.withValues(alpha: 0.6),
-                                  ),
-                                ),
-                              )
-                            else
-                              ..._preferiti.map((p) {
-                                final locale = p['locali'] as Map<String, dynamic>?;
-                                if (locale == null) return const SizedBox.shrink();
-                                return _buildPreferitoCard(locale);
-                              }),
+                            // Pannello blu con foto profilo sovrapposta.
+                            _buildProfilePanel(),
                             SizedBox(height: R.sp(20)),
-                            // ── Azioni account (mantenute, restyle minimale) ──
+                            // ── Azioni account (invariate) ──
                             _buildAccountActions(),
                             SizedBox(height: R.sp(24)),
                           ],
@@ -522,106 +510,422 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     );
   }
 
-  // ── Campo dato sottolineato: label piccola + valore + linea bianca ──
-  Widget _buildField({
-    required String label,
-    required TextEditingController controller,
-    bool readOnly = false,
-    VoidCallback? onTap,
-  }) {
+  Widget _buildBackRow() {
+    return GestureDetector(
+      onTap: () => NavigatorService.goBack(),
+      behavior: HitTestBehavior.opaque,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
+        child: Row(
+          children: [
+            const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
+            const SizedBox(width: 6),
+            Text('Torna indietro', style: OnlistTextStyles.title32Light),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ── Pannello Account (CSS NUOVO Rectangle 105: 393 full-width, r32,
+  //    gradiente ticket + glow ciano) con la foto profilo che lo scavalca.
+  Widget _buildProfilePanel() {
+    final nomeCompleto =
+        '${_nomeCtrl.text} ${_cognomeCtrl.text}'.trim();
+    // Foto 114×120 a top 157, pannello a top 243 → sporge di 86.
+    const double fotoH = 120;
+    const double overlap = 86;
+
     return Padding(
-      padding: EdgeInsets.fromLTRB(24, R.sp(14), 24, 0),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+      padding: EdgeInsets.only(top: R.sp(14)),
+      child: Stack(
+        alignment: Alignment.topCenter,
         children: [
-          Text(
-            label,
-            style: OnlistTextStyles.hn(
-              fontSize: R.sp(14),
-              fontWeight: FontWeight.w400,
-              color: OnlistColors.white.withValues(alpha: 0.6),
+          Padding(
+            padding: EdgeInsets.only(top: R.sp(overlap)),
+            child: SizedBox(
+              width: double.infinity,
+              child: GlowCard(
+                gradient: OnlistColors.ticketCard,
+                radius: R.sp(32),
+                glowColor: OnlistColors.ticketCardGlow,
+                glowSigma: R.sp(50), // inset 0 2px 100px
+                glowOffset: Offset(0, R.sp(2)),
+                child: Column(
+                  children: [
+                    // Spazio per la parte di foto che entra nel pannello.
+                    SizedBox(height: R.sp(fotoH - overlap + 10)),
+                    // Nome e cognome 64/500 centrato (tap → modifica).
+                    GestureDetector(
+                      onTap: _showEditDialog,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: R.sp(19)),
+                        child: SizedBox(
+                          height: R.sp(63),
+                          width: double.infinity,
+                          child: FittedBox(
+                            fit: BoxFit.scaleDown,
+                            child: Text(
+                              nomeCompleto.isEmpty ? 'Il tuo nome' : nomeCompleto,
+                              style: OnlistTextStyles.hn(
+                                fontSize: R.sp(64),
+                                fontWeight: FontWeight.w700,
+                                color: OnlistColors.white,
+                                height: 63 / 64,
+                                letterSpacing: -0.1 * 64,
+                              ),
+                            ),
+                          ),
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: R.sp(10)),
+                    // Data di nascita 32/500 centrata (tap → modifica).
+                    GestureDetector(
+                      onTap: _showEditDialog,
+                      behavior: HitTestBehavior.opaque,
+                      child: Text(
+                        _dataNascitaCtrl.text.isEmpty
+                            ? 'Data di nascita'
+                            : _dataNascitaCtrl.text,
+                        style: OnlistTextStyles.hn(
+                          fontSize: R.sp(32),
+                          fontWeight: FontWeight.w500,
+                          color: OnlistColors.white,
+                          height: 32 / 32,
+                        ),
+                      ),
+                    ),
+                    SizedBox(height: R.sp(24)),
+                    // Telefono (sx) + email (dx), 20/500.
+                    Padding(
+                      padding: EdgeInsets.symmetric(horizontal: R.sp(19)),
+                      child: Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Flexible(
+                            child: Text(
+                              _telefono ?? '—',
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              style: OnlistTextStyles.hn(
+                                fontSize: R.sp(20),
+                                fontWeight: FontWeight.w500,
+                                color: OnlistColors.white,
+                                height: 20 / 20,
+                              ),
+                            ),
+                          ),
+                          SizedBox(width: R.sp(12)),
+                          Flexible(
+                            child: Text(
+                              _emailCtrl.text,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                              textAlign: TextAlign.right,
+                              style: OnlistTextStyles.hn(
+                                fontSize: R.sp(20),
+                                fontWeight: FontWeight.w500,
+                                color: OnlistColors.white,
+                                height: 20 / 20,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                    SizedBox(height: R.sp(20)),
+                    const DashedLine(widthDesign: 278),
+                    SizedBox(height: R.sp(24)),
+                    _buildTuEOnlistCard(),
+                    SizedBox(height: R.sp(10)),
+                    _buildClubSalvatiPill(),
+                    SizedBox(height: R.sp(24)),
+                    ..._buildPreferitiCards(),
+                    SizedBox(height: R.sp(24)),
+                  ],
+                ),
+              ),
             ),
           ),
-          TextField(
-            controller: controller,
-            readOnly: readOnly,
-            onTap: onTap,
-            style: OnlistTextStyles.hn(
-              fontSize: R.sp(16),
-              fontWeight: FontWeight.w400,
-              color: OnlistColors.white,
-            ),
-            cursorColor: OnlistColors.white,
-            decoration: const InputDecoration(
-              isDense: true,
-              contentPadding: EdgeInsets.only(top: 6, bottom: 8),
-              enabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: OnlistColors.white, width: 1),
-              ),
-              focusedBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: OnlistColors.white, width: 1),
-              ),
-              disabledBorder: UnderlineInputBorder(
-                borderSide: BorderSide(color: OnlistColors.white, width: 1),
-              ),
-            ),
-          ),
+          // Foto profilo 114×120 r32 con velo scuro e icona fotocamera.
+          _buildFotoProfilo(),
         ],
       ),
     );
   }
 
-  Widget _buildSaveButton() {
-    return AnimatedSize(
-      duration: const Duration(milliseconds: 250),
-      curve: Curves.easeOut,
-      child: _hasChanges
-          ? Padding(
-              padding: EdgeInsets.fromLTRB(24, R.sp(20), 24, 0),
-              child: GestureDetector(
-                onTap: _isSaving ? null : _saveProfile,
-                child: Container(
-                  width: double.infinity,
-                  padding: EdgeInsets.symmetric(vertical: R.sp(14)),
-                  decoration: BoxDecoration(
-                    gradient: OnlistColors.primaryCTA,
-                    borderRadius: BorderRadius.circular(10),
-                  ),
-                  alignment: Alignment.center,
-                  child: _isSaving
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(color: OnlistColors.white, strokeWidth: 2),
-                        )
-                      : Text(
-                          'Salva Modifiche',
-                          style: OnlistTextStyles.hn(
-                            fontSize: R.sp(16),
-                            fontWeight: FontWeight.w700,
-                            color: OnlistColors.white,
-                          ),
-                        ),
-                ),
+  Widget _buildFotoProfilo() {
+    return GestureDetector(
+      onTap: _isUploadingFoto ? null : _pickFotoProfilo,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        width: R.sp(114),
+        height: R.sp(120),
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(R.sp(32)),
+        ),
+        child: Stack(
+          fit: StackFit.expand,
+          children: [
+            if (_fotoUrl != null)
+              CachedNetworkImage(
+                imageUrl: _fotoUrl!,
+                fit: BoxFit.cover,
+                errorWidget: (_, __, ___) =>
+                    const ColoredBox(color: Color(0xFF1A1A1A)),
               ),
-            )
-          : const SizedBox.shrink(),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 24),
-      child: Text(
-        title,
-        style: OnlistTextStyles.hn(
-          fontSize: R.sp(26),
-          fontWeight: FontWeight.w700,
-          color: OnlistColors.white,
-          letterSpacing: -0.08 * 26,
+            // Velo nero 80% come da CSS (la foto resta leggibile sotto l'icona).
+            const ColoredBox(color: Color(0xCC000000)),
+            Center(
+              child: _isUploadingFoto
+                  ? SizedBox(
+                      width: R.sp(24),
+                      height: R.sp(24),
+                      child: const CircularProgressIndicator(
+                          color: OnlistColors.white, strokeWidth: 2),
+                    )
+                  : Icon(Icons.photo_camera_outlined,
+                      color: OnlistColors.white, size: R.sp(44)),
+            ),
+          ],
         ),
       ),
     );
+  }
+
+  // Card "Tu e OnList" (CSS Rectangle 44: 357×126 r8, viola #7300FF).
+  Widget _buildTuEOnlistCard() {
+    return Padding(
+      padding: EdgeInsets.symmetric(horizontal: R.sp(18)),
+      child: Container(
+        height: R.sp(126),
+        width: double.infinity,
+        clipBehavior: Clip.antiAlias,
+        decoration: BoxDecoration(
+          color: const Color(0xFF7300FF),
+          borderRadius: BorderRadius.circular(R.sp(8)),
+        ),
+        child: Stack(
+          children: [
+            // Disco-ball decorativa a destra (cerchio sfumato bianco).
+            Positioned(
+              right: R.sp(20),
+              top: R.sp(21),
+              child: Container(
+                width: R.sp(83),
+                height: R.sp(83),
+                decoration: BoxDecoration(
+                  shape: BoxShape.circle,
+                  gradient: RadialGradient(
+                    colors: [
+                      OnlistColors.white.withValues(alpha: 0.85),
+                      OnlistColors.white.withValues(alpha: 0.45),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+            Padding(
+              padding: EdgeInsets.fromLTRB(R.sp(22), R.sp(27), 0, 0),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Text(
+                    'Tu e OnList',
+                    style: OnlistTextStyles.hn(
+                      fontSize: R.sp(20),
+                      fontWeight: FontWeight.w500,
+                      color: OnlistColors.white,
+                      height: 20 / 20,
+                    ),
+                  ),
+                  SizedBox(height: R.sp(9)),
+                  Text(
+                    '$_numeroSerate ${_numeroSerate == 1 ? 'serata' : 'serate'}',
+                    style: OnlistTextStyles.hn(
+                      fontSize: R.sp(32),
+                      fontWeight: FontWeight.w700,
+                      color: OnlistColors.white,
+                      height: 32 / 32,
+                    ),
+                  ),
+                  SizedBox(height: R.sp(9)),
+                  Text(
+                    'da quando ti sei unito al club',
+                    style: OnlistTextStyles.hn(
+                      fontSize: R.sp(12),
+                      fontWeight: FontWeight.w500,
+                      color: OnlistColors.white,
+                      height: 12 / 12,
+                    ),
+                  ),
+                ],
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // Pill "Club salvati" (CSS Rectangle 295: 182×33 r13, bianco 20%).
+  Widget _buildClubSalvatiPill() {
+    return Center(
+      child: Container(
+        width: R.sp(182),
+        height: R.sp(33),
+        decoration: BoxDecoration(
+          color: const Color(0x33D9D9D9),
+          borderRadius: BorderRadius.circular(R.sp(13)),
+        ),
+        alignment: Alignment.center,
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Text(
+              'Club salvati',
+              style: OnlistTextStyles.hn(
+                fontSize: R.sp(28),
+                fontWeight: FontWeight.w400,
+                color: OnlistColors.white,
+                height: 28 / 28,
+                letterSpacing: -0.06 * 28,
+              ),
+            ),
+            SizedBox(width: R.sp(8)),
+            Icon(Icons.bookmark, color: OnlistColors.white, size: R.sp(22)),
+          ],
+        ),
+      ),
+    );
+  }
+
+  List<Widget> _buildPreferitiCards() {
+    if (_preferiti.isEmpty) {
+      return [
+        Padding(
+          padding: EdgeInsets.symmetric(horizontal: R.sp(18)),
+          child: Text(
+            'Non hai club salvati',
+            style: OnlistTextStyles.hn(
+              fontSize: R.sp(16),
+              fontWeight: FontWeight.w400,
+              color: OnlistColors.white.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+      ];
+    }
+    return _preferiti.map((p) {
+      final locale = p['locali'] as Map<String, dynamic>?;
+      if (locale == null) return const SizedBox.shrink();
+      return _buildPreferitoCard(locale);
+    }).toList();
+  }
+
+  /// Dialog di modifica dati (il pannello mostra solo testo, come da design).
+  Future<void> _showEditDialog() async {
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text('Modifica dati',
+              style: OnlistTextStyles.hn(
+                  color: OnlistColors.white, fontWeight: FontWeight.w700)),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              _dialogField('Nome', _nomeCtrl),
+              _dialogField('Cognome', _cognomeCtrl),
+              _dialogField(
+                'Data di nascita',
+                _dataNascitaCtrl,
+                readOnly: true,
+                onTap: () async {
+                  await _pickDate();
+                  setLocal(() {});
+                },
+              ),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(ctx),
+              child: const Text('Annulla',
+                  style: TextStyle(color: Colors.white70)),
+            ),
+            TextButton(
+              onPressed: () async {
+                Navigator.pop(ctx);
+                await _saveProfile();
+                if (mounted) setState(() {});
+              },
+              child: Text('Salva',
+                  style: OnlistTextStyles.hn(
+                      color: OnlistColors.blueElectric,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _dialogField(String label, TextEditingController controller,
+      {bool readOnly = false, VoidCallback? onTap}) {
+    return Padding(
+      padding: const EdgeInsets.only(bottom: 8),
+      child: TextField(
+        controller: controller,
+        readOnly: readOnly,
+        onTap: onTap,
+        style: OnlistTextStyles.hn(color: OnlistColors.white),
+        cursorColor: OnlistColors.white,
+        decoration: InputDecoration(
+          labelText: label,
+          labelStyle: OnlistTextStyles.hn(color: Colors.white54),
+          enabledBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: OnlistColors.white, width: 1),
+          ),
+          focusedBorder: const UnderlineInputBorder(
+            borderSide: BorderSide(color: OnlistColors.white, width: 1),
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Selezione e upload della foto profilo (bucket Storage `avatars`).
+  /// Richiede la migration `2026-08-01_foto_profilo_utenti.sql`.
+  Future<void> _pickFotoProfilo() async {
+    try {
+      final picked = await ImagePicker().pickImage(
+        source: ImageSource.gallery,
+        maxWidth: 800,
+        imageQuality: 85,
+      );
+      if (picked == null) return;
+      setState(() => _isUploadingFoto = true);
+      final url = await OrdersService.uploadFotoProfilo(File(picked.path));
+      _cachedProfile = {...?_cachedProfile, 'foto_url': url};
+      if (!mounted) return;
+      setState(() {
+        _fotoUrl = url;
+        _isUploadingFoto = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() => _isUploadingFoto = false);
+      showAppErrorDialog(context,
+          'Impossibile aggiornare la foto profilo.\n$e');
+    }
   }
 
   // ── Azioni account: righe minimali (logica invariata) ──
@@ -765,16 +1069,23 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         AppRoutes.clubDetailScreen,
         arguments: {'id': locale['id']},
       ),
+      // CSS NUOVO: card 357×108 r10 con foto a tutta card e nome 32/700
+      // CENTRATO sopra (prima: 120px, nome in basso a sinistra).
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 24, vertical: 5),
-        height: 120,
+        margin: EdgeInsets.fromLTRB(R.sp(18), 0, R.sp(18), R.sp(10)),
+        height: R.sp(108),
         width: double.infinity,
         decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(10),
-          color: const Color(0xFF1A1A1A),
+          borderRadius: BorderRadius.circular(R.sp(10)),
+          gradient: const LinearGradient(
+            begin: Alignment.centerLeft,
+            end: Alignment.centerRight,
+            colors: [Color(0xFF0009FF), Color(0xFF000599)],
+            stops: [0.0, 0.8173],
+          ),
         ),
         child: ClipRRect(
-          borderRadius: BorderRadius.circular(10),
+          borderRadius: BorderRadius.circular(R.sp(10)),
           child: Stack(
             fit: StackFit.expand,
             children: [
@@ -782,29 +1093,24 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                 CachedNetworkImage(
                   imageUrl: fotoUrl,
                   fit: BoxFit.cover,
-                  errorWidget: (_, __, ___) =>
-                      Container(color: const Color(0xFF1A1A1A)),
-                )
-              else
-                Container(color: const Color(0xFF1A1A1A)),
-              Container(
-                decoration: BoxDecoration(
-                  gradient: LinearGradient(
-                    begin: Alignment.topCenter,
-                    end: Alignment.bottomCenter,
-                    colors: [Colors.transparent, Colors.black.withValues(alpha: 0.7)],
-                  ),
+                  errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 ),
-              ),
-              Positioned(
-                left: 14,
-                bottom: 14,
-                child: Text(
-                  nome,
-                  style: OnlistTextStyles.hn(
-                    fontSize: R.sp(24),
-                    fontWeight: FontWeight.w700,
-                    color: OnlistColors.white,
+              // Velo scuro per la leggibilità del nome sopra la foto.
+              ColoredBox(color: Colors.black.withValues(alpha: 0.35)),
+              Center(
+                child: Padding(
+                  padding: EdgeInsets.symmetric(horizontal: R.sp(16)),
+                  child: Text(
+                    nome,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: OnlistTextStyles.hn(
+                      fontSize: R.sp(32),
+                      fontWeight: FontWeight.w700,
+                      color: OnlistColors.white,
+                      height: 37 / 32,
+                      letterSpacing: -0.08 * 32,
+                    ),
                   ),
                 ),
               ),
