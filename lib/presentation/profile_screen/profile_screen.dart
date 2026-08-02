@@ -363,7 +363,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Esci', style: OnlistTextStyles.hn(color: Colors.redAccent, fontWeight: FontWeight.bold)),
+            child: Text('Esci', style: OnlistTextStyles.hn(color: OnlistColors.destructive, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -404,7 +404,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Invia email',
                 style: OnlistTextStyles.hn(
-                    color: Colors.redAccent, fontWeight: FontWeight.bold)),
+                    color: OnlistColors.destructive, fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -928,44 +928,78 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     }
   }
 
-  // ── Azioni account: righe minimali (logica invariata) ──
+  // ── Azioni account ──────────────────────────────────────────────────────
+  // Il Figma dell'Account copre solo la parte alta ("Account aggiornato ma solo
+  // parte sopra"): per queste righe non esistono valori CSS. Stile derivato dai
+  // token del design system — raggio 10 (standard), margine 18 (come le card
+  // club salvati), fondo/bordo nella stessa famiglia della pill "Club salvati"
+  // (rgba(217,217,217,.2) attenuato perché qui copre 4 righe su nero).
+  static const double _actionRowHeight = 56; // uguale per TUTTE le righe
+  static const double _actionRowIndent = 52; // 16 padding + 22 icona + 14 gap
+
   Widget _buildAccountActions() {
-    return Column(
-      children: [
-        const Divider(height: 1, color: Colors.white10, indent: 24, endIndent: 24),
-        // NOTIFICHE DISATTIVATE (MVP): la pagina notifiche non deve essere
-        // visibile per ora. Commentata — riattivare in futuro insieme a
-        // `_buildNotificationsTile()`, al badge in `custom_top_bar.dart` e alla
-        // route `notificationsScreen` in `app_routes.dart`.
-        // _buildNotificationsTile(),
-        _buildActionTile(
-          icon: Icons.receipt_long_outlined,
-          label: 'Riepilogo Ordini',
-          onTap: () => NavigatorService.pushNamed(AppRoutes.ordersScreen),
+    // NOTIFICHE DISATTIVATE (MVP): la pagina notifiche non deve essere
+    // visibile per ora. Voce commentata — riattivare in futuro insieme a
+    // `_buildNotificationsTile()`, al badge in `custom_top_bar.dart` e alla
+    // route `notificationsScreen` in `app_routes.dart`.
+    final tiles = <Widget>[
+      _buildActionTile(
+        icon: Icons.receipt_long_outlined,
+        label: 'Riepilogo Ordini',
+        onTap: () => NavigatorService.pushNamed(AppRoutes.ordersScreen),
+      ),
+      _buildActionTile(
+        icon: Icons.lock_outline,
+        label: 'Cambia Password',
+        subtitle: 'Aggiorna la tua password',
+        onTap: _changePassword,
+      ),
+      _buildActionTile(
+        icon: Icons.logout,
+        label: 'Disconnetti',
+        color: OnlistColors.destructive,
+        onTap: _confirmLogout,
+      ),
+      // Richiesto da Apple (App Store Review 5.1.1(v)): la cancellazione
+      // dell'account deve poter partire dall'app. Qui parte; si completa sul
+      // sito, dopo il link inviato per email.
+      _buildActionTile(
+        icon: Icons.delete_forever_outlined,
+        label: 'Elimina account',
+        subtitle: 'Cancella definitivamente i tuoi dati',
+        color: OnlistColors.destructive,
+        onTap: _confirmDeleteAccount,
+      ),
+    ];
+
+    // Separatore 1px allineato al testo (non sotto l'icona): è il dettaglio che
+    // fa leggere le righe come un gruppo disegnato e non come ListTile sciolte.
+    final rows = <Widget>[];
+    for (var i = 0; i < tiles.length; i++) {
+      if (i > 0) {
+        rows.add(Padding(
+          padding: EdgeInsets.only(left: R.sp(_actionRowIndent)),
+          child: Container(height: 1, color: OnlistColors.white.withValues(alpha: 0.08)),
+        ));
+      }
+      rows.add(tiles[i]);
+    }
+
+    return Container(
+      margin: EdgeInsets.symmetric(horizontal: R.sp(18)),
+      decoration: BoxDecoration(
+        color: OnlistColors.white.withValues(alpha: 0.08),
+        borderRadius: BorderRadius.circular(R.sp(10)),
+        border: Border.all(
+          color: OnlistColors.white.withValues(alpha: 0.12),
+          width: 1,
         ),
-        _buildActionTile(
-          icon: Icons.lock_outline,
-          label: 'Cambia Password',
-          subtitle: 'Aggiorna la tua password',
-          onTap: _changePassword,
-        ),
-        _buildActionTile(
-          icon: Icons.logout,
-          label: 'Disconnetti',
-          color: Colors.redAccent,
-          onTap: _confirmLogout,
-        ),
-        // Richiesto da Apple (App Store Review 5.1.1(v)): la cancellazione
-        // dell'account deve poter partire dall'app. Qui parte; si completa sul
-        // sito, dopo il link inviato per email.
-        _buildActionTile(
-          icon: Icons.delete_forever_outlined,
-          label: 'Elimina account',
-          subtitle: 'Cancella definitivamente i tuoi dati',
-          color: Colors.redAccent,
-          onTap: _confirmDeleteAccount,
-        ),
-      ],
+      ),
+      // Clippa il ripple del tap agli angoli arrotondati del blocco.
+      child: ClipRRect(
+        borderRadius: BorderRadius.circular(R.sp(10)),
+        child: Column(children: rows),
+      ),
     );
   }
 
@@ -1028,6 +1062,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   }
   */
 
+  /// Riga del blocco azioni. Altezza FISSA per tutte (con o senza sottotitolo)
+  /// così la spaziatura resta uniforme; `color` tinge icona+label+chevron ed è
+  /// l'unica differenza tra riga normale e distruttiva.
   Widget _buildActionTile({
     required IconData icon,
     required String label,
@@ -1035,26 +1072,61 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     Color color = OnlistColors.white,
     required VoidCallback onTap,
   }) {
+    final bool isDestructive = color != OnlistColors.white;
     return InkWell(
       onTap: onTap,
-      child: Padding(
-        padding: EdgeInsets.symmetric(horizontal: 24, vertical: R.sp(14)),
-        child: Row(
-          children: [
-            Icon(icon, color: color == OnlistColors.white ? OnlistColors.blueElectric : color, size: R.sp(22)),
-            SizedBox(width: R.sp(14)),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(label, style: OnlistTextStyles.hn(fontSize: R.sp(16), fontWeight: FontWeight.w400, color: color)),
-                  if (subtitle != null)
-                    Text(subtitle, style: OnlistTextStyles.hn(fontSize: R.sp(12), fontWeight: FontWeight.w400, color: OnlistColors.white.withValues(alpha: 0.4))),
-                ],
+      child: SizedBox(
+        height: R.sp(_actionRowHeight),
+        child: Padding(
+          padding: EdgeInsets.symmetric(horizontal: R.sp(16)),
+          child: Row(
+            children: [
+              Icon(
+                icon,
+                // Il blu brand #1E00FF su fondo nero è illeggibile: righe
+                // normali con icona bianca, come la label (scelta di Luca).
+                color: isDestructive ? color : OnlistColors.white.withValues(alpha: 0.85),
+                size: R.sp(22),
               ),
-            ),
-            Icon(Icons.chevron_right, color: color.withValues(alpha: 0.4), size: R.sp(20)),
-          ],
+              SizedBox(width: R.sp(14)),
+              Expanded(
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      label,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: OnlistTextStyles.hn(
+                        fontSize: R.sp(16),
+                        fontWeight: FontWeight.w500,
+                        color: color,
+                      ),
+                    ),
+                    if (subtitle != null)
+                      Text(
+                        subtitle,
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: OnlistTextStyles.hn(
+                          fontSize: R.sp(12),
+                          fontWeight: FontWeight.w400,
+                          color: OnlistColors.white.withValues(alpha: 0.45),
+                        ),
+                      ),
+                  ],
+                ),
+              ),
+              Icon(
+                Icons.chevron_right,
+                color: isDestructive
+                    ? color.withValues(alpha: 0.6)
+                    : OnlistColors.white.withValues(alpha: 0.35),
+                size: R.sp(20),
+              ),
+            ],
+          ),
         ),
       ),
     );

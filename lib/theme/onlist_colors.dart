@@ -82,6 +82,11 @@ class OnlistColors {
   // Grigi neutri
   static const Color textSecondary = Color(0xFF8E8E93);
 
+  /// Azioni distruttive (Disconnetti, Elimina account). Rosso di sistema iOS,
+  /// scelto per coerenza con [blueIOS] già in palette. Consolida il precedente
+  /// `Colors.redAccent` (#FF5252) usato sparso nel profilo — approvato da Luca.
+  static const Color destructive = Color(0xFFFF453A);
+
   // Funzionali social (immutabili — brand di terze parti)
   static const Color googleBlue = Color(0xFF4285F4);
   static const Color googleGreen = Color(0xFF34A853);
