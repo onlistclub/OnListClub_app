@@ -450,6 +450,11 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
     // CSS NUOVO/home.css: indirizzo "Milano - Via Alfonso Gatto" 16/500,
     // left 13, 6px sotto il nome.
+    // PESO: il CSS dice w500 ma a schermo la faccia Medium non viene agganciata
+    // e il testo esce in Roman — misurato sullo screenshot, tratto 0.95÷1.42 px
+    // design contro gli 1.75÷2.00 del Figma (il w700 del nome club invece
+    // combacia). Finché il w500 non si aggancia si usa w700, l'unico peso che
+    // rende lo spessore del design. Vedi indagine separata sul w500 sistemico.
     return Padding(
       padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(6), R.sp(13), 0),
       child: Text(
@@ -457,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         style: OnlistTextStyles.hn(
           fontSize: R.sp(16),
           color: Colors.white,
-          fontWeight: FontWeight.w500,
+          fontWeight: FontWeight.w700,
           height: 16 / 16,
         ),
         maxLines: 1,
@@ -483,14 +488,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           width: double.infinity,
           height: R.sp(49),
           child: GlowCard(
-            // Raggio CSS 65.9% della larghezza (368 → ~242px); RadialGradient
-            // di Flutter misura sul lato corto (49) → 242/49 ≈ 4.95.
-            gradient: const RadialGradient(
-              center: Alignment(-0.94, -0.35), // 3.12%, 32.65%
-              radius: 4.95,
-              colors: [Color(0xFF0077FF), Color(0xFF0000FF)],
-              stops: [0.3269, 1.0],
-            ),
+            // Ellisse 242.5×32.3 come da CSS (prima era un cerchio di 242.5:
+            // il picco chiaro si spalmava in verticale 7.5× oltre il dovuto).
+            gradient: OnlistColors.homeReserveCTA,
             radius: R.sp(18),
             glowColor: const Color(0x9100FFFF), // rgba(0,255,255,0.57)
             glowSigma: R.sp(11.9), // blur CSS 23.8 → sigma ≈ 11.9
@@ -515,11 +515,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   // ── Section title "Club consigliati" ───────────────────────────────────────
 
   Widget _buildSectionTitle() {
-    // CSS NUOVO/home.css: titolo sezione 32/700/-0.08 a left 13, 6px sotto la
-    // CTA e 16px sopra la prima card. (Nel Figma la label è "Prossime serate"
-    // per errore: la sezione mostra CLUB → il testo resta "Club consigliati".)
+    // CSS NUOVO/home.css: titolo sezione 32/700/-0.08 a left 13. (Nel Figma la
+    // label è "Prossime serate" per errore: la sezione mostra CLUB → il testo
+    // resta "Club consigliati".)
+    // SPAZIATURA: misurando i PNG, nel Figma corrono 12px dal fondo della CTA
+    // alla cima delle lettere e 23px dalle lettere alla prima card; il valore
+    // fedele sarebbe quindi 7.5 sopra e 20 sotto. Sopra usiamo 14: scostamento
+    // VOLUTO da Luca per staccare il titolo dalla CTA più del design.
     return Padding(
-      padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(6), R.sp(13), R.sp(16)),
+      padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(14), R.sp(13), R.sp(20)),
       child: Text(
         'Club consigliati',
         style: OnlistTextStyles.hn(
@@ -561,10 +565,12 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   }
 
   Widget _buildRecommendedClubCard(BuildContext context, LocaleModel club) {
-    // Card club NUOVO design (home.css Frame 352): 369×108 r10, gradiente
-    // `90deg rgba(0,119,255,.8) 39.42% → rgba(0,0,255,.8)` + ombra interna
-    // nera (inset 0 4 100 25%); foto 165×95 r7 a (6,7); nome 32/700; pill
-    // info blu con l'orario; città 12/700 80%; PRENOTA 86×38 r6.48.
+    // Card club NUOVO design (home.css Frame 352 + 353): 369×108 r10, con
+    // ombra interna nera (inset 0 4 100 25%); foto 165×95 r7 a (6,7); nome
+    // 32/700; pill info blu con l'orario; città 12/700 80%; PRENOTA 86×38
+    // r6.48. Il gradiente è la composizione dei DUE frame sovrapposti del CSS
+    // (vedi OnlistColors.homeClubCard): prima ne disegnavamo uno solo e la
+    // card veniva troppo scura.
     // NB: siamo dentro _scaleToWidth(369×108) → px design puri, niente R.sp.
     return AnimatedPress(
       onPressed: () => _navigateToClubDetail(context, club),
@@ -574,12 +580,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
           width: 369,
           height: 108,
           child: GlowCard(
-            gradient: const LinearGradient(
-              begin: Alignment.centerLeft,
-              end: Alignment.centerRight,
-              colors: [Color(0xCC0077FF), Color(0xCC0000FF)],
-              stops: [0.3942, 1.0],
-            ),
+            gradient: OnlistColors.homeClubCard,
             radius: 10,
             glowColor: const Color(0x40000000), // rgba(0,0,0,0.25)
             glowSigma: 50, // blur CSS 100
@@ -635,28 +636,36 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 ),
                 // Pill info (CSS Rectangle 188: 78×30 r4, blu 20% × opacity .3)
                 // con dentro l'orario del club (i dati sono CLUB, niente data).
+                // La pill si dimensiona sul testo entro i 90px liberi fino al
+                // bottone PRENOTA (x 274): con la larghezza fissa a 78 e padding
+                // 4 restavano 70px utili e "23:00 - 05:00" (~72) usciva troncato
+                // in "23:00 - 05…".
                 if (_recommendedInfoLine(club).isNotEmpty)
                   Positioned(
                     left: 176,
                     top: 48,
-                    child: Container(
-                      width: 78,
-                      height: 30,
-                      decoration: BoxDecoration(
-                        color: const Color(0x0F002AFF), // 0.2 × 0.3 ≈ 6%
-                        borderRadius: BorderRadius.circular(4),
-                      ),
-                      alignment: Alignment.centerLeft,
-                      padding: const EdgeInsets.symmetric(horizontal: 4),
-                      child: Text(
-                        _recommendedInfoLine(club),
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: OnlistTextStyles.hn(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
-                          height: 12 / 12,
+                    child: ConstrainedBox(
+                      constraints: const BoxConstraints(maxWidth: 90),
+                      child: Container(
+                        decoration: BoxDecoration(
+                          color: const Color(0x0F002AFF), // 0.2 × 0.3 ≈ 6%
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        // 9 + 12 (riga) + 9 = 30 di altezza come da CSS, ma
+                        // senza width/height fissi: così la pill abbraccia il
+                        // testo invece di tagliarlo.
+                        padding: const EdgeInsets.symmetric(
+                            horizontal: 6, vertical: 9),
+                        child: Text(
+                          _recommendedInfoLine(club),
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: OnlistTextStyles.hn(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w400,
+                            color: Colors.white,
+                            height: 12 / 12,
+                          ),
                         ),
                       ),
                     ),

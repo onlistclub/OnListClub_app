@@ -52,6 +52,36 @@ class _EllipticalGradientTransform extends GradientTransform {
   }
 }
 
+/// Rende ELLITTICO un [RadialGradient] che nel CSS ha due raggi distinti
+/// (`radial-gradient(<rx> <ry> at <cx> <cy>, …)`).
+///
+/// Flutter misura `RadialGradient.radius` sul lato PIÙ CORTO del box, quindi da
+/// solo disegna sempre un cerchio: su una pill larga e bassa il picco chiaro si
+/// spalma in verticale molto oltre il dovuto. Qui riscaliamo i due assi ai
+/// semiassi reali tenendo fermo il centro, così `radius: f` torna a significare
+/// «f × larghezza in orizzontale, f × altezza in verticale» come nel CSS.
+///
+/// Le scale derivano da `bounds`, quindi il gradiente resta corretto a
+/// qualunque risoluzione (niente px fissi).
+class CssEllipticalGradient extends GradientTransform {
+  const CssEllipticalGradient(this.center);
+
+  /// Stesso `center` passato al [RadialGradient]: è il punto che resta fermo.
+  final Alignment center;
+
+  @override
+  Matrix4? transform(Rect bounds, {TextDirection? textDirection}) {
+    final double shortest = math.min(bounds.width, bounds.height);
+    if (shortest == 0) return null;
+    final Offset c = bounds.topLeft + center.alongSize(bounds.size);
+    // M = T(C)·Scale·T(−C): stira il cerchio base nell'ellisse voluta, centro fisso.
+    return Matrix4.identity()
+      ..translateByDouble(c.dx, c.dy, 0.0, 1.0)
+      ..scaleByDouble(bounds.width / shortest, bounds.height / shortest, 1.0, 1.0)
+      ..translateByDouble(-c.dx, -c.dy, 0.0, 1.0);
+  }
+}
+
 /// Tinte e gradienti ufficiali del design system Onlist Club.
 ///
 /// Valori canonici dichiarati in `.claude/CLAUDE.md` §2 e validati contro
@@ -187,7 +217,49 @@ class OnlistColors {
     colors: [Color(0x80000000), Color(0x800015FF)],
   );
 
+  /// Card "Club consigliati" della Home. CSS NUOVO/home.css impila DUE frame
+  /// identici e semitrasparenti nella stessa identica posizione — `Frame 352`
+  /// (stop 39.42%) e `Frame 353` (stop 48.08%), entrambi
+  /// `linear-gradient(90deg, rgba(0,119,255,.8) → rgba(0,0,255,.8))`.
+  /// Disegnandone uno solo la card viene molto più scura del design.
+  ///
+  /// Qui la composizione dei due layer su nero è PRECALCOLATA in un unico
+  /// gradiente opaco: stesso pixel, un fill invece di due e senza blending
+  /// (più leggero anche dell'implementazione precedente a un layer alpha).
+  ///   G = 0.8·G(frame353) + 0.16·G(frame352)   →  114, 114, 97, 64, 0
+  ///   B = 0.8·255 + 0.16·255 = 245 costante
+  /// Verifica sul PNG ufficiale: a x_rel 200 il Figma misura G=100, il modello
+  /// a due layer dà 98.4 (un layer solo darebbe 72).
+  static const LinearGradient homeClubCard = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [
+      Color(0xFF0072F5),
+      Color(0xFF0072F5),
+      Color(0xFF0061F5),
+      Color(0xFF0040F5),
+      Color(0xFF0000F5),
+    ],
+    stops: [0.0, 0.3942, 0.55, 0.70, 1.0],
+  );
+
   // ── Gradienti bottoni ───────────────────────────────────────────────────
+
+  /// CTA "RISERVA IL TUO POSTO ORA" (Home). CSS NUOVO/home.css `Frame 350`:
+  /// `radial-gradient(65.9% 65.9% at 3.12% 32.65%, #0077FF 32.69%, #0000FF)`.
+  /// I due valori di size sono 65.9% della LARGHEZZA e 65.9% dell'ALTEZZA:
+  /// su una pill 368×49 è un'ellisse 242.5×32.3, non un cerchio.
+  /// Vedi [CssEllipticalGradient] per il perché della trasformazione.
+  static const Alignment homeReserveCTACenter =
+      Alignment(-0.9376, -0.3470); // 3.12% 32.65%
+
+  static const RadialGradient homeReserveCTA = RadialGradient(
+    center: homeReserveCTACenter,
+    radius: 0.659, // 65.9% del lato corto → poi stirato sui due assi
+    colors: [Color(0xFF0077FF), Color(0xFF0000FF)],
+    stops: [0.3269, 1.0],
+    transform: CssEllipticalGradient(homeReserveCTACenter),
+  );
 
   /// CTA primario full-width (AGGIUNGI AL CARRELLO, ORDINA IL TUO POSTO ORA,
   /// TORNA NELLA HOME, CONTINUA L'ORDINE).
