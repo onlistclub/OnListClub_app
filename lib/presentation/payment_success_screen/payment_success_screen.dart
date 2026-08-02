@@ -91,8 +91,11 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
               const CustomTopBar(),
               Expanded(
                 child: SingleChildScrollView(
+                  // Margini 18 invece dei 21 del CSS: scostamento VOLUTO da
+                  // Luca per allargare il biglietto di ~6px (stesso valore di
+                  // prevendita_detail_screen — sono la stessa card).
                   padding: EdgeInsets.fromLTRB(
-                      R.sp(21), 0, R.sp(21), R.sp(16) + SharedFooter.height),
+                      R.sp(18), 0, R.sp(18), R.sp(16) + SharedFooter.height),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [

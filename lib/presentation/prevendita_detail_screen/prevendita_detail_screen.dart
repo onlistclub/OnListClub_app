@@ -129,8 +129,10 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
               _buildBackRow(),
               Expanded(
                 child: SingleChildScrollView(
-                  // CSS NUOVO: card 350 su 393 → margini ~21.
-                  padding: EdgeInsets.fromLTRB(R.sp(21), R.sp(2), R.sp(21),
+                  // CSS NUOVO: card 350 su 393 → margini ~21 (misurata, l'app
+                  // era già a 354 col bordo). Margini 18: scostamento VOLUTO da
+                  // Luca per allargare il biglietto di ~6px.
+                  padding: EdgeInsets.fromLTRB(R.sp(18), R.sp(2), R.sp(18),
                       R.sp(24) + SharedFooter.height),
                   // Il biglietto RUOTA in 3D tra fronte e retro ([FlipCard]):
                   // si gira col tap ovunque sulla card, oltre che dai bottoni.

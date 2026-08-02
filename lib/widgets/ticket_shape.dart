@@ -4,7 +4,7 @@ import 'package:flutter/material.dart';
 import '../core/utils/responsive.dart';
 import '../theme/onlist_colors.dart';
 
-/// Una tacca semicircolare scavata nei bordi laterali di un [TicketShape].
+/// Una tacca (semicerchio o semiellisse) scavata nei bordi di un [TicketShape].
 ///
 /// Tutte le misure sono in px design (frame Figma 393×852) e vengono scalate
 /// con [R.sp]; la posizione verticale è una FRAZIONE dell'altezza della card,
@@ -13,8 +13,12 @@ class TicketNotch {
   /// Quota verticale (0..1) del centro della tacca rispetto all'altezza card.
   final double centerYFraction;
 
-  /// Raggio in px design (es. Ø44 → 22, Ø41 → 20.5, Ø51 → 25.5).
+  /// Semiasse ORIZZONTALE in px design (es. Ø44 → 22, Ø41 → 20.5, Ø51 → 25.5).
   final double radiusDesign;
+
+  /// Semiasse VERTICALE in px design. Se null la tacca è un cerchio.
+  /// Il CSS del ticket aperto usa `Ellipse 18` 41×38, cioè 20.5 × 19.
+  final double? radiusYDesign;
 
   /// Quali lati scavare (la card carrello ha la tacca solo a sinistra).
   final bool left;
@@ -22,12 +26,13 @@ class TicketNotch {
 
   /// Spostamento del centro verso l'ESTERNO del bordo, in px design:
   /// 0 = centro esattamente sul bordo (tacca = semicerchio pieno);
-  /// >0 = tacca meno profonda (carrello: ~6.5).
+  /// >0 = tacca meno profonda (ticket aperto: 1.5; carrello: ~6.5).
   final double edgeOffsetDesign;
 
   const TicketNotch({
     required this.centerYFraction,
     required this.radiusDesign,
+    this.radiusYDesign,
     this.left = true,
     this.right = true,
     this.edgeOffsetDesign = 0,
@@ -38,20 +43,25 @@ class TicketNotch {
       other is TicketNotch &&
       other.centerYFraction == centerYFraction &&
       other.radiusDesign == radiusDesign &&
+      other.radiusYDesign == radiusYDesign &&
       other.left == left &&
       other.right == right &&
       other.edgeOffsetDesign == edgeOffsetDesign;
 
   @override
-  int get hashCode =>
-      Object.hash(centerYFraction, radiusDesign, left, right, edgeOffsetDesign);
+  int get hashCode => Object.hash(centerYFraction, radiusDesign, radiusYDesign,
+      left, right, edgeOffsetDesign);
 }
 
 /// Card a forma di "biglietto fisico" del design ufficiale (cartella
-/// `docs/figma_screen/off/NUOVO`): rettangolo arrotondato con tacche
-/// semicircolari scavate geometricamente nei bordi, gradiente
-/// `#0000F7 → #0000A9 (94.71%)`, bordo che segue anche il profilo delle
-/// tacche, glow interno ciano `#00E6FF`.
+/// `docs/figma_screen/off/NUOVO`): rettangolo arrotondato con tacche scavate
+/// geometricamente nei bordi, gradiente `#0000F7 → #0000A9 (94.71%)`, bordo
+/// bianco e glow interno ciano `#00E6FF`.
+///
+/// Bordo e glow seguono SOLO il rettangolo arrotondato e si interrompono sulla
+/// tacca: nel CSS la tacca è un'ellisse nera sovrapposta, quindi non ha né
+/// contorno né alone. Tracciandoli sul profilo scavato (com'era prima) le
+/// tacche si accendevano di un alone azzurrino che nel design non c'è.
 ///
 /// Il glow è l'approssimazione dell'`inset box-shadow` CSS (0 2px 100px), che
 /// Flutter non ha nativo: si riempie di ciano l'area ESTERNA al path, la si
@@ -128,21 +138,25 @@ class _TicketPainter extends CustomPainter {
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
 
-    // Path del biglietto: rettangolo arrotondato MENO i cerchi delle tacche
-    // centrati sui bordi laterali → semicerchi scavati, identici al design.
+    // Path del biglietto: rettangolo arrotondato MENO le ellissi delle tacche
+    // centrate sui bordi laterali → tacche scavate, identiche al design.
     final base = Path()
       ..addRRect(RRect.fromRectAndRadius(rect, Radius.circular(cornerRadius)));
     final holes = Path();
     for (final n in notches) {
       final y = size.height * n.centerYFraction;
-      final r = R.sp(n.radiusDesign);
+      final rx = R.sp(n.radiusDesign);
+      final ry = R.sp(n.radiusYDesign ?? n.radiusDesign);
       final off = R.sp(n.edgeOffsetDesign);
       if (n.left) {
-        holes.addOval(Rect.fromCircle(center: Offset(-off, y), radius: r));
+        holes.addOval(Rect.fromCenter(
+            center: Offset(-off, y), width: rx * 2, height: ry * 2));
       }
       if (n.right) {
-        holes.addOval(
-            Rect.fromCircle(center: Offset(size.width + off, y), radius: r));
+        holes.addOval(Rect.fromCenter(
+            center: Offset(size.width + off, y),
+            width: rx * 2,
+            height: ry * 2));
       }
     }
     final ticket = notches.isEmpty
@@ -155,14 +169,20 @@ class _TicketPainter extends CustomPainter {
       Paint()..shader = OnlistColors.ticketCard.createShader(rect),
     );
 
-    // 2. Glow interno ciano (inner shadow): area esterna al path riempita di
-    //    ciano, sfocata e clippata dentro la forma.
+    // Glow e bordo si calcolano sul rettangolo BASE, non sulla forma scavata, e
+    // vengono poi clippati dentro di essa. Nel CSS la tacca è un'ellisse NERA
+    // sovrapposta (`Ellipse 18`, background #000000): il bordo segue solo il
+    // rettangolo arrotondato e si INTERROMPE sulla tacca, che resta nera netta.
+    // Usando la forma scavata (com'era prima) il bordo bianco tracciava anche
+    // gli archi e il glow ciano ci si accendeva intorno → alone azzurrino.
+    // 2. Glow interno ciano (inner shadow): area esterna al rettangolo base
+    //    riempita di ciano, sfocata e tenuta dentro la forma del biglietto.
     canvas.save();
     canvas.clipPath(ticket);
     final outside = Path.combine(
       PathOperation.difference,
       Path()..addRect(rect.inflate(glowSigma * 3)),
-      ticket.shift(Offset(0, glowOffsetY)),
+      base.shift(Offset(0, glowOffsetY)),
     );
     canvas.drawPath(
       outside,
@@ -172,14 +192,26 @@ class _TicketPainter extends CustomPainter {
     );
     canvas.restore();
 
-    // 3. Bordo che segue anche il profilo delle tacche.
+    // 3. Bordo del solo rettangolo arrotondato. Il clip toglie SOLO le tacche
+    //    (non l'intera area esterna al biglietto): così il tratto conserva la
+    //    sua metà esterna — clippando su `ticket` sarebbe uscito spesso metà —
+    //    e si interrompe di netto dove c'è la tacca.
+    canvas.save();
+    if (notches.isNotEmpty) {
+      canvas.clipPath(Path.combine(
+        PathOperation.difference,
+        Path()..addRect(rect.inflate(borderWidth * 2)),
+        holes,
+      ));
+    }
     canvas.drawPath(
-      ticket,
+      base,
       Paint()
         ..style = PaintingStyle.stroke
         ..strokeWidth = borderWidth
         ..color = borderColor,
     );
+    canvas.restore();
   }
 
   @override

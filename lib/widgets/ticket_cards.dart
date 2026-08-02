@@ -107,16 +107,19 @@ class TicketFrontCard extends StatelessWidget {
   /// Richiude il biglietto ("Nascondi QR Code" + freccia su).
   final VoidCallback onCollapse;
 
-  /// Azione "ANNULLA PREVENDITA", mostrata sotto "Nascondi QR Code" quando
-  /// valorizzata (flusso critico non previsto dal Figma: vedi CLAUDE.md §1).
-  /// Se null la riga non compare (es. prevendita già annullata o schermata
-  /// post-ordine, dove annullare subito non ha senso).
+  /// Azione "ANNULLA PREVENDITA" (flusso critico non previsto dal Figma:
+  /// vedi CLAUDE.md §1).
+  /// DISATTIVATA (MVP): la riga è commentata in `build`, quindi questo callback
+  /// per ora non viene invocato. I parametri restano nella firma perché le
+  /// schermate chiamanti li passano già e la logica di annullamento è intatta.
   final VoidCallback? onAnnulla;
 
   /// Mostra lo spinner al posto del testo mentre l'annullamento è in corso.
+  /// Vedi [onAnnulla]: disattivato nell'MVP.
   final bool isAnnullando;
 
   /// Testo mostrato al posto del bottone quando la prevendita è annullata.
+  /// Vedi [onAnnulla]: disattivato nell'MVP.
   final String? annullataLabel;
 
   const TicketFrontCard({
@@ -134,161 +137,208 @@ class TicketFrontCard extends StatelessWidget {
     this.annullataLabel,
   }) : super(key: key);
 
+  /// Altezza card (CSS Rectangle 268: 350×614).
+  static const double cardHeightDesign = 614;
+
+  /// Quote delle DUE separazioni, in px design dal bordo alto della card.
+  /// Nel CSS le linee tratteggiate (`Line 15` @301, `Line 16` @449) cadono
+  /// esattamente sul centro delle tacche (`Ellipse 18` @282+38/2 e @430+38/2),
+  /// con la card a top 161: 301−161 = 140 e 449−161 = 288.
+  ///
+  /// Sono la FONTE DI VERITÀ UNICA per tacche e linee: prima le tacche stavano
+  /// a quota fissa mentre le linee scorrevano dentro la Column accumulando le
+  /// altezze reali dei testi, e la seconda linea finiva 8px sopra la sua tacca.
+  static const double _separator1Y = 140;
+  static const double _separator2Y = 288;
+
+  /// Semiassi della tacca (CSS `Ellipse 18` 41×38) e sporgenza del centro
+  /// oltre il bordo: 41/2 = 20.5, 38/2 = 19, centro 1.5px fuori → profondità 19.
+  static const double _notchRx = 20.5;
+  static const double _notchRy = 19;
+  static const double _notchEdgeOffset = 1.5;
+
   @override
   Widget build(BuildContext context) {
-    // La riga ANNULLA (fuori Figma) allunga la card quando presente.
-    final hasAnnulla = onAnnulla != null || annullataLabel != null;
-    final cardH = hasAnnulla ? 614.0 + 47.0 : 614.0;
+    const cardH = cardHeightDesign;
     return SizedBox(
       height: R.sp(cardH),
       width: double.infinity,
       child: TicketShape(
-        // Tacche all'altezza ESATTA delle due linee tratteggiate
-        // (CSS Line 15 @297 e Line 16 @445 su card a 157, h 614).
-        notches: [
-          TicketNotch(centerYFraction: 140 / cardH, radiusDesign: 20.5),
-          TicketNotch(centerYFraction: 288 / cardH, radiusDesign: 20.5),
+        notches: const [
+          TicketNotch(
+            centerYFraction: _separator1Y / cardH,
+            radiusDesign: _notchRx,
+            radiusYDesign: _notchRy,
+            edgeOffsetDesign: _notchEdgeOffset,
+          ),
+          TicketNotch(
+            centerYFraction: _separator2Y / cardH,
+            radiusDesign: _notchRx,
+            radiusYDesign: _notchRy,
+            edgeOffsetDesign: _notchEdgeOffset,
+          ),
         ],
         borderWidthDesign: 3,
         borderColor: OnlistColors.ticketCardBorderOpen,
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
+        child: Stack(
           children: [
-            SizedBox(height: R.sp(29)),
-            // "Ticket normale" 55/500/-0.1em.
-            Padding(
-              padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'Ticket ${ticketType.toLowerCase()}',
-                  style: OnlistTextStyles.hn(
-                    color: Colors.white,
-                    fontSize: R.sp(55),
-                    fontWeight: FontWeight.w500,
-                    height: 54 / 55,
-                    letterSpacing: -0.1 * 55,
+            // Le due linee tratteggiate sono ANCORATE alle stesse quote delle
+            // tacche, non più in flusso: non possono più separarsene.
+            Positioned(
+              left: R.sp(26),
+              top: R.sp(_separator1Y),
+              child: const DashedLine(widthDesign: 297),
+            ),
+            Positioned(
+              left: R.sp(26),
+              top: R.sp(_separator2Y),
+              child: const DashedLine(widthDesign: 297),
+            ),
+            Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                SizedBox(height: R.sp(29)),
+                // "Ticket normale" 55/500/-0.1em.
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      'Ticket ${ticketType.toLowerCase()}',
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(55),
+                        fontWeight: FontWeight.w500,
+                        height: 54 / 55,
+                        letterSpacing: -0.1 * 55,
+                      ),
+                    ),
                   ),
                 ),
-              ),
-            ),
-            SizedBox(height: R.sp(18)),
-            _QuantityRow(quantita: quantita, descrizione: descrizione),
-            SizedBox(height: R.sp(15)),
-            Padding(
-              padding: EdgeInsets.only(left: R.sp(26)),
-              child: const DashedLine(widthDesign: 297),
-            ),
-            SizedBox(height: R.sp(18)),
-            // "Dati personali" 48/500 + nome/cognome reali.
-            Padding(
-              padding: EdgeInsets.only(left: R.sp(26)),
-              child: Text(
-                'Dati personali',
-                style: OnlistTextStyles.hn(
-                  color: Colors.white,
-                  fontSize: R.sp(48),
-                  fontWeight: FontWeight.w700,
-                  height: 47 / 48,
-                  letterSpacing: -0.1 * 48,
+                SizedBox(height: R.sp(18)),
+                _QuantityRow(quantita: quantita, descrizione: descrizione),
+                // 15 + 1 (linea) + 18: lo spazio della 1ª separazione resta, la
+                // linea ora la disegna lo Stack ancorata alla tacca.
+                SizedBox(height: R.sp(34)),
+                // "Dati personali" 48/500 — era w700, il CSS dice 500 come gli
+                // altri due titoli della card.
+                Padding(
+                  padding: EdgeInsets.only(left: R.sp(26)),
+                  child: Text(
+                    'Dati personali',
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white,
+                      fontSize: R.sp(48),
+                      fontWeight: FontWeight.w500,
+                      height: 47 / 48,
+                      letterSpacing: -0.1 * 48,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SizedBox(height: R.sp(11)),
-            _PersonalRow('Nome : $nome'),
-            SizedBox(height: R.sp(5)),
-            _PersonalRow('Cognome : $cognome'),
-            SizedBox(height: R.sp(26)),
-            Padding(
-              padding: EdgeInsets.only(left: R.sp(26)),
-              child: const DashedLine(widthDesign: 297),
-            ),
-            SizedBox(height: R.sp(25)),
-            // "Pagamento" 48/500 + testo statico + prezzo 96.
-            Padding(
-              padding: EdgeInsets.only(left: R.sp(26)),
-              child: Text(
-                'Pagamento',
-                style: OnlistTextStyles.hn(
-                  color: Colors.white,
-                  fontSize: R.sp(48),
-                  fontWeight: FontWeight.w500,
-                  height: 47 / 48,
-                  letterSpacing: -0.1 * 48,
+                SizedBox(height: R.sp(11)),
+                _PersonalRow('Nome : $nome'),
+                SizedBox(height: R.sp(5)),
+                _PersonalRow('Cognome : $cognome'),
+                // 26 + 1 (linea) + 25: idem per la 2ª separazione.
+                SizedBox(height: R.sp(52)),
+                // "Pagamento" 48/500 + testo statico + prezzo 96.
+                Padding(
+                  padding: EdgeInsets.only(left: R.sp(26)),
+                  child: Text(
+                    'Pagamento',
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white,
+                      fontSize: R.sp(48),
+                      fontWeight: FontWeight.w500,
+                      height: 47 / 48,
+                      letterSpacing: -0.1 * 48,
+                    ),
+                  ),
                 ),
-              ),
-            ),
-            SizedBox(
-              height: R.sp(148),
-              child: Stack(
-                children: [
-                  Positioned(
-                    left: R.sp(30),
-                    top: R.sp(16),
-                    child: SizedBox(
-                      width: R.sp(155),
-                      child: Text(
-                        'Il pagamento dovrà essere effettuato in struttura',
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(20),
-                          fontWeight: FontWeight.w400,
-                          height: 20 / 20,
-                          letterSpacing: -0.08 * 20,
+                SizedBox(
+                  height: R.sp(148),
+                  child: Stack(
+                    children: [
+                      Positioned(
+                        left: R.sp(30),
+                        top: R.sp(16),
+                        child: SizedBox(
+                          width: R.sp(155),
+                          child: Text(
+                            'Il pagamento dovrà essere effettuato in struttura',
+                            style: OnlistTextStyles.hn(
+                              color: Colors.white,
+                              fontSize: R.sp(20),
+                              fontWeight: FontWeight.w400,
+                              height: 20 / 20,
+                              letterSpacing: -0.08 * 20,
+                            ),
+                          ),
                         ),
                       ),
-                    ),
-                  ),
-                  Positioned(
-                    right: R.sp(28),
-                    top: R.sp(31),
-                    child: Text(
-                      prezzo,
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(96),
-                        fontWeight: FontWeight.w400,
-                        height: 96 / 96,
-                        letterSpacing: -0.08 * 96,
+                      Positioned(
+                        right: R.sp(28),
+                        top: R.sp(31),
+                        child: Text(
+                          prezzo,
+                          style: OnlistTextStyles.hn(
+                            color: Colors.white,
+                            fontSize: R.sp(96),
+                            fontWeight: FontWeight.w400,
+                            height: 96 / 96,
+                            letterSpacing: -0.08 * 96,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
-                ],
-              ),
-            ),
-            // Pill "VISUALIZZA QR CODE" → mostra il retro col QR.
-            Center(
-              child: TicketPillButton(
-                label: 'VISUALIZZA QR CODE',
-                onTap: onShowQr,
-              ),
-            ),
-            SizedBox(height: R.sp(11)),
-            // "Nascondi QR Code" + freccia su → richiude il biglietto.
-            Center(
-              child: GestureDetector(
-                onTap: onCollapse,
-                behavior: HitTestBehavior.opaque,
-                child: Column(
-                  children: [
-                    Text(
-                      'Nascondi QR Code',
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(15),
-                        fontWeight: FontWeight.w400,
-                        height: 15 / 15,
-                        letterSpacing: -0.1 * 15,
-                      ),
-                    ),
-                    SizedBox(height: R.sp(8)),
-                    const _ArrowCircle(down: false),
-                  ],
                 ),
-              ),
-            ),
-            // ANNULLA PREVENDITA — non è nel Figma ma è un flusso critico:
-            // sta dentro il fronte del biglietto, sotto "Nascondi QR Code".
+                // Pill "VISUALIZZA QR CODE" → mostra il retro col QR.
+                Center(
+                  child: TicketPillButton(
+                    label: 'VISUALIZZA QR CODE',
+                    onTap: onShowQr,
+                  ),
+                ),
+                SizedBox(height: R.sp(11)),
+                // "Nascondi QR Code" + freccia su → richiude il biglietto.
+                Center(
+                  child: GestureDetector(
+                    onTap: onCollapse,
+                    behavior: HitTestBehavior.opaque,
+                    child: Column(
+                      children: [
+                        Text(
+                          'Nascondi QR Code',
+                          style: OnlistTextStyles.hn(
+                            color: Colors.white,
+                            fontSize: R.sp(15),
+                            fontWeight: FontWeight.w400,
+                            height: 15 / 15,
+                            letterSpacing: -0.1 * 15,
+                          ),
+                        ),
+                        SizedBox(height: R.sp(8)),
+                        const _ArrowCircle(down: false),
+                      ],
+                    ),
+                  ),
+                ),
+                // ANNULLA PREVENDITA DISATTIVATO (MVP): il tasto non è nel Figma e
+                // per ora non serve. Tolto anche perché allungava la card di 47px
+                // (614 → 661) facendola finire SOTTO la footer bar, mentre nel CSS
+                // il biglietto chiude a 775 e la footer parte a 780.
+                //
+                // ATTENZIONE: annullare la prevendita è il flusso critico #6 di
+                // CLAUDE.md e questo era l'unico punto da cui partiva. Finché resta
+                // commentato l'utente non può annullare dall'app.
+                //
+                // Per riattivare: togliere i commenti qui sotto, rimettere
+                // `final hasAnnulla = onAnnulla != null || annullataLabel != null;`
+                // e l'altezza variabile della card in `build`. La logica lato
+                // schermata (`_annulla`, RPC `annulla_prevendita`) è rimasta intatta
+                // in prevendita_detail_screen.dart.
+                /*
             if (hasAnnulla) ...[
               SizedBox(height: R.sp(14)),
               Center(
@@ -296,7 +346,7 @@ class TicketFrontCard extends StatelessWidget {
                     ? Text(
                         annullataLabel!,
                         style: OnlistTextStyles.hn(
-                          color: Colors.redAccent,
+                          color: OnlistColors.destructive,
                           fontSize: R.sp(16),
                           fontWeight: FontWeight.w500,
                           height: 16 / 16,
@@ -337,6 +387,9 @@ class TicketFrontCard extends StatelessWidget {
                       ),
               ),
             ],
+            */
+              ],
+            ),
           ],
         ),
       ),
@@ -422,46 +475,46 @@ class TicketBackCard extends StatelessWidget {
             _BackStagger(
               index: 3,
               child: Padding(
-              padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-              child: Column(
-                children: [
-                  FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      eventoNome,
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(48),
-                        fontWeight: FontWeight.w500,
-                        height: 47 / 48,
+                padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+                child: Column(
+                  children: [
+                    FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        eventoNome,
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(48),
+                          fontWeight: FontWeight.w500,
+                          height: 47 / 48,
+                        ),
                       ),
                     ),
-                  ),
-                  if (eventoSottotitolo != null &&
-                      eventoSottotitolo!.isNotEmpty) ...[
+                    if (eventoSottotitolo != null &&
+                        eventoSottotitolo!.isNotEmpty) ...[
+                      SizedBox(height: R.sp(6)),
+                      Text(
+                        eventoSottotitolo!,
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(32),
+                          fontWeight: FontWeight.w500,
+                          height: 32 / 32,
+                        ),
+                      ),
+                    ],
                     SizedBox(height: R.sp(6)),
                     Text(
-                      eventoSottotitolo!,
+                      dataEvento,
                       style: OnlistTextStyles.hn(
                         color: Colors.white,
-                        fontSize: R.sp(32),
+                        fontSize: R.sp(22),
                         fontWeight: FontWeight.w500,
-                        height: 32 / 32,
+                        height: 22 / 22,
                       ),
                     ),
                   ],
-                  SizedBox(height: R.sp(6)),
-                  Text(
-                    dataEvento,
-                    style: OnlistTextStyles.hn(
-                      color: Colors.white,
-                      fontSize: R.sp(22),
-                      fontWeight: FontWeight.w500,
-                      height: 22 / 22,
-                    ),
-                  ),
-                ],
-              ),
+                ),
               ),
             ),
             SizedBox(height: R.sp(14)),
@@ -471,41 +524,41 @@ class TicketBackCard extends StatelessWidget {
               child: _BackStagger(
                 index: 4,
                 child: Container(
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  color: const Color(0x330005D6),
-                  borderRadius: BorderRadius.circular(R.sp(32)),
-                ),
-                child: Column(
-                  children: [
-                    SizedBox(height: R.sp(38)),
-                    Container(
-                      width: R.sp(228),
-                      height: R.sp(228),
-                      decoration: BoxDecoration(
-                        color: const Color(0x33FFFFFF),
-                        borderRadius: BorderRadius.circular(R.sp(16)),
-                      ),
-                      padding: EdgeInsets.all(R.sp(12)),
-                      // QR reale (scansionabile dallo staff), non decorativo.
-                      child: QrImageView(
-                        data: qrData,
-                        version: QrVersions.auto,
-                        backgroundColor: Colors.transparent,
-                        eyeStyle: const QrEyeStyle(
-                          eyeShape: QrEyeShape.square,
-                          color: Colors.white,
+                  width: double.infinity,
+                  decoration: BoxDecoration(
+                    color: const Color(0x330005D6),
+                    borderRadius: BorderRadius.circular(R.sp(32)),
+                  ),
+                  child: Column(
+                    children: [
+                      SizedBox(height: R.sp(38)),
+                      Container(
+                        width: R.sp(228),
+                        height: R.sp(228),
+                        decoration: BoxDecoration(
+                          color: const Color(0x33FFFFFF),
+                          borderRadius: BorderRadius.circular(R.sp(16)),
                         ),
-                        dataModuleStyle: const QrDataModuleStyle(
-                          dataModuleShape: QrDataModuleShape.square,
-                          color: Colors.white,
+                        padding: EdgeInsets.all(R.sp(12)),
+                        // QR reale (scansionabile dallo staff), non decorativo.
+                        child: QrImageView(
+                          data: qrData,
+                          version: QrVersions.auto,
+                          backgroundColor: Colors.transparent,
+                          eyeStyle: const QrEyeStyle(
+                            eyeShape: QrEyeShape.square,
+                            color: Colors.white,
+                          ),
+                          dataModuleStyle: const QrDataModuleStyle(
+                            dataModuleShape: QrDataModuleShape.square,
+                            color: Colors.white,
+                          ),
                         ),
                       ),
-                    ),
-                    SizedBox(height: R.sp(27)),
-                    TicketPillButton(label: 'NASCONDI', onTap: onHide),
-                  ],
-                ),
+                      SizedBox(height: R.sp(27)),
+                      TicketPillButton(label: 'NASCONDI', onTap: onHide),
+                    ],
+                  ),
                 ),
               ),
             ),
@@ -606,7 +659,9 @@ class _QuantityRow extends StatelessWidget {
         children: [
           Text('Ticket x $quantita', style: style),
           if (descrizione != null && descrizione!.isNotEmpty) ...[
-            SizedBox(width: R.sp(28)),
+            // CSS: la descrizione parte a x 170 e l'app c'era già (169). Gli 8px
+            // in più (28 → 36) sono uno scostamento VOLUTO da Luca.
+            SizedBox(width: R.sp(36)),
             Flexible(
               child: Text(
                 descrizione!,
