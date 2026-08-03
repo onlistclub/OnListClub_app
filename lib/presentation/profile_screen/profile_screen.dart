@@ -20,6 +20,7 @@ import '../../widgets/back_row.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/dashed_line.dart';
+import '../../widgets/photo_crop_sheet.dart';
 import '../../widgets/fedelta_card.dart';
 import '../../widgets/glow_card.dart';
 import '../../widgets/shared_footer.dart';
@@ -927,9 +928,15 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     );
   }
 
-  /// Selezione e upload della foto profilo (bucket Storage `avatars`).
+  /// Selezione, RITAGLIO e upload della foto profilo (bucket `avatars`).
   /// Richiede la migration `2026-08-01_foto_profilo_utenti.sql`.
+  ///
+  /// Fra galleria e upload c'è ora [PhotoCropSheet]: l'utente sposta e ingrandisce
+  /// la foto dentro la cornice e conferma. Prima si caricava lo scatto così
+  /// com'era e il riquadro ne mostrava il centro, senza possibilità di
+  /// scegliere l'inquadratura (punto 21 del doc correzioni).
   Future<void> _pickFotoProfilo() async {
+    File? temp;
     try {
       final picked = await ImagePicker().pickImage(
         source: ImageSource.gallery,
@@ -937,8 +944,21 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         imageQuality: 85,
       );
       if (picked == null) return;
+      if (!mounted) return;
+
+      final ritagliata = await PhotoCropSheet.show(context, File(picked.path));
+      // L'utente ha annullato la regolazione: non si carica niente.
+      if (ritagliata == null) return;
+      if (!mounted) return;
+
       setState(() => _isUploadingFoto = true);
-      final url = await OrdersService.uploadFotoProfilo(File(picked.path));
+      // `uploadFotoProfilo` vuole un File: i byte del ritaglio passano da un
+      // temporaneo, cancellato subito dopo.
+      temp = await File(
+        '${Directory.systemTemp.path}/onlist_avatar_'
+        '${DateTime.now().millisecondsSinceEpoch}.png',
+      ).writeAsBytes(ritagliata);
+      final url = await OrdersService.uploadFotoProfilo(temp);
       _cachedProfile = {...?_cachedProfile, 'foto_url': url};
       if (!mounted) return;
       setState(() {
@@ -950,6 +970,13 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       setState(() => _isUploadingFoto = false);
       showAppErrorDialog(
           context, 'Impossibile aggiornare la foto profilo.\n$e');
+    } finally {
+      // Il temporaneo serviva solo al passaggio: via in ogni caso.
+      if (temp != null && temp.existsSync()) {
+        try {
+          temp.deleteSync();
+        } catch (_) {/* non critico */}
+      }
     }
   }
 

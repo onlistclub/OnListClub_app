@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import '../core/app_export.dart';
+import 'onlist_wordmark.dart';
 // NOTIFICHE DISATTIVATE (MVP): import non piu usato dopo aver nascosto il badge
 // notifiche. Riattivare insieme al pallino nella build.
 // import '../core/services/badge_service.dart';
@@ -26,31 +27,14 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.isHome = false,
   }) : super(key: key);
 
-  // ── Crop virtuale del wordmark ──────────────────────────────────────────
-  // `logo_onlist_wordmark.png` NON è ritagliato: è un canvas quadrato con la
-  // scritta "OnList" che occupa solo una fascia centrale, circondata da ampio
-  // spazio trasparente. Renderizzarlo con BoxFit.contain e un aspect ratio
-  // "largo" (assumendo un ritaglio che non esiste) lo rimpiccioliva e lo
-  // spostava in alto a sinistra nella navbar. Lo ritagliamo qui via
-  // OverflowBox+Transform (nessuna modifica al file su disco).
-  // Percentuali basate sul bounding box dei pixel PIENI delle lettere
-  // (left/width/bottom), con un po' di headroom in alto (_cropTop alzato,
-  // _cropHeight aumentato di pari misura → bordo inferiore delle lettere
-  // invariato) per NON clippare il glow viola del puntino della "i", che
-  // sfora sopra la cap-height. Sorgente: nuovo logo off_logo.
-  static const double _cropLeft = 0.1237;
-  static const double _cropTop = 0.3950;
-  static const double _cropWidth = 0.7520;
-  static const double _cropHeight = 0.2535;
-  static double get _cropAspect => _cropWidth / _cropHeight;
-
   /// Altezza della scritta "OnList": dimensione fissa (non scalata su R.w),
   /// coerente con le icone search/profile (32px) — misurato su
   /// `docs/figma_screen/off/nav-bar.png`: logo 37px vs icone 34px, quindi
   /// stessa taglia, non 30% dello schermo (che lo rendeva enorme/sfocato).
+  ///
+  /// Il ritaglio del wordmark sta ora in [OnlistWordmark], condiviso con la
+  /// card "Tu e OnList" dell'Account.
   static const double _logoHeight = 34;
-
-  static double get _logoWidth => _logoHeight * _cropAspect;
 
   /// Padding verticale della barra (sopra+sotto).
   static const double _vPad = 10;
@@ -135,38 +119,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     );
   }
 
-  /// Crop virtuale del wordmark: renderizza l'asset (quadrato) ingrandito
-  /// e lo trasla/clippa così che nel box finale (_logoWidth × _logoHeight)
-  /// sia visibile solo la fascia con la scritta "OnList".
-  Widget _buildLogo() {
-    final double boxW = _logoWidth;
-    final double boxH = _logoHeight;
-    // Lato del render quadrato: la frazione _cropHeight del lato deve
-    // corrispondere a boxH.
-    final double side = boxH / _cropHeight;
-    return ClipRect(
-      child: SizedBox(
-        width: boxW,
-        height: boxH,
-        child: OverflowBox(
-          alignment: Alignment.topLeft,
-          minWidth: side,
-          maxWidth: side,
-          minHeight: side,
-          maxHeight: side,
-          child: Transform.translate(
-            offset: Offset(-_cropLeft * side, -_cropTop * side),
-            child: Image.asset(
-              ImageConstant.imgLogoOnlistWordmark,
-              width: side,
-              height: side,
-              fit: BoxFit.fill,
-            ),
-          ),
-        ),
-      ),
-    );
-  }
+  Widget _buildLogo() => const OnlistWordmark(height: _logoHeight);
 
   // Altezza barra = altezza logo + padding verticale (10+10).
   @override

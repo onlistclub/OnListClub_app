@@ -8,6 +8,7 @@ import '../core/utils/responsive.dart';
 import '../theme/onlist_colors.dart';
 import '../theme/onlist_text_styles.dart';
 import 'glow_card.dart';
+import 'onlist_wordmark.dart';
 
 /// Card "Tu e OnList" dell'Account: il riepilogo fedeltà con la palla da
 /// discoteca.
@@ -194,14 +195,12 @@ class _FedeltaCardState extends State<FedeltaCard>
                   letterSpacing: -0.05 * 20,
                 ),
               ),
-              Image.asset(
-                ImageConstant.imgLogoOnlistWordmark,
-                // 21 (misura Figma) → 32: "aumentare di tanto il logo OnList",
-                // punto 23 del doc correzioni. È uno scostamento voluto dal
-                // design, dove il logo è alto quanto il testo "Tu e".
-                height: R.sp(32),
-                fit: BoxFit.contain,
-              ),
+              // Stesso wordmark ufficiale della navbar, con lo stesso
+              // ritaglio: prima era un Image.asset diretto e la scritta usciva
+              // alta un quarto del previsto (~8px su 32), persa nel canvas
+              // trasparente. Vedi [OnlistWordmark].
+              // 24 contro i 21 del Figma: "aumentare di tanto" (punto 23).
+              OnlistWordmark(height: R.sp(24)),
             ],
           ),
           SizedBox(height: R.sp(9)),
