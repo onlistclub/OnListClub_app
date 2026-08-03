@@ -80,6 +80,10 @@ class ImageConstant {
   /// che è l'unico punto in cui va referenziata.
   static String imgArrowLeft = '${_svgUfficiali}freccia_sinistra.svg';
 
+  /// Pallino blu della notifica sulla footer: 10×10 pieno #0015FF
+  /// (CSS "Carrello in sospeso", Ellipse 22 a 294,784).
+  static String imgNotificaPallino = '${_svgUfficiali}notifica_pallino.svg';
+
   // ── Segnalibro "preferiti" ────────────────────────────────────────────────
   /// Segnalibro piccolo: 19×23, stroke bianco 2px. È l'icona della pill
   /// "Club salvati" nell'Account (CSS: `border: 2px solid #FFFFFF`, riquadro

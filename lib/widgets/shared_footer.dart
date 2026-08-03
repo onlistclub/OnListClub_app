@@ -33,10 +33,15 @@ class SharedFooter extends StatelessWidget {
   /// rotta della tab (usato dalle schermate non ancora migrate allo shell).
   final void Function(int index)? onTabSelected;
 
+  /// Pallino blu di notifica sull'icona CARRELLO: acceso quando c'è un ordine
+  /// lasciato in sospeso e non ancora visto (vedi `PendingOrderService`).
+  final bool badgeCarrello;
+
   const SharedFooter({
     Key? key,
     required this.currentIndex,
     this.onTabSelected,
+    this.badgeCarrello = false,
   }) : super(key: key);
 
   // Dimensioni design (px Figma, frame 393×852) dal CSS ufficiale
@@ -60,6 +65,13 @@ class SharedFooter extends StatelessWidget {
 
   static const double _cartWidth = 33;
   static const double _cartHeight = 34; // Aspect ratio nativo 31×32
+
+  // Pallino di notifica (CSS "Carrello in sospeso", Ellipse 22: 10×10 a
+  // 294,784). L'icona carrello sta a 258,786 ed è 33×34, quindi il pallino
+  // sborda di 3px a destra e sale di 2 sopra il suo bordo alto.
+  static const double _dotSize = 10;
+  static const double _dotRight = -3;
+  static const double _dotTop = -2;
 
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
   /// padding di fondo, così l'ultimo contenuto scrollabile supera la capsula.
@@ -135,7 +147,8 @@ class SharedFooter extends StatelessWidget {
                               R.sp(_cartHeight),
                               ImageConstant.imgNavCart,
                               2,
-                              AppRoutes.cartScreen)),
+                              AppRoutes.cartScreen,
+                              badge: badgeCarrello)),
                     ],
                   ),
                 ],
@@ -147,8 +160,9 @@ class SharedFooter extends StatelessWidget {
     );
   }
 
-  Widget _buildNavItem(double width, double height, String iconPath,
-      int index, String routeName) {
+  Widget _buildNavItem(double width, double height, String iconPath, int index,
+      String routeName,
+      {bool badge = false}) {
     final isSelected = currentIndex == index;
     return GestureDetector(
       onTap: () {
@@ -170,9 +184,30 @@ class SharedFooter extends StatelessWidget {
         child: SizedBox(
           width: width,
           height: height,
-          child: Opacity(
-            opacity: isSelected ? 1.0 : 0.5,
-            child: SvgPicture.asset(iconPath, fit: BoxFit.contain),
+          // Il pallino sborda dal riquadro dell'icona: senza Clip.none lo
+          // Stack lo taglierebbe.
+          child: Stack(
+            clipBehavior: Clip.none,
+            children: [
+              Positioned.fill(
+                child: Opacity(
+                  opacity: isSelected ? 1.0 : 0.5,
+                  child: SvgPicture.asset(iconPath, fit: BoxFit.contain),
+                ),
+              ),
+              if (badge)
+                Positioned(
+                  right: R.sp(_dotRight),
+                  top: R.sp(_dotTop),
+                  // A piena opacità anche a tab spenta: è un avviso, non deve
+                  // attenuarsi insieme all'icona.
+                  child: SvgPicture.asset(
+                    ImageConstant.imgNotificaPallino,
+                    width: R.sp(_dotSize),
+                    height: R.sp(_dotSize),
+                  ),
+                ),
+            ],
           ),
         ),
       ),

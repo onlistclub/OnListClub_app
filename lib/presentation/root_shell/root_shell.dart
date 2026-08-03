@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 
 import '../../core/services/navigator_service.dart';
+import '../../core/services/pending_order_service.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/page_transitions.dart';
 import '../../widgets/shared_footer.dart';
@@ -97,6 +98,10 @@ class _RootShellState extends State<RootShell>
     // e le navigazioni verso le root del footer diventano cambi-tab.
     NavigatorService.shellNavigatorKey = _navKey;
     NavigatorService.switchTab = switchToTab;
+    // Ordine lasciato in sospeso in una sessione precedente (anche chiusa di
+    // colpo dentro la scelta ticket): al primo avvio dello shell il pallino
+    // va acceso.
+    PendingOrderService().aggiornaPallino();
   }
 
   @override
@@ -115,6 +120,10 @@ class _RootShellState extends State<RootShell>
 
   void switchToTab(int index) {
     if (index < 0 || index >= _tabs.length) return;
+    // Aprire il carrello vale come "notifica vista": il pallino si spegne, ma
+    // gli ordini in sospeso restano lì. Va fatto qui e non nella schermata,
+    // perché nell'IndexedStack quella resta montata e non riparte mai.
+    if (index == _tabCarrello) PendingOrderService().segnaVisti();
     // Chiude eventuali dettagli aperti e torna alla radice della tab scelta.
     _navKey.currentState?.popUntil((r) => r.isFirst);
     final bool changed = index != _tab.value;
@@ -183,9 +192,16 @@ class _RootShellState extends State<RootShell>
           valueListenable: _tab,
           builder: (_, index, __) => ValueListenableBuilder<int?>(
             valueListenable: _routeHighlight,
-            builder: (_, forzato, __) => SharedFooter(
-              currentIndex: forzato ?? index,
-              onTabSelected: switchToTab,
+            builder: (_, forzato, __) => ValueListenableBuilder<bool>(
+              // Pallino blu sul carrello: ordine lasciato in sospeso e non
+              // ancora visto. Sta qui e non nelle schermate perché la footer
+              // è unica e globale.
+              valueListenable: PendingOrderService().pallino,
+              builder: (_, sospeso, __) => SharedFooter(
+                currentIndex: forzato ?? index,
+                onTabSelected: switchToTab,
+                badgeCarrello: sospeso,
+              ),
             ),
           ),
         ),

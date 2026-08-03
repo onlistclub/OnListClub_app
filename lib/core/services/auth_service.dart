@@ -19,6 +19,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../routes/app_routes.dart';
 import 'navigator_service.dart';
+import 'pending_order_service.dart';
 
 class AuthService {
   AuthService._();
@@ -75,6 +76,10 @@ class AuthService {
 
   /// Logout esplicito. La navigazione viene gestita dal listener.
   Future<void> signOut() async {
+    // Il pallino del carrello vive in memoria: senza questo resterebbe acceso
+    // addosso al prossimo utente che entra (le righe sul DB no, quelle le
+    // filtra la RLS).
+    PendingOrderService().reset();
     try {
       await Supabase.instance.client.auth.signOut();
     } catch (e) {
