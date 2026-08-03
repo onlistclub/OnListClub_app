@@ -71,7 +71,9 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
             // `pushNamed` (non `...AndRemoveUntil`): dentro lo shell viene
             // intercettato come CAMBIO TAB verso la Home (niente nuovo shell,
             // stato preservato). Vedi NavigatorService.pushNamed.
-            onTap: isHome ? null : () => NavigatorService.pushNamed(AppRoutes.homeScreen),
+            onTap: isHome
+                ? null
+                : () => NavigatorService.pushNamed(AppRoutes.homeScreen),
             // Niente più Hero(tag:'app_logo'): i 3 tab dello shell restano
             // montati insieme nell'IndexedStack e tre Hero con lo stesso tag nel
             // medesimo sottoalbero farebbero crashare il primo volo Hero. Il
@@ -82,16 +84,22 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
           const Spacer(),
           if (showSearch)
             GestureDetector(
-              onTap: onSearchTap ?? () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
+              onTap: onSearchTap ??
+                  () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                // Padding destro ridotto (6 → 2.5): avvicina la lente al
+                // profilo di ~3.5px, come chiesto nel doc correzioni. Il
+                // profilo resta ancorato al bordo, quindi si muove la lente.
+                padding:
+                    EdgeInsets.fromLTRB(R.sp(6), R.sp(6), R.sp(2.5), R.sp(6)),
                 child: SvgPicture.asset(ImageConstant.imgNavSearch,
-                    width: 34, height: 34),
+                    width: R.sp(34), height: R.sp(34)),
               ),
             ),
           if (showProfile)
             GestureDetector(
-              onTap: onProfileTap ?? () => NavigatorService.pushNamed(AppRoutes.profileScreen),
+              onTap: onProfileTap ??
+                  () => NavigatorService.pushNamed(AppRoutes.profileScreen),
               child: Padding(
                 padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
                 child: Stack(

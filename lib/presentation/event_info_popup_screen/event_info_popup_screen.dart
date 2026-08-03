@@ -576,10 +576,10 @@ class _PopupCard extends StatelessWidget {
         child: Text(
           text,
           maxLines: 1,
-          // WORKAROUND w500 → w700: vedi nota in `_renderInfoBox`.
+          // 20/w500 come da CSS — vedi nota in `_renderInfoBox`.
           style: OnlistTextStyles.hn(
             fontSize: R.sp(20),
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w500,
             color: Colors.white,
             height: 20 / 20,
             letterSpacing: -0.08 * 20,
@@ -717,14 +717,14 @@ class _PopupCard extends StatelessWidget {
           SizedBox(height: R.sp(14)),
           Text(
             box.value,
-            // WORKAROUND w500: il CSS dice 500 e il codice lo chiedeva già, ma
-            // la faccia Medium non viene agganciata e usciva in Roman. w700 su
-            // scelta di Luca per vederlo grassetto SUBITO — da riportare a
-            // w500 quando il bug del w500 sarà risolto. Il titoletto sopra
-            // resta leggero, come da design.
+            // 20/w500 come da CSS. Era stato alzato a w700 quando credevo che
+            // il w500 non agganciasse la faccia Medium: la probe del task sui
+            // font ha dimostrato il contrario (500 → 218.640, identico alla
+            // faccia isolata), e il documento correzioni chiede di ridurre
+            // proprio questo grassetto. Il titoletto sopra resta leggero.
             style: OnlistTextStyles.hn(
               fontSize: R.sp(20),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
               color: Colors.white,
               height: 20 / 20,
               letterSpacing: -0.05 * 20,
@@ -859,10 +859,10 @@ class _PopupCard extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           'Acquista il tuo ticket',
-          // WORKAROUND w500 → w700: vedi nota in `_renderInfoBox`.
+          // 32/w500 come da CSS — vedi nota in `_renderInfoBox`.
           style: OnlistTextStyles.hn(
             fontSize: R.sp(32),
-            fontWeight: FontWeight.w700,
+            fontWeight: FontWeight.w500,
             color: Colors.white,
             height: 32 / 32,
             letterSpacing: -0.05 * 32,

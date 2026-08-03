@@ -112,7 +112,9 @@ class TicketCollapsedCard extends StatelessWidget {
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontSize: R.sp(15),
-                    fontWeight: FontWeight.w400,
+                    // "Grassetto leggero" richiesto nel doc correzioni: w500,
+                    // non w700 — deve restare più leggero del nome del locale.
+                    fontWeight: FontWeight.w500,
                     letterSpacing: -0.1 * 15,
                   ),
                 ),

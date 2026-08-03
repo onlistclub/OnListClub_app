@@ -34,7 +34,12 @@ class OnlistPriceText extends StatelessWidget {
   final bool smallSymbol;
 
   /// Respiro reale tra cifra e simbolo, in em.
-  static const double _gapEm = 0.02;
+  ///
+  /// Azzerato (era 0.02): il doc correzioni chiede di avvicinare l'importo al
+  /// simbolo di 2-3px, e a 96px quello 0.02em valeva ~1.9px. Resta comunque la
+  /// neutralizzazione della crenatura negativa del design (-0.08em), che senza
+  /// questo intervento tirerebbe il simbolo SOPRA l'ultima cifra.
+  static const double _gapEm = 0;
 
   /// Quanto è più piccolo il simbolo di valuta rispetto alle cifre, quando
   /// [smallSymbol] è attivo.

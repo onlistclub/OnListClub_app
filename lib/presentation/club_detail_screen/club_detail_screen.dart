@@ -511,7 +511,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             SizedBox(height: R.sp(11)),
             Row(
               children: [
-                _infoIcon(ImageConstant.imgMusic),
+                // La nota va 2px più a sinistra dell'orologio: nel CSS sta a
+                // left 13 contro i 15 dell'orologio, e otticamente si allinea.
+                // Transform e non padding, così il testo resta a 41 come da CSS.
+                Transform.translate(
+                  offset: Offset(-R.sp(2), 0),
+                  child: _infoIcon(ImageConstant.imgMusic),
+                ),
                 SizedBox(width: R.sp(6)),
                 Expanded(
                   child: Text(
