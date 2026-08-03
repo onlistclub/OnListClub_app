@@ -127,9 +127,9 @@ class _TableMapScreenState extends State<TableMapScreen> {
                       child: Container(
                         margin: const EdgeInsets.all(2),
                         decoration: BoxDecoration(
-                          color: isOccupied 
-                            ? Colors.red.withOpacity(0.5) 
-                            : (isSelected ? Colors.blue : Colors.green.withOpacity(0.5)),
+                          color: isOccupied
+                            ? Colors.red.withValues(alpha: 0.5)
+                            : (isSelected ? Colors.blue : Colors.green.withValues(alpha: 0.5)),
                           borderRadius: BorderRadius.circular(4),
                           border: Border.all(
                             color: isSelected ? Colors.white : Colors.transparent,

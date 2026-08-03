@@ -104,10 +104,12 @@ class AuthenticationBloc
         await RegisterService().registerAtomic(
           userId: user.id,
           email: user.email ?? '',
-          nome: nome!,
-          cognome: cognome!,
+          // Niente `!`: dentro questo ramo `hasAll` ha già promosso i tre
+          // campi a non-null, e l'analyzer segnalava le asserzioni come inutili.
+          nome: nome,
+          cognome: cognome,
           dataNascita: dataNascita,
-          telefono: telefono!,
+          telefono: telefono,
           countryIso: null,
         );
         emit(state.copyWith(isLoading: false, isLoginSuccess: true));
