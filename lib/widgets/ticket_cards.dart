@@ -24,6 +24,38 @@ import 'ticket_shape.dart';
 ///
 /// Tutte le misure sono px design (frame Figma 393×852) scalate con [R.sp].
 
+// ── Geometria condivisa fronte/retro del biglietto aperto ────────────────────
+// Card 350×614 a top 161 (CSS Rectangle 268, identico nei due CSS).
+
+/// Altezza card del biglietto aperto (CSS Rectangle 268).
+const double _openCardH = 614;
+
+/// Quote delle separazioni, in px design dal bordo ALTO della card.
+/// Nel CSS le linee tratteggiate cadono sul centro delle tacche
+/// (`Ellipse 18` @282 → centro 301, @430 → centro 449) e la card sta a 161:
+/// 301−161 = 140, 449−161 = 288.
+///
+/// Sono la FONTE DI VERITÀ UNICA per tacche e linee: prima le tacche stavano a
+/// quota fissa mentre le linee scorrevano dentro la Column accumulando le
+/// altezze reali dei testi, e finivano fuori asse (misurato: −8px sul fronte,
+/// il retro era dichiarato a 142.5 invece di 140).
+const double _separator1Y = 140;
+const double _separator2Y = 288;
+
+/// Semiassi della tacca (CSS `Ellipse 18` 41×38) e sporgenza del centro oltre
+/// il bordo: 41/2 = 20.5, 38/2 = 19, centro 1.5px fuori → profondità 19.
+const double _notchRx = 20.5;
+const double _notchRy = 19;
+const double _notchEdgeOffset = 1.5;
+
+/// Tacca del biglietto aperto alla quota indicata (px design dal bordo alto).
+TicketNotch _openNotch(double y) => TicketNotch(
+      centerYFraction: y / _openCardH,
+      radiusDesign: _notchRx,
+      radiusYDesign: _notchRy,
+      edgeOffsetDesign: _notchEdgeOffset,
+    );
+
 // ── Stato A: biglietto chiuso ────────────────────────────────────────────────
 class TicketCollapsedCard extends StatelessWidget {
   final String clubName;
@@ -137,47 +169,13 @@ class TicketFrontCard extends StatelessWidget {
     this.annullataLabel,
   }) : super(key: key);
 
-  /// Altezza card (CSS Rectangle 268: 350×614).
-  static const double cardHeightDesign = 614;
-
-  /// Quote delle DUE separazioni, in px design dal bordo alto della card.
-  /// Nel CSS le linee tratteggiate (`Line 15` @301, `Line 16` @449) cadono
-  /// esattamente sul centro delle tacche (`Ellipse 18` @282+38/2 e @430+38/2),
-  /// con la card a top 161: 301−161 = 140 e 449−161 = 288.
-  ///
-  /// Sono la FONTE DI VERITÀ UNICA per tacche e linee: prima le tacche stavano
-  /// a quota fissa mentre le linee scorrevano dentro la Column accumulando le
-  /// altezze reali dei testi, e la seconda linea finiva 8px sopra la sua tacca.
-  static const double _separator1Y = 140;
-  static const double _separator2Y = 288;
-
-  /// Semiassi della tacca (CSS `Ellipse 18` 41×38) e sporgenza del centro
-  /// oltre il bordo: 41/2 = 20.5, 38/2 = 19, centro 1.5px fuori → profondità 19.
-  static const double _notchRx = 20.5;
-  static const double _notchRy = 19;
-  static const double _notchEdgeOffset = 1.5;
-
   @override
   Widget build(BuildContext context) {
-    const cardH = cardHeightDesign;
     return SizedBox(
-      height: R.sp(cardH),
+      height: R.sp(_openCardH),
       width: double.infinity,
       child: TicketShape(
-        notches: const [
-          TicketNotch(
-            centerYFraction: _separator1Y / cardH,
-            radiusDesign: _notchRx,
-            radiusYDesign: _notchRy,
-            edgeOffsetDesign: _notchEdgeOffset,
-          ),
-          TicketNotch(
-            centerYFraction: _separator2Y / cardH,
-            radiusDesign: _notchRx,
-            radiusYDesign: _notchRy,
-            edgeOffsetDesign: _notchEdgeOffset,
-          ),
-        ],
+        notches: [_openNotch(_separator1Y), _openNotch(_separator2Y)],
         borderWidthDesign: 3,
         borderColor: OnlistColors.ticketCardBorderOpen,
         child: Stack(
@@ -427,146 +425,225 @@ class TicketBackCard extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return SizedBox(
-      height: R.sp(614),
+      height: R.sp(_openCardH),
       width: double.infinity,
       child: TicketShape(
-        // Una sola coppia di tacche, sulla linea tratteggiata (CSS Line 15
-        // @299.55 su card a 157).
-        notches: const [
-          TicketNotch(centerYFraction: 142.5 / 614, radiusDesign: 20.5),
-        ],
+        // Una sola coppia di tacche (CSS Ellipse 18 @282 → centro 301 → 140
+        // dal bordo card): stesse costanti del fronte.
+        notches: [_openNotch(_separator1Y)],
         borderWidthDesign: 3,
         borderColor: OnlistColors.ticketCardBorderOpen,
         // I blocchi entrano SFALSATI (stagger) quando il retro compare, cioè
         // a metà rotazione: slide orizzontale + fade, ritardo crescente —
         // stesso effetto della flip card di riferimento.
-        child: Column(
+        child: Stack(
           children: [
-            SizedBox(height: R.sp(29)),
-            // Nome locale 55/500 centrato.
-            _BackStagger(
-              index: 0,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-                child: FittedBox(
-                  fit: BoxFit.scaleDown,
-                  child: Text(
-                    clubName,
-                    style: OnlistTextStyles.hn(
-                      color: Colors.white,
-                      fontSize: R.sp(55),
-                      fontWeight: FontWeight.w700,
-                      height: 54 / 55,
-                      letterSpacing: -0.1 * 55,
-                    ),
-                  ),
-                ),
+            // Linea tratteggiata ANCORATA alla quota della tacca, non più in
+            // flusso: era dichiarata a 142.5 mentre la tacca sta a 140.
+            Positioned(
+              left: R.sp(26),
+              top: R.sp(_separator1Y),
+              child: const _BackStagger(
+                index: 2,
+                child: DashedLine(widthDesign: 297),
               ),
             ),
-            SizedBox(height: R.sp(20)),
-            _BackStagger(
-              index: 1,
-              child: _QuantityRow(quantita: quantita, descrizione: descrizione),
-            ),
-            SizedBox(height: R.sp(15)),
-            const _BackStagger(index: 2, child: DashedLine(widthDesign: 297)),
-            SizedBox(height: R.sp(9)),
-            // Evento: nome 48/500, sottotitolo 32/500, data 22/500 — centrati.
-            _BackStagger(
-              index: 3,
-              child: Padding(
-                padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-                child: Column(
-                  children: [
-                    FittedBox(
+            Column(
+              children: [
+                SizedBox(height: R.sp(29)),
+                // Nome locale 55/500 centrato (era w700: il CSS dice 500).
+                _BackStagger(
+                  index: 0,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+                    child: FittedBox(
                       fit: BoxFit.scaleDown,
                       child: Text(
-                        eventoNome,
+                        clubName,
                         style: OnlistTextStyles.hn(
                           color: Colors.white,
-                          fontSize: R.sp(48),
+                          fontSize: R.sp(55),
                           fontWeight: FontWeight.w500,
-                          height: 47 / 48,
+                          height: 54 / 55,
+                          letterSpacing: -0.1 * 55,
                         ),
                       ),
                     ),
-                    if (eventoSottotitolo != null &&
-                        eventoSottotitolo!.isNotEmpty) ...[
-                      SizedBox(height: R.sp(6)),
-                      Text(
-                        eventoSottotitolo!,
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(32),
-                          fontWeight: FontWeight.w500,
-                          height: 32 / 32,
+                  ),
+                ),
+                SizedBox(height: R.sp(20)),
+                _BackStagger(
+                  index: 1,
+                  child: _QuantityRow(
+                      quantita: quantita, descrizione: descrizione),
+                ),
+                // 15 + 1 (linea, ora nello Stack) + 9.
+                SizedBox(height: R.sp(25)),
+                // Evento: nome 48/500 su MAX 2 righe, sottotitolo 32/500,
+                // data 22/500 — centrati.
+                _BackStagger(
+                  index: 3,
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+                    child: Column(
+                      children: [
+                        _TwoLineTitle(
+                          text: eventoNome,
+                          maxFontSizeDesign: 48,
+                          minFontSizeDesign: 28,
+                          lineHeight: 47 / 48,
                         ),
+                        if (eventoSottotitolo != null &&
+                            eventoSottotitolo!.isNotEmpty) ...[
+                          SizedBox(height: R.sp(6)),
+                          Text(
+                            eventoSottotitolo!,
+                            style: OnlistTextStyles.hn(
+                              color: Colors.white,
+                              fontSize: R.sp(32),
+                              fontWeight: FontWeight.w500,
+                              height: 32 / 32,
+                            ),
+                          ),
+                        ],
+                        SizedBox(height: R.sp(6)),
+                        Text(
+                          dataEvento,
+                          style: OnlistTextStyles.hn(
+                            color: Colors.white,
+                            fontSize: R.sp(22),
+                            fontWeight: FontWeight.w500,
+                            height: 22 / 22,
+                          ),
+                        ),
+                      ],
+                    ),
+                  ),
+                ),
+                SizedBox(height: R.sp(14)),
+                // Pannello QR (CSS Rectangle 295: 350×345 r32, rgba(0,5,214,.2))
+                // col QR VERO 228×228 su riquadro bianco 20% r16.
+                Expanded(
+                  child: _BackStagger(
+                    index: 4,
+                    child: Container(
+                      width: double.infinity,
+                      decoration: BoxDecoration(
+                        color: const Color(0x330005D6),
+                        borderRadius: BorderRadius.circular(R.sp(32)),
                       ),
-                    ],
-                    SizedBox(height: R.sp(6)),
-                    Text(
-                      dataEvento,
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(22),
-                        fontWeight: FontWeight.w500,
-                        height: 22 / 22,
+                      child: Column(
+                        children: [
+                          SizedBox(height: R.sp(38)),
+                          Container(
+                            width: R.sp(228),
+                            height: R.sp(228),
+                            decoration: BoxDecoration(
+                              color: const Color(0x33FFFFFF),
+                              // Il CSS non esporta lo stroke ma nel PNG ufficiale
+                              // c'è: 1px #8C8EFF sul bordo del pannello, cioè
+                              // bianco ~55% sul fondo della card. Senza, il
+                              // riquadro sfumava nel biglietto senza stacco.
+                              border: Border.all(
+                                color: const Color(0x8CFFFFFF),
+                                width: 1,
+                              ),
+                              borderRadius: BorderRadius.circular(R.sp(16)),
+                            ),
+                            // 12 → 7: i moduli del QR misuravano 187 px design
+                            // contro i 195.5 del Figma (pannello 228 in entrambi).
+                            padding: EdgeInsets.all(R.sp(7)),
+                            // QR reale (scansionabile dallo staff), non decorativo.
+                            child: QrImageView(
+                              data: qrData,
+                              version: QrVersions.auto,
+                              backgroundColor: Colors.transparent,
+                              eyeStyle: const QrEyeStyle(
+                                eyeShape: QrEyeShape.square,
+                                color: Colors.white,
+                              ),
+                              dataModuleStyle: const QrDataModuleStyle(
+                                dataModuleShape: QrDataModuleShape.square,
+                                color: Colors.white,
+                              ),
+                            ),
+                          ),
+                          SizedBox(height: R.sp(27)),
+                          TicketPillButton(label: 'NASCONDI', onTap: onHide),
+                        ],
                       ),
                     ),
-                  ],
-                ),
-              ),
-            ),
-            SizedBox(height: R.sp(14)),
-            // Pannello QR (CSS Rectangle 295: 350×345 r32, rgba(0,5,214,.2))
-            // col QR VERO 228×228 su riquadro bianco 20% r16.
-            Expanded(
-              child: _BackStagger(
-                index: 4,
-                child: Container(
-                  width: double.infinity,
-                  decoration: BoxDecoration(
-                    color: const Color(0x330005D6),
-                    borderRadius: BorderRadius.circular(R.sp(32)),
-                  ),
-                  child: Column(
-                    children: [
-                      SizedBox(height: R.sp(38)),
-                      Container(
-                        width: R.sp(228),
-                        height: R.sp(228),
-                        decoration: BoxDecoration(
-                          color: const Color(0x33FFFFFF),
-                          borderRadius: BorderRadius.circular(R.sp(16)),
-                        ),
-                        padding: EdgeInsets.all(R.sp(12)),
-                        // QR reale (scansionabile dallo staff), non decorativo.
-                        child: QrImageView(
-                          data: qrData,
-                          version: QrVersions.auto,
-                          backgroundColor: Colors.transparent,
-                          eyeStyle: const QrEyeStyle(
-                            eyeShape: QrEyeShape.square,
-                            color: Colors.white,
-                          ),
-                          dataModuleStyle: const QrDataModuleStyle(
-                            dataModuleShape: QrDataModuleShape.square,
-                            color: Colors.white,
-                          ),
-                        ),
-                      ),
-                      SizedBox(height: R.sp(27)),
-                      TicketPillButton(label: 'NASCONDI', onTap: onHide),
-                    ],
                   ),
                 ),
-              ),
+              ],
             ),
           ],
         ),
       ),
     );
   }
+}
+
+/// Titolo che sta su **massimo 2 righe**: parte da [maxFontSizeDesign] e scende
+/// finché il testo ci entra, senza mai andare sotto [minFontSizeDesign].
+///
+/// Serve per il nome evento del retro: prima era dentro un `FittedBox`, che lo
+/// teneva sempre su UNA riga rimpicciolendolo all'infinito — un nome lungo
+/// diventava minuscolo. Qui un nome corto resta a 48 su una riga, uno lungo si
+/// riduce quel tanto che basta per starci in due.
+///
+/// La misura la fa un [TextPainter] sulla larghezza reale disponibile: pochi
+/// tentativi a step di 2px, solo al build della card (nessun costo per frame).
+class _TwoLineTitle extends StatelessWidget {
+  final String text;
+  final double maxFontSizeDesign;
+  final double minFontSizeDesign;
+  final double lineHeight;
+
+  const _TwoLineTitle({
+    required this.text,
+    required this.maxFontSizeDesign,
+    required this.minFontSizeDesign,
+    required this.lineHeight,
+  });
+
+  static const int _maxLines = 2;
+
+  @override
+  Widget build(BuildContext context) {
+    return LayoutBuilder(
+      builder: (context, constraints) {
+        final maxW = constraints.maxWidth;
+        double size = R.sp(maxFontSizeDesign);
+        final minSize = R.sp(minFontSizeDesign);
+        while (size > minSize) {
+          final painter = TextPainter(
+            text: TextSpan(text: text, style: _styleAt(size)),
+            textDirection: TextDirection.ltr,
+            maxLines: _maxLines,
+            textAlign: TextAlign.center,
+          )..layout(maxWidth: maxW);
+          if (!painter.didExceedMaxLines) break;
+          size -= 2;
+        }
+        return Text(
+          text,
+          textAlign: TextAlign.center,
+          maxLines: _maxLines,
+          // Se nemmeno al minimo ci sta, meglio troncare che sbordare.
+          overflow: TextOverflow.ellipsis,
+          style: _styleAt(size),
+        );
+      },
+    );
+  }
+
+  TextStyle _styleAt(double size) => OnlistTextStyles.hn(
+        color: Colors.white,
+        fontSize: size,
+        fontWeight: FontWeight.w500,
+        height: lineHeight,
+      );
 }
 
 /// Entrata sfalsata dei blocchi del retro: parte quando il retro viene
