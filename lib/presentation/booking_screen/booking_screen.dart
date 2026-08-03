@@ -196,26 +196,27 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               _buildTopBar(),
               Expanded(
                 child: _isLoading
-                  ? const AppLoadingIndicator()
-                  : _wrapAgeGate(
-                      serata,
-                      AnimatedSwitcher(
-                        duration: const Duration(milliseconds: 400),
-                        transitionBuilder: (Widget child, Animation<double> animation) {
-                          return FadeTransition(
-                            opacity: animation,
-                            child: SlideTransition(
-                              position: Tween<Offset>(
-                                begin: const Offset(0.1, 0),
-                                end: Offset.zero,
-                              ).animate(animation),
-                              child: child,
-                            ),
-                          );
-                        },
-                        child: _buildBody(locale, serata),
+                    ? const AppLoadingIndicator()
+                    : _wrapAgeGate(
+                        serata,
+                        AnimatedSwitcher(
+                          duration: const Duration(milliseconds: 400),
+                          transitionBuilder:
+                              (Widget child, Animation<double> animation) {
+                            return FadeTransition(
+                              opacity: animation,
+                              child: SlideTransition(
+                                position: Tween<Offset>(
+                                  begin: const Offset(0.1, 0),
+                                  end: Offset.zero,
+                                ).animate(animation),
+                                child: child,
+                              ),
+                            );
+                          },
+                          child: _buildBody(locale, serata),
+                        ),
                       ),
-                    ),
               ),
             ],
           ),
@@ -236,7 +237,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             Text(
               "Nessuna serata selezionata.\nImpossibile procedere.",
               textAlign: TextAlign.center,
-              style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(18)),
+              style:
+                  OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(18)),
             ),
             const SizedBox(height: 30),
             ElevatedButton(
@@ -518,30 +520,34 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         SizedBox(height: R.sp(17)), // CSS NUOVO: prima card a top 174
         Expanded(
           child: _prevendite.isEmpty
-          ? Center(child: Text("Nessuna prevendita disponibile", style: OnlistTextStyles.hn(color: Colors.white54)))
-          : ListView.builder(
-            // CSS NUOVO: card 350 su 393 → margini ~21; gap 18 tra le card.
-            padding: EdgeInsets.fromLTRB(
-                R.sp(21), 0, R.sp(21), SharedFooter.height),
-            itemCount: _prevendite.length,
-            itemBuilder: (context, index) {
-              final p = _prevendite[index];
-              return Padding(
-                padding: EdgeInsets.only(bottom: R.sp(18)),
-                child: _buildTicketCard(
-                  type: p['tipo']?.toString() ?? '',
-                  price: p['prezzo'] != null ? "${_formatPrice(p['prezzo'])}€" : "—",
-                  description: p['descrizione']?.toString() ?? '',
-                  // Nota di entrata composta dal limite d'ingresso della serata
-                  // (fallback al vecchio campo prevendite.validita).
-                  validity:
-                      serata?.notaEntrata ?? (p['validita']?.toString() ?? ''),
-                  ticketId: (p['id_prevendita'] ?? p['id'])?.toString(),
-                  serataId: serata?.id,
+              ? Center(
+                  child: Text("Nessuna prevendita disponibile",
+                      style: OnlistTextStyles.hn(color: Colors.white54)))
+              : ListView.builder(
+                  // CSS NUOVO: card 350 su 393 → margini ~21; gap 18 tra le card.
+                  padding: EdgeInsets.fromLTRB(
+                      R.sp(21), 0, R.sp(21), SharedFooter.height),
+                  itemCount: _prevendite.length,
+                  itemBuilder: (context, index) {
+                    final p = _prevendite[index];
+                    return Padding(
+                      padding: EdgeInsets.only(bottom: R.sp(18)),
+                      child: _buildTicketCard(
+                        type: p['tipo']?.toString() ?? '',
+                        price: p['prezzo'] != null
+                            ? "${_formatPrice(p['prezzo'])}€"
+                            : "—",
+                        description: p['descrizione']?.toString() ?? '',
+                        // Nota di entrata composta dal limite d'ingresso della serata
+                        // (fallback al vecchio campo prevendite.validita).
+                        validity: serata?.notaEntrata ??
+                            (p['validita']?.toString() ?? ''),
+                        ticketId: (p['id_prevendita'] ?? p['id'])?.toString(),
+                        serataId: serata?.id,
+                      ),
+                    );
+                  },
                 ),
-              );
-            },
-          ),
         ),
       ],
     );
@@ -570,7 +576,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             centerYFraction: 0.5,
             radiusDesign: 25.5, // Ellipse 23/24/26: Ø51
             right: false,
-            edgeOffsetDesign: 6.5, // centro a x −6.5 dal bordo → tacca meno profonda
+            edgeOffsetDesign:
+                6.5, // centro a x −6.5 dal bordo → tacca meno profonda
           ),
         ],
         child: Stack(
@@ -681,6 +688,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
                       colors: [Color(0x3300FFF2), Color(0x33000000)],
+                    ),
+                    // Nel PNG ufficiale il bottone ha un contorno chiaro di
+                    // 1px (misurato #5F9CF2 a sinistra, #69B3F2 a destra, cioè
+                    // un azzurro semitrasparente): nell'app non c'era nulla e
+                    // il bottone sfumava nella card. 1.5px al 55% su richiesta
+                    // di Luca di renderlo più visibile del design.
+                    border: Border.all(
+                      color: const Color(0x8CFFFFFF),
+                      width: R.sp(1.5),
                     ),
                     borderRadius: BorderRadius.circular(R.sp(20)),
                   ),
@@ -996,62 +1012,78 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: Text(
               "Scegli il tuo tavolo",
-              style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(18), fontWeight: FontWeight.bold),
+              style: OnlistTextStyles.hn(
+                  color: Colors.white,
+                  fontSize: R.sp(18),
+                  fontWeight: FontWeight.bold),
             ),
           ),
           const SizedBox(height: 10),
           Container(
             padding: const EdgeInsets.symmetric(horizontal: 15),
             height: 150, // Altezza fissa per la griglia o Wrap
-            child: _tavoli.isEmpty 
-              ? Center(child: Text("Nessun tavolo disponibile per questo evento", style: OnlistTextStyles.hn(color: Colors.white54)))
-              : GridView.builder(
-                  shrinkWrap: true,
-                  gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-                    crossAxisCount: 4,
-                    crossAxisSpacing: 10,
-                    mainAxisSpacing: 10,
-                    childAspectRatio: 1.5,
-                  ),
-                  itemCount: _tavoli.length,
-                  itemBuilder: (context, index) {
-                    final t = _tavoli[index];
-                    final String name = t['nome_tavolo']?.toString() ?? "T";
-                    final dynamic rawId = t['id'] ?? t['id_tavolo'] ?? t['idTavolo'];
-                    final String? id = rawId?.toString();
-                    final bool isSelected = (_selectedTableId != null && _selectedTableId == id) || (_selectedTableId == null && _selectedTable == name && name != "Seleziona");
+            child: _tavoli.isEmpty
+                ? Center(
+                    child: Text("Nessun tavolo disponibile per questo evento",
+                        style: OnlistTextStyles.hn(color: Colors.white54)))
+                : GridView.builder(
+                    shrinkWrap: true,
+                    gridDelegate:
+                        const SliverGridDelegateWithFixedCrossAxisCount(
+                      crossAxisCount: 4,
+                      crossAxisSpacing: 10,
+                      mainAxisSpacing: 10,
+                      childAspectRatio: 1.5,
+                    ),
+                    itemCount: _tavoli.length,
+                    itemBuilder: (context, index) {
+                      final t = _tavoli[index];
+                      final String name = t['nome_tavolo']?.toString() ?? "T";
+                      final dynamic rawId =
+                          t['id'] ?? t['id_tavolo'] ?? t['idTavolo'];
+                      final String? id = rawId?.toString();
+                      final bool isSelected = (_selectedTableId != null &&
+                              _selectedTableId == id) ||
+                          (_selectedTableId == null &&
+                              _selectedTable == name &&
+                              name != "Seleziona");
 
-                    return GestureDetector(
-                      onTap: () {
-                        setState(() {
-                          _selectedTable = name;
-                          _selectedTableId = id ?? name; // Fallback al nome se l'ID è proprio introvabile
-                          final int cap = int.tryParse(t['capacita']?.toString() ?? "10") ?? 10;
-                          if (_participants > cap) _participants = cap;
-                        });
-                      },
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: isSelected ? Colors.white : Colors.transparent,
-                          borderRadius: BorderRadius.circular(8),
-                          border: Border.all(color: Colors.white, width: 2),
-                        ),
-                        child: Center(
-                          child: Text(
-                            name,
-                            style: OnlistTextStyles.hn(
-                              color: isSelected ? const Color(0xFF1D00FF) : Colors.white,
-                              fontWeight: FontWeight.bold,
-                              fontSize: R.sp(16),
+                      return GestureDetector(
+                        onTap: () {
+                          setState(() {
+                            _selectedTable = name;
+                            _selectedTableId = id ??
+                                name; // Fallback al nome se l'ID è proprio introvabile
+                            final int cap = int.tryParse(
+                                    t['capacita']?.toString() ?? "10") ??
+                                10;
+                            if (_participants > cap) _participants = cap;
+                          });
+                        },
+                        child: Container(
+                          decoration: BoxDecoration(
+                            color:
+                                isSelected ? Colors.white : Colors.transparent,
+                            borderRadius: BorderRadius.circular(8),
+                            border: Border.all(color: Colors.white, width: 2),
+                          ),
+                          child: Center(
+                            child: Text(
+                              name,
+                              style: OnlistTextStyles.hn(
+                                color: isSelected
+                                    ? const Color(0xFF1D00FF)
+                                    : Colors.white,
+                                fontWeight: FontWeight.bold,
+                                fontSize: R.sp(16),
+                              ),
                             ),
                           ),
                         ),
-                      ),
-                    );
-                  },
-                ),
+                      );
+                    },
+                  ),
           ),
-          
           if (_selectedTableId != null) ...[
             const SizedBox(height: 25),
             Padding(
@@ -1061,7 +1093,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 children: [
                   Text(
                     "Quante persone sarete?",
-                    style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(18), fontWeight: FontWeight.bold),
+                    style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(18),
+                        fontWeight: FontWeight.bold),
                   ),
                   const SizedBox(height: 10),
                   Row(
@@ -1072,33 +1107,46 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       const SizedBox(width: 20),
                       Text(
                         "$_participants",
-                        style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(42), fontWeight: FontWeight.bold),
+                        style: OnlistTextStyles.hn(
+                            color: Colors.white,
+                            fontSize: R.sp(42),
+                            fontWeight: FontWeight.bold),
                       ),
                       const SizedBox(width: 20),
                       _buildCircBtn(Icons.add, () {
                         int cap = 10;
                         try {
                           final t = _tavoli.firstWhere(
-                            (e) => (e['id']?.toString() == _selectedTableId) || (e['nome_tavolo']?.toString() == _selectedTableId),
+                            (e) =>
+                                (e['id']?.toString() == _selectedTableId) ||
+                                (e['nome_tavolo']?.toString() ==
+                                    _selectedTableId),
                           );
-                          cap = int.tryParse(t['capacita']?.toString() ?? "10") ?? 10;
+                          cap =
+                              int.tryParse(t['capacita']?.toString() ?? "10") ??
+                                  10;
                         } catch (_) {}
-                        
-                        if (_participants < cap) setState(() => _participants++);
+
+                        if (_participants < cap)
+                          setState(() => _participants++);
                       }),
                       const SizedBox(width: 20),
                       Text(
                         "(Max: ${(() {
                           try {
                             final t = _tavoli.firstWhere(
-                              (e) => (e['id']?.toString() == _selectedTableId) || (e['nome_tavolo']?.toString() == _selectedTableId),
+                              (e) =>
+                                  (e['id']?.toString() == _selectedTableId) ||
+                                  (e['nome_tavolo']?.toString() ==
+                                      _selectedTableId),
                             );
                             return t['capacita'] ?? 10;
                           } catch (_) {
                             return 10;
                           }
                         })()})",
-                        style: OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(16)),
+                        style: OnlistTextStyles.hn(
+                            color: Colors.white54, fontSize: R.sp(16)),
                       ),
                     ],
                   ),
@@ -1110,20 +1158,26 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           Padding(
             padding: const EdgeInsets.symmetric(horizontal: 15),
             child: AnimatedPress(
-              onPressed: (_selectedTableId == null || _selectedTable == "Seleziona")
-                ? () {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      const SnackBar(content: Text("Per favore, seleziona prima un tavolo")),
-                    );
-                  }
-                : () {
-                    setState(() => _currentStep = BookingStep.bottles);
-                  },
+              onPressed: (_selectedTableId == null ||
+                      _selectedTable == "Seleziona")
+                  ? () {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        const SnackBar(
+                            content:
+                                Text("Per favore, seleziona prima un tavolo")),
+                      );
+                    }
+                  : () {
+                      setState(() => _currentStep = BookingStep.bottles);
+                    },
               child: Container(
                 width: double.infinity,
                 height: 50,
                 decoration: BoxDecoration(
-                  color: (_selectedTableId == null || _selectedTable == "Seleziona") ? Colors.grey : const Color(0xFF1D00FF),
+                  color: (_selectedTableId == null ||
+                          _selectedTable == "Seleziona")
+                      ? Colors.grey
+                      : const Color(0xFF1D00FF),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 alignment: Alignment.center,
@@ -1148,7 +1202,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Text(title,
-            style: OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(13))),
+            style:
+                OnlistTextStyles.hn(color: Colors.white, fontSize: R.sp(13))),
         const SizedBox(height: 4),
         Container(
           height: 100,
@@ -1263,7 +1318,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           children: [
             const SizedBox(height: 15),
             Text(
-              b['nome']?.toString().toUpperCase().replaceAll(" ", "\n") ?? "VODKA",
+              b['nome']?.toString().toUpperCase().replaceAll(" ", "\n") ??
+                  "VODKA",
               textAlign: TextAlign.center,
               style: OnlistTextStyles.hn(
                 color: Colors.white,
@@ -1284,8 +1340,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               child: Image.asset(
                 'assets/images/img_grey_goose.png',
                 fit: BoxFit.contain,
-                errorBuilder: (c, e, s) => const Icon(Icons.wine_bar,
-                    color: Colors.white, size: 100),
+                errorBuilder: (c, e, s) =>
+                    const Icon(Icons.wine_bar, color: Colors.white, size: 100),
               ),
             ),
             const SizedBox(height: 20),

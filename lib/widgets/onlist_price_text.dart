@@ -9,6 +9,9 @@ import 'package:flutter/material.dart';
 /// mentre la giunzione numero→simbolo viene neutralizzata e distanziata di
 /// un soffio, restando compatta come nel Figma.
 ///
+/// Il simbolo è anche più PICCOLO delle cifre e appoggia sulla loro stessa
+/// linea di base — vedi [_symbolScale].
+///
 /// Tutte le misure derivano dal `fontSize` dello stile: nessun pixel fisso.
 class OnlistPriceText extends StatelessWidget {
   const OnlistPriceText(
@@ -25,6 +28,17 @@ class OnlistPriceText extends StatelessWidget {
 
   /// Respiro reale tra cifra e simbolo, in em.
   static const double _gapEm = 0.02;
+
+  /// Il simbolo di valuta è più piccolo delle cifre.
+  ///
+  /// Misurato sul PNG ufficiale (`Carrello - Ticket.png`, prezzo a 96px): le
+  /// cifre sono alte 69 px design e il "€" 47, cioè il **68%**, con lo stesso
+  /// bordo inferiore — nell'app usciva invece alto 71, più GRANDE delle cifre e
+  /// pure più in alto.
+  ///
+  /// Basta rimpicciolire lo span: dentro una riga di testo gli span condividono
+  /// la linea di base, quindi il simbolo scende da solo senza offset manuali.
+  static const double _symbolScale = 0.68;
 
   /// Numero (cifre, punto, virgola) seguito dal simbolo di valuta finale.
   static final RegExp _priceRe = RegExp(r'^([\d.,]+)(\D)$');
@@ -52,7 +66,13 @@ class OnlistPriceText extends StatelessWidget {
           // da negativa diventa il gap minimo voluto dal design.
           TextSpan(text: lastDigit, style: TextStyle(letterSpacing: gap)),
           // Azzerata sul simbolo: è in coda, altrimenti stringerebbe il box.
-          TextSpan(text: symbol, style: const TextStyle(letterSpacing: 0)),
+          TextSpan(
+            text: symbol,
+            style: TextStyle(
+              letterSpacing: 0,
+              fontSize: (style.fontSize ?? 0) * _symbolScale,
+            ),
+          ),
         ],
       ),
       textAlign: textAlign,
