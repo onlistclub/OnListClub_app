@@ -9,6 +9,7 @@ import '../../core/models/serata_model.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../core/services/navigator_service.dart';
+import '../../core/services/badge_service.dart';
 import '../../core/services/booking_service.dart';
 import '../../core/services/orders_service.dart';
 import '../../core/utils/age_gate.dart';
@@ -17,6 +18,7 @@ import '../../routes/app_routes.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/back_row.dart';
+import '../../widgets/app_error_dialog.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/dashed_line.dart';
 import '../../widgets/glow_card.dart';
@@ -64,6 +66,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   int _participants = 10;
   int _bottleQuantity = 1;
   Map<String, dynamic>? _selectedTicket;
+
+  /// True mentre "PRENOTA ORA" sta creando l'ordine: blocca il doppio tap e
+  /// mostra lo spinner al posto del testo.
+  bool _isPrenotando = false;
 
   @override
   void initState() {
@@ -734,21 +740,64 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         .where((s) => s.isNotEmpty)
         .toList();
 
-    void addToCart() {
-      // Funnel: aggiunta prevendita al carrello.
+    // "PRENOTA ORA" crea DIRETTAMENTE l'ordine e porta alla conferma.
+    //
+    // Prima passava per il riepilogo carrello, che creava l'ordine al suo
+    // "ORDINA IL TUO POSTO ORA". Il carrello e' stato tolto dal flusso (vedi
+    // CARRELLO DISATTIVATO in cart_screen): qui c'e' il punto in cui l'utente
+    // prenota davvero il posto, quindi la chiamata sta qui.
+    //
+    // La schermata carrello e la sua logica restano intatte nel codice: per
+    // riattivare il passaggio basta ripristinare la vecchia `addToCart`, che
+    // navigava a AppRoutes.cartScreen con questi stessi arguments.
+    Future<void> prenotaOra() async {
+      if (_isPrenotando) return; // doppio tap
+      final String eventoId = (t['serataId'] ?? serata?.id ?? '').toString();
+
+      // Funnel: l'evento "aggiunta al carrello" resta, e' lo stesso momento
+      // logico anche senza la schermata carrello di mezzo.
       AnalyticsService.logAddToCart(
         type: 'ticket',
-        eventId: (t['serataId'] ?? serata?.id) as String?,
+        eventId: eventoId.isEmpty ? null : eventoId,
         price: price,
       );
-      NavigatorService.pushNamed(AppRoutes.cartScreen, arguments: {
-        'type': 'ticket',
-        'ticketType': type,
-        'price': price,
-        'description': description,
-        'ticketId': t['ticketId'],
-        'id_evento': t['serataId'] ?? serata?.id,
-      });
+
+      setState(() => _isPrenotando = true);
+      try {
+        final prenotazioneId = await BookingService.createReservation(
+          bookingType: 'ticket',
+          ticketId: t['ticketId'] as String?,
+          tavoloId: null,
+          drinkId: null,
+          bottleQuantity: 1,
+          eventoId: eventoId,
+          nPersone: 1,
+          ticketHolders: null,
+        );
+
+        AnalyticsService.log(
+          event: 'booking_payment_success',
+          metadata: {'type': 'ticket', 'amount': price},
+        );
+        AnalyticsService.logBookingComplete(
+          type: 'ticket',
+          eventId: eventoId.isEmpty ? null : eventoId,
+          amount: price,
+        );
+        BadgeService().incrementNotificationBadge();
+
+        if (!mounted) return;
+        // L'id viaggia con la route: la conferma mostra QUESTO ordine.
+        NavigatorService.pushNamed(
+          AppRoutes.paymentSuccessScreen,
+          arguments: {'idPrenotazione': prenotazioneId},
+        );
+      } catch (e) {
+        AnalyticsService.reportError(e, screen: 'booking');
+        if (mounted) showAppErrorDialog(context, "Errore durante l'ordine: $e");
+      } finally {
+        if (mounted) setState(() => _isPrenotando = false);
+      }
     }
 
     return SingleChildScrollView(
@@ -917,10 +966,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               ),
             ),
             // PRENOTA ORA (CSS Rectangle 288: 233×54 r20, fill trasparente +
-            // glow interno inset 0 0 47.3 -6 #00BBFF) → carrello, come prima.
+            // glow interno inset 0 0 47.3 -6 #00BBFF). Qui l'utente prenota
+            // davvero: crea l'ordine e va alla conferma, niente carrello.
             Center(
               child: AnimatedPress(
-                onPressed: addToCart,
+                onPressed: _isPrenotando ? null : prenotaOra,
                 child: SizedBox(
                   width: R.sp(233),
                   height: R.sp(54),
@@ -932,16 +982,25 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     glowColor: const Color(0xFF00BBFF),
                     glowSigma: R.sp(23.65), // blur CSS 47.3
                     child: Center(
-                      child: Text(
-                        'PRENOTA ORA',
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(32),
-                          fontWeight: FontWeight.w700,
-                          height: 32 / 32,
-                          letterSpacing: -0.1 * 32,
-                        ),
-                      ),
+                      child: _isPrenotando
+                          // Spinner al posto del testo: l'ordine sta partendo
+                          // e il bottone non è più premibile.
+                          ? SizedBox(
+                              width: R.sp(22),
+                              height: R.sp(22),
+                              child: const CircularProgressIndicator(
+                                  color: Colors.white, strokeWidth: 2),
+                            )
+                          : Text(
+                              'PRENOTA ORA',
+                              style: OnlistTextStyles.hn(
+                                color: Colors.white,
+                                fontSize: R.sp(32),
+                                fontWeight: FontWeight.w700,
+                                height: 32 / 32,
+                                letterSpacing: -0.1 * 32,
+                              ),
+                            ),
                     ),
                   ),
                 ),

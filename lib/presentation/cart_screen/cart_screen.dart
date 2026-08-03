@@ -16,6 +16,23 @@ import '../../widgets/onlist_primary_button.dart';
 import '../../widgets/app_error_dialog.dart';
 import '../../core/services/badge_service.dart';
 
+/// CARRELLO DISATTIVATO (MVP) — schermata FUORI dal flusso d'acquisto.
+///
+/// Nel documento correzioni 1.1 il riepilogo carrello è stato tolto: l'utente
+/// prenota al "PRENOTA ORA" del dettaglio ticket, che ora crea l'ordine e va
+/// dritto alla conferma (vedi `booking_screen.prenotaOra`).
+///
+/// **Il codice qui resta completo e funzionante**, per scelta esplicita: non è
+/// stato cancellato niente, né la UI né [_processPayment]. Per riattivare il
+/// passaggio dal carrello bastano due mosse:
+///  1. in `booking_screen`, rimettere la vecchia `addToCart` — naviga a
+///     `AppRoutes.cartScreen` con gli stessi arguments che oggi passa a
+///     `createReservation`;
+///  2. togliere questo commento.
+///
+/// La schermata resta raggiungibile dal tab carrello della footer, dove mostra
+/// l'ultimo ordine in memoria o lo stato vuoto: non fa parte del flusso, ma non
+/// è nemmeno una schermata rotta.
 class CartScreen extends StatefulWidget {
   const CartScreen({Key? key}) : super(key: key);
 
