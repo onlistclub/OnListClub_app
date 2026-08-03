@@ -42,8 +42,32 @@ class _RootShellState extends State<RootShell>
   // Indici allineati alla SharedFooter: 0 = Ticket/Ordini, 1 = Home, 2 = Carrello.
   static const int _tabHome = 1;
 
+  static const int _tabCarrello = 2;
+
   final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
   final ValueNotifier<int> _tab = ValueNotifier<int>(_tabHome);
+
+  /// Icona da illuminare per via della ROTTA in cima, indipendentemente dal tab
+  /// scelto. Null = comanda il tab.
+  ///
+  /// Serve perché aprire un dettaglio non cambia `_tab`: entrando in
+  /// prenotazione dalla Home restava acceso il pallino Home, mentre l'utente è
+  /// di fatto in fase d'acquisto. Il documento correzioni 1.1 (punto 10) chiede
+  /// che lì si accenda il CARRELLO.
+  final ValueNotifier<int?> _routeHighlight = ValueNotifier<int?>(null);
+
+  /// Rotte che forzano un'icona diversa da quella del tab.
+  static const Map<String, int> _highlightPerRotta = {
+    AppRoutes.bookingScreen: _tabCarrello,
+    AppRoutes.cartScreen: _tabCarrello,
+  };
+
+  late final _HighlightObserver _routeObserver =
+      _HighlightObserver(onTop: _aggiornaHighlight);
+
+  void _aggiornaHighlight(String? routeName) {
+    _routeHighlight.value = _highlightPerRotta[routeName];
+  }
 
   // Animazione del cambio tab: fade + micro-scala (stessa "personalità" della
   // transizione `fade` dell'app). Solo Opacity/Transform → niente layout.
@@ -85,6 +109,7 @@ class _RootShellState extends State<RootShell>
     }
     _tabAnim.dispose();
     _tab.dispose();
+    _routeHighlight.dispose();
     super.dispose();
   }
 
@@ -144,6 +169,7 @@ class _RootShellState extends State<RootShell>
         extendBody: true,
         body: Navigator(
           key: _navKey,
+          observers: [_routeObserver],
           onGenerateInitialRoutes: (navigator, initialRoute) =>
               <Route<dynamic>>[
             _shellHome(const RouteSettings(name: _shellHomeRoute)),
@@ -151,16 +177,51 @@ class _RootShellState extends State<RootShell>
           onGenerateRoute: _onGenerateShellRoute,
         ),
         // Unica footer dell'app: fuori dalle route → fissa in ogni situazione.
+        // L'icona accesa è quella del tab, a meno che la rotta in cima non ne
+        // imponga un'altra (vedi [_highlightPerRotta]).
         bottomNavigationBar: ValueListenableBuilder<int>(
           valueListenable: _tab,
-          builder: (_, index, __) => SharedFooter(
-            currentIndex: index,
-            onTabSelected: switchToTab,
+          builder: (_, index, __) => ValueListenableBuilder<int?>(
+            valueListenable: _routeHighlight,
+            builder: (_, forzato, __) => SharedFooter(
+              currentIndex: forzato ?? index,
+              onTabSelected: switchToTab,
+            ),
           ),
         ),
       ),
     );
   }
+}
+
+/// Segnala allo shell quale rotta è in cima al Navigator annidato, così la
+/// footer può accendere l'icona giusta anche dentro un dettaglio.
+///
+/// Sta qui e non nelle singole schermate di proposito: la regola è una tabella
+/// sola in [_RootShellState._highlightPerRotta], invece di N schermate che si
+/// arrangiano ognuna per conto suo.
+class _HighlightObserver extends NavigatorObserver {
+  _HighlightObserver({required this.onTop});
+
+  final void Function(String? routeName) onTop;
+
+  void _notifica(Route<dynamic>? route) => onTop(route?.settings.name);
+
+  @override
+  void didPush(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _notifica(route);
+
+  @override
+  void didPop(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _notifica(previousRoute);
+
+  @override
+  void didRemove(Route<dynamic> route, Route<dynamic>? previousRoute) =>
+      _notifica(previousRoute);
+
+  @override
+  void didReplace({Route<dynamic>? newRoute, Route<dynamic>? oldRoute}) =>
+      _notifica(newRoute);
 }
 
 /// Espone [switchToTab] ai discendenti dello shell (tab e dettagli), es. il
