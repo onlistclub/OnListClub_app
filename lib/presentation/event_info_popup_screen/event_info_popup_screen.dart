@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_export.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
+import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/glow_card.dart';
@@ -29,12 +31,14 @@ class EventInfoPopupScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final args = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final args =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     final serata = args?['serata'] as SerataModel?;
     final club = args?['club'] as LocaleModel?;
 
     if (serata == null || club == null) {
-      WidgetsBinding.instance.addPostFrameCallback((_) => NavigatorService.goBack());
+      WidgetsBinding.instance
+          .addPostFrameCallback((_) => NavigatorService.goBack());
       return const Scaffold(backgroundColor: Colors.black);
     }
 
@@ -128,6 +132,10 @@ class _PopupCard extends StatelessWidget {
   static const double _padContent = 17;
   static const double _padPill = 17;
 
+  /// Centro del gradiente del badge (CSS `at 93.16% 25%`), in coordinate
+  /// Alignment: 2·0.9316−1 e 2·0.25−1.
+  static const Alignment _badgeGradientCenter = Alignment(0.8632, -0.5);
+
   /// Stile del titolo serata (Figma: Helvetica Neue w700 LS -0.08em). [fsDesign]
   /// è in px-design (scalato con R.sp); il letter-spacing scala in proporzione
   /// così la spaziatura resta coerente a ogni dimensione.
@@ -195,61 +203,62 @@ class _PopupCard extends StatelessWidget {
       // allungare per le righe extra.
       const double bannerH = _bannerBaseH;
       return Container(
-      width: double.infinity,
-      constraints: BoxConstraints(minHeight: R.sp(500)),
-      // CSS NUOVO Rectangle 210: bordo 1px bianco PIENO sopra tutto.
-      foregroundDecoration: BoxDecoration(
-        border: Border.all(color: Colors.white, width: 1),
-        borderRadius: radius,
-      ),
-      // Clip così banner e glow non sbordano dagli angoli arrotondati.
-      child: ClipRRect(
-        borderRadius: radius,
-        child: GlowCard(
-          // CSS NUOVO: 180deg #2600FF → #00308B (resta blu fino in fondo)
-          // + glow interno `inset 0 0 50px #0033FF` (Frame 416).
-          gradient: const LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [Color(0xFF2600FF), Color(0xFF00308B)],
-          ),
-          radius: R.sp(32),
-          glowColor: const Color(0xFF0033FF),
-          glowSigma: R.sp(25), // blur CSS 50
-          child: Stack(
-          children: [
-            // Banner radiale top (Rectangle 211) — overlay sopra il linear
-            // gradient e SOTTO il testo. Lo Stack disegna i figli nell'ordine
-            // dichiarato, quindi questo viene prima del contenuto.
-            // CSS NUOVO: radial(34.4% at 31.78% 68.44%, #0031D2 → #0077FF),
-            // bordo basso 1px bianco 59% che separa banner e corpo card.
-            Positioned(
-              top: 0,
-              left: 0,
-              right: 0,
-              child: IgnorePointer(
-                child: Container(
-                  key: bannerKey,
-                  height: R.sp(bannerH),
-                  decoration: const BoxDecoration(
-                    gradient: RadialGradient(
-                      center: Alignment(-0.36, 0.37),
-                      radius: 1.1,
-                      colors: [Color(0xFF0031D2), Color(0xFF0077FF)],
-                    ),
-                    border: Border(
-                      bottom: BorderSide(color: Color(0x96FFFFFF), width: 1),
+        width: double.infinity,
+        constraints: BoxConstraints(minHeight: R.sp(500)),
+        // CSS NUOVO Rectangle 210: bordo 1px bianco PIENO sopra tutto.
+        foregroundDecoration: BoxDecoration(
+          border: Border.all(color: Colors.white, width: 1),
+          borderRadius: radius,
+        ),
+        // Clip così banner e glow non sbordano dagli angoli arrotondati.
+        child: ClipRRect(
+          borderRadius: radius,
+          child: GlowCard(
+            // CSS NUOVO: 180deg #2600FF → #00308B (resta blu fino in fondo)
+            // + glow interno `inset 0 0 50px #0033FF` (Frame 416).
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0xFF2600FF), Color(0xFF00308B)],
+            ),
+            radius: R.sp(32),
+            glowColor: const Color(0xFF0033FF),
+            glowSigma: R.sp(25), // blur CSS 50
+            child: Stack(
+              children: [
+                // Banner radiale top (Rectangle 211) — overlay sopra il linear
+                // gradient e SOTTO il testo. Lo Stack disegna i figli nell'ordine
+                // dichiarato, quindi questo viene prima del contenuto.
+                // CSS NUOVO: radial(34.4% at 31.78% 68.44%, #0031D2 → #0077FF),
+                // bordo basso 1px bianco 59% che separa banner e corpo card.
+                Positioned(
+                  top: 0,
+                  left: 0,
+                  right: 0,
+                  child: IgnorePointer(
+                    child: Container(
+                      key: bannerKey,
+                      height: R.sp(bannerH),
+                      decoration: const BoxDecoration(
+                        gradient: RadialGradient(
+                          center: Alignment(-0.36, 0.37),
+                          radius: 1.1,
+                          colors: [Color(0xFF0031D2), Color(0xFF0077FF)],
+                        ),
+                        border: Border(
+                          bottom:
+                              BorderSide(color: Color(0x96FFFFFF), width: 1),
+                        ),
+                      ),
                     ),
                   ),
                 ),
-              ),
+                // Contenuto: badge, titolo, indirizzo, data, info, line-up, CTA.
+                _buildContent(context, titleFit),
+              ],
             ),
-            // Contenuto: badge, titolo, indirizzo, data, info, line-up, CTA.
-            _buildContent(context, titleFit),
-          ],
           ),
         ),
-      ),
       );
     });
   }
@@ -279,7 +288,8 @@ class _PopupCard extends StatelessWidget {
           SizedBox(height: R.sp(9)),
           // Padding interno extra di +4px (16-12) per allineare titolo/indirizzo
           Padding(
-            padding: EdgeInsets.symmetric(horizontal: R.sp(_padContent - _padPill)),
+            padding:
+                EdgeInsets.symmetric(horizontal: R.sp(_padContent - _padPill)),
             child: _titleAndAddress(titleFit),
           ),
           // Gap indirizzo → pillola data: Figma 17 (indirizzo bottom rel 126,
@@ -304,8 +314,8 @@ class _PopupCard extends StatelessWidget {
           // Box info allineati al titolo/indirizzo (16px dal bordo card):
           // +4px rispetto al padding base _padPill, come nel CSS (x≈36).
           Padding(
-            padding: EdgeInsets.symmetric(
-                horizontal: R.sp(_padContent - _padPill)),
+            padding:
+                EdgeInsets.symmetric(horizontal: R.sp(_padContent - _padPill)),
             child: _infoBoxesGrid(),
           ),
           if (hasLineup) ...[
@@ -357,65 +367,77 @@ class _PopupCard extends StatelessWidget {
     // Riga alta quanto la X (30): il badge (23) sta in alto come nel CSS
     // (badge rel y 12, X rel y 8 — la X sporge un filo sopra).
     return Row(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          // Badge QUESTA SERA: Rectangle 212, radial gradient teal→blu.
-          Container(
-            // Padding interno: badge h=23, font 16 → ~3 vert / 12 horiz
-            padding: EdgeInsets.symmetric(
-                horizontal: R.sp(12), vertical: R.sp(3)),
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Badge QUESTA SERA: Rectangle 212, radial gradient teal→blu.
+        Container(
+          // Padding interno: badge h=23, font 16 → ~3 vert / 12 horiz
+          padding:
+              EdgeInsets.symmetric(horizontal: R.sp(12), vertical: R.sp(3)),
+          decoration: BoxDecoration(
+            // CSS: radial-gradient(90.17% 90.17% at 93.16% 25%,
+            //      rgba(0,162,154,.53) 0%, rgba(30,0,255,.53) 100%)
+            // I due raggi sono 90.17% della LARGHEZZA e dell'ALTEZZA: su una
+            // pill 117×23 è un'ellisse 105×20.7. Con `radius: 1.0` Flutter
+            // misurava sul lato corto e disegnava un cerchio di 23, quindi il
+            // teal restava confinato in un puntino e il badge usciva blu
+            // piatto (misurato: canale verde 0x19÷0x21 costante, contro lo
+            // 0x2A→0x71 crescente del Figma).
+            gradient: const RadialGradient(
+              center: _badgeGradientCenter,
+              radius: 0.9017,
+              colors: [Color(0x8700A29A), Color(0x871E00FF)],
+              transform: CssEllipticalGradient(_badgeGradientCenter),
+            ),
+            borderRadius: BorderRadius.circular(R.sp(10)),
+            boxShadow: [
+              // box-shadow: 0px 2px 10px rgba(0, 5, 96, 0.48)
+              BoxShadow(
+                color: const Color(0x7A000560),
+                offset: Offset(0, R.sp(2)),
+                blurRadius: R.sp(10),
+              ),
+            ],
+          ),
+          child: Text(
+            label,
+            style: OnlistTextStyles.hn(
+              fontSize: R.sp(16),
+              fontWeight: FontWeight.w700,
+              color: Colors.white,
+              height: 16 / 16,
+              letterSpacing: -0.08 * 16,
+            ),
+          ),
+        ),
+        const Spacer(),
+        // Close (X) — CSS NUOVO Ellipse 12: cerchio outline 30×30 bianco.
+        GestureDetector(
+          onTap: () => NavigatorService.goBack(),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: R.sp(30),
+            height: R.sp(30),
             decoration: BoxDecoration(
-              // CSS: radial-gradient(... rgba(0,162,154,0.53) 0%, rgba(30,0,255,0.53) 100%)
-              gradient: const RadialGradient(
-                center: Alignment(0.86, -0.5), // 93.16%, 25%
-                radius: 1.0,
-                colors: [Color(0x8700A29A), Color(0x871E00FF)],
-              ),
-              borderRadius: BorderRadius.circular(R.sp(10)),
-              boxShadow: [
-                // box-shadow: 0px 2px 10px rgba(0, 5, 96, 0.48)
-                BoxShadow(
-                  color: const Color(0x7A000560),
-                  offset: Offset(0, R.sp(2)),
-                  blurRadius: R.sp(10),
-                ),
-              ],
+              shape: BoxShape.circle,
+              border: Border.all(color: Colors.white, width: R.sp(1)),
             ),
-            child: Text(
-              label,
-              style: OnlistTextStyles.hn(
-                fontSize: R.sp(16),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                height: 16 / 16,
-                letterSpacing: -0.08 * 16,
-              ),
-            ),
+            alignment: Alignment.center,
+            child: Icon(Icons.close, color: Colors.white, size: R.sp(16)),
           ),
-          const Spacer(),
-          // Close (X) — CSS NUOVO Ellipse 12: cerchio outline 30×30 bianco.
-          GestureDetector(
-            onTap: () => NavigatorService.goBack(),
-            behavior: HitTestBehavior.opaque,
-            child: Container(
-              width: R.sp(30),
-              height: R.sp(30),
-              decoration: BoxDecoration(
-                shape: BoxShape.circle,
-                border: Border.all(color: Colors.white, width: R.sp(1)),
-              ),
-              alignment: Alignment.center,
-              child: Icon(Icons.close, color: Colors.white, size: R.sp(16)),
-            ),
-          ),
-        ],
+        ),
+      ],
     );
   }
 
   Widget _titleAndAddress(_TitleFit fit) {
-    // Titolo con gradient text bianco→azzurrino + ombra blu (Figma):
-    // background: radial-gradient(50% 50% at 50% 50%, #FFFFFF 0%, #E0E1FF 100%)
-    // text-shadow: 0px 4px 4px rgba(38, 0, 255, 0.63)
+    // Titolo BIANCO PIENO, senza effetti (scelta di Luca).
+    //
+    // Prima c'erano il gradient text del CSS (radial #FFFFFF → #E0E1FF) e la
+    // sua ombra blu (0 4px 4px). Il problema: il `ShaderMask` con
+    // `BlendMode.srcIn` ricolora TUTTO ciò che non è trasparente, ombra
+    // compresa — l'ombra blu stretta diventava una macchia BIANCA e sfocata
+    // attorno alle lettere, cioè l'alone che nel Figma non c'è.
     return Column(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
@@ -429,65 +451,109 @@ class _PopupCard extends StatelessWidget {
           width: double.infinity,
           child: Align(
             alignment: Alignment.centerLeft,
-            child: ShaderMask(
-              shaderCallback: (Rect bounds) {
-                return const RadialGradient(
-                  center: Alignment.center,
-                  radius: 0.7,
-                  colors: [Color(0xFFFFFFFF), Color(0xFFE0E1FF)],
-                ).createShader(bounds);
-              },
-              blendMode: BlendMode.srcIn,
-              child: Text(
-                serata.nome.toUpperCase(),
-                style: _titleStyleFs(fit.fsDesign).copyWith(
-                  shadows: [
-                    Shadow(
-                      color: const Color(0xA12600FF),
-                      offset: Offset(0, R.sp(4)),
-                      blurRadius: R.sp(4),
-                    ),
-                  ],
-                ),
-                maxLines: fit.lines,
-                overflow: TextOverflow.ellipsis,
-              ),
+            child: Text(
+              serata.nome.toUpperCase(),
+              style: _titleStyleFs(fit.fsDesign),
+              maxLines: fit.lines,
+              overflow: TextOverflow.ellipsis,
             ),
           ),
         ),
         // CSS NUOVO: blocco titolo bottom rel 96 → indirizzo rel 102 = 6px gap
         SizedBox(height: R.sp(6)),
         // Indirizzo indentato +4px rispetto al titolo: Figma titolo x=35 (rel16),
-        // indirizzo x=39 (rel20).
+        // indirizzo x=39 (rel20). Accanto, il tastino che apre le mappe.
         Padding(
           padding: EdgeInsets.only(left: R.sp(4)),
-          child: Text(
-            club.indirizzoCompleto,
-            style: OnlistTextStyles.hn(
-              fontSize: R.sp(16),
-              fontWeight: FontWeight.w400,
-              color: Colors.white.withValues(alpha: 0.77),
-              height: 16 / 16,
-              letterSpacing: -0.08 * 16,
-            ),
+          child: Row(
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
+              Flexible(
+                child: Text(
+                  club.indirizzoCompleto,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: OnlistTextStyles.hn(
+                    fontSize: R.sp(16),
+                    fontWeight: FontWeight.w400,
+                    color: Colors.white.withValues(alpha: 0.77),
+                    height: 16 / 16,
+                    letterSpacing: -0.08 * 16,
+                  ),
+                ),
+              ),
+              SizedBox(width: R.sp(8)),
+              _mapButton(),
+            ],
           ),
         ),
       ],
     );
   }
 
+  /// Tastino "mappe" accanto all'indirizzo. Non è nel Figma: aggiunto su
+  /// richiesta di Luca.
+  ///
+  /// Usa `url_launcher`, già nel progetto e già impiegato allo stesso scopo in
+  /// `club_detail_screen._openMaps`, invece di aggiungere `map_launcher` per un
+  /// solo bottone (CLAUDE.md §5.3: niente dipendenze evitabili).
+  ///
+  /// Stile derivato dai token della schermata: stessa famiglia della pill dei
+  /// generi (bianco 20% + bordo bianco 38%), raggio pill.
+  ///
+  /// Deliberatamente COMPATTO (19px di altezza): l'indirizzo chiude a rel 126 e
+  /// il banner radiale finisce a rel 134, quindi il bottone deve stare in quegli
+  /// 8px di franco o sborda dal banner.
+  Widget _mapButton() {
+    return GestureDetector(
+      onTap: _openMaps,
+      behavior: HitTestBehavior.opaque,
+      child: Container(
+        padding: EdgeInsets.symmetric(horizontal: R.sp(7), vertical: R.sp(3)),
+        decoration: BoxDecoration(
+          color: const Color(0x33FFFFFF),
+          border: Border.all(color: const Color(0x61FFFFFF), width: 1),
+          borderRadius: BorderRadius.circular(R.sp(10)),
+        ),
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Icon(Icons.map_outlined, color: Colors.white, size: R.sp(13)),
+            SizedBox(width: R.sp(4)),
+            Text(
+              'Mappa',
+              style: OnlistTextStyles.hn(
+                fontSize: R.sp(11),
+                fontWeight: FontWeight.w700,
+                color: Colors.white,
+                height: 13 / 11,
+                letterSpacing: -0.05 * 11,
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Future<void> _openMaps() async {
+    final encoded = Uri.encodeComponent(club.indirizzoCompleto);
+    final uri = Uri.parse('https://maps.google.com/?q=$encoded');
+    if (await canLaunchUrl(uri)) {
+      await launchUrl(uri, mode: LaunchMode.externalApplication);
+    }
+  }
+
   Widget _datePill() {
     final date = _dateLong(serata.data);
     final orario = serata.orarioString;
-    final text = orario.isNotEmpty
-        ? '$date · ${orario.replaceAll(' - ', ' → ')}'
-        : date;
+    final text =
+        orario.isNotEmpty ? '$date · ${orario.replaceAll(' - ', ' → ')}' : date;
     return Container(
       key: datePillKey,
       width: double.infinity,
       // Figma height 41, font 20 → ~10 padding verticale
-      padding: EdgeInsets.symmetric(
-          horizontal: R.sp(14), vertical: R.sp(10)),
+      padding: EdgeInsets.symmetric(horizontal: R.sp(14), vertical: R.sp(10)),
       decoration: BoxDecoration(
         // CSS NUOVO Rectangle 213: fill trasparente + bordo 1px bianco 38%,
         // r19 (319×41).
@@ -503,9 +569,10 @@ class _PopupCard extends StatelessWidget {
         child: Text(
           text,
           maxLines: 1,
+          // WORKAROUND w500 → w700: vedi nota in `_renderInfoBox`.
           style: OnlistTextStyles.hn(
             fontSize: R.sp(20),
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w700,
             color: Colors.white,
             height: 20 / 20,
             letterSpacing: -0.08 * 20,
@@ -538,8 +605,8 @@ class _PopupCard extends StatelessWidget {
           Opacity(
             opacity: i == 0 ? 1.0 : 0.5,
             child: Container(
-              padding: EdgeInsets.symmetric(
-                  horizontal: R.sp(12), vertical: R.sp(4)),
+              padding:
+                  EdgeInsets.symmetric(horizontal: R.sp(12), vertical: R.sp(4)),
               decoration: BoxDecoration(
                 // CSS NUOVO Rectangle 214-217: bianco 20%, r11, senza bordo
                 // (l'attenuazione delle chip non attive resta con Opacity).
@@ -618,8 +685,8 @@ class _PopupCard extends StatelessWidget {
         children: [
           // Etichetta pill: h=15, font 10 → padding ~2.5 vert / 5 horiz
           Container(
-            padding: EdgeInsets.symmetric(
-                horizontal: R.sp(5), vertical: R.sp(2)),
+            padding:
+                EdgeInsets.symmetric(horizontal: R.sp(5), vertical: R.sp(2)),
             decoration: BoxDecoration(
               gradient: const LinearGradient(
                 begin: Alignment.centerLeft,
@@ -643,9 +710,14 @@ class _PopupCard extends StatelessWidget {
           SizedBox(height: R.sp(14)),
           Text(
             box.value,
+            // WORKAROUND w500: il CSS dice 500 e il codice lo chiedeva già, ma
+            // la faccia Medium non viene agganciata e usciva in Roman. w700 su
+            // scelta di Luca per vederlo grassetto SUBITO — da riportare a
+            // w500 quando il bug del w500 sarà risolto. Il titoletto sopra
+            // resta leggero, come da design.
             style: OnlistTextStyles.hn(
               fontSize: R.sp(20),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
               color: Colors.white,
               height: 20 / 20,
               letterSpacing: -0.05 * 20,
@@ -668,8 +740,7 @@ class _PopupCard extends StatelessWidget {
       // Figma box DJ: 320×50, x=35 (cioè 16 dal bordo card). Riempie la card
       // con _padPill=12; aggiungiamo solo un margine interno coerente.
       // Padding verticale ~7: avatar 35 + 2×7 ≈ 49 ≈ altezza Figma 50.
-      padding: EdgeInsets.symmetric(
-          horizontal: R.sp(11), vertical: R.sp(7)),
+      padding: EdgeInsets.symmetric(horizontal: R.sp(11), vertical: R.sp(7)),
       decoration: BoxDecoration(
         color: const Color(0x291E00FF),
         // CSS NUOVO Rectangle 226/228: bordo 1px bianco ~36%, r19.
@@ -736,8 +807,8 @@ class _PopupCard extends StatelessWidget {
           if (dj.headliner)
             Container(
               // Figma: 79×26, font 13 → padding ~6 vert / 10 horiz
-              padding: EdgeInsets.symmetric(
-                  horizontal: R.sp(10), vertical: R.sp(6)),
+              padding:
+                  EdgeInsets.symmetric(horizontal: R.sp(10), vertical: R.sp(6)),
               decoration: BoxDecoration(
                 gradient: const LinearGradient(
                   begin: Alignment.centerLeft,
@@ -781,9 +852,10 @@ class _PopupCard extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           'Acquista il tuo ticket',
+          // WORKAROUND w500 → w700: vedi nota in `_renderInfoBox`.
           style: OnlistTextStyles.hn(
             fontSize: R.sp(32),
-            fontWeight: FontWeight.w500,
+            fontWeight: FontWeight.w700,
             color: Colors.white,
             height: 32 / 32,
             letterSpacing: -0.05 * 32,
@@ -806,11 +878,27 @@ class _PopupCard extends StatelessWidget {
 
   String _dateLong(DateTime d) {
     const giorni = [
-      'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'
+      'Lunedì',
+      'Martedì',
+      'Mercoledì',
+      'Giovedì',
+      'Venerdì',
+      'Sabato',
+      'Domenica'
     ];
     const mesi = [
-      'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-      'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+      'Gennaio',
+      'Febbraio',
+      'Marzo',
+      'Aprile',
+      'Maggio',
+      'Giugno',
+      'Luglio',
+      'Agosto',
+      'Settembre',
+      'Ottobre',
+      'Novembre',
+      'Dicembre'
     ];
     return '${giorni[d.weekday - 1]} ${d.day} ${mesi[d.month - 1]}';
   }
@@ -818,7 +906,8 @@ class _PopupCard extends StatelessWidget {
   String _initialsFromName(String name) {
     final parts = name.trim().split(RegExp(r'\s+'));
     if (parts.isEmpty || parts.first.isEmpty) return '?';
-    if (parts.length == 1) return parts.first.substring(0, parts.first.length.clamp(0, 2));
+    if (parts.length == 1)
+      return parts.first.substring(0, parts.first.length.clamp(0, 2));
     return '${parts.first[0]}${parts.last[0]}';
   }
 }
