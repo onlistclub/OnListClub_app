@@ -100,7 +100,8 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
 
   @override
   Widget build(BuildContext context) {
-    final routeArgs = ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
+    final routeArgs =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
     // Il tasto "Torna indietro" ha senso SOLO quando si arriva qui in
     // automatico dal flusso di prenotazione (route con arguments). Se invece
     // si arriva dalla bottom nav (tab carrello), non ci sono arguments: in
@@ -152,7 +153,8 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   Widget _buildTicketCartView(Map<String, dynamic>? args) {
     final ticketType = args?['ticketType']?.toString() ?? "Normale";
     final priceStr = args?['price']?.toString() ?? "10€";
-    final priceVal = double.tryParse(priceStr.replaceAll("€", "").trim()) ?? 10.0;
+    final priceVal =
+        double.tryParse(priceStr.replaceAll("€", "").trim()) ?? 10.0;
     final total = priceVal.toStringAsFixed(0);
     // Descrizione reale del ticket (es. "+ 2 drink omaggio"), passata da
     // booking_screen. Prima era una stringa hardcoded sempre visibile anche
@@ -163,13 +165,23 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
       children: [
         // Card sintetica (gradiente #1E00FF -> #020011) con margine laterale,
         // in linea con le altre card della schermata (niente edge-to-edge).
+        // Il gradiente è verificato a pixel contro il CSS: scarto 1÷5.
+        // Le misure erano px FISSI: ora R.sp, come tutto il resto dell'app.
         Container(
           width: double.infinity,
-          margin: const EdgeInsets.symmetric(horizontal: 18),
-          padding: const EdgeInsets.fromLTRB(18, 14, 18, 18),
+          margin: EdgeInsets.symmetric(horizontal: R.sp(18)),
+          padding: EdgeInsets.fromLTRB(R.sp(18), R.sp(14), R.sp(18), R.sp(18)),
           decoration: BoxDecoration(
             gradient: OnlistColors.cardSummary,
-            borderRadius: BorderRadius.circular(10),
+            borderRadius: BorderRadius.circular(R.sp(10)),
+            // CSS: box-shadow 0px 4px 4px rgba(0,0,0,0.25) — mancava.
+            boxShadow: [
+              BoxShadow(
+                color: Colors.black.withValues(alpha: 0.25),
+                offset: Offset(0, R.sp(4)),
+                blurRadius: R.sp(4),
+              ),
+            ],
           ),
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -187,15 +199,15 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                       overflow: TextOverflow.ellipsis,
                     ),
                   ),
-                  const SizedBox(width: 8),
+                  SizedBox(width: R.sp(8)),
                   Padding(
-                    padding: const EdgeInsets.only(top: 6),
+                    padding: EdgeInsets.only(top: R.sp(6)),
                     child: Text("Ticket $ticketType",
                         style: OnlistTextStyles.ticketSubtitleXs),
                   ),
                 ],
               ),
-              const SizedBox(height: 4),
+              SizedBox(height: R.sp(4)),
               FittedBox(
                 fit: BoxFit.scaleDown,
                 alignment: Alignment.centerLeft,
@@ -205,12 +217,12 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                   children: [
                     OnlistPriceText("$total€", style: OnlistTextStyles.price96),
                     if (description.isNotEmpty) ...[
-                      const SizedBox(width: 10),
+                      SizedBox(width: R.sp(10)),
                       // Descrizione sale verso il centro verticale del prezzo
                       // (Figma 14): bottom padding maggiore = stringa più in
                       // alto rispetto al baseline del 96px.
                       Padding(
-                        padding: const EdgeInsets.only(bottom: 32),
+                        padding: EdgeInsets.only(bottom: R.sp(32)),
                         child: Text(description,
                             style: OnlistTextStyles.body24Regular),
                       ),
@@ -223,7 +235,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
         ),
         const Spacer(),
         Padding(
-          padding: const EdgeInsets.fromLTRB(18, 12, 18, 24),
+          padding: EdgeInsets.fromLTRB(R.sp(18), R.sp(12), R.sp(18), R.sp(24)),
           child: OnlistPrimaryButton(
             label: 'ORDINA IL TUO POSTO ORA',
             isLoading: _isPaying,
@@ -377,10 +389,12 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
               ),
               const SizedBox(height: 15),
               Container(
-                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                 decoration: BoxDecoration(
                   color: Colors.white,
-                  border: Border.all(color: OnlistColors.bluePrimary, width: 2.9),
+                  border:
+                      Border.all(color: OnlistColors.bluePrimary, width: 2.9),
                   borderRadius: BorderRadius.circular(10),
                 ),
                 child: Row(
@@ -394,7 +408,8 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
                           fontWeight: FontWeight.w400,
                           letterSpacing: -0.07 * 23),
                     ),
-                    const Icon(Icons.keyboard_arrow_down, color: Colors.black, size: 34),
+                    const Icon(Icons.keyboard_arrow_down,
+                        color: Colors.black, size: 34),
                   ],
                 ),
               ),
