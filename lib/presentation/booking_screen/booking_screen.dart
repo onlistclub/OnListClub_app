@@ -527,6 +527,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   itemCount: _prevendite.length,
                   itemBuilder: (context, index) {
                     final p = _prevendite[index];
+                    // Due campi DISTINTI (correzioni 1.1, punto 12):
+                    //   descrizione → elenco completo, va sotto "Dettagli"
+                    //   riepilogo   → riga corta ("+ 2 drink"), in alto a destra
+                    // Finche' la migration 2026-08-03_prevendite_riepilogo non
+                    // e' applicata la colonna non esiste: si ricade sul vecchio
+                    // campo, cioe' esattamente il comportamento di prima.
+                    final String dettagli = p['descrizione']?.toString() ?? '';
+                    final String riepilogo =
+                        p['riepilogo']?.toString().trim() ?? '';
                     return Padding(
                       padding: EdgeInsets.only(bottom: R.sp(18)),
                       child: _buildTicketCard(
@@ -534,7 +543,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                         price: p['prezzo'] != null
                             ? "${_formatPrice(p['prezzo'])}€"
                             : "—",
-                        description: p['descrizione']?.toString() ?? '',
+                        riepilogo: riepilogo.isNotEmpty ? riepilogo : dettagli,
+                        dettagli: dettagli,
                         // Nota di entrata composta dal limite d'ingresso della serata
                         // (fallback al vecchio campo prevendite.validita).
                         validity: serata?.notaEntrata ??
@@ -558,7 +568,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   Widget _buildTicketCard({
     required String type,
     required String price,
-    required String description,
+    // Riga corta col conteggio delle aggiunte ("+ 2 drink"): e' quella che si
+    // vede qui in alto a destra. L'elenco completo viaggia in [dettagli] e
+    // compare solo nel dettaglio, sotto "Dettagli".
+    required String riepilogo,
+    required String dettagli,
     required String validity,
     String? ticketId,
     String? serataId,
@@ -621,15 +635,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 ),
               ),
             ),
-            // Descrizione dal DB (es. "+ 2 drink omaggio"), 16 right-aligned.
-            if (description.isNotEmpty)
+            // Riepilogo aggiunte dal DB (es. "+ 2 drink"), 16 right-aligned.
+            if (riepilogo.isNotEmpty)
               Positioned(
                 right: R.sp(18),
                 top: R.sp(112),
                 child: SizedBox(
                   width: R.sp(160),
                   child: Text(
-                    description,
+                    riepilogo,
                     textAlign: TextAlign.right,
                     maxLines: 2,
                     overflow: TextOverflow.ellipsis,
@@ -672,7 +686,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     _selectedTicket = {
                       'type': type,
                       'price': price,
-                      'description': description,
+                      'riepilogo': riepilogo,
+                      'dettagli': dettagli,
                       'validity': validity,
                       'ticketId': ticketId,
                       'serataId': serataId,
@@ -731,10 +746,12 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     // Safe-format: se il prezzo arriva come "12.0€" o "12.0" lo normalizziamo
     // a "12€" (per coerenza col Figma, che non mostra mai il decimale .0).
     final String price = _normalizePriceString(t['price']?.toString() ?? '—');
-    final String description = t['description']?.toString() ?? '';
+    // Riga corta accanto a "Ticket x 1" (es. "+ 2 drink").
+    final String riepilogo = t['riepilogo']?.toString() ?? '';
     // Benefit "Dettagli": una riga per capoverso della descrizione DB —
-    // nessun benefit inventato che non stia a database.
-    final benefits = description
+    // nessun benefit inventato che non stia a database. E' l'elenco COMPLETO,
+    // diverso dal riepilogo qui sopra (correzioni 1.1, punto 12).
+    final benefits = (t['dettagli']?.toString() ?? '')
         .split(RegExp(r'[\n;]'))
         .map((s) => s.trim())
         .where((s) => s.isNotEmpty)
@@ -845,11 +862,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       letterSpacing: -0.05 * 24,
                     ),
                   ),
-                  if (description.isNotEmpty) ...[
+                  if (riepilogo.isNotEmpty) ...[
                     SizedBox(width: R.sp(28)),
                     Flexible(
                       child: Text(
-                        description,
+                        riepilogo,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: OnlistTextStyles.hn(
