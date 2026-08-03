@@ -74,7 +74,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                       // NON usare title36Bold.copyWith: porterebbe il suo
                       // letterSpacing negativo (-2.88) schiacciando il testo a 24px.
                       style: const TextStyle(
-                        fontFamily: 'HelveticaNeue',
+                        fontFamily: 'OnlistHN',
                         fontSize: 24,
                         fontWeight: FontWeight.w700,
                         height: 28 / 24,
@@ -87,7 +87,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                     const Text(
                       'La tua posizione sarà usata per mostrarti\neventi e locali vicino a te.',
                       style: TextStyle(
-                        fontFamily: 'HelveticaNeue',
+                        fontFamily: 'OnlistHN',
                         fontSize: 15,
                         fontWeight: FontWeight.w400,
                         color: OnlistColors.white,
@@ -122,9 +122,10 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                             : const Text(
                                 'Apri Impostazioni',
                                 style: TextStyle(
-                                    fontFamily: 'HelveticaNeue',
+                                    fontFamily: 'OnlistHN',
                                     fontSize: 15,
-                                    fontWeight: FontWeight.w600,
+                                    // Nessuna faccia 600 nel bundle: cadeva sul 700.
+                                    fontWeight: FontWeight.w700,
                                     color: OnlistColors.white),
                               ),
                       ),
@@ -151,9 +152,10 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                         child: const Text(
                           'Ricordamelo più tardi',
                           style: TextStyle(
-                            fontFamily: 'HelveticaNeue',
+                            fontFamily: 'OnlistHN',
                             fontSize: 15,
-                            fontWeight: FontWeight.w600,
+                            // Nessuna faccia 600 nel bundle: cadeva sul 700.
+                            fontWeight: FontWeight.w700,
                             color: OnlistColors.textSecondary,
                           ),
                         ),
@@ -180,7 +182,7 @@ class _LocationPermissionScreenState extends State<LocationPermissionScreen> wit
                             'La tua posizione è protetta e non verrà condivisa con terzi.',
                             // Font del design (SF Pro Text → HelveticaNeue), 12/line 16.
                             style: TextStyle(
-                                fontFamily: 'HelveticaNeue',
+                                fontFamily: 'OnlistHN',
                                 fontSize: 12,
                                 height: 16 / 12,
                                 fontWeight: FontWeight.w400,

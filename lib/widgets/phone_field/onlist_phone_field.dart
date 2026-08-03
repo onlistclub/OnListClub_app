@@ -110,7 +110,7 @@ class _OnlistPhoneFieldState extends State<OnlistPhoneField> {
                 Text(
                   _country.dial,
                   style: const TextStyle(
-                    fontFamily: 'HelveticaNeue',
+                    fontFamily: 'OnlistHN',
                     fontSize: 16,
                     fontWeight: FontWeight.w400,
                     color: OnlistColors.white,
@@ -133,7 +133,7 @@ class _OnlistPhoneFieldState extends State<OnlistPhoneField> {
               FilteringTextInputFormatter.digitsOnly,
             ],
             style: const TextStyle(
-              fontFamily: 'HelveticaNeue',
+              fontFamily: 'OnlistHN',
               fontSize: 16,
               fontWeight: FontWeight.w400,
               color: OnlistColors.white,
@@ -143,7 +143,7 @@ class _OnlistPhoneFieldState extends State<OnlistPhoneField> {
               filled: false,
               hintText: widget.hintText,
               hintStyle: const TextStyle(
-                fontFamily: 'HelveticaNeue',
+                fontFamily: 'OnlistHN',
                 fontSize: 16,
                 fontWeight: FontWeight.w400,
                 color: Colors.white54,

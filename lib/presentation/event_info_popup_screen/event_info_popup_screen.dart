@@ -510,37 +510,32 @@ class _PopupCard extends StatelessWidget {
   /// `club_detail_screen._openMaps`, invece di aggiungere `map_launcher` per un
   /// solo bottone (CLAUDE.md §5.3: niente dipendenze evitabili).
   ///
-  /// Stile derivato dai token della schermata: stessa famiglia della pill dei
-  /// generi (bianco 20% + bordo bianco 38%), raggio pill.
+  /// SVG ufficiali forniti da Luca: sfondo pill 44×16 (`imgMapButtonBg`) +
+  /// wordmark "Mappe" 35×9 (`imgMapButtonLabel`) sovrapposto, stesso pattern
+  /// cerchio+X del bottone di chiusura sopra.
   ///
-  /// Deliberatamente COMPATTO (19px di altezza): l'indirizzo chiude a rel 126 e
+  /// Deliberatamente COMPATTO (16px di altezza): l'indirizzo chiude a rel 126 e
   /// il banner radiale finisce a rel 134, quindi il bottone deve stare in quegli
   /// 8px di franco o sborda dal banner.
   Widget _mapButton() {
     return GestureDetector(
       onTap: _openMaps,
       behavior: HitTestBehavior.opaque,
-      child: Container(
-        padding: EdgeInsets.symmetric(horizontal: R.sp(7), vertical: R.sp(3)),
-        decoration: BoxDecoration(
-          color: const Color(0x33FFFFFF),
-          border: Border.all(color: const Color(0x61FFFFFF), width: 1),
-          borderRadius: BorderRadius.circular(R.sp(10)),
-        ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
+      child: SizedBox(
+        width: R.sp(44),
+        height: R.sp(16),
+        child: Stack(
+          alignment: Alignment.center,
           children: [
-            Icon(Icons.map_outlined, color: Colors.white, size: R.sp(13)),
-            SizedBox(width: R.sp(4)),
-            Text(
-              'Mappa',
-              style: OnlistTextStyles.hn(
-                fontSize: R.sp(11),
-                fontWeight: FontWeight.w700,
-                color: Colors.white,
-                height: 13 / 11,
-                letterSpacing: -0.05 * 11,
-              ),
+            SvgPicture.asset(
+              ImageConstant.imgMapButtonBg,
+              width: R.sp(44),
+              height: R.sp(16),
+            ),
+            SvgPicture.asset(
+              ImageConstant.imgMapButtonLabel,
+              width: R.sp(35),
+              height: R.sp(9),
             ),
           ],
         ),

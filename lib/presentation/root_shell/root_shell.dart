@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/services/navigator_service.dart';
 import '../../routes/app_routes.dart';
+import '../../routes/page_transitions.dart';
 import '../../widgets/shared_footer.dart';
 import '../home_screen/home_screen.dart';
 import '../orders_screen/orders_screen.dart';
@@ -104,6 +105,15 @@ class _RootShellState extends State<RootShell>
       settings: settings,
       transitionDuration: Duration.zero,
       reverseTransitionDuration: Duration.zero,
+      // Questa rotta non anima mai per conto suo (i tab cambiano dentro), ma è
+      // la pagina che si vede SOTTO quando si apre un dettaglio: deve arretrare
+      // col parallax mentre il dettaglio la copre, e rientrare durante lo
+      // swipe-back. Vedi `CoveredPageParallax`.
+      transitionsBuilder: (_, __, secondaryAnimation, child) =>
+          CoveredPageParallax(
+        secondaryAnimation: secondaryAnimation,
+        child: child,
+      ),
       pageBuilder: (_, __, ___) => ValueListenableBuilder<int>(
         valueListenable: _tab,
         builder: (_, index, __) => FadeTransition(

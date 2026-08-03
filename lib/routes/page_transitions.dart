@@ -20,6 +20,32 @@ import 'dart:ui' show lerpDouble;
 import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
 
+/// Frazione di larghezza schermo di cui arretra la pagina COPERTA mentre quella
+/// nuova le scorre sopra (e di cui rientra, più lenta del dito, durante lo
+/// swipe-back). È il parallax in stile iOS: dà la sensazione di due fogli
+/// sovrapposti invece di uno che scivola sul vuoto.
+///
+/// Lo stesso valore vale sia in push sia durante il gesto: se differissero, la
+/// pagina sotto salterebbe di posizione nell'istante in cui il dito tocca.
+const double kPageParallaxFraction = 0.25;
+
+/// Opacità massima del velo sulla pagina coperta (a copertura completa).
+/// Si schiarisce man mano che la pagina riemerge sotto il dito.
+const double _kScrimOpacity = 0.25;
+
+/// Larghezza della striscia d'ombra sul bordo d'attacco della pagina in primo
+/// piano. È un gradiente stretto, non una `BoxShadow` a schermo intero: costa
+/// una sola fascia di pixel invece di un blur su tutta la pagina (S7).
+const double _kEdgeShadowWidth = 14.0;
+
+const BoxDecoration _kEdgeShadow = BoxDecoration(
+  gradient: LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: <Color>[Color(0x00000000), Color(0x40000000)],
+  ),
+);
+
 /// Tipi di transizione disponibili.
 enum AppTransition {
   /// Slide orizzontale corto + fade dell'entrante. Per avanzamento gerarchico
@@ -123,6 +149,46 @@ Widget _fadeThrough(
   );
 }
 
+/// Applica il solo parallax da "pagina coperta" alle rotte che NON sono
+/// [AppPageRoute] e quindi non passano dal calcolo di `buildTransitions`: in
+/// pratica il contenitore dei tab dello shell, che sta sempre in fondo allo
+/// stack ed è la pagina che si vede sotto durante quasi tutti gli swipe-back.
+/// Senza questo, il parallax mancherebbe proprio nel caso più comune.
+///
+/// Velo e ombra li disegna già la pagina in primo piano, qui non servono.
+class CoveredPageParallax extends StatelessWidget {
+  const CoveredPageParallax({
+    Key? key,
+    required this.secondaryAnimation,
+    required this.child,
+  }) : super(key: key);
+
+  final Animation<double> secondaryAnimation;
+  final Widget child;
+
+  @override
+  Widget build(BuildContext context) {
+    // Risolto una volta per rebuild, non a ogni frame: dentro il builder si
+    // legge solo il campo.
+    final NavigatorState? nav = Navigator.maybeOf(context);
+    return AnimatedBuilder(
+      animation: secondaryAnimation,
+      child: child,
+      builder: (context, c) {
+        final double sv = secondaryAnimation.value.clamp(0.0, 1.0);
+        // Stessa regola di AppPageRoute: lineare sotto il dito, curva altrove.
+        final double csv = (nav?.userGestureInProgress ?? false)
+            ? sv
+            : Curves.easeOutCubic.transform(sv);
+        return FractionalTranslation(
+          translation: Offset(-kPageParallaxFraction * csv, 0),
+          child: c,
+        );
+      },
+    );
+  }
+}
+
 // ── Swipe-back ────────────────────────────────────────────────────────────────
 // Il gesto pilota all'indietro il controller della rotta col dito. Il rendering
 // del drag è gestito da `AppPageRoute.buildTransitions`: durante il gesto la
@@ -209,9 +275,9 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
     }
 
     // Rotte con swipe-back: la pagina passa SEMPRE per la stessa struttura
-    // (Opacity → slide → scale), ricalcolata per frame variando solo i valori,
-    // mai i tipi di widget. Così l'elemento pagina resta stabile (niente
-    // reparenting/flash quando parte o finisce il gesto).
+    // (scrim → Opacity → slide → scale → ombra), ricalcolata per frame variando
+    // solo i valori, mai i tipi di widget. Così l'elemento pagina resta stabile
+    // (niente reparenting/flash quando parte o finisce il gesto).
     //
     // - Durante un back-gesture dell'utente: slide orizzontale puro che segue il
     //   dito, opacità piena e scala 1 → nessuna `saveLayer` a schermo intero,
@@ -219,25 +285,35 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
     // - Fuori dal gesto: riproduce fedelmente fade o shared-axis (push / back a
     //   pulsante), inclusa l'uscita quando la rotta viene coperta da un'altra
     //   (`secondaryAnimation`).
+    //
+    // In più, in entrambi i casi, i tre ingredienti che danno profondità al
+    // gesto: parallax della pagina coperta ([kPageParallaxFraction]), velo che
+    // la scurisce e ombra sul bordo d'attacco di quella in primo piano.
     return AnimatedBuilder(
       animation: Listenable.merge(<Listenable>[animation, secondaryAnimation]),
       child: page,
       builder: (context, c) {
         final bool dragging = navigator?.userGestureInProgress ?? false;
-        final double v = animation.value;
+        final double v = animation.value.clamp(0.0, 1.0);
+        final double sv = secondaryAnimation.value.clamp(0.0, 1.0);
+
+        // Durante il gesto il movimento è LINEARE: la pagina in primo piano
+        // segue il dito 1:1, quindi anche il parallax e il velo devono seguirlo
+        // linearmente, o si sfaserebbero rispetto al dito. Fuori dal gesto
+        // (push / back a pulsante) passano entrambi dalla curva.
+        final double cv = dragging ? v : Curves.easeOutCubic.transform(v);
+        final double csv = dragging ? sv : Curves.easeOutCubic.transform(sv);
 
         double opacity;
         double dx;
         double scale;
 
-        if (dragging) {
+        if (dragging && v < 1.0) {
+          // È questa la pagina trascinata: segue il dito, senza fade né scala.
           opacity = 1.0;
-          dx = 1.0 - v; // frazione di larghezza: la pagina segue il dito
+          dx = 1.0 - v; // frazione di larghezza
           scale = 1.0;
         } else {
-          final double cv = Curves.easeOutCubic.transform(v.clamp(0.0, 1.0));
-          final double csv = Curves.easeOutCubic
-              .transform(secondaryAnimation.value.clamp(0.0, 1.0));
           switch (transition) {
             case AppTransition.fade:
               opacity = (cv * (1.0 - csv)).clamp(0.0, 1.0);
@@ -245,17 +321,56 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
               scale = 0.98 + 0.02 * cv;
             case AppTransition.sharedAxis:
               opacity = cv;
-              dx = 0.06 * (1.0 - cv) - 0.04 * csv;
+              dx = 0.06 * (1.0 - cv);
               scale = 1.0;
           }
         }
 
-        return Opacity(
-          opacity: opacity,
-          child: FractionalTranslation(
-            translation: Offset(dx, 0),
-            child: Transform.scale(scale: scale, child: c),
-          ),
+        // Parallax: quando questa pagina viene coperta arretra di una frazione
+        // di schermo. In swipe-back rientra da sinistra più lenta del dito.
+        dx -= kPageParallaxFraction * csv;
+
+        // Velo sulla pagina sottostante: sta FUORI dalla traslazione (non si
+        // muove con la pagina) e sotto di essa nello stack, quindi vela solo
+        // ciò che sta più in basso. `ColoredBox` con alpha 0 non dipinge.
+        final double scrim = _kScrimOpacity * cv;
+
+        return Stack(
+          fit: StackFit.expand,
+          children: [
+            IgnorePointer(
+              child: ColoredBox(color: Colors.black.withValues(alpha: scrim)),
+            ),
+            Opacity(
+              opacity: opacity,
+              child: FractionalTranslation(
+                translation: Offset(dx, 0),
+                child: Transform.scale(
+                  scale: scale,
+                  // L'ombra sta DENTRO la traslazione: viaggia col bordo della
+                  // pagina. A riposo finisce fuori schermo a sinistra, quindi
+                  // si vede solo mentre la pagina è scostata. `Clip.none` le
+                  // permette di stare fuori dai limiti dello stack.
+                  child: Stack(
+                    fit: StackFit.expand,
+                    clipBehavior: Clip.none,
+                    children: [
+                      c!,
+                      const Positioned(
+                        top: 0,
+                        bottom: 0,
+                        left: -_kEdgeShadowWidth,
+                        width: _kEdgeShadowWidth,
+                        child: IgnorePointer(
+                          child: DecoratedBox(decoration: _kEdgeShadow),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ),
+            ),
+          ],
         );
       },
     );

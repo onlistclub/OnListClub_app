@@ -45,10 +45,10 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         title: const Text('Annulla prevendita',
-            style: TextStyle(color: Colors.white, fontFamily: 'HelveticaNeue')),
+            style: TextStyle(color: Colors.white, fontFamily: 'OnlistHN')),
         content: const Text(
           'Sei sicuro di voler annullare questa prevendita? L\'operazione non è reversibile.',
-          style: TextStyle(color: Colors.white70, fontFamily: 'HelveticaNeue'),
+          style: TextStyle(color: Colors.white70, fontFamily: 'OnlistHN'),
         ),
         actions: [
           TextButton(

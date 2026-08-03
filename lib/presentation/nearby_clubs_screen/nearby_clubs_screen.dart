@@ -42,7 +42,19 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   // mentre un refresh silenzioso in background li aggiorna.
   static _NearbyData? _cachedData;
 
-  late Future<_NearbyData> _future;
+  /// Ultimi dati mostrati. La UI legge SEMPRE da qui, non da un `FutureBuilder`:
+  /// assegnare un future nuovo riportava lo snapshot a `waiting` per un frame,
+  /// quindi alla riapertura lo scheletro lampeggiava e la lista si ricostruiva
+  /// da zero (le entrate `StaggeredItem` ripartivano) — il "saltino".
+  /// Null = non abbiamo ancora nulla da mostrare → scheletro.
+  _NearbyData? _data;
+
+  /// Il caricamento corrente è fallito e non abbiamo dati da mostrare.
+  bool _loadError = false;
+
+  /// Marker monotonico dei caricamenti: scarta le risposte ormai obsolete
+  /// (es. cambio città mentre il load precedente è ancora in volo).
+  int _loadSeq = 0;
   String _searchQuery = '';
   _SortMode _sortMode = _SortMode.distanza;
   final Set<String> _selectedGeneri = {};
@@ -80,27 +92,49 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     AnalyticsService.logSearch(source: 'open');
     if (_cachedData != null) {
       // Riapertura: dati subito dalla cache (nessun ricaricamento visibile),
-      // poi refresh silenzioso in background.
-      _future = Future.value(_cachedData!);
-      _refreshSilently();
+      // poi refresh silenzioso in background — che sostituisce i dati sul posto,
+      // senza passare per lo scheletro.
+      _data = _cachedData;
+      _reload(showSkeleton: false);
     } else {
-      _future = _load();
       // Tempo di caricamento della ricerca: quando i dati (posizione + locali)
       // sono pronti la prima volta. reportLoadTime è guardato → una sola volta,
-      // anche se _future viene rigenerato da refresh/cambi raggio.
-      _future.then((_) {
-        if (mounted) reportLoadTime('load_time_ricerca');
-      });
+      // per questo lo chiediamo solo qui e non sui refresh/cambi raggio.
+      _reload(reportLoad: true);
     }
   }
 
-  /// Ricarica i dati in background e li sostituisce SENZA far ricomparire lo
-  /// spinner (il nuovo `_future` è già completato). Usato alla riapertura per
-  /// aggiornare la cache mostrata.
-  void _refreshSilently() {
-    _load().then((d) {
-      if (mounted) setState(() => _future = Future.value(d));
-    });
+  /// Ricarica i dati. Con `showSkeleton: false` la lista attuale resta a video
+  /// finché i nuovi dati non sono pronti (riaperture e refresh silenziosi);
+  /// con `true` si torna allo scheletro, giusto quando il contenuto cambia
+  /// davvero (nuova città, nuovo raggio, "Riprova").
+  Future<void> _reload({
+    bool showSkeleton = true,
+    bool reportLoad = false,
+  }) async {
+    _loadSeq++;
+    final mySeq = _loadSeq;
+    // Il setState serve solo se c'è davvero qualcosa da azzerare: al primo load
+    // (da initState) siamo già in questo stato e setState lì non è ammesso.
+    if (showSkeleton && (_data != null || _loadError)) {
+      setState(() {
+        _data = null;
+        _loadError = false;
+      });
+    }
+    try {
+      final d = await _load();
+      if (!mounted || mySeq != _loadSeq) return;
+      setState(() {
+        _data = d;
+        _loadError = false;
+      });
+      if (reportLoad) reportLoadTime('load_time_ricerca');
+    } catch (e) {
+      debugPrint('[NearbyClubs] caricamento fallito: $e');
+      if (!mounted || mySeq != _loadSeq) return;
+      setState(() => _loadError = true);
+    }
   }
 
   @override
@@ -162,15 +196,13 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       _searchQuery = '';
       _cityResults = [];
       _cityLoading = false;
-      _future = _load();
     });
+    _reload();
   }
 
   void _clearCity() {
-    setState(() {
-      _customCity = null;
-      _future = _load();
-    });
+    setState(() => _customCity = null);
+    _reload();
   }
 
   /// Accende/spegne il GPS come sorgente della ricerca. Acceso, la città
@@ -178,10 +210,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   /// in `_load()` e il GPS non avrebbe alcun effetto visibile.
   void _toggleGps(bool enable) {
     LocationService.isGpsForced = enable;
-    setState(() {
-      if (enable) _customCity = null;
-      _future = _load();
-    });
+    if (enable) setState(() => _customCity = null);
+    _reload();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
         content: Text(enable
@@ -676,10 +706,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
 
     if (confirmed == true) {
       await UserProfileManager().saveRaggioKm(tempRaggio);
-      final newFuture = _load();
-      setState(() {
-        _future = newFuture;
-      });
+      _reload();
     }
   }
 
@@ -721,11 +748,11 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                   Expanded(
                     child: SingleChildScrollView(
                       scrollDirection: Axis.horizontal,
-                      child: FutureBuilder<_NearbyData>(
-                        future: _future,
-                        builder: (_, snap) {
-                          final raggio = snap.data?.raggio ?? 20;
-                          final locLabel = snap.data?.locationLabel;
+                      child: Builder(
+                        builder: (_) {
+                          final data = _data;
+                          final raggio = data?.raggio ?? 20;
+                          final locLabel = data?.locationLabel;
                           return Row(
                             mainAxisSize: MainAxisSize.min,
                             children: [
@@ -733,8 +760,8 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                               GestureDetector(
                                 onTap: () => _showRadiusDialog(
                                   raggio,
-                                  lat: snap.data?.lat,
-                                  lng: snap.data?.lng,
+                                  lat: data?.lat,
+                                  lng: data?.lng,
                                 ),
                                 child: Container(
                                   padding: const EdgeInsets.symmetric(
@@ -946,10 +973,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                   // così non occupano tre righe fisse sopra la lista.
                   // Attivo solo a dati pronti: senza `data` non sappiamo quali
                   // generi e città proporre.
-                  FutureBuilder<_NearbyData>(
-                    future: _future,
-                    builder: (_, snap) {
-                      final data = snap.data;
+                  Builder(
+                    builder: (_) {
+                      final data = _data;
                       return _FiltersButton(
                         count: _activeFilterCount,
                         onTap:
@@ -961,15 +987,15 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
               ),
             ),
 
-            // ── Filtri + lista (FutureBuilder) ────────────────────────────
+            // ── Filtri + lista ───────────────────────────────────────────
+            // Legge da `_data`: finché ci sono dati la lista resta a video anche
+            // durante un refresh, così non lampeggia lo scheletro (vedi _reload).
             Expanded(
-              child: FutureBuilder<_NearbyData>(
-                future: _future,
-                builder: (context, snap) {
-                  if (snap.connectionState != ConnectionState.done) {
-                    return const _NearbySkeleton();
-                  }
-                  if (snap.hasError || snap.data == null) {
+              child: Builder(
+                builder: (context) {
+                  final data = _data;
+                  if (data == null) {
+                    if (!_loadError) return const _NearbySkeleton();
                     return Center(
                       child: Column(
                         mainAxisSize: MainAxisSize.min,
@@ -982,8 +1008,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                           ),
                           const SizedBox(height: 12),
                           TextButton(
-                            onPressed: () =>
-                                setState(() => _future = _load()),
+                            onPressed: () => _reload(),
                             child: const Text(
                               'Riprova',
                               style: TextStyle(
@@ -996,7 +1021,6 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                     );
                   }
 
-                  final data = snap.data!;
                   final filtered = _filtered(data.clubs);
 
                   return Column(
@@ -1036,8 +1060,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                 ),
                               ),
                               TextButton(
-                                onPressed: () =>
-                                    setState(() => _future = _load()),
+                                onPressed: () => _reload(),
                                 child: const Text(
                                   'Riprova',
                                   style: TextStyle(
@@ -1774,6 +1797,10 @@ class _ClubListTile extends StatelessWidget {
                           fit: BoxFit.cover,
                           memCacheWidth: 192,
                           memCacheHeight: 192,
+                          // Niente dissolvenza da 500ms (default): la schermata
+                          // si ricrea a ogni apertura e le foto già in cache
+                          // ri-sfumavano ogni volta, sembrando un ricaricamento.
+                          fadeInDuration: Duration.zero,
                           errorWidget: (_, __, ___) =>
                               ImageFallback(seed: club.id),
                         )

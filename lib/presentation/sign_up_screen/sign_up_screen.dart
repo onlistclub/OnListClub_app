@@ -169,7 +169,7 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                               ? 'Utente maggiorenne'
                               : 'Utente minorenne',
                           style: TextStyle(
-                            fontFamily: 'HelveticaNeue',
+                            fontFamily: 'OnlistHN',
                             fontSize: 13,
                             color: AgeCalculator.isAdult(state.signUpModel!.dob!)
                                 ? Colors.greenAccent
@@ -243,7 +243,7 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                           child: Text(
                             'Hai già un account? Accedi',
                             style: const TextStyle(
-                              fontFamily: 'HelveticaNeue',
+                              fontFamily: 'OnlistHN',
                               fontSize: 14,
                               color: Colors.white70,
                               decoration: TextDecoration.underline,
@@ -382,7 +382,7 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
 // ── Underline fields ──────────────────────────────────────────────────────────
 
 const TextStyle _kInputStyle = TextStyle(
-  fontFamily: 'HelveticaNeue',
+  fontFamily: 'OnlistHN',
   fontSize: 16,
   fontWeight: FontWeight.w400,
   color: OnlistColors.white,
@@ -394,7 +394,7 @@ InputDecoration _underlineDecoration({Widget? suffixIcon, String? hintText}) {
     filled: false,
     hintText: hintText,
     hintStyle: const TextStyle(
-      fontFamily: 'HelveticaNeue',
+      fontFamily: 'OnlistHN',
       fontSize: 16,
       fontWeight: FontWeight.w400,
       color: Colors.white54,

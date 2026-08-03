@@ -83,6 +83,17 @@ class ImageConstant {
   /// Nota musicale dei generi: 17×17, stroke bianco 2px.
   static String imgMusic = '${_svgUfficiali}music.svg';
 
+  /// Sfondo pill del tastino "Mappe" nel pop-up serata: 44×16, verde-teal 20%.
+  static String imgMapButtonBg = '${_svgPath}tasto_mappe_pop_up_sserata.svg';
+
+  /// Wordmark "Mappe" del tastino nel pop-up serata: 35×9, bianco pieno.
+  static String imgMapButtonLabel = '${_svgPath}mappe.svg';
+
+  /// Coriandoli della card "Tu e OnList": i 9 tracciati ufficiali estratti
+  /// dall'export Figma del `Group 426`. Il viewBox coincide col rettangolo
+  /// della card, quindi si sovrappone 1:1 senza calcoli.
+  static String imgCoriandoli = '${_svgUfficiali}coriandoli.svg';
+
   // NB: `Rectangle 261.svg` (capsula footer) non è più referenziato: la capsula
   // è disegnata in Flutter (bordo + blur) secondo `footer-bar-ufficiale.css`.
 }

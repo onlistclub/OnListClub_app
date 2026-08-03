@@ -194,7 +194,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
 // ── Underline text field ───────────────────────────────────────────────────────
 
 const TextStyle _kInputStyle = TextStyle(
-  fontFamily: 'HelveticaNeue',
+  fontFamily: 'OnlistHN',
   fontSize: 16,
   fontWeight: FontWeight.w400,
   color: OnlistColors.white,
@@ -426,7 +426,7 @@ class _SocialButton extends StatelessWidget {
 }
 
 const TextStyle _kSocialLabel = TextStyle(
-  fontFamily: 'HelveticaNeue',
+  fontFamily: 'OnlistHN',
   fontSize: 19.48, // Figma: SF Pro/Roboto 19.48px
   fontWeight: FontWeight.w500,
   color: Color(0xBD000000), // rgba(0,0,0,0.74)

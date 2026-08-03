@@ -58,6 +58,11 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   // background li aggiorna. Aggiornata anche al salvataggio del profilo.
   static Map<String, dynamic>? _cachedProfile;
   static List<Map<String, dynamic>>? _cachedPreferiti;
+  // Anche telefono e numero serate: senza, alla riapertura il pannello partiva
+  // con "—" e la FedeltaCard contava da 0, per poi saltare ai valori veri quando
+  // il refresh silenzioso atterrava.
+  static String? _cachedTelefono;
+  static int? _cachedNumeroSerate;
 
   // Valori originali per confronto
   String _origNome = '';
@@ -73,6 +78,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       _applyControllers(_cachedProfile);
       _preferiti = _cachedPreferiti ?? _preferiti;
       _fotoUrl = _cachedProfile?['foto_url'] as String?;
+      _telefono = _cachedTelefono;
+      _numeroSerate = _cachedNumeroSerate ?? _numeroSerate;
       _isLoading = false;
       _loadData(silent: true);
     } else {
@@ -120,6 +127,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
 
       _cachedProfile = profile;
       _cachedPreferiti = preferiti;
+      _cachedTelefono = _telefono;
+      _cachedNumeroSerate = _numeroSerate;
       if (!mounted) return;
 
       // In refresh silenzioso NON sovrascrivere i campi se l'utente li sta
@@ -693,6 +702,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
               CachedNetworkImage(
                 imageUrl: _fotoUrl!,
                 fit: BoxFit.cover,
+                // Niente dissolvenza da 500ms (default): riaprendo l'Account la
+                // foto è già in cache e ri-sfumava a ogni apertura.
+                fadeInDuration: Duration.zero,
                 errorWidget: (_, __, ___) =>
                     const ColoredBox(color: Color(0xFF1A1A1A)),
               ),
@@ -1147,6 +1159,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                 CachedNetworkImage(
                   imageUrl: fotoUrl,
                   fit: BoxFit.cover,
+                  fadeInDuration: Duration.zero,
                   errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 ),
               // Velo scuro per la leggibilità del nome sopra la foto.

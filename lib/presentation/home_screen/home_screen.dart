@@ -315,7 +315,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       style: OnlistTextStyles.hn(
                         fontSize: R.sp(12),
                         color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                        // Il bundle non ha una faccia 600: il 600 cadeva sul 700.
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -343,7 +344,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       style: OnlistTextStyles.hn(
                         fontSize: R.sp(12),
                         color: Colors.white,
-                        fontWeight: FontWeight.w600,
+                        // Il bundle non ha una faccia 600: il 600 cadeva sul 700.
+                        fontWeight: FontWeight.w700,
                       ),
                     ),
                   ],
@@ -450,11 +452,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
 
     // CSS NUOVO/home.css: indirizzo "Milano - Via Alfonso Gatto" 16/500,
     // left 13, 6px sotto il nome.
-    // PESO: il CSS dice w500 ma a schermo la faccia Medium non viene agganciata
-    // e il testo esce in Roman — misurato sullo screenshot, tratto 0.95÷1.42 px
-    // design contro gli 1.75÷2.00 del Figma (il w700 del nome club invece
-    // combacia). Finché il w500 non si aggancia si usa w700, l'unico peso che
-    // rende lo spessore del design. Vedi indagine separata sul w500 sistemico.
+    // Il w700 di ripiego (la faccia Medium non si agganciava e il testo usciva
+    // in Roman) è rientrato: la causa era il nome famiglia `HelveticaNeue`, che
+    // collideva con la famiglia di sistema iOS. Vedi OnlistTextStyles.
     return Padding(
       padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(6), R.sp(13), 0),
       child: Text(
@@ -462,7 +462,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
         style: OnlistTextStyles.hn(
           fontSize: R.sp(16),
           color: Colors.white,
-          fontWeight: FontWeight.w700,
+          fontWeight: FontWeight.w500,
           height: 16 / 16,
         ),
         maxLines: 1,

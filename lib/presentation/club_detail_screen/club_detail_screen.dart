@@ -385,7 +385,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                       'Club aggiunto ai preferiti',
                       style: OnlistTextStyles.hn(
                         fontSize: R.sp(13),
-                        fontWeight: FontWeight.w600,
+                        // Il bundle non ha una faccia 600: il 600 cadeva sul 700.
+                        fontWeight: FontWeight.w700,
                         color: Colors.white,
                       ),
                     ),

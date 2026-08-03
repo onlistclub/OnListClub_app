@@ -1,18 +1,28 @@
 import 'package:flutter/material.dart';
 import 'onlist_colors.dart';
 
-/// Stili tipografici del design Onlist Club (HelveticaNeue).
+/// Stili tipografici del design Onlist Club (Helvetica Neue).
 ///
 /// Mappati 1:1 ai valori del Figma (`docs/figma_screen/all-layers-mvp.txt`).
 /// Il design originale usa famiglie miste `Helvetica` / `Helvetica Neue` /
 /// `Helvetica Light` / `SF Compact`. Su mobile li accorpiamo tutti su
-/// `HelveticaNeue` (declinato per peso) — la resa visiva è equivalente.
+/// un'unica famiglia (declinata per peso) — la resa visiva è equivalente.
+///
+/// NOME FAMIGLIA: `OnlistHN`, non `HelveticaNeue`. Su iOS "Helvetica Neue" è una
+/// famiglia di sistema già installata: dichiarare gli asset con lo stesso nome
+/// crea una collisione nella risoluzione del font e la faccia Medium (w500) non
+/// viene agganciata — i testi a w500 escono in Roman (w400). Misurato: sullo
+/// screenshot IMG_7188 l'indirizzo a w500 rende con l'advance del Roman.
+/// Il nome neutro elimina l'ambiguità. Non rinominarla in `HelveticaNeue`.
+///
+/// Pesi disponibili nel bundle: 300 / 400 / 500 / 700. NON esiste il 600:
+/// richiederlo fa cadere la selezione sul 700. Usa 700 esplicito.
 class OnlistTextStyles {
   OnlistTextStyles._();
 
-  static const String _family = 'HelveticaNeue';
+  static const String _family = 'OnlistHN';
 
-  /// Helper per stili ad-hoc su HelveticaNeue (sostituisce GoogleFonts.inter(...)
+  /// Helper per stili ad-hoc sulla famiglia (sostituisce GoogleFonts.inter(...)
   /// nelle schermate con molti stili inline). Stessa firma dei parametri usati.
   static TextStyle hn({
     double? fontSize,

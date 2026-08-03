@@ -34,14 +34,14 @@ class _LocationManualScreenState extends State<LocationManualScreen> with Screen
   }
 
   static const TextStyle _fieldInput = TextStyle(
-    fontFamily: 'HelveticaNeue',
+    fontFamily: 'OnlistHN',
     fontSize: 16,
     fontWeight: FontWeight.w500,
     color: OnlistColors.white,
   );
 
   static const TextStyle _fieldLabel = TextStyle(
-    fontFamily: 'HelveticaNeue',
+    fontFamily: 'OnlistHN',
     fontSize: 14,
     fontWeight: FontWeight.w700,
     color: OnlistColors.white,
@@ -213,7 +213,7 @@ class _LocationManualScreenState extends State<LocationManualScreen> with Screen
                                 child: Text(
                                   label,
                                   style: const TextStyle(
-                                    fontFamily: 'HelveticaNeue',
+                                    fontFamily: 'OnlistHN',
                                     fontSize: 15,
                                     fontWeight: FontWeight.w500,
                                     color: OnlistColors.white,

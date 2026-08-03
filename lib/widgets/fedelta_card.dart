@@ -1,6 +1,7 @@
 import 'dart:math' as math;
 
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
 import '../core/constants/image_constant.dart';
 import '../core/utils/responsive.dart';
@@ -9,24 +10,32 @@ import '../theme/onlist_text_styles.dart';
 import 'glow_card.dart';
 
 /// Card "Tu e OnList" dell'Account: il riepilogo fedeltà con la palla da
-/// discoteca (design ufficiale `assets/svg/ufficiali/riepilogo_fedelta.svg`).
+/// discoteca.
 ///
-/// L'SVG NON viene usato direttamente, di proposito:
-///  - ha i testi convertiti in tracciati, quindi il numero di serate sarebbe
-///    congelato a quello del mockup invece di arrivare dal database;
-///  - pesa 712 KB, quasi tutti di un raster 3000×3000 usato per disegnare il
-///    logo in un riquadro di 67×21;
-///  - usa undici filtri `drop-shadow`, che `flutter_svg` supporta solo in
-///    parte e renderebbe comunque in modo diverso dal Figma.
+/// L'SVG di partenza (`riepilogo_fedelta.svg`, 712 KB) non si può spedire
+/// così com'è: ha i testi convertiti in tracciati — il numero di serate
+/// resterebbe congelato a quello del mockup invece di arrivare dal DB — e
+/// quasi tutto il peso è un raster 3000×3000 usato per un logo di 67×21.
 ///
-/// Qui la stessa grafica è ridisegnata in Flutter: costa qualche KB, i dati
-/// restano vivi e in più si può animare.
+/// La card è quindi ricomposta da tre pezzi:
+///  - **fondo e testi** in Flutter, così i dati restano vivi;
+///  - **coriandoli** dai tracciati ufficiali ([ImageConstant.imgCoriandoli],
+///    3 KB): sono curve bezier, riprodurle a mano sarebbe solo approssimarle;
+///  - **palla e filo** disegnati in [_FedeltaPainter], perché devono girare.
 ///
-/// Misure prese dal PNG ufficiale (`Account aggiornato ma solo parte sopra`),
-/// in px design su una card 357×126:
-///  - palla: centro (244, 68), raggio 42
-///  - filo: dal bordo alto della card fino alla cima della palla
-///  - coriandoli: losanghe chiare, posizioni approssimate dal render
+/// Misure CONFERMATE dall'export Figma del `Group 426`
+/// (`docs/riepilogo_Viola/Group 426.svg`), card 357×126 a (18, 250):
+///  - `Vector 2` (filo): linea verticale a x=261.4 da y=250 a y=276.5
+///    → relativa alla card: x=243.4, dal bordo alto fino a 26.5
+///  - da lì la palla: centro (243.4, 68.5), raggio 42
+///  - `filter0_i`: ombra interna bianca, stdDeviation 10
+///  - testi: `Tu e` 20/w500, `50 serate` 32/bold, `da quando…` 12/w500,
+///    tutti con letter-spacing -0.05em; il numero è RIENTRATO (x=47.3
+///    contro i 22 delle altre due righe)
+///
+/// I coriandoli sono curve bezier, non forme regolari: si disegnano
+/// dall'SVG ufficiale ([ImageConstant.imgCoriandoli], 3 KB) invece di
+/// riprodurli a mano. La palla resta procedurale perché deve girare.
 class FedeltaCard extends StatefulWidget {
   const FedeltaCard({
     super.key,
@@ -45,9 +54,13 @@ class FedeltaCard extends StatefulWidget {
   // ── Misure design (card 357×126) ──────────────────────────────────────────
   static const double cardW = 357;
   static const double cardH = 126;
-  static const double ballCx = 244;
-  static const double ballCy = 68;
+
+  /// x del filo nell'export (261.4) meno il bordo sinistro della card (18).
+  static const double ballCx = 243.4;
+
+  /// Il filo arriva a y=276.5, cioè 26.5 dal bordo card: + il raggio.
   static const double ballR = 42;
+  static const double ballCy = 26.5 + ballR;
 
   @override
   State<FedeltaCard> createState() => _FedeltaCardState();
@@ -128,8 +141,16 @@ class _FedeltaCardState extends State<FedeltaCard>
             glowSigma: R.sp(10),
             child: Stack(
               children: [
-                // Palla + filo + coriandoli: un solo painter, così è un solo
-                // layer che si ridipinge mentre la palla gira.
+                // Coriandoli: tracciati ufficiali, fermi. Il viewBox dell'SVG
+                // è il rettangolo della card, quindi basta stenderlo sopra.
+                Positioned.fill(
+                  child: SvgPicture.asset(
+                    ImageConstant.imgCoriandoli,
+                    fit: BoxFit.fill,
+                  ),
+                ),
+                // Palla + filo: dentro un RepaintBoundary, così mentre gira si
+                // ridipinge solo questo layer e non i coriandoli né i testi.
                 Positioned.fill(
                   child: RepaintBoundary(
                     child: AnimatedBuilder(
@@ -149,14 +170,17 @@ class _FedeltaCardState extends State<FedeltaCard>
     );
   }
 
+  /// Testi ai valori dell'export Figma. Le tre righe non sono allineate a
+  /// sinistra fra loro: il numero è RIENTRATO di ~25px (x=65.3 contro 40).
   Widget _buildTesti() {
     return Padding(
+      // 40 − 18 (bordo card) = 22 dal bordo; 27 = il top del logo (y=277).
       padding: EdgeInsets.fromLTRB(R.sp(22), R.sp(27), 0, 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // "Tu e" + il wordmark OnList, come nel design (nell'SVG il logo è
-          // un raster da 3000² incorporato: qui si riusa l'asset già in app).
+          // "Tu e" 20/w500 + il wordmark OnList (`FINALE INTERO 1` nell'export
+          // è un raster 3000² da 686 KB: qui si riusa l'asset già in app).
           Row(
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
@@ -164,42 +188,50 @@ class _FedeltaCardState extends State<FedeltaCard>
                 'Tu e ',
                 style: OnlistTextStyles.hn(
                   fontSize: R.sp(20),
-                  fontWeight: FontWeight.w700,
+                  fontWeight: FontWeight.w500,
                   color: OnlistColors.white,
                   height: 20 / 20,
+                  letterSpacing: -0.05 * 20,
                 ),
               ),
               Image.asset(
                 ImageConstant.imgLogoOnlistWordmark,
-                height: R.sp(20),
+                height: R.sp(21), // `FINALE INTERO 1`: 67×21
                 fit: BoxFit.contain,
               ),
             ],
           ),
           SizedBox(height: R.sp(9)),
-          AnimatedBuilder(
-            animation: _count,
-            builder: (context, _) {
-              final n = _count.value.round();
-              return Text(
-                '$n ${n == 1 ? 'serata' : 'serate'}',
-                style: OnlistTextStyles.hn(
-                  fontSize: R.sp(32),
-                  fontWeight: FontWeight.w700,
-                  color: OnlistColors.white,
-                  height: 32 / 32,
-                ),
-              );
-            },
+          // Rientro del numero: x=65.33 nell'export, contro i 40 delle altre
+          // due righe → 25.3 in più.
+          Padding(
+            padding: EdgeInsets.only(left: R.sp(25.3)),
+            child: AnimatedBuilder(
+              animation: _count,
+              builder: (context, _) {
+                final n = _count.value.round();
+                return Text(
+                  '$n ${n == 1 ? 'serata' : 'serate'}',
+                  style: OnlistTextStyles.hn(
+                    fontSize: R.sp(32),
+                    fontWeight: FontWeight.w700,
+                    color: OnlistColors.white,
+                    height: 32 / 32,
+                    letterSpacing: -0.05 * 32,
+                  ),
+                );
+              },
+            ),
           ),
           SizedBox(height: R.sp(9)),
           Text(
             'da quando ti sei unito al club',
             style: OnlistTextStyles.hn(
               fontSize: R.sp(12),
-              fontWeight: FontWeight.w700,
+              fontWeight: FontWeight.w500,
               color: OnlistColors.white,
               height: 12 / 12,
+              letterSpacing: -0.05 * 12,
             ),
           ),
         ],
@@ -208,7 +240,11 @@ class _FedeltaCardState extends State<FedeltaCard>
   }
 }
 
-/// Disegna palla da discoteca, filo e coriandoli.
+/// Disegna la palla da discoteca e il suo filo.
+///
+/// I coriandoli NON stanno qui: sono i tracciati ufficiali di
+/// `coriandoli.svg`, disegnati sotto come SvgPicture. Sono fermi, quindi
+/// tenerli fuori da questo painter evita di ridisegnarli a ogni frame.
 ///
 /// La palla è una sfera con la griglia di faccette: i paralleli sono ellissi
 /// schiacciate, i meridiani ellissi verticali la cui larghezza dipende dal
@@ -224,15 +260,6 @@ class _FedeltaPainter extends CustomPainter {
   static const int _meridians = 8;
   static const int _parallels = 6;
 
-  /// Losanghe: (x, y, semi-lato, rotazione in giri, opacità) in px design.
-  static const List<List<double>> _confetti = [
-    [160, 29, 7, 0.06, 0.55],
-    [320, 24, 9, -0.04, 0.65],
-    [352, 51, 6, 0.10, 0.40],
-    [150, 116, 6, -0.08, 0.35],
-    [332, 111, 7, 0.05, 0.45],
-  ];
-
   @override
   void paint(Canvas canvas, Size size) {
     // Il painter lavora in px design e scala una volta sola sul canvas: così
@@ -241,31 +268,10 @@ class _FedeltaPainter extends CustomPainter {
     canvas.save();
     canvas.scale(k);
 
-    _paintConfetti(canvas);
     _paintString(canvas);
     _paintBall(canvas);
 
     canvas.restore();
-  }
-
-  void _paintConfetti(Canvas canvas) {
-    for (final c in _confetti) {
-      canvas.save();
-      canvas.translate(c[0], c[1]);
-      canvas.rotate(c[3] * 2 * math.pi);
-      final r = c[2];
-      final path = Path()
-        ..moveTo(0, -r)
-        ..lineTo(r * 0.62, 0)
-        ..lineTo(0, r)
-        ..lineTo(-r * 0.62, 0)
-        ..close();
-      canvas.drawPath(
-        path,
-        Paint()..color = OnlistColors.white.withValues(alpha: c[4]),
-      );
-      canvas.restore();
-    }
   }
 
   void _paintString(Canvas canvas) {

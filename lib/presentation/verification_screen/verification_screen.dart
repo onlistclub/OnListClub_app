@@ -93,7 +93,7 @@ class VerificationScreen extends StatelessWidget {
                     child: Text(
                       "Non hai ricevuto l'email? Clicca qui",
                       style: const TextStyle(
-                        fontFamily: 'HelveticaNeue',
+                        fontFamily: 'OnlistHN',
                         fontSize: 14,
                         color: Colors.white,
                         decoration: TextDecoration.underline,
@@ -132,7 +132,7 @@ class VerificationScreen extends StatelessWidget {
                     child: const Text(
                       'Torna al login',
                       style: TextStyle(
-                          fontFamily: 'HelveticaNeue',
+                          fontFamily: 'OnlistHN',
                           fontSize: 14,
                           color: Colors.white70),
                     ),
