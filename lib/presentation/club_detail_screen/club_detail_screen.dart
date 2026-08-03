@@ -369,10 +369,21 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                 scale: _bookmarkScale.value,
                 child: child,
               ),
-              child: Icon(
-                state.isPreferito ? Icons.bookmark : Icons.bookmark_border,
-                color: Colors.white,
-                size: R.sp(48),
+              // Segnalibro ufficiale: icona 32×40 dentro il riquadro 48×48 del
+              // CSS. Pieno = club salvato, vuoto = non salvato (il Figma
+              // disegna solo il vuoto, vedi [ImageConstant.imgBookmarkLargeFilled]).
+              child: SizedBox(
+                width: R.sp(48),
+                height: R.sp(48),
+                child: Center(
+                  child: SvgPicture.asset(
+                    state.isPreferito
+                        ? ImageConstant.imgBookmarkLargeFilled
+                        : ImageConstant.imgBookmarkLarge,
+                    width: R.sp(32),
+                    height: R.sp(40),
+                  ),
+                ),
               ),
             ),
           ),

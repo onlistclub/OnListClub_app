@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 
+import '../core/constants/image_constant.dart';
 import '../core/utils/responsive.dart';
 import '../theme/onlist_colors.dart';
 import '../theme/onlist_text_styles.dart';
@@ -193,13 +195,8 @@ class _FavoriteBannerState extends State<FavoriteBanner>
               Row(
                 mainAxisSize: MainAxisSize.min,
                 children: [
-                  // TODO(design): sostituire con l'SVG ufficiale del
-                  // segnalibro quando arriva (stessa icona del titolo club).
-                  Icon(
-                    Icons.bookmark_rounded,
-                    size: R.sp(15),
-                    color: OnlistColors.white,
-                  ),
+                  // Segnalibro ufficiale, ridotto all'altezza del testo.
+                  SvgPicture.asset(ImageConstant.imgBookmark, height: R.sp(15)),
                   SizedBox(width: R.sp(6)),
                   Text(
                     widget.text,

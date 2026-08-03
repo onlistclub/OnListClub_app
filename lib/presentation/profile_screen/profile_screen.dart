@@ -2,6 +2,7 @@ import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:image_picker/image_picker.dart';
 import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -820,10 +821,11 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
               ),
             ),
             SizedBox(width: R.sp(8)),
-            // 22 → 30: "mettere più grande il tasto dei preferiti" (punto 24).
-            // NB: resta l'icona Material — nel pacchetto SVG un segnalibro non
-            // c'è. Da sostituire quando arriva quello ufficiale.
-            Icon(Icons.bookmark, color: OnlistColors.white, size: R.sp(30)),
+            // Segnalibro ufficiale (CSS: stroke bianco 2px, riquadro 16.1×21).
+            // Disegnato a 25 di altezza, non ai 23 del Figma: e' l'ingrandimento
+            // gia' approvato al punto 24 ("mettere piu' grande il tasto dei
+            // preferiti"), stessa resa dell'icona Material che sostituisce.
+            SvgPicture.asset(ImageConstant.imgBookmark, height: R.sp(25)),
           ],
         ),
       ),

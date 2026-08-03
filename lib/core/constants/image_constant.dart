@@ -80,6 +80,25 @@ class ImageConstant {
   /// che è l'unico punto in cui va referenziata.
   static String imgArrowLeft = '${_svgUfficiali}freccia_sinistra.svg';
 
+  // ── Segnalibro "preferiti" ────────────────────────────────────────────────
+  /// Segnalibro piccolo: 19×23, stroke bianco 2px. È l'icona della pill
+  /// "Club salvati" nell'Account (CSS: `border: 2px solid #FFFFFF`, riquadro
+  /// 16.1×21 = i bordi del path senza lo stroke) e del banner preferiti.
+  static String imgBookmark = '${_svgUfficiali}preferiti.svg';
+
+  /// Segnalibro grande del dettaglio club: 32×40, stroke bianco 4px, dentro il
+  /// riquadro 48×48 del CSS ("Bookmark", left 326 top 393).
+  static String imgBookmarkLarge = '${_svgUfficiali}preferiti-grande.svg';
+
+  /// Variante PIENA del segnalibro grande, per lo stato "club salvato".
+  ///
+  /// Il Figma disegna solo lo stato vuoto: questo file è lo STESSO path
+  /// ufficiale con l'aggiunta di `fill="white"`, nessuna forma inventata.
+  /// Tenendo anche lo stroke, la sagoma esterna resta identica al vuoto, così
+  /// l'icona non "salta" di dimensione quando si aggiunge ai preferiti.
+  static String imgBookmarkLargeFilled =
+      '${_svgUfficiali}preferiti-grande-pieno.svg';
+
   // ── Info del club (pagina locale) ─────────────────────────────────────────
   /// Orologio dell'orario di apertura: 19×19, stroke bianco 2px.
   static String imgClock = '${_svgUfficiali}clock.svg';
