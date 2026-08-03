@@ -1238,6 +1238,17 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                       color: OnlistColors.white,
                       height: 37 / 32,
                       letterSpacing: -0.08 * 32,
+                      // CSS ufficiale ("The Club" / "NumberOne" della pagina
+                      // Account): text-shadow 0px 4px 1.5px #000000 — mancava.
+                      // Correzioni 1.1, punto 25. Ombra netta e ravvicinata,
+                      // non un alone: stacca il nome dalla foto sotto.
+                      shadows: [
+                        Shadow(
+                          color: OnlistColors.black,
+                          offset: Offset(0, R.sp(4)),
+                          blurRadius: R.sp(1.5),
+                        ),
+                      ],
                     ),
                   ),
                 ),

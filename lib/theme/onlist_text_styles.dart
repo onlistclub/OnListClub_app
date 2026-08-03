@@ -30,6 +30,9 @@ class OnlistTextStyles {
     Color? color,
     double? height,
     double? letterSpacing,
+    // Equivalente del `text-shadow` del CSS Figma. Convenzione del progetto
+    // (come per i box-shadow): offset e blur si riportano 1:1 dal CSS.
+    List<Shadow>? shadows,
   }) =>
       TextStyle(
         fontFamily: _family,
@@ -38,6 +41,7 @@ class OnlistTextStyles {
         color: color,
         height: height,
         letterSpacing: letterSpacing,
+        shadows: shadows,
       );
 
   // ── Titoli grandi (display) ─────────────────────────────────────────────
