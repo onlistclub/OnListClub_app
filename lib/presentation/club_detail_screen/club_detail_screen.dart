@@ -88,7 +88,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     WidgetsBinding.instance.addPostFrameCallback((_) {
       final locale = ModalRoute.of(context)?.settings.arguments as LocaleModel?;
       if (locale != null) {
-        AnalyticsService.logClubViewed(clubId: locale.id, clubName: locale.nome);
+        AnalyticsService.logClubViewed(
+            clubId: locale.id, clubName: locale.nome);
         // Funnel: apertura dettaglio (type 'locale').
         AnalyticsService.logViewDetail(
           type: 'locale',
@@ -151,8 +152,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     _badgeSlide = Tween<Offset>(
       begin: const Offset(0, -1),
       end: Offset.zero,
-    ).animate(
-        CurvedAnimation(parent: _badgeCtrl, curve: Curves.easeOutBack));
+    ).animate(CurvedAnimation(parent: _badgeCtrl, curve: Curves.easeOutBack));
     _badgeFade = CurvedAnimation(parent: _badgeCtrl, curve: Curves.easeOut);
   }
 
@@ -213,103 +213,105 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       body: ColoredBox(
         color: Colors.black,
         child: BlocConsumer<ClubDetailBloc, ClubDetailState>(
-        listenWhen: (prev, curr) =>
-            prev.showFavoriteBadge != curr.showFavoriteBadge ||
-            (prev.isLoading && !curr.isLoading),
-        listener: (context, state) {
-          _syncBadgeAnimation(state.showFavoriteBadge);
-          // Dati del dettaglio locale pronti → tempo di caricamento.
-          if (!state.isLoading) reportLoadTime('load_time_dettaglio_locale');
-        },
-        buildWhen: (prev, curr) =>
-            prev.locale != curr.locale ||
-            prev.eventoOggi != curr.eventoOggi ||
-            prev.serate != curr.serate ||
-            prev.isLoading != curr.isLoading ||
-            prev.isPreferito != curr.isPreferito ||
-            prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
-        builder: (context, state) {
-          return SafeArea(
-            bottom: false,
-            child: Column(
-              children: [
-                // AppBar
-                SlideTransition(
-                  position: _appBarSlide,
-                  child: FadeTransition(
-                    opacity: _appBarFade,
-                    child: const CustomTopBar(),
-                  ),
-                ),
-                // Torna indietro
-                SlideTransition(
-                  position: _appBarSlide,
-                  child: FadeTransition(
-                    opacity: _appBarFade,
-                    child: _buildBackRow(),
-                  ),
-                ),
-                // Body
-                Expanded(
-                  child: SingleChildScrollView(
-                    padding: EdgeInsets.only(bottom: SharedFooter.height),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        // Hero image + badge overlay
-                        FadeTransition(
-                          opacity: _heroFade,
-                          child: ScaleTransition(
-                            scale: _heroScale,
-                            child: _buildHeroWithBadge(context, state),
-                          ),
-                        ),
-                        // Title row: nome club + bookmark a destra (Figma 10).
-                        SlideTransition(
-                          position: _titleSlide,
-                          child: FadeTransition(
-                            opacity: _titleFade,
-                            child: _buildTitleRow(context, state),
-                          ),
-                        ),
-                        // Indirizzo (tappable → apre Google Maps)
-                        SlideTransition(
-                          position: _subtitleSlide,
-                          child: FadeTransition(
-                            opacity: _subtitleFade,
-                            child: _buildSubtitle(state.locale),
-                          ),
-                        ),
-                        // Info rows: orario evento + generi musicali (no prezzo)
-                        SlideTransition(
-                          position: _infoSlide,
-                          child: FadeTransition(
-                            opacity: _infoFade,
-                            child: _buildInfoRows(state.locale, state.eventoOggi),
-                          ),
-                        ),
-                        // CSS NUOVO: generi bottom 509 → titolo sezione 519.
-                        SizedBox(height: R.sp(10)),
-                        // Prossime serate (la PRENOTA serata naviga alla
-                        // bookingScreen, pagina di scelta Tavolo/Prevendita)
-                        if (state.serate.isNotEmpty || !state.isLoading)
-                          SlideTransition(
-                            position: _sectionsSlide,
-                            child: FadeTransition(
-                              opacity: _sectionsFade,
-                              child: _buildSerateSection(
-                                  context, state.serate, state.locale),
-                            ),
-                          ),
-                        const SizedBox(height: 32),
-                      ],
+          listenWhen: (prev, curr) =>
+              prev.showFavoriteBadge != curr.showFavoriteBadge ||
+              (prev.isLoading && !curr.isLoading),
+          listener: (context, state) {
+            _syncBadgeAnimation(state.showFavoriteBadge);
+            // Dati del dettaglio locale pronti → tempo di caricamento.
+            if (!state.isLoading) reportLoadTime('load_time_dettaglio_locale');
+          },
+          buildWhen: (prev, curr) =>
+              prev.locale != curr.locale ||
+              prev.eventoOggi != curr.eventoOggi ||
+              prev.serate != curr.serate ||
+              prev.isLoading != curr.isLoading ||
+              prev.isPreferito != curr.isPreferito ||
+              prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
+          builder: (context, state) {
+            return SafeArea(
+              bottom: false,
+              child: Column(
+                children: [
+                  // AppBar
+                  SlideTransition(
+                    position: _appBarSlide,
+                    child: FadeTransition(
+                      opacity: _appBarFade,
+                      child: const CustomTopBar(),
                     ),
                   ),
-                ),
-              ],
-            ),
-          );
-        },
+                  // Torna indietro
+                  SlideTransition(
+                    position: _appBarSlide,
+                    child: FadeTransition(
+                      opacity: _appBarFade,
+                      child: _buildBackRow(),
+                    ),
+                  ),
+                  // Body
+                  Expanded(
+                    child: SingleChildScrollView(
+                      padding: EdgeInsets.only(bottom: SharedFooter.height),
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          // Hero image + badge overlay
+                          FadeTransition(
+                            opacity: _heroFade,
+                            child: ScaleTransition(
+                              scale: _heroScale,
+                              child: _buildHeroWithBadge(context, state),
+                            ),
+                          ),
+                          // Title row: nome club + bookmark a destra (Figma 10).
+                          SlideTransition(
+                            position: _titleSlide,
+                            child: FadeTransition(
+                              opacity: _titleFade,
+                              child: _buildTitleRow(context, state),
+                            ),
+                          ),
+                          // Indirizzo (tappable → apre Google Maps)
+                          SlideTransition(
+                            position: _subtitleSlide,
+                            child: FadeTransition(
+                              opacity: _subtitleFade,
+                              child: _buildSubtitle(state.locale),
+                            ),
+                          ),
+                          // Info rows: orario evento + generi musicali (no prezzo)
+                          SlideTransition(
+                            position: _infoSlide,
+                            child: FadeTransition(
+                              opacity: _infoFade,
+                              child: _buildInfoRows(
+                                  state.locale, state.eventoOggi),
+                            ),
+                          ),
+                          // CSS NUOVO: la riga generi chiude a 510 (icona 490+20,
+                          // non il testo a 509) → titolo sezione a 519.
+                          SizedBox(height: R.sp(9)),
+                          // Prossime serate (la PRENOTA serata naviga alla
+                          // bookingScreen, pagina di scelta Tavolo/Prevendita)
+                          if (state.serate.isNotEmpty || !state.isLoading)
+                            SlideTransition(
+                              position: _sectionsSlide,
+                              child: FadeTransition(
+                                opacity: _sectionsFade,
+                                child: _buildSerateSection(
+                                    context, state.serate, state.locale),
+                              ),
+                            ),
+                          const SizedBox(height: 32),
+                        ],
+                      ),
+                    ),
+                  ),
+                ],
+              ),
+            );
+          },
         ),
       ),
       // Footer: unica e globale, montata da RootShell (non qui).
@@ -372,7 +374,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                 opacity: _badgeFade,
                 child: Center(
                   child: Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
+                    padding:
+                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
                     decoration: BoxDecoration(
                       color: const Color(0xFF0009FF),
                       borderRadius: BorderRadius.circular(20),
@@ -452,7 +455,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
           style: OnlistTextStyles.hn(
             fontSize: R.sp(23),
             fontWeight: FontWeight.w500,
-            color: Colors.white.withValues(alpha: 0.8),
+            // Il CSS dice `opacity: 0.8`, che su nero fa #CCCCCC: e' il design
+            // stesso a renderla grigia. Bianco pieno per scelta di Luca, in
+            // coerenza con la via della Home.
+            color: Colors.white,
           ),
         ),
       ),
@@ -469,9 +475,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         ? evento!.generiMusicali.join(' - ')
         : locale.generiString;
 
-    // CSS NUOVO: clock a (15,459) → 8px sotto l'indirizzo; riga generi 9px
-    // sotto (icona music a 490, clock bottom 479 + Figma sloppiness 13/15
-    // unificata a 15).
+    // CSS NUOVO: clock a (15,459) → 8px sotto l'indirizzo (che chiude a 451);
+    // icona music a 490, cioè 11px sotto il fondo della riga orologio (459+20).
+    // Le righe sono alte quanto l'icona (20), non quanto il testo.
+    //
+    // ICONE: sono ancora quelle Material. Vanno sostituite con gli SVG
+    // ufficiali (orologio e nota musicale) appena Luca li mette in assets/svg —
+    // oggi la cartella non li contiene.
     return Padding(
       padding: EdgeInsets.fromLTRB(R.sp(15), R.sp(8), R.sp(13), 0),
       child: Column(
@@ -480,9 +490,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
           if (orario.isNotEmpty)
             Row(
               children: [
+                // R.sp anche su icona e gap: erano px fissi, quindi su schermi
+                // diversi il testo si spostava rispetto ai 41 del CSS
+                // (15 + 20 + 6 = 41).
                 Icon(Icons.access_time_rounded,
-                    color: Colors.white.withValues(alpha: 0.6), size: 20),
-                const SizedBox(width: 6),
+                    color: Colors.white.withValues(alpha: 0.6), size: R.sp(20)),
+                SizedBox(width: R.sp(6)),
                 Text(
                   orario,
                   style: OnlistTextStyles.hn(
@@ -494,12 +507,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
               ],
             ),
           if (generi.isNotEmpty) ...[
-            SizedBox(height: R.sp(9)),
+            SizedBox(height: R.sp(11)),
             Row(
               children: [
                 Icon(Icons.music_note_rounded,
-                    color: Colors.white.withValues(alpha: 0.6), size: 20),
-                const SizedBox(width: 6),
+                    color: Colors.white.withValues(alpha: 0.6), size: R.sp(20)),
+                SizedBox(width: R.sp(6)),
                 Expanded(
                   child: Text(
                     generi,
@@ -543,7 +556,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             padding: const EdgeInsets.symmetric(horizontal: 13),
             child: Text(
               'Nessuna serata in programma',
-              style: OnlistTextStyles.hn(fontSize: R.sp(14), color: Colors.white38),
+              style: OnlistTextStyles.hn(
+                  fontSize: R.sp(14), color: Colors.white38),
             ),
           )
         else
@@ -556,7 +570,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       ],
     );
   }
-
 }
 
 /// Gradiente PRENOTA del design NUOVO (Home Disco singola, Rectangle 164):
@@ -587,11 +600,27 @@ class _SerataCard extends StatelessWidget {
   const _SerataCard({required this.serata, required this.locale});
 
   static const _giorniLunghi = [
-    'Lunedì', 'Martedì', 'Mercoledì', 'Giovedì', 'Venerdì', 'Sabato', 'Domenica'
+    'Lunedì',
+    'Martedì',
+    'Mercoledì',
+    'Giovedì',
+    'Venerdì',
+    'Sabato',
+    'Domenica'
   ];
   static const _mesiLunghi = [
-    'Gennaio', 'Febbraio', 'Marzo', 'Aprile', 'Maggio', 'Giugno',
-    'Luglio', 'Agosto', 'Settembre', 'Ottobre', 'Novembre', 'Dicembre'
+    'Gennaio',
+    'Febbraio',
+    'Marzo',
+    'Aprile',
+    'Maggio',
+    'Giugno',
+    'Luglio',
+    'Agosto',
+    'Settembre',
+    'Ottobre',
+    'Novembre',
+    'Dicembre'
   ];
 
   String _formatData(DateTime d) =>
@@ -835,12 +864,20 @@ class _SerataCompactCard extends StatelessWidget {
 
   const _SerataCompactCard({required this.serata, required this.locale});
 
-  static const _giorniBrevi = [
-    'Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'
-  ];
+  static const _giorniBrevi = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
   static const _mesiBrevi = [
-    'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
-    'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic'
+    'Gen',
+    'Feb',
+    'Mar',
+    'Apr',
+    'Mag',
+    'Giu',
+    'Lug',
+    'Ago',
+    'Set',
+    'Ott',
+    'Nov',
+    'Dic'
   ];
 
   String _dataBreve(DateTime d) =>
@@ -905,12 +942,15 @@ class _SerataCompactCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Nome serata @ (189,7)
+                // Nome serata @ (176,7). Era a 189: la foto chiude a 171, quindi
+                // restava un buco di 18px mentre nel Figma (e nelle card della
+                // Home, stesso layout 369×108) il testo parte 5px dopo la foto.
+                // Le larghezze crescono di 13 per tenere fermo il bordo destro.
                 Positioned(
-                  left: 189,
+                  left: 176,
                   top: 7,
                   child: SizedBox(
-                    width: 159,
+                    width: 172,
                     child: Text(
                       serata.nome,
                       maxLines: 1,
@@ -927,7 +967,7 @@ class _SerataCompactCard extends StatelessWidget {
                 ),
                 // Data @ (189,46)
                 Positioned(
-                  left: 189,
+                  left: 176,
                   top: 46,
                   child: Text(
                     _dataBreve(serata.data),
@@ -942,7 +982,7 @@ class _SerataCompactCard extends StatelessWidget {
                 // Ora @ (189,64) — stesso formato della card grande.
                 if (serata.orarioString.isNotEmpty)
                   Positioned(
-                    left: 189,
+                    left: 176,
                     top: 64,
                     child: SizedBox(
                       width: 80,
@@ -959,14 +999,15 @@ class _SerataCompactCard extends StatelessWidget {
                       ),
                     ),
                   ),
-                // Genere @ (189,88) — AL POSTO della città (come card club).
+                // Genere @ (176,88) — AL POSTO della città (come card club).
+                // 97 di larghezza: chiude a 273, appena prima del PRENOTA (274).
                 Positioned(
-                  left: 189,
+                  left: 176,
                   top: 88,
                   child: Opacity(
                     opacity: 0.8,
                     child: SizedBox(
-                      width: 84,
+                      width: 97,
                       child: Text(
                         generi,
                         maxLines: 1,
