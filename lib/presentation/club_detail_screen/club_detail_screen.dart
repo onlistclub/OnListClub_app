@@ -12,6 +12,7 @@ import '../../theme/onlist_text_styles.dart';
 import '../../widgets/back_row.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/animated_press.dart';
+import '../../widgets/favorite_banner.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/image_fallback.dart';
 import 'bloc/club_detail_bloc.dart';
@@ -76,11 +77,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   late AnimationController _bookmarkCtrl;
   late Animation<double> _bookmarkScale;
 
-  // ── Favorite badge slide-in/fade-out ───────────────────────────────────────
-  late AnimationController _badgeCtrl;
-  late Animation<Offset> _badgeSlide;
-  late Animation<double> _badgeFade;
-
   @override
   void initState() {
     super.initState();
@@ -144,17 +140,6 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       TweenSequenceItem(tween: Tween(begin: 1.0, end: 1.35), weight: 50),
       TweenSequenceItem(tween: Tween(begin: 1.35, end: 1.0), weight: 50),
     ]).animate(CurvedAnimation(parent: _bookmarkCtrl, curve: Curves.easeOut));
-
-    // Badge slide + fade
-    _badgeCtrl = AnimationController(
-      vsync: this,
-      duration: const Duration(milliseconds: 500),
-    );
-    _badgeSlide = Tween<Offset>(
-      begin: const Offset(0, -1),
-      end: Offset.zero,
-    ).animate(CurvedAnimation(parent: _badgeCtrl, curve: Curves.easeOutBack));
-    _badgeFade = CurvedAnimation(parent: _badgeCtrl, curve: Curves.easeOut);
   }
 
   Animation<double> _tween(double begin, double end) {
@@ -177,21 +162,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   void dispose() {
     _staggerCtrl.dispose();
     _bookmarkCtrl.dispose();
-    _badgeCtrl.dispose();
     super.dispose();
-  }
-
-  // ── Badge visibility driven by BLoC state ──────────────────────────────────
-  bool _lastBadge = false;
-
-  void _syncBadgeAnimation(bool show) {
-    if (show == _lastBadge) return;
-    _lastBadge = show;
-    if (show) {
-      _badgeCtrl.forward(from: 0);
-    } else {
-      _badgeCtrl.reverse();
-    }
   }
 
   // ── Open Google Maps ────────────────────────────────────────────────────────
@@ -214,11 +185,8 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       body: ColoredBox(
         color: Colors.black,
         child: BlocConsumer<ClubDetailBloc, ClubDetailState>(
-          listenWhen: (prev, curr) =>
-              prev.showFavoriteBadge != curr.showFavoriteBadge ||
-              (prev.isLoading && !curr.isLoading),
+          listenWhen: (prev, curr) => prev.isLoading && !curr.isLoading,
           listener: (context, state) {
-            _syncBadgeAnimation(state.showFavoriteBadge);
             // Dati del dettaglio locale pronti → tempo di caricamento.
             if (!state.isLoading) reportLoadTime('load_time_dettaglio_locale');
           },
@@ -228,6 +196,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
               prev.serate != curr.serate ||
               prev.isLoading != curr.isLoading ||
               prev.isPreferito != curr.isPreferito ||
+              // Il banner preferiti ora è dichiarativo: senza questa riga non
+              // si vedrebbe comparire/sparire.
+              prev.showFavoriteBadge != curr.showFavoriteBadge ||
               prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
           builder: (context, state) {
             return SafeArea(
@@ -327,6 +298,10 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     return Padding(
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: Stack(
+        // Serve allo stile `fromBookmark` del banner preferiti: parte fuori
+        // dai bordi dell'hero e ci rientra volando. L'immagine ha comunque il
+        // suo ClipRRect, quindi non straborda nulla di suo.
+        clipBehavior: Clip.none,
         children: [
           // Hero image: morph condiviso dalla lista/home (tag = club id).
           Hero(
@@ -349,36 +324,13 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             ),
           ),
           // Bookmark spostato nel title row (Figma 10).
-          // "Club aggiunto ai preferiti" badge
+          // "Club aggiunto ai preferiti": il banner si anima da solo in base a
+          // `showFavoriteBadge` (vedi [FavoriteBanner], correzioni 1.1 punto 4).
           Positioned(
             top: 10,
             left: 0,
             right: 50,
-            child: SlideTransition(
-              position: _badgeSlide,
-              child: FadeTransition(
-                opacity: _badgeFade,
-                child: Center(
-                  child: Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 14, vertical: 6),
-                    decoration: BoxDecoration(
-                      color: const Color(0xFF0009FF),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: Text(
-                      'Club aggiunto ai preferiti',
-                      style: OnlistTextStyles.hn(
-                        fontSize: R.sp(13),
-                        // Il bundle non ha una faccia 600: il 600 cadeva sul 700.
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                ),
-              ),
-            ),
+            child: FavoriteBanner(visible: state.showFavoriteBadge),
           ),
         ],
       ),
