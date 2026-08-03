@@ -6,6 +6,7 @@ import 'package:intl/intl.dart';
 
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
+import '../../core/services/pending_order_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../core/services/navigator_service.dart';
@@ -71,6 +72,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   /// mostra lo spinner al posto del testo.
   bool _isPrenotando = false;
 
+  /// Serata di cui l'utente sta guardando i ticket: appena entra qui l'ordine
+  /// va in sospeso (vedi [PendingOrderService]). Serve anche al `dispose`, che
+  /// non può più leggere gli arguments dalla route.
+  String? _serataInCorso;
+
   @override
   void initState() {
     super.initState();
@@ -79,12 +85,29 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     });
   }
 
+  @override
+  void dispose() {
+    // Uscito dalla scelta ticket senza concludere: da adesso il sospeso è una
+    // notifica e il pallino sulla footer si accende. Se invece ha premuto
+    // "PRENOTA ORA", `completa` ha già cancellato tutto e qui non resta nulla.
+    final serata = _serataInCorso;
+    if (serata != null) PendingOrderService().chiudi(serata);
+    super.dispose();
+  }
+
   Future<void> _fetchData() async {
     final args = _parseArgs(context);
     if (args.serata == null) {
       setState(() => _isLoading = false);
       return;
     }
+
+    // L'ordine entra in sospeso QUI, all'ingresso nella lista ticket, e viene
+    // scritto subito su Supabase: se l'app venisse chiusa di colpo un attimo
+    // dopo, al riavvio il carrello lo ritroverebbe comunque. Il pallino però
+    // resta spento finché l'utente è dentro.
+    _serataInCorso = args.serata!.id;
+    PendingOrderService().apri(args.serata!.id);
 
     setState(() {
       _isLoading = true;
@@ -802,6 +825,9 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           amount: price,
         );
         BadgeService().incrementNotificationBadge();
+        // Ordine concluso: il sospeso non serve più, pallino spento.
+        await PendingOrderService()
+            .completa(_serataInCorso ?? eventoId);
 
         if (!mounted) return;
         // L'id viaggia con la route: la conferma mostra QUESTO ordine.

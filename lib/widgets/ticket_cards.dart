@@ -64,10 +64,18 @@ class TicketCollapsedCard extends StatelessWidget {
   final String clubName;
   final VoidCallback onTap;
 
+  /// Riga sotto il nome del locale.
+  ///
+  /// Nel riepilogo ordini è "Visualizza QR Code"; il carrello riusa la stessa
+  /// card per gli ordini in sospeso e ci mette "Continua l'ordine", perché lì
+  /// un QR non esiste ancora — l'ordine non è concluso.
+  final String label;
+
   const TicketCollapsedCard({
     Key? key,
     required this.clubName,
     required this.onTap,
+    this.label = 'Visualizza QR Code',
   }) : super(key: key);
 
   @override
@@ -108,7 +116,7 @@ class TicketCollapsedCard extends StatelessWidget {
                 ),
                 SizedBox(height: R.sp(8)),
                 Text(
-                  'Visualizza QR Code',
+                  label,
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontSize: R.sp(15),
@@ -554,7 +562,12 @@ class TicketBackCard extends StatelessWidget {
                             width: R.sp(250),
                             height: R.sp(250),
                             decoration: BoxDecoration(
-                              color: const Color(0x33FFFFFF),
+                              // Nero pieno, non più bianco 20% traslucido: i
+                              // moduli del QR sono bianchi, quindi serve un
+                              // fondo opaco per un contrasto reale (non una
+                              // sfumatura che varia a seconda della luminosità
+                              // schermo/fotocamera) — vedi nota sullo scanner.
+                              color: Colors.black,
                               // Il CSS non esporta lo stroke ma nel PNG ufficiale
                               // c'è: 1px #8C8EFF sul bordo del pannello, cioè
                               // bianco ~55% sul fondo della card. Senza, il

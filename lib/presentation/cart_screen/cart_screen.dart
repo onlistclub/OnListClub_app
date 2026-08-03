@@ -5,6 +5,9 @@ import '../../core/utils/analytics_mixin.dart';
 import '../../routes/app_routes.dart';
 import '../../core/services/booking_service.dart';
 import '../../core/services/cart_service.dart';
+import '../../core/services/pending_order_service.dart';
+import '../root_shell/root_shell.dart';
+import '../../widgets/ticket_cards.dart';
 import '../../core/utils/responsive.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
@@ -16,7 +19,19 @@ import '../../widgets/onlist_primary_button.dart';
 import '../../widgets/app_error_dialog.dart';
 import '../../core/services/badge_service.dart';
 
-/// CARRELLO DISATTIVATO (MVP) — schermata FUORI dal flusso d'acquisto.
+/// Carrello: **ordini lasciati in sospeso** e stato vuoto.
+///
+/// Quando l'utente apre la lista ticket di una serata, l'ordine finisce in
+/// sospeso (`PendingOrderService`). Se esce senza concludere lo ritrova qui
+/// sotto "Completa ordine", e il tocco sulla card lo riporta alla lista dei
+/// ticket di quella serata. I sospesi valgono 48 ore.
+///
+/// Senza sospesi si vede lo stato vuoto del CSS `Carrello_vuoto`, con
+/// "ordina ora" che porta alla Home.
+///
+/// ─────────────────────────────────────────────────────────────────────────
+/// RIEPILOGO CARRELLO DISATTIVATO (MVP) — il passaggio di checkout qui sotto
+/// è FUORI dal flusso d'acquisto.
 ///
 /// Nel documento correzioni 1.1 il riepilogo carrello è stato tolto: l'utente
 /// prenota al "PRENOTA ORA" del dettaglio ticket, che ora crea l'ordine e va
@@ -42,11 +57,23 @@ class CartScreen extends StatefulWidget {
   State<CartScreen> createState() => _CartScreenState();
 }
 
-class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
+class _CartScreenState extends State<CartScreen>
+    with ScreenAnalytics, SingleTickerProviderStateMixin {
   @override
   String get screenName => 'cart';
 
   bool _isPaying = false;
+
+  // ── Ordini in sospeso ─────────────────────────────────────────────────────
+  /// Ordini lasciati a metà (entro le 48h), col loro evento e locale.
+  List<Map<String, dynamic>> _sospesi = [];
+  bool _sospesiCaricati = false;
+
+  /// Micro-movimento di "ordina ora": stesso bob di ±2px di "torna alla home"
+  /// nell'ordine effettuato, come richiesto. Solo Transform.translate.
+  static const double _bobAmplitude = 2;
+  late final AnimationController _bobCtrl;
+  late final Animation<double> _bob;
   // Evita di ri-sincronizzare CartService().current a ogni rebuild (vedi
   // didChangeDependencies): senza questa guardia, il setState nel finally
   // di _processPayment rifaceva il build e RISCRIVEVA il carrello appena
@@ -56,10 +83,38 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   @override
   void initState() {
     super.initState();
-    // Il carrello è tenuto in memoria (CartService), non caricato da Supabase:
-    // il "tempo di caricamento" è di fatto il tempo fino al primo render.
+    // reverse: true → 900ms per verso, 1.8s a ciclo completo.
+    _bobCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _bob = Tween<double>(begin: -_bobAmplitude, end: _bobAmplitude)
+        .animate(CurvedAnimation(parent: _bobCtrl, curve: Curves.easeInOut));
+
+    // Nello shell questa schermata resta MONTATA: `initState` gira una volta
+    // sola. La lista si aggiorna dal segnale del servizio (nuovo sospeso,
+    // ordine concluso, notifica vista).
+    PendingOrderService().revisione.addListener(_caricaSospesi);
+    _caricaSospesi();
+
     WidgetsBinding.instance.addPostFrameCallback((_) {
       reportLoadTime('load_time_carrello');
+    });
+  }
+
+  @override
+  void dispose() {
+    PendingOrderService().revisione.removeListener(_caricaSospesi);
+    _bobCtrl.dispose();
+    super.dispose();
+  }
+
+  Future<void> _caricaSospesi() async {
+    final righe = await PendingOrderService().carica();
+    if (!mounted) return;
+    setState(() {
+      _sospesi = righe;
+      _sospesiCaricati = true;
     });
   }
 
@@ -125,10 +180,8 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   Widget build(BuildContext context) {
     final routeArgs =
         ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>?;
-    // Il tasto "Torna indietro" ha senso SOLO quando si arriva qui in
-    // automatico dal flusso di prenotazione (route con arguments). Se invece
-    // si arriva dalla bottom nav (tab carrello), non ci sono arguments: in
-    // quel caso mostriamo l'ultima prevendita salvata, senza back button.
+    // Con arguments si arriva dal riepilogo carrello (oggi disattivato); dalla
+    // tab carrello invece no, e lì si vedono gli ordini in sospeso.
     // NOTA: la sincronizzazione di CartService().current con routeArgs
     // avviene UNA SOLA VOLTA in didChangeDependencies (non qui in build,
     // che gira a ogni rebuild — vedi commento su _cartSynced).
@@ -137,12 +190,13 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
     final bool isEmpty = args == null;
     final String bookingType = args?['type'] as String? ?? "table";
 
-    // Gradient applicato come "sfondo schermo" dietro l'intero Scaffold (incluso
-    // il footer): senza questo il `bottomNavigationBar` semi-trasparente lascia
-    // intravedere il nero piatto dello Scaffold, e il gradient sembra non
-    // arrivare al fondo.
-    return DecoratedBox(
-      decoration: const BoxDecoration(gradient: OnlistColors.screenBackground),
+    final bool haSospesi = isEmpty && _sospesi.isNotEmpty;
+
+    // Sfondo NERO PIENO come il CSS ufficiale dei due carrelli
+    // (`background: #000000`), non più il gradiente screenBackground: è la
+    // stessa scelta già fatta per il dettaglio club nel design nuovo.
+    return ColoredBox(
+      color: Colors.black,
       child: Scaffold(
         backgroundColor: Colors.transparent,
         // Footer flottante: il contenuto scorre dietro la capsula (non la oscura).
@@ -152,23 +206,100 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
           child: Column(
             children: [
               const CustomTopBar(),
-              if (cameFromBooking) _buildBackButton(),
+              // Il "Torna indietro" c'è in entrambi i mock nuovi, quindi ora
+              // si vede sempre. Arrivando dalla tab carrello non c'è nulla da
+              // spopolare: come in Ordini, riporta alla Home come TAB.
+              cameFromBooking
+                  ? const BackRow()
+                  : BackRow(onTap: () => _tornaAllaHome(context)),
               const SizedBox(height: 10),
               Expanded(
-                child: Padding(
-                  padding: EdgeInsets.only(bottom: SharedFooter.height),
-                  child: isEmpty
-                      ? _buildEmptyCart()
-                      : (bookingType == "ticket"
-                          ? _buildTicketCartView(args)
-                          : _buildTableCartView(args)),
-                ),
+                child: haSospesi
+                    ? _buildSospesiView()
+                    : Padding(
+                        padding: EdgeInsets.only(bottom: SharedFooter.height),
+                        child: isEmpty
+                            // Finché i sospesi non sono arrivati non si
+                            // annuncia "il carrello è vuoto": eviterebbe un
+                            // lampo di vuoto prima delle card.
+                            ? (_sospesiCaricati
+                                ? _buildEmptyCart()
+                                : const SizedBox.shrink())
+                            : (bookingType == "ticket"
+                                ? _buildTicketCartView(args)
+                                : _buildTableCartView(args)),
+                      ),
               ),
             ],
           ),
         ),
         // La footer è quella globale dello shell (non montata qui).
       ),
+    );
+  }
+
+  // ── Carrello con un ordine in sospeso ──────────────────────────────────────
+  // CSS "Carrello in sospeso": titolo 36/500 a left 30 top 170, card 350×167
+  // a top 220 — la stessa [TicketCollapsedCard] del riepilogo ordini, con
+  // "Continua l'ordine" al posto di "Visualizza QR Code" (un ordine in sospeso
+  // il QR non ce l'ha: non è ancora concluso).
+  Widget _buildSospesiView() {
+    return ListView.separated(
+      padding: EdgeInsets.fromLTRB(
+          R.sp(21), 0, R.sp(21), SharedFooter.height + R.sp(16)),
+      itemCount: _sospesi.length + 1,
+      separatorBuilder: (_, __) => SizedBox(height: R.sp(18)),
+      itemBuilder: (context, i) {
+        if (i == 0) {
+          return Padding(
+            // CSS: titolo a left 30 (qui 9 oltre il padding 21) e 20 sopra
+            // la card (170 + 36 di riga → card a 220... 14 di respiro).
+            padding: EdgeInsets.only(left: R.sp(9), bottom: R.sp(14)),
+            child: Text(
+              'Completa ordine',
+              style: OnlistTextStyles.hn(
+                color: Colors.white,
+                fontSize: R.sp(36),
+                fontWeight: FontWeight.w500,
+                height: 36 / 36,
+                letterSpacing: -0.03 * 36,
+              ),
+            ),
+          );
+        }
+        final sospeso = _sospesi[i - 1];
+        return TicketCollapsedCard(
+          clubName: _clubDelSospeso(sospeso),
+          label: "Continua l'ordine",
+          onTap: () => _riprendiOrdine(sospeso),
+        );
+      },
+    );
+  }
+
+  String _clubDelSospeso(Map<String, dynamic> sospeso) {
+    final evento = sospeso['eventi'] as Map<String, dynamic>?;
+    final locale = evento?['locali'] as Map<String, dynamic>?;
+    return (locale?['nome'] ?? 'Locale').toString();
+  }
+
+  /// Riporta l'utente alla LISTA TICKET della serata lasciata a metà.
+  void _riprendiOrdine(Map<String, dynamic> sospeso) {
+    final evento = sospeso['eventi'] as Map<String, dynamic>?;
+    if (evento == null) return;
+    AnalyticsService.log(
+      event: 'pending_order_resumed',
+      metadata: {'evento': evento['id']?.toString() ?? ''},
+    );
+    // La booking screen si aspetta {'serata': ..., 'locale': ...}. L'evento
+    // arriva COMPLETO dall'embed (`eventi(*)`), quindi il SerataModel
+    // ricostruito ha anche `eta_minima`: il gate d'età resta attivo.
+    NavigatorService.pushNamed(
+      AppRoutes.bookingScreen,
+      arguments: {
+        'serata': evento,
+        'locale': evento['locali'],
+      },
     );
   }
 
@@ -318,31 +449,98 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
     );
   }
 
+  // ── Carrello vuoto (CSS "Carrello_vuoto") ─────────────────────────────────
+  // Messaggio centrato nello spazio libero e "ordina ora" ancorato sopra la
+  // footer, fuori dallo scroll: stessa struttura di "torna alla home"
+  // nell'ordine effettuato. Le quote assolute del CSS (411 / 447 / 699) non
+  // si possono ricopiare su schermi di altezza diversa: il messaggio si
+  // centra, il blocco in fondo si àncora — che è ciò che il design descrive.
   Widget _buildEmptyCart() {
-    // Figma off/08 ha il corpo vuoto; per non lasciare una schermata "bianca"
-    // (CLAUDE.md §5.4) teniamo un messaggio MINIMO e tenue, senza icona grande.
-    return Center(
-      child: Column(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            "Il carrello è vuoto",
-            style: OnlistTextStyles.hn(
-              color: Colors.white.withValues(alpha: 0.4),
-              fontSize: R.sp(16),
-              fontWeight: FontWeight.w500,
+    return Column(
+      children: [
+        Expanded(
+          child: Center(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // 30/500/-0.03em, bianco 68%.
+                Text(
+                  'Il carrello è vuoto',
+                  style: OnlistTextStyles.hn(
+                    color: OnlistColors.white.withValues(alpha: 0.68),
+                    fontSize: R.sp(30),
+                    fontWeight: FontWeight.w500,
+                    height: 30 / 30,
+                    letterSpacing: -0.03 * 30,
+                  ),
+                ),
+                // CSS: sottotitolo a 447, titolo a 411 con riga 30 → 6.
+                SizedBox(height: R.sp(6)),
+                // 17/500/-0.03em su 2 righe centrate, stesso bianco 68%.
+                Text(
+                  'Seleziona un tavolo o un ticket\nper aggiungere un ordine',
+                  textAlign: TextAlign.center,
+                  style: OnlistTextStyles.hn(
+                    color: OnlistColors.white.withValues(alpha: 0.68),
+                    fontSize: R.sp(17),
+                    fontWeight: FontWeight.w500,
+                    height: 17 / 17,
+                    letterSpacing: -0.03 * 17,
+                  ),
+                ),
+              ],
             ),
           ),
-          const SizedBox(height: 6),
-          Text(
-            "Seleziona un tavolo o un ticket\nper aggiungere un ordine",
-            textAlign: TextAlign.center,
-            style: OnlistTextStyles.hn(
-              color: Colors.white.withValues(alpha: 0.28),
-              fontSize: R.sp(13),
+        ),
+        _buildOrdinaOra(),
+        // CSS: la freccia chiude a 754, la capsula della footer parte a 777.
+        // La clearance della footer la mette già il chiamante.
+        SizedBox(height: R.sp(23)),
+      ],
+    );
+  }
+
+  /// "ordina ora" + freccia giù: stesso identico trattamento di "torna alla
+  /// home" nell'ordine effettuato — gradiente `#FFFFFF → #0018C6` in
+  /// ShaderMask e bob verticale di ±2px. Cambia solo il corpo (24 vs 20).
+  Widget _buildOrdinaOra() {
+    return AnimatedBuilder(
+      animation: _bob,
+      // Il figlio è costruito UNA volta: a ogni frame si ricostruisce solo il
+      // Transform, così il bob non costa nulla.
+      builder: (context, child) => Transform.translate(
+        offset: Offset(0, _bob.value),
+        child: child,
+      ),
+      child: GestureDetector(
+        // "Seleziona un tavolo o un ticket": i club si scelgono dalla Home.
+        onTap: () => _tornaAllaHome(context),
+        behavior: HitTestBehavior.opaque,
+        child: Column(
+          children: [
+            ShaderMask(
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.centerLeft,
+                end: Alignment.centerRight,
+                colors: [Color(0xFFFFFFFF), Color(0xFF0018C6)],
+              ).createShader(bounds),
+              blendMode: BlendMode.srcIn,
+              child: Text(
+                'ordina ora',
+                style: OnlistTextStyles.hn(
+                  color: Colors.white,
+                  fontSize: R.sp(24),
+                  fontWeight: FontWeight.w500,
+                  height: 24 / 24,
+                  letterSpacing: -0.05 * 24,
+                ),
+              ),
             ),
-          ),
-        ],
+            // CSS: testo a 699 (h 24) e freccia a 736 → 13.
+            SizedBox(height: R.sp(13)),
+            Icon(Icons.arrow_downward, color: Colors.white, size: R.sp(30)),
+          ],
+        ),
       ),
     );
   }
@@ -443,8 +641,15 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
     );
   }
 
-  Widget _buildBackButton() {
-    return const BackRow();
+  /// Dentro lo shell la Home è una TAB: cambiarla preserva lo stato invece di
+  /// ricostruire la schermata. Fuori (schermate legacy) resta la navigazione.
+  void _tornaAllaHome(BuildContext context) {
+    final shell = RootShellScope.of(context);
+    if (shell != null) {
+      shell.switchToTab(1);
+      return;
+    }
+    NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
   }
 
   Widget _buildSummaryItem({required Widget child}) {
