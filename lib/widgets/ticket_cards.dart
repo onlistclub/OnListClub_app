@@ -527,7 +527,17 @@ class TicketBackCard extends StatelessWidget {
                 ),
                 SizedBox(height: R.sp(14)),
                 // Pannello QR (CSS Rectangle 295: 350×345 r32, rgba(0,5,214,.2))
-                // col QR VERO 228×228 su riquadro bianco 20% r16.
+                // col QR VERO su riquadro bianco 20% r16.
+                //
+                // QR PIÙ GRANDE DEL FIGMA (correzioni 1.1, punto 20, scelta di
+                // Luca). Il Figma dà un riquadro 228 che riempiva già tutta
+                // l'altezza utile del pannello:
+                //   345 (pannello) − 38 (sopra) − 27 (in mezzo) − 33 (pill)
+                //                 − 20 (respiro sotto) = 227 disponibili
+                // Per crescere bisognava recuperare spazio dagli spazi vuoti:
+                // 38→24 e 27→18 liberano 23 px, che vanno al riquadro (228→250).
+                // Il respiro in fondo resta invariato: 24+250+18+33 = 325 su 345.
+                // Moduli del QR: 195.5 → 216 px design (+10%).
                 Expanded(
                   child: _BackStagger(
                     index: 4,
@@ -539,10 +549,10 @@ class TicketBackCard extends StatelessWidget {
                       ),
                       child: Column(
                         children: [
-                          SizedBox(height: R.sp(38)),
+                          SizedBox(height: R.sp(24)),
                           Container(
-                            width: R.sp(228),
-                            height: R.sp(228),
+                            width: R.sp(250),
+                            height: R.sp(250),
                             decoration: BoxDecoration(
                               color: const Color(0x33FFFFFF),
                               // Il CSS non esporta lo stroke ma nel PNG ufficiale
@@ -555,8 +565,11 @@ class TicketBackCard extends StatelessWidget {
                               ),
                               borderRadius: BorderRadius.circular(R.sp(16)),
                             ),
-                            // 12 → 7: i moduli del QR misuravano 187 px design
-                            // contro i 195.5 del Figma (pannello 228 in entrambi).
+                            // Cornice bianca attorno al QR. Non si stringe oltre:
+                            // dentro, QrImageView tiene la sua "quiet zone" di
+                            // 10 px (il margine che i lettori usano per
+                            // agganciare il codice) — toglierla renderebbe il QR
+                            // più grande ma più difficile da scansionare.
                             padding: EdgeInsets.all(R.sp(7)),
                             // QR reale (scansionabile dallo staff), non decorativo.
                             child: QrImageView(
@@ -573,7 +586,7 @@ class TicketBackCard extends StatelessWidget {
                               ),
                             ),
                           ),
-                          SizedBox(height: R.sp(27)),
+                          SizedBox(height: R.sp(18)),
                           TicketPillButton(label: 'NASCONDI', onTap: onHide),
                         ],
                       ),
