@@ -14,11 +14,10 @@ class BookingService {
   static SupabaseClient get _client => Supabase.instance.client;
 
   /// Recupera le prevendite per un evento.
-  static Future<List<Map<String, dynamic>>> getPrevendite(String eventoId) async {
-    final response = await _client
-        .from('prevendite')
-        .select('*')
-        .eq('id_evento', eventoId);
+  static Future<List<Map<String, dynamic>>> getPrevendite(
+      String eventoId) async {
+    final response =
+        await _client.from('prevendite').select('*').eq('id_evento', eventoId);
     return List<Map<String, dynamic>>.from(response);
   }
 
@@ -36,34 +35,37 @@ class BookingService {
   }
 
   static Future<List<Map<String, dynamic>>> getTavoli(String eventoId) async {
-    final evento = await _client.from('eventi').select('club_id').eq('id', eventoId).single();
+    final evento = await _client
+        .from('eventi')
+        .select('club_id')
+        .eq('id', eventoId)
+        .single();
     final clubId = evento['club_id'] as String;
 
     final occupazione = await _loadOccupazione(eventoId);
 
-    final response = await _client
-        .from('tavoli')
-        .select('*')
-        .eq('id_locale', clubId);
+    final response =
+        await _client.from('tavoli').select('*').eq('id_locale', clubId);
 
     final allTavoli = List<Map<String, dynamic>>.from(response);
-    return allTavoli
-        .where((t) => occupazione[t['id_tavolo']] != true)
-        .toList();
+    return allTavoli.where((t) => occupazione[t['id_tavolo']] != true).toList();
   }
 
   /// Recupera TUTTI i tavoli per un evento (per la mappa).
   /// Lo stato occupato/libero arriva dalla RPC server-side `_loadOccupazione`.
-  static Future<List<Map<String, dynamic>>> getAllTavoliByEvento(String eventoId) async {
-    final evento = await _client.from('eventi').select('club_id').eq('id', eventoId).single();
+  static Future<List<Map<String, dynamic>>> getAllTavoliByEvento(
+      String eventoId) async {
+    final evento = await _client
+        .from('eventi')
+        .select('club_id')
+        .eq('id', eventoId)
+        .single();
     final clubId = evento['club_id'] as String;
 
     final occupazione = await _loadOccupazione(eventoId);
 
-    final response = await _client
-        .from('tavoli')
-        .select('*')
-        .eq('id_locale', clubId);
+    final response =
+        await _client.from('tavoli').select('*').eq('id_locale', clubId);
 
     final data = List<Map<String, dynamic>>.from(response);
     return data
@@ -74,8 +76,13 @@ class BookingService {
         .toList();
   }
 
-  /// Crea una prenotazione completa nel DB.
-  static Future<void> createReservation({
+  /// Crea una prenotazione completa nel DB e ne restituisce l'**id**.
+  ///
+  /// L'id serve alla schermata di conferma per mostrare ESATTAMENTE l'ordine
+  /// appena creato. Prima il metodo era `Future<void>` e lo buttava via: la
+  /// conferma provava a indovinare "l'ultimo ordine" riordinando per `id`, che
+  /// però è un uuid casuale — quindi mostrava sempre lo stesso ordine sbagliato.
+  static Future<String> createReservation({
     required String bookingType,
     required String? ticketId,
     required String? tavoloId,
@@ -103,19 +110,27 @@ class BookingService {
         ? nomeCompleto
         : (emailLocalPart.isNotEmpty ? emailLocalPart : 'Cliente OnList');
 
-    final validTavoloId = (tavoloId != null && tavoloId.isNotEmpty) ? tavoloId : null;
-    final validDrinkId = (drinkId != null && drinkId.isNotEmpty) ? drinkId : null;
+    final validTavoloId =
+        (tavoloId != null && tavoloId.isNotEmpty) ? tavoloId : null;
+    final validDrinkId =
+        (drinkId != null && drinkId.isNotEmpty) ? drinkId : null;
 
     String finalEventoId = eventoId;
     if (finalEventoId.isEmpty && validTavoloId != null) {
       try {
-        final tavoloData = await _client.from('tavoli').select('id_locale').eq('id_tavolo', validTavoloId).single();
-        throw Exception("id_evento non puo' essere vuoto per calcolare la prenotazione_tavolo del locale ${tavoloData['id_locale']}");
+        final tavoloData = await _client
+            .from('tavoli')
+            .select('id_locale')
+            .eq('id_tavolo', validTavoloId)
+            .single();
+        throw Exception(
+            "id_evento non puo' essere vuoto per calcolare la prenotazione_tavolo del locale ${tavoloData['id_locale']}");
       } catch (e) {
         throw Exception("Errore nel recupero dati tavolo: $e");
       }
     }
-    if (finalEventoId.isEmpty) throw Exception("Errore DEBUG: id_evento e' vuoto.");
+    if (finalEventoId.isEmpty)
+      throw Exception("Errore DEBUG: id_evento e' vuoto.");
 
     // --- CALCOLO PREZZO TOTALE + VALIDAZIONE DISPONIBILITA' ---
     // Difesa atomica reale: UNIQUE INDEX parziale lato DB
@@ -148,12 +163,21 @@ class BookingService {
             'Tavolo non piu\' disponibile: e\' stato appena prenotato da un altro utente.');
       }
 
-      final tavoloData = await _client.from('tavoli').select('prezzo_minimo').eq('id_tavolo', validTavoloId).single();
-      double costoTavolo = (tavoloData['prezzo_minimo'] as num?)?.toDouble() ?? 0.0;
+      final tavoloData = await _client
+          .from('tavoli')
+          .select('prezzo_minimo')
+          .eq('id_tavolo', validTavoloId)
+          .single();
+      double costoTavolo =
+          (tavoloData['prezzo_minimo'] as num?)?.toDouble() ?? 0.0;
 
       double costoDrink = 0.0;
       if (validDrinkId != null) {
-        final drinkData = await _client.from('drink').select('prezzo').eq('id_drink', validDrinkId).single();
+        final drinkData = await _client
+            .from('drink')
+            .select('prezzo')
+            .eq('id_drink', validDrinkId)
+            .single();
         costoDrink = (drinkData['prezzo'] as num?)?.toDouble() ?? 0.0;
       }
 
@@ -161,15 +185,22 @@ class BookingService {
     }
 
     // 1. Creazione record prenotazione MADRE
-    final reservation = await _client.from('prenotazioni').insert({
-      'id_evento': finalEventoId,
-      'id_utente': user.id,
-      'nome_cliente': nomeCliente,
-      'n_persone': bookingType == 'ticket' ? (ticketHolders?.length ?? nPersone ?? 1) : (nPersone ?? 10),
-      'stato': 'confermata',
-      'prezzo_totale': prezzoTotale,
-      if (bookingType == 'ticket' && ticketId != null) 'id_prevendita': ticketId,
-    }).select().single();
+    final reservation = await _client
+        .from('prenotazioni')
+        .insert({
+          'id_evento': finalEventoId,
+          'id_utente': user.id,
+          'nome_cliente': nomeCliente,
+          'n_persone': bookingType == 'ticket'
+              ? (ticketHolders?.length ?? nPersone ?? 1)
+              : (nPersone ?? 10),
+          'stato': 'confermata',
+          'prezzo_totale': prezzoTotale,
+          if (bookingType == 'ticket' && ticketId != null)
+            'id_prevendita': ticketId,
+        })
+        .select()
+        .single();
 
     final String reservationId = reservation['id'];
 
@@ -195,8 +226,7 @@ class BookingService {
         if (e.code == '23505') {
           await _client
               .from('prenotazioni')
-              .update({'stato': 'annullata'})
-              .eq('id', reservationId);
+              .update({'stato': 'annullata'}).eq('id', reservationId);
           throw Exception(
               'Tavolo non piu\' disponibile: e\' stato appena prenotato da un altro utente.');
         }
@@ -206,13 +236,15 @@ class BookingService {
       // Per le prevendite inseriamo sempre almeno 1 riga in prenotazioni_prevendite
       final holders = (ticketHolders != null && ticketHolders.isNotEmpty)
           ? ticketHolders
-          : [{'name': '', 'dob': ''}];
+          : [
+              {'name': '', 'dob': ''}
+            ];
 
       for (var holder in holders) {
         final fullName = (holder['name'] ?? '').trim();
         String nome = '';
         String cognome = '';
-        
+
         if (fullName.isNotEmpty) {
           final parts = fullName.split(' ');
           nome = parts[0];
@@ -220,12 +252,12 @@ class BookingService {
         } else {
           nome = profilo?['nome'] as String? ?? '';
           cognome = profilo?['cognome'] as String? ?? '';
-          
+
           if (nome.isEmpty && cognome.isEmpty) {
             nome = emailLocalPart.isNotEmpty ? emailLocalPart : 'Cliente';
           }
         }
-        
+
         final dob = (holder['dob'] ?? '').trim();
 
         await _client.from('prenotazioni_prevendite').insert({
@@ -252,10 +284,11 @@ class BookingService {
     }
 
     // 3. Creazione notifica di successo
-    final titoloNotifica = bookingType == 'table' ? 'Tavolo Prenotato!' : 'Prevendita Acquistata!';
+    final titoloNotifica =
+        bookingType == 'table' ? 'Tavolo Prenotato!' : 'Prevendita Acquistata!';
     final msgNotifica = bookingType == 'table'
-      ? 'La tua prenotazione per il tavolo e\' andata a buon fine. Ci vediamo alla serata!'
-      : 'Hai acquistato correttamente le prevendite. Trovi il riepilogo nella sezione ordini.';
+        ? 'La tua prenotazione per il tavolo e\' andata a buon fine. Ci vediamo alla serata!'
+        : 'Hai acquistato correttamente le prevendite. Trovi il riepilogo nella sezione ordini.';
 
     // La notifica NON deve mai far fallire un ordine già scritto a DB: se la
     // creazione fallisce (es. RLS), logghiamo e proseguiamo verso il successo.
@@ -290,8 +323,7 @@ class BookingService {
         if (cinqueOrePrima.isAfter(DateTime.now())) {
           await NotificationService.createNotification(
             titolo: 'Tra poco si balla!',
-            messaggio:
-                'Mancano 5 ore alla tua serata. Preparati a divertirti!',
+            messaggio: 'Mancano 5 ore alla tua serata. Preparati a divertirti!',
             tipo: 'promemoria_evento',
             relatedId: reservationId,
             programmataPer: cinqueOrePrima,
@@ -315,13 +347,13 @@ class BookingService {
       // Scheduling notifiche non critico: la prenotazione resta valida.
       debugPrint('[BookingService] scheduling notifiche fallito: $e');
     }
+
+    return reservationId;
   }
 
   /// Recupera le bottiglie (drink) disponibili.
   static Future<List<Map<String, dynamic>>> getBottiglie() async {
-    final response = await _client
-        .from('drink')
-        .select('*');
+    final response = await _client.from('drink').select('*');
     return List<Map<String, dynamic>>.from(response);
   }
 
@@ -355,14 +387,16 @@ class BookingService {
       if (eventoData == null) return;
 
       final eventoNome = (eventoData['nome'] as String?) ?? '';
-      final localeNome =
-          ((eventoData['locali'] as Map<String, dynamic>?)?['nome'] as String?) ?? '';
+      final localeNome = ((eventoData['locali']
+              as Map<String, dynamic>?)?['nome'] as String?) ??
+          '';
       final inizioRaw = eventoData['inizio_evento'];
       String dataEvento = '';
       if (inizioRaw != null) {
         final dt = DateTime.tryParse(inizioRaw.toString());
         if (dt != null) {
-          dataEvento = DateFormat('EEEE d MMMM yyyy', 'it_IT').format(dt.toLocal());
+          dataEvento =
+              DateFormat('EEEE d MMMM yyyy', 'it_IT').format(dt.toLocal());
         }
       }
 
@@ -409,11 +443,13 @@ class BookingService {
             toE164: telefono,
             content: smsText,
           );
-          debugPrint('[BookingService] SMS conferma prevendita inviato a $telefono');
+          debugPrint(
+              '[BookingService] SMS conferma prevendita inviato a $telefono');
         }
       } catch (e) {
         // L'SMS non blocca mai il flusso.
-        debugPrint('[BookingService] SMS conferma prevendita fallito (non critico): $e');
+        debugPrint(
+            '[BookingService] SMS conferma prevendita fallito (non critico): $e');
       }
     } catch (e) {
       // L'email non blocca mai il flusso dell'ordine.

@@ -42,6 +42,12 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
   /// True quando del biglietto aperto si mostra il RETRO (QR).
   bool _showQr = false;
 
+  /// Id della prenotazione appena creata, passato dal carrello negli arguments
+  /// della route. Si legge in [didChangeDependencies] perché `ModalRoute.of`
+  /// non è disponibile in `initState`.
+  String? _idPrenotazioneRoute;
+  bool _loadStarted = false;
+
   // ── Apertura del biglietto ────────────────────────────────────────────────
   // Aprendo un biglietto la card passa da 167 a 614 px e sparisce il titolo a
   // cascata: prima succedeva tutto in un frame, da cui il salto brusco.
@@ -92,6 +98,19 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     _bob = Tween<double>(begin: -_bobAmplitude, end: _bobAmplitude)
         .animate(CurvedAnimation(parent: _bobCtrl, curve: Curves.easeInOut));
 
+    // Il caricamento parte da didChangeDependencies: prima serve leggere
+    // l'id della prenotazione dagli arguments della route.
+  }
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_loadStarted) return;
+    _loadStarted = true;
+    final args = ModalRoute.of(context)?.settings.arguments;
+    if (args is Map && args['idPrenotazione'] != null) {
+      _idPrenotazioneRoute = args['idPrenotazione'].toString();
+    }
     _load();
   }
 
@@ -102,15 +121,47 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     super.dispose();
   }
 
+  /// Prenotazione col `created_at` più recente fra le righe caricate.
+  /// Usato solo come rete di sicurezza: normalmente l'id arriva dalla route.
+  String? _idPrenotazionePiuRecente(List<Map<String, dynamic>> all) {
+    String? bestId;
+    DateTime? bestAt;
+    for (final r in all) {
+      final pren = r['prenotazioni'] as Map<String, dynamic>?;
+      final id = pren?['id']?.toString();
+      if (id == null) continue;
+      final at = DateTime.tryParse(pren?['created_at']?.toString() ?? '');
+      // Senza created_at leggibile non si può decidere: si tiene il primo utile.
+      if (at == null) {
+        bestId ??= id;
+        continue;
+      }
+      if (bestAt == null || at.isAfter(bestAt)) {
+        bestAt = at;
+        bestId = id;
+      }
+    }
+    return bestId;
+  }
+
   Future<void> _load() async {
     try {
       final all = await OrdersService.getPrevenditeOrdini();
-      // Le righe dell'ordine appena creato: quelle della prenotazione più
-      // recente (la query è ordinata per id desc → la prima è la più nuova).
-      final firstPrenotazione = (all.isNotEmpty
-          ? all.first['prenotazioni'] as Map<String, dynamic>?
-          : null);
-      final prenotazioneId = firstPrenotazione?['id']?.toString();
+
+      // L'id arriva dal carrello, che l'ha avuto da createReservation: è
+      // l'ordine appena creato, senza ambiguità.
+      //
+      // Prima si prendeva `all.first` confidando che la query fosse ordinata
+      // "dal più nuovo": ma l'ordinamento era su `id`, che è un uuid casuale
+      // (`gen_random_uuid()`), quindi la prima riga era sempre la stessa a
+      // caso — di qui il club sbagliato in conferma.
+      String? prenotazioneId = _idPrenotazioneRoute;
+
+      // Fallback (riapertura della route senza arguments): la prenotazione con
+      // `created_at` più recente. `prenotazioni_prevendite` non ha un
+      // `created_at` proprio, quindi si guarda quello della prenotazione madre.
+      prenotazioneId ??= _idPrenotazionePiuRecente(all);
+
       final tickets = prenotazioneId == null
           ? <Map<String, dynamic>>[]
           : all

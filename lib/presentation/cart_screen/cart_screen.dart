@@ -61,7 +61,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   Future<void> _processPayment(Map<String, dynamic>? args) async {
     setState(() => _isPaying = true);
     try {
-      await BookingService.createReservation(
+      final prenotazioneId = await BookingService.createReservation(
         bookingType: args?['type'] ?? 'table',
         ticketId: args?['ticketId'],
         tavoloId: args?['tableId'],
@@ -88,7 +88,12 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
 
       CartService().clear();
       BadgeService().incrementNotificationBadge();
-      NavigatorService.pushNamed(AppRoutes.paymentSuccessScreen);
+      // L'id della prenotazione appena creata viaggia con la route: la
+      // schermata di conferma mostra QUESTO ordine, senza doverlo indovinare.
+      NavigatorService.pushNamed(
+        AppRoutes.paymentSuccessScreen,
+        arguments: {'idPrenotazione': prenotazioneId},
+      );
     } catch (e) {
       // Registra l'errore per la TAB Errori (http_error se è un errore Supabase).
       AnalyticsService.reportError(e, screen: 'cart');

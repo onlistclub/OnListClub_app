@@ -317,12 +317,28 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
       final key = d == null ? '_none_' : '${d.year}-${d.month}-${d.day}';
       buckets.putIfAbsent(key, () => _Bucket(d)).items.add(item);
     }
+    // Ordine da "portafoglio biglietti": prima le serate a cui devi ancora
+    // andare, dalla più vicina; poi quelle passate, dalla più recente; in
+    // fondo le poche senza data.
+    //
+    // Prima era tutto decrescente, quindi in cima finiva la serata PIÙ LONTANA
+    // e "Oggi" scivolava sotto tutte le date future — il contrario del design,
+    // dove "Oggi" è la prima sezione. Con molti biglietti l'ultimo acquistato
+    // poteva restare sepolto a metà lista.
+    final now = DateTime.now();
+    final today = DateTime(now.year, now.month, now.day);
+    // 0 = da venire (oggi incluso), 1 = passata, 2 = senza data.
+    int gruppo(DateTime? d) => d == null ? 2 : (d.isBefore(today) ? 1 : 0);
+
     final list = buckets.values.toList()
-      // Ordine decrescente: prima le date più recenti (dal più nuovo al più vecchio).
       ..sort((a, b) {
-        if (a.date == null) return 1;
-        if (b.date == null) return -1;
-        return b.date!.compareTo(a.date!);
+        final ga = gruppo(a.date);
+        final gb = gruppo(b.date);
+        if (ga != gb) return ga.compareTo(gb);
+        if (a.date == null || b.date == null) return 0;
+        return ga == 0
+            ? a.date!.compareTo(b.date!) // future: la più vicina prima
+            : b.date!.compareTo(a.date!); // passate: la più recente prima
       });
     return list.map((b) => _DateSection(_dateLabel(b.date), b.items)).toList();
   }

@@ -15,6 +15,13 @@ class OrdersService {
   // PREVENDITE
   // ─────────────────────────────────────────────────────────────────────────────
 
+  /// `created_at` della prenotazione madre di una riga prevendita.
+  /// `prenotazioni_prevendite` non ha un timestamp proprio.
+  static DateTime? _createdAt(Map<String, dynamic> item) {
+    final raw = (item['prenotazioni'] as Map<String, dynamic>?)?['created_at'];
+    return raw == null ? null : DateTime.tryParse(raw.toString());
+  }
+
   static Future<List<Map<String, dynamic>>> getPrevenditeOrdini() async {
     final user = _client.auth.currentUser;
     if (user == null) return [];
@@ -32,8 +39,13 @@ class OrdersService {
             'locali(id, nome, foto_url))), '
             'prevendite(id_prevendita, tipo, prezzo, descrizione)',
           )
-          .eq('id_utente', user.id)
-          .order('id', ascending: false);
+          .eq('id_utente', user.id);
+      // NIENTE .order('id'): `prenotazioni_prevendite.id` è un uuid casuale
+      // (`gen_random_uuid()`), quindi ordinarlo dava un ordine stabile ma
+      // SCOLLEGATO dal tempo — la "prima riga" era sempre la stessa a caso, ed
+      // è il motivo per cui la conferma ordine mostrava sempre lo stesso club.
+      // La tabella non ha un `created_at` proprio: si ordina qui sotto su
+      // quello della prenotazione madre.
 
       return items
           .map((item) {
@@ -52,10 +64,19 @@ class OrdersService {
           // Le prevendite annullate non compaiono più nel riepilogo ordini.
           .where((item) =>
               ((item['prenotazioni'] as Map<String, dynamic>?)?['stato']
-                      ?.toString()
-                      .toLowerCase()) !=
-                  'annullata')
-          .toList();
+                  ?.toString()
+                  .toLowerCase()) !=
+              'annullata')
+          .toList()
+        // Ordine cronologico VERO: dal più recente al più vecchio.
+        ..sort((a, b) {
+          final da = _createdAt(a);
+          final db = _createdAt(b);
+          if (da == null && db == null) return 0;
+          if (da == null) return 1; // senza data in fondo
+          if (db == null) return -1;
+          return db.compareTo(da);
+        });
     } catch (e) {
       debugPrint('[OrdersService] getPrevenditeOrdini errore: $e');
       return [];
@@ -96,8 +117,14 @@ class OrdersService {
             'tavoli(id_tavolo, nome_tavolo), '
             'drink(id_drink, nome, prezzo)',
           )
-          .eq('id_utente', user.id)
-          .order('id', ascending: false);
+          .eq('id_utente', user.id);
+      // Tolto anche qui `.order('id')`: `prenotazioni_tavolo.id` è un uuid
+      // casuale, ordinarlo non dava un ordine cronologico. Questa tabella non
+      // ha né `created_at` proprio né la prenotazione madre nell'embed, quindi
+      // per ora resta senza ordinamento — la sezione Tavoli è nascosta
+      // nell'MVP e nessuna schermata chiama questo metodo. Se un domani torna
+      // visibile, aggiungere `prenotazioni(created_at)` all'embed e ordinare
+      // come in getPrevenditeOrdini.
 
       return items
           .map((item) {
@@ -179,8 +206,8 @@ class OrdersService {
       return rows
           .where((r) =>
               ((r['prenotazioni'] as Map<String, dynamic>?)?['stato']
-                      ?.toString()
-                      .toLowerCase()) !=
+                  ?.toString()
+                  .toLowerCase()) !=
               'annullata')
           .length;
     } catch (e) {
@@ -208,11 +235,14 @@ class OrdersService {
     // Cache-busting: l'URL è sempre lo stesso, senza query la vecchia foto
     // resterebbe in cache dopo il cambio.
     final versioned = '$url?v=${DateTime.now().millisecondsSinceEpoch}';
-    await _client.from('utenti').update({'foto_url': versioned}).eq('id', user.id);
+    await _client
+        .from('utenti')
+        .update({'foto_url': versioned}).eq('id', user.id);
     return versioned;
   }
 
-  static Future<void> updateProfile({String? nome, String? cognome, String? dataNascita}) async {
+  static Future<void> updateProfile(
+      {String? nome, String? cognome, String? dataNascita}) async {
     final user = _client.auth.currentUser;
     if (user == null) return;
     final Map<String, dynamic> updates = {};
@@ -238,20 +268,31 @@ class OrdersService {
     }
 
     try {
-      final prenRes = await _client.from('prenotazioni').select('id_evento').eq('id_utente', user.id);
-      final tavRes = await _client.from('prenotazioni_tavolo').select('id_evento').eq('id_utente', user.id);
-      debugPrint('[OrdersService] 📊 prenotazioni rows=${prenRes.length}, tavoli rows=${tavRes.length}');
+      final prenRes = await _client
+          .from('prenotazioni')
+          .select('id_evento')
+          .eq('id_utente', user.id);
+      final tavRes = await _client
+          .from('prenotazioni_tavolo')
+          .select('id_evento')
+          .eq('id_utente', user.id);
+      debugPrint(
+          '[OrdersService] 📊 prenotazioni rows=${prenRes.length}, tavoli rows=${tavRes.length}');
 
       final eventoIds = <String>{};
       for (var p in prenRes) eventoIds.add(p['id_evento'] as String);
       for (var t in tavRes) eventoIds.add(t['id_evento'] as String);
 
       if (eventoIds.isEmpty) {
-        debugPrint('[OrdersService] ⚠️ Nessun evento trovato per utente ${user.id}');
+        debugPrint(
+            '[OrdersService] ⚠️ Nessun evento trovato per utente ${user.id}');
         return [];
       }
 
-      final eventi = await _client.from('eventi').select('club_id').inFilter('id', eventoIds.toList());
+      final eventi = await _client
+          .from('eventi')
+          .select('club_id')
+          .inFilter('id', eventoIds.toList());
       final clubIds = eventi.map((e) => e['club_id'] as String).toList();
       debugPrint('[OrdersService] 🏛️ Club IDs da storico: $clubIds');
       return clubIds;
@@ -263,7 +304,8 @@ class OrdersService {
 
   /// Numero di locali distinti prenotati. Se [precomputedIds] è passato non
   /// rilegge dal DB (riuso del risultato di [getUtenteClubIds]).
-  static Future<int> getTotalBookingsCount({List<String>? precomputedIds}) async {
+  static Future<int> getTotalBookingsCount(
+      {List<String>? precomputedIds}) async {
     final ids = precomputedIds ?? await getUtenteClubIds();
     debugPrint('[OrdersService] 📊 getTotalBookingsCount: ${ids.length}');
     return ids.length;
@@ -271,43 +313,59 @@ class OrdersService {
 
   /// Coordinate del locale più frequentato dall'utente. Se [precomputedIds] è
   /// passato non rilegge gli ID dal DB (riuso del risultato di [getUtenteClubIds]).
-  static Future<Map<String, double>?> getMostFrequentClubCoordinates({List<String>? precomputedIds}) async {
+  static Future<Map<String, double>?> getMostFrequentClubCoordinates(
+      {List<String>? precomputedIds}) async {
     final clubIds = precomputedIds ?? await getUtenteClubIds();
-    debugPrint('[OrdersService] 🗺️ getMostFrequentClubCoordinates clubIds=$clubIds');
+    debugPrint(
+        '[OrdersService] 🗺️ getMostFrequentClubCoordinates clubIds=$clubIds');
     if (clubIds.isEmpty) return null;
 
     var frequencies = <String, int>{};
-    for(var id in clubIds) {
+    for (var id in clubIds) {
       frequencies[id] = (frequencies[id] ?? 0) + 1;
     }
     debugPrint('[OrdersService] 📈 Frequenze club: $frequencies');
 
-    String mostFreqId = frequencies.entries.reduce((a, b) => a.value > b.value ? a : b).key;
+    String mostFreqId =
+        frequencies.entries.reduce((a, b) => a.value > b.value ? a : b).key;
     debugPrint('[OrdersService] 🏆 Club più frequentato: $mostFreqId');
 
     try {
       // Usiamo una select che preleva anche info citta tramite JOIN per fallback
-      final response = await _client.from('locali').select('lat, lng, citta!id_citta(lat, lng)').eq('id', mostFreqId).maybeSingle();
+      final response = await _client
+          .from('locali')
+          .select('lat, lng, citta!id_citta(lat, lng)')
+          .eq('id', mostFreqId)
+          .maybeSingle();
       debugPrint('[OrdersService] 🗺️ Response locale $mostFreqId: $response');
       if (response == null) return null;
 
-      double? lat = response['lat'] != null ? (response['lat'] as num).toDouble() : null;
-      double? lng = response['lng'] != null ? (response['lng'] as num).toDouble() : null;
+      double? lat =
+          response['lat'] != null ? (response['lat'] as num).toDouble() : null;
+      double? lng =
+          response['lng'] != null ? (response['lng'] as num).toDouble() : null;
 
       if (lat == null || lng == null) {
         final cittaObj = response['citta'];
-        debugPrint('[OrdersService] 🏙️ Fallback citta per coordinate: $cittaObj');
+        debugPrint(
+            '[OrdersService] 🏙️ Fallback citta per coordinate: $cittaObj');
         if (cittaObj != null) {
-          lat = cittaObj['lat'] != null ? (cittaObj['lat'] as num).toDouble() : null;
-          lng = cittaObj['lng'] != null ? (cittaObj['lng'] as num).toDouble() : null;
+          lat = cittaObj['lat'] != null
+              ? (cittaObj['lat'] as num).toDouble()
+              : null;
+          lng = cittaObj['lng'] != null
+              ? (cittaObj['lng'] as num).toDouble()
+              : null;
         }
       }
 
       if (lat != null && lng != null) {
-        debugPrint('[OrdersService] ✅ Coordinate club frequentato: lat=$lat, lng=$lng');
+        debugPrint(
+            '[OrdersService] ✅ Coordinate club frequentato: lat=$lat, lng=$lng');
         return {'lat': lat, 'lng': lng};
       }
-      debugPrint('[OrdersService] ❌ Nessuna coordinata trovata per club $mostFreqId');
+      debugPrint(
+          '[OrdersService] ❌ Nessuna coordinata trovata per club $mostFreqId');
     } catch (e) {
       debugPrint('[OrdersService] ❌ getMostFrequentClubCoordinates errore: $e');
     }
@@ -329,7 +387,8 @@ class OrdersService {
 
     if (rows.isEmpty) return [];
 
-    final localeIds = rows.map((e) => e['locale_id']).whereType<String>().toSet().toList();
+    final localeIds =
+        rows.map((e) => e['locale_id']).whereType<String>().toSet().toList();
     final locali = await _client
         .from('locali')
         .select('id, nome, foto_url, indirizzo')
@@ -337,6 +396,8 @@ class OrdersService {
 
     final localiMap = {for (final l in locali) l['id'] as String: l};
 
-    return rows.map((r) => {...r, 'locali': localiMap[r['locale_id']]}).toList();
+    return rows
+        .map((r) => {...r, 'locali': localiMap[r['locale_id']]})
+        .toList();
   }
 }
