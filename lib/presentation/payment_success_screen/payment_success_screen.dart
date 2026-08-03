@@ -196,18 +196,18 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
           child: Column(
             children: [
               const CustomTopBar(),
+              // Scorre SOLO la parte dei biglietti: "torna alla home" sta
+              // fuori, ancorata sopra la footer (vedi sotto). Prima era dentro
+              // lo scroll insieme a tutto il resto, quindi la pagina scorreva
+              // molto di più e la scritta scappava via.
               Expanded(
                 child: SingleChildScrollView(
                   // Margini 18 invece dei 21 del CSS: scostamento VOLUTO da
                   // Luca per allargare il biglietto di ~6px (stesso valore di
                   // prevendita_detail_screen — sono la stessa card).
-                  //
-                  // Fondo 40 (era 16): col biglietto APERTO la card da 614
-                  // spingeva "torna alla home" contro la footer. Sono 40px di
-                  // stacco pulito in entrambi gli stati — più dei 32 del Figma,
-                  // che però sotto la scritta non ha la freccia.
-                  padding: EdgeInsets.fromLTRB(
-                      R.sp(18), 0, R.sp(18), R.sp(40) + SharedFooter.height),
+                  // Sotto basta un respiro: la clearance della footer non serve
+                  // più, perché sotto c'è la riga fissa.
+                  padding: EdgeInsets.fromLTRB(R.sp(18), 0, R.sp(18), R.sp(16)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -262,13 +262,18 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                             children: _buildTickets(),
                           ),
                         ),
-                      SizedBox(height: R.sp(40)),
-                      // "torna alla home" — testo in gradiente + freccia giù
-                      // (CSS: linear-gradient(90deg, #FFF, #0018C6)).
-                      Center(child: _buildTornaAllaHome()),
                     ],
                   ),
                 ),
+              ),
+              // "torna alla home" FISSA appena sopra la footer — testo in
+              // gradiente + freccia giù (CSS: linear-gradient(90deg, #FFF,
+              // #0018C6)). Fuori dallo scroll, quindi resta sempre a schermo
+              // qualunque sia l'altezza del biglietto.
+              Padding(
+                padding: EdgeInsets.only(
+                    bottom: SharedFooter.height + R.sp(8), top: R.sp(8)),
+                child: Center(child: _buildTornaAllaHome()),
               ),
             ],
           ),

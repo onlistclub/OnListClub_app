@@ -16,6 +16,7 @@ import '../../core/utils/responsive.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
+import '../../widgets/back_row.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/dashed_line.dart';
 import '../../widgets/glow_card.dart';
@@ -342,30 +343,20 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   }
 
   Widget _buildTopBar() {
-    return Padding(
-      // Respiro sopra/sotto come il design ufficiale (arrow sotto la barra logo).
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      child: GestureDetector(
-        onTap: () {
-          if (_currentStep == BookingStep.selection ||
-              _currentStep == BookingStep.ticketList ||
-              _currentStep == BookingStep.tableConfig) {
-            NavigatorService.goBack();
-          } else if (_currentStep == BookingStep.ticketDetail) {
-            setState(() => _currentStep = BookingStep.ticketList);
-          } else if (_currentStep == BookingStep.bottles) {
-            setState(() => _currentStep = BookingStep.tableConfig);
-          }
-        },
-        child: Row(
-          children: [
-            const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-            const SizedBox(width: 6),
-            // Figma: "Torna indietro" 32/w300/-0.03 (come cart/club/prevendita).
-            Text('Torna indietro', style: OnlistTextStyles.title32Light),
-          ],
-        ),
-      ),
+    // Il "indietro" qui non esce sempre dalla schermata: dentro il flusso
+    // torna allo step precedente.
+    return BackRow(
+      onTap: () {
+        if (_currentStep == BookingStep.selection ||
+            _currentStep == BookingStep.ticketList ||
+            _currentStep == BookingStep.tableConfig) {
+          NavigatorService.goBack();
+        } else if (_currentStep == BookingStep.ticketDetail) {
+          setState(() => _currentStep = BookingStep.ticketList);
+        } else if (_currentStep == BookingStep.bottles) {
+          setState(() => _currentStep = BookingStep.tableConfig);
+        }
+      },
     );
   }
 

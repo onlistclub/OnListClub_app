@@ -8,8 +8,8 @@ import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
-import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
+import '../../widgets/back_row.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/shared_footer.dart';
@@ -320,22 +320,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   }
 
   // ── Torna indietro ───────────────────────────────────────────────────────
-  Widget _buildBackRow() {
-    return GestureDetector(
-      onTap: () => NavigatorService.goBack(),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: Row(
-          children: [
-            const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
-            const SizedBox(width: 6),
-            Text('Torna indietro', style: OnlistTextStyles.title32Light),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildBackRow() => const BackRow();
 
   // ── Hero + badge ────────────────────────────────────────────────────────────
   Widget _buildHeroWithBadge(BuildContext context, ClubDetailState state) {

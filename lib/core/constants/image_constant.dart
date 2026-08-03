@@ -76,6 +76,10 @@ class ImageConstant {
   /// Freccia su (chiudi biglietto): 22×22, piena.
   static String imgArrowUp = '${_svgUfficiali}freccia_su.svg';
 
+  /// Freccia indietro ("Torna indietro"): 24×24, piena. Usata da [BackRow],
+  /// che è l'unico punto in cui va referenziata.
+  static String imgArrowLeft = '${_svgUfficiali}freccia_sinistra.svg';
+
   // ── Info del club (pagina locale) ─────────────────────────────────────────
   /// Orologio dell'orario di apertura: 19×19, stroke bianco 2px.
   static String imgClock = '${_svgUfficiali}clock.svg';

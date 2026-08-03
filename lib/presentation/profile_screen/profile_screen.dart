@@ -16,6 +16,7 @@ import '../../core/services/orders_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
+import '../../widgets/back_row.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/dashed_line.dart';
@@ -535,19 +536,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   }
 
   Widget _buildBackRow() {
-    return GestureDetector(
-      onTap: () => NavigatorService.goBack(),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 6, 12, 0),
-        child: Row(
-          children: [
-            const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
-            const SizedBox(width: 6),
-            Text('Torna indietro', style: OnlistTextStyles.title32Light),
-          ],
-        ),
-      ),
+    // Padding proprio: qui la riga sta piu' vicina alla top bar.
+    return BackRow(
+      padding: EdgeInsets.fromLTRB(R.sp(12), R.sp(6), R.sp(12), 0),
     );
   }
 

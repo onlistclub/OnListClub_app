@@ -4,6 +4,7 @@ import '../../core/services/orders_service.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_text_styles.dart';
+import '../../widgets/back_row.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
@@ -86,22 +87,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
               // Icona 28 + testo title32Light. Respiro sopra/sotto come il
               // design ufficiale (riepilogo-ordini.css: arrow top 112 sotto la
               // barra logo, sezione "Oggi" a top 171).
-              Padding(
-                padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-                child: GestureDetector(
-                  onTap: _onBackTap,
-                  behavior: HitTestBehavior.opaque,
-                  child: Row(
-                    children: [
-                      const Icon(Icons.arrow_back,
-                          color: Colors.white, size: 28),
-                      const SizedBox(width: 6),
-                      Text('Torna indietro',
-                          style: OnlistTextStyles.title32Light),
-                    ],
-                  ),
-                ),
-              ),
+              BackRow(onTap: _onBackTap),
               // MVP: nessuna tab. Mostriamo solo le prevendite (Tavoli nascosti).
               Expanded(
                 child: _isLoading

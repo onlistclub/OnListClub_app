@@ -8,6 +8,7 @@ import '../../core/services/cart_service.dart';
 import '../../core/utils/responsive.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
+import '../../widgets/back_row.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/onlist_price_text.dart';
@@ -426,20 +427,7 @@ class _CartScreenState extends State<CartScreen> with ScreenAnalytics {
   }
 
   Widget _buildBackButton() {
-    return Padding(
-      padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-      child: GestureDetector(
-        onTap: () => NavigatorService.goBack(),
-        behavior: HitTestBehavior.opaque,
-        child: Row(
-          children: [
-            const Icon(Icons.arrow_back, color: Colors.white, size: 28),
-            const SizedBox(width: 6),
-            Text('Torna indietro', style: OnlistTextStyles.title32Light),
-          ],
-        ),
-      ),
-    );
+    return const BackRow();
   }
 
   Widget _buildSummaryItem({required Widget child}) {

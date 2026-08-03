@@ -2,8 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_export.dart';
 import '../../core/services/orders_service.dart';
-import '../../theme/onlist_colors.dart';
-import '../../theme/onlist_text_styles.dart';
+import '../../widgets/back_row.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/flip_card.dart';
 import '../../widgets/shared_footer.dart';
@@ -85,9 +84,9 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
 
   @override
   Widget build(BuildContext context) {
-    final item = ModalRoute.of(context)?.settings.arguments
-            as Map<String, dynamic>? ??
-        {};
+    final item =
+        ModalRoute.of(context)?.settings.arguments as Map<String, dynamic>? ??
+            {};
 
     final prenotazione = item['prenotazioni'] as Map<String, dynamic>?;
     final prevendita = item['prevendite'] as Map<String, dynamic>?;
@@ -96,9 +95,8 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     final localeNome =
         ((evento?['locali'] as Map<String, dynamic>?)?['nome'] ?? 'Locale')
             .toString();
-    final stato = _annullata
-        ? 'annullata'
-        : (prenotazione?['stato'] ?? 'in_attesa');
+    final stato =
+        _annullata ? 'annullata' : (prenotazione?['stato'] ?? 'in_attesa');
     final isAnnullata = stato.toString().toLowerCase() == 'annullata';
     // ID della prenotazione madre: è quello che la RPC `annulla_prevendita`
     // si aspetta. NON confonderlo con item['id'] (riga prenotazioni_prevendite).
@@ -112,7 +110,8 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
             ? 'https://www.onlistclub.com/verify/$idPrenotazione'
             : 'onlist-ticket');
     final descrizione = (prevendita?['descrizione'] as String?)?.trim();
-    final quantita = (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
+    final quantita =
+        (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
 
     return Scaffold(
       // Design NUOVO: sfondo NERO FISSO.
@@ -150,8 +149,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                       onHide: () => setState(() => _showQr = false),
                     ),
                     front: TicketFrontCard(
-                      ticketType:
-                          (prevendita?['tipo'] ?? 'normale').toString(),
+                      ticketType: (prevendita?['tipo'] ?? 'normale').toString(),
                       quantita: quantita,
                       descrizione: descrizione,
                       nome: (item['nome'] ?? '—').toString(),
@@ -176,22 +174,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     );
   }
 
-  Widget _buildBackRow() {
-    return GestureDetector(
-      onTap: () => NavigatorService.goBack(),
-      behavior: HitTestBehavior.opaque,
-      child: Padding(
-        padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
-        child: Row(
-          children: [
-            const Icon(Icons.arrow_back, color: OnlistColors.white, size: 28),
-            const SizedBox(width: 6),
-            Text('Torna indietro', style: OnlistTextStyles.title32Light),
-          ],
-        ),
-      ),
-    );
-  }
+  Widget _buildBackRow() => const BackRow();
 
   String _formatPrezzo(dynamic v) {
     final n = v is num ? v : num.tryParse('$v');
