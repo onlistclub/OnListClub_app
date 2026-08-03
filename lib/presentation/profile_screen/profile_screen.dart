@@ -1223,8 +1223,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                   fadeInDuration: Duration.zero,
                   errorWidget: (_, __, ___) => const SizedBox.shrink(),
                 ),
-              // Velo scuro per la leggibilità del nome sopra la foto.
-              ColoredBox(color: Colors.black.withValues(alpha: 0.35)),
+              // Niente velo scuro sopra la foto: il CSS ufficiale non ne ha
+              // (e dove ne vuole uno lo dichiara, vedi la foto profilo con il
+              // suo nero all'80%). A staccare il nome basta la sua ombra.
               Center(
                 child: Padding(
                   padding: EdgeInsets.symmetric(horizontal: R.sp(16)),
