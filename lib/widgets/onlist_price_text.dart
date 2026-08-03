@@ -9,8 +9,8 @@ import 'package:flutter/material.dart';
 /// mentre la giunzione numero→simbolo viene neutralizzata e distanziata di
 /// un soffio, restando compatta come nel Figma.
 ///
-/// Il simbolo è anche più PICCOLO delle cifre e appoggia sulla loro stessa
-/// linea di base — vedi [_symbolScale].
+/// Con [smallSymbol] il simbolo diventa anche più PICCOLO delle cifre,
+/// appoggiato alla loro stessa linea di base — vedi [_symbolScale].
 ///
 /// Tutte le misure derivano dal `fontSize` dello stile: nessun pixel fisso.
 class OnlistPriceText extends StatelessWidget {
@@ -19,6 +19,7 @@ class OnlistPriceText extends StatelessWidget {
     super.key,
     required this.style,
     this.textAlign,
+    this.smallSymbol = false,
   });
 
   /// Prezzo già formattato, es. "25€" o "12.50€".
@@ -26,10 +27,17 @@ class OnlistPriceText extends StatelessWidget {
   final TextStyle style;
   final TextAlign? textAlign;
 
+  /// Rimpicciolisce il simbolo di valuta a [_symbolScale] del corpo.
+  ///
+  /// Attivo SOLO nella lista ticket (scelta di Luca): altrove il simbolo resta
+  /// grande quanto le cifre, com'era.
+  final bool smallSymbol;
+
   /// Respiro reale tra cifra e simbolo, in em.
   static const double _gapEm = 0.02;
 
-  /// Il simbolo di valuta è più piccolo delle cifre.
+  /// Quanto è più piccolo il simbolo di valuta rispetto alle cifre, quando
+  /// [smallSymbol] è attivo.
   ///
   /// Misurato sul PNG ufficiale (`Carrello - Ticket.png`, prezzo a 96px): le
   /// cifre sono alte 69 px design e il "€" 47, cioè il **68%**, con lo stesso
@@ -70,7 +78,8 @@ class OnlistPriceText extends StatelessWidget {
             text: symbol,
             style: TextStyle(
               letterSpacing: 0,
-              fontSize: (style.fontSize ?? 0) * _symbolScale,
+              fontSize:
+                  smallSymbol ? (style.fontSize ?? 0) * _symbolScale : null,
             ),
           ),
         ],

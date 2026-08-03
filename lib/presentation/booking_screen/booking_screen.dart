@@ -606,12 +606,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 typeTopEm: 0.76,
               ),
             ),
-            // Prezzo 96/400/-0.08 (alto-destra).
+            // Prezzo 96/400/-0.08 (alto-destra). Qui — e SOLO qui, per scelta
+            // di Luca — il "€" è più piccolo delle cifre e appoggiato alla loro
+            // linea di base, come nel PNG ufficiale della lista.
             Positioned(
               right: R.sp(18),
               top: R.sp(20),
               child: OnlistPriceText(
                 price,
+                smallSymbol: true,
                 style: OnlistTextStyles.hn(
                   color: Colors.white,
                   fontSize: R.sp(96),

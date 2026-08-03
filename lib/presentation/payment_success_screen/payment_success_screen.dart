@@ -31,7 +31,8 @@ class PaymentSuccessScreen extends StatefulWidget {
   State<PaymentSuccessScreen> createState() => _PaymentSuccessScreenState();
 }
 
-class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
+class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
+    with TickerProviderStateMixin {
   List<Map<String, dynamic>> _tickets = [];
   bool _isLoading = true;
 
@@ -41,10 +42,64 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   /// True quando del biglietto aperto si mostra il RETRO (QR).
   bool _showQr = false;
 
+  // ── Apertura del biglietto ────────────────────────────────────────────────
+  // Aprendo un biglietto la card passa da 167 a 614 px e sparisce il titolo a
+  // cascata: prima succedeva tutto in un frame, da cui il salto brusco.
+  //
+  // Ora l'effetto è in DUE TEMPI: la scatola cresce (AnimatedSize, 320ms
+  // easeOutCubic) e il contenuto entra DOPO, con ~120ms di ritardo, in fade +
+  // micro-slide verso l'alto. È il ritardo fra i due che toglie la sensazione
+  // di scatto: il testo non compare mentre lo spazio non c'è ancora.
+  //
+  // Costo: l'unica cosa che cambia layout è l'altezza di un contenitore; il
+  // contenuto usa solo Transform e Opacity (60fps anche su S7). Il QR, l'unica
+  // parte pesante, sta sul retro e in quel momento non è montato.
+  static const Duration _expandDuration = Duration(milliseconds: 320);
+  static const Curve _expandCurve = Curves.easeOutCubic;
+  late final AnimationController _openCtrl;
+  late final Animation<double> _openFade;
+  late final Animation<Offset> _openSlide;
+
+  // Micro-movimento di "torna alla home": bob verticale di ±2px con ciclo
+  // completo di 1.8s. Solo Transform.translate, costo nullo — si nota con la
+  // coda dell'occhio senza catturare l'attenzione.
+  static const double _bobAmplitude = 2;
+  late final AnimationController _bobCtrl;
+  late final Animation<double> _bob;
+
   @override
   void initState() {
     super.initState();
+
+    _openCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 340),
+    );
+    // Il contenuto parte al 35% della corsa (~120ms), quando la scatola ha già
+    // iniziato ad aprirsi.
+    const contentInterval = Interval(0.35, 1.0, curve: Curves.easeOut);
+    _openFade = CurvedAnimation(parent: _openCtrl, curve: contentInterval);
+    _openSlide = Tween<Offset>(
+      begin: const Offset(0, 0.04),
+      end: Offset.zero,
+    ).animate(CurvedAnimation(parent: _openCtrl, curve: contentInterval));
+
+    // reverse: true → 900ms per verso, 1.8s a ciclo completo.
+    _bobCtrl = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _bob = Tween<double>(begin: -_bobAmplitude, end: _bobAmplitude)
+        .animate(CurvedAnimation(parent: _bobCtrl, curve: Curves.easeInOut));
+
     _load();
+  }
+
+  @override
+  void dispose() {
+    _openCtrl.dispose();
+    _bobCtrl.dispose();
+    super.dispose();
   }
 
   Future<void> _load() async {
@@ -52,8 +107,9 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
       final all = await OrdersService.getPrevenditeOrdini();
       // Le righe dell'ordine appena creato: quelle della prenotazione più
       // recente (la query è ordinata per id desc → la prima è la più nuova).
-      final firstPrenotazione =
-          (all.isNotEmpty ? all.first['prenotazioni'] as Map<String, dynamic>? : null);
+      final firstPrenotazione = (all.isNotEmpty
+          ? all.first['prenotazioni'] as Map<String, dynamic>?
+          : null);
       final prenotazioneId = firstPrenotazione?['id']?.toString();
       final tickets = prenotazioneId == null
           ? <Map<String, dynamic>>[]
@@ -94,19 +150,35 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                   // Margini 18 invece dei 21 del CSS: scostamento VOLUTO da
                   // Luca per allargare il biglietto di ~6px (stesso valore di
                   // prevendita_detail_screen — sono la stessa card).
+                  //
+                  // Fondo 40 (era 16): col biglietto APERTO la card da 614
+                  // spingeva "torna alla home" contro la footer. Sono 40px di
+                  // stacco pulito in entrambi gli stati — più dei 32 del Figma,
+                  // che però sotto la scritta non ha la freccia.
                   padding: EdgeInsets.fromLTRB(
-                      R.sp(18), 0, R.sp(18), R.sp(16) + SharedFooter.height),
+                      R.sp(18), 0, R.sp(18), R.sp(40) + SharedFooter.height),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
                       // Il titolo a cascata resta solo coi biglietti chiusi
                       // (quando se ne apre uno, la card prende la schermata).
-                      if (_openedIndex == null) ...[
-                        SizedBox(height: R.sp(49)),
-                        _buildCascadeTitle(),
-                        SizedBox(height: R.sp(45)),
-                      ] else
-                        SizedBox(height: R.sp(12)),
+                      // AnimatedSize così anche il suo sparire è graduale e non
+                      // strappa in su tutto il contenuto sotto.
+                      AnimatedSize(
+                        duration: _expandDuration,
+                        curve: _expandCurve,
+                        alignment: Alignment.topCenter,
+                        child: _openedIndex == null
+                            ? Column(
+                                crossAxisAlignment: CrossAxisAlignment.start,
+                                children: [
+                                  SizedBox(height: R.sp(49)),
+                                  _buildCascadeTitle(),
+                                  SizedBox(height: R.sp(45)),
+                                ],
+                              )
+                            : SizedBox(height: R.sp(12)),
+                      ),
                       // "Visualizza ticket" 36/400/-0.07em.
                       Text(
                         'Visualizza ticket',
@@ -128,7 +200,17 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
                           ),
                         )
                       else
-                        ..._buildTickets(),
+                        // La scatola cresce da 167 a 614; il contenuto entra
+                        // dopo (vedi _buildOpenTicket).
+                        AnimatedSize(
+                          duration: _expandDuration,
+                          curve: _expandCurve,
+                          alignment: Alignment.topCenter,
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.stretch,
+                            children: _buildTickets(),
+                          ),
+                        ),
                       SizedBox(height: R.sp(40)),
                       // "torna alla home" — testo in gradiente + freccia giù
                       // (CSS: linear-gradient(90deg, #FFF, #0018C6)).
@@ -164,8 +246,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
           const SizedBox(height: 8),
           const Padding(
             padding: EdgeInsets.only(left: 192),
-            child: Text('Buon divertimento!',
-                style: OnlistTextStyles.body20Light),
+            child:
+                Text('Buon divertimento!', style: OnlistTextStyles.body20Light),
           ),
         ],
       ),
@@ -180,8 +262,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
           padding: EdgeInsets.only(top: R.sp(20)),
           child: Text(
             'Nessun ticket da mostrare per questo ordine.',
-            style: OnlistTextStyles.hn(
-                color: Colors.white54, fontSize: R.sp(16)),
+            style:
+                OnlistTextStyles.hn(color: Colors.white54, fontSize: R.sp(16)),
           ),
         ),
       ];
@@ -197,10 +279,14 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
           padding: EdgeInsets.only(bottom: R.sp(18)),
           child: TicketCollapsedCard(
             clubName: _clubName(_tickets[i]),
-            onTap: () => setState(() {
-              _openedIndex = i;
-              _showQr = false;
-            }),
+            onTap: () {
+              setState(() {
+                _openedIndex = i;
+                _showQr = false;
+              });
+              // Fa partire fade + slide del contenuto del biglietto aperto.
+              _openCtrl.forward(from: 0);
+            },
           ),
         ),
     ];
@@ -209,6 +295,17 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   /// Biglietto aperto: fronte e retro, con rotazione 3D fra le due facce
   /// ([FlipCard]).
   Widget _buildOpenTicket(Map<String, dynamic> t) {
+    // Fade + micro-slide in coda all'espansione della scatola.
+    return FadeTransition(
+      opacity: _openFade,
+      child: SlideTransition(
+        position: _openSlide,
+        child: _buildOpenTicketCard(t),
+      ),
+    );
+  }
+
+  Widget _buildOpenTicketCard(Map<String, dynamic> t) {
     final prenotazione = t['prenotazioni'] as Map<String, dynamic>?;
     final prevendita = t['prevendite'] as Map<String, dynamic>?;
     final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
@@ -247,6 +344,19 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
   }
 
   Widget _buildTornaAllaHome() {
+    // Il figlio è costruito UNA volta: a ogni frame si ricostruisce solo il
+    // Transform, così il bob non costa nulla.
+    return AnimatedBuilder(
+      animation: _bob,
+      builder: (context, child) => Transform.translate(
+        offset: Offset(0, _bob.value),
+        child: child,
+      ),
+      child: _tornaAllaHomeContent(),
+    );
+  }
+
+  Widget _tornaAllaHomeContent() {
     return GestureDetector(
       onTap: () =>
           NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen),
@@ -272,8 +382,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
             ),
           ),
           SizedBox(height: R.sp(9)),
-          Icon(Icons.arrow_downward,
-              color: Colors.white, size: R.sp(30)),
+          Icon(Icons.arrow_downward, color: Colors.white, size: R.sp(30)),
         ],
       ),
     );
@@ -281,8 +390,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen> {
 
   // ── Helper dati ────────────────────────────────────────────────────────────
   String _clubName(Map<String, dynamic> t) {
-    final evento =
-        (t['prenotazioni'] as Map<String, dynamic>?)?['eventi'] as Map<String, dynamic>?;
+    final evento = (t['prenotazioni'] as Map<String, dynamic>?)?['eventi']
+        as Map<String, dynamic>?;
     return ((evento?['locali'] as Map<String, dynamic>?)?['nome'] ?? 'Locale')
         .toString();
   }
