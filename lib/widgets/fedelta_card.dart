@@ -196,7 +196,10 @@ class _FedeltaCardState extends State<FedeltaCard>
               ),
               Image.asset(
                 ImageConstant.imgLogoOnlistWordmark,
-                height: R.sp(21), // `FINALE INTERO 1`: 67×21
+                // 21 (misura Figma) → 32: "aumentare di tanto il logo OnList",
+                // punto 23 del doc correzioni. È uno scostamento voluto dal
+                // design, dove il logo è alto quanto il testo "Tu e".
+                height: R.sp(32),
                 fit: BoxFit.contain,
               ),
             ],
@@ -223,7 +226,8 @@ class _FedeltaCardState extends State<FedeltaCard>
               },
             ),
           ),
-          SizedBox(height: R.sp(9)),
+          // 9 → 4: "alzare di poco la scritta" (punto 23 del doc correzioni).
+          SizedBox(height: R.sp(4)),
           Text(
             'da quando ti sei unito al club',
             style: OnlistTextStyles.hn(

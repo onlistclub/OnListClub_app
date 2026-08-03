@@ -614,7 +614,11 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                       ),
                     ),
                     SizedBox(height: R.sp(24)),
-                    // Telefono (sx) + email (dx), 20/500.
+                    // Telefono (sx) + email (dx).
+                    // 20 → 16: a 20 le due stringhe non ci stavano affiancate e
+                    // l'email finiva troncata con i puntini (punto 22 del doc
+                    // correzioni). Il telefono è anche spaziato per gruppi, così
+                    // il prefisso si stacca dal numero e si legge meglio.
                     Padding(
                       padding: EdgeInsets.symmetric(horizontal: R.sp(19)),
                       child: Row(
@@ -622,14 +626,14 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                         children: [
                           Flexible(
                             child: Text(
-                              _telefono ?? '—',
+                              _telefonoFormattato,
                               maxLines: 1,
                               overflow: TextOverflow.ellipsis,
                               style: OnlistTextStyles.hn(
-                                fontSize: R.sp(20),
+                                fontSize: R.sp(16),
                                 fontWeight: FontWeight.w500,
                                 color: OnlistColors.white,
-                                height: 20 / 20,
+                                height: 16 / 16,
                               ),
                             ),
                           ),
@@ -641,10 +645,10 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                               overflow: TextOverflow.ellipsis,
                               textAlign: TextAlign.right,
                               style: OnlistTextStyles.hn(
-                                fontSize: R.sp(20),
+                                fontSize: R.sp(16),
                                 fontWeight: FontWeight.w500,
                                 color: OnlistColors.white,
-                                height: 20 / 20,
+                                height: 16 / 16,
                               ),
                             ),
                           ),
@@ -673,6 +677,42 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   }
 
   bool get _hasFoto => _fotoUrl != null && _fotoUrl!.isNotEmpty;
+
+  /// Telefono con il prefisso staccato dal numero (punto 22 del doc
+  /// correzioni): `+393124561234` → `+39 312 456 1234`.
+  ///
+  /// I numeri sono in E.164, quindi tutto attaccato. Qui si separa solo per
+  /// leggibilità: il dato NON viene toccato, si formatta in visualizzazione.
+  /// Il prefisso è la parte iniziale (1-3 cifre dopo il `+`); il resto va a
+  /// gruppi di 3, con gli ultimi 4 insieme quando la lunghezza lo consente.
+  String get _telefonoFormattato {
+    final raw = _telefono?.trim() ?? '';
+    if (raw.isEmpty) return '—';
+    if (!raw.startsWith('+')) return raw;
+
+    final cifre = raw.substring(1).replaceAll(RegExp(r'\D'), '');
+    // Prefissi italiani/europei più comuni: 2 cifre. Fallback prudente: se non
+    // riconosciamo nulla restituiamo la stringa originale, mai un numero
+    // spezzato a caso.
+    const prefissiNoti = ['39', '41', '44', '49', '33', '34', '43', '32', '31'];
+    final prefisso = prefissiNoti.firstWhere(
+      cifre.startsWith,
+      orElse: () => '',
+    );
+    if (prefisso.isEmpty || cifre.length <= prefisso.length + 4) return raw;
+
+    final resto = cifre.substring(prefisso.length);
+    final gruppi = <String>[];
+    var i = 0;
+    while (i < resto.length) {
+      // Le ultime 4 restano unite: "312 456 1234" si legge meglio di
+      // "312 456 123 4".
+      final quante = (resto.length - i == 4) ? 4 : 3;
+      gruppi.add(resto.substring(i, (i + quante).clamp(0, resto.length)));
+      i += quante;
+    }
+    return '+$prefisso ${gruppi.join(' ')}';
+  }
 
   Widget _buildFotoProfilo() {
     return GestureDetector(
@@ -779,7 +819,10 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
               ),
             ),
             SizedBox(width: R.sp(8)),
-            Icon(Icons.bookmark, color: OnlistColors.white, size: R.sp(22)),
+            // 22 → 30: "mettere più grande il tasto dei preferiti" (punto 24).
+            // NB: resta l'icona Material — nel pacchetto SVG un segnalibro non
+            // c'è. Da sostituire quando arriva quello ufficiale.
+            Icon(Icons.bookmark, color: OnlistColors.white, size: R.sp(30)),
           ],
         ),
       ),

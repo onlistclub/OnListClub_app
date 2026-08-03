@@ -31,7 +31,8 @@ class HomeScreen extends StatefulWidget {
   State<HomeScreen> createState() => _HomeScreenState();
 }
 
-class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, ScreenAnalytics {
+class _HomeScreenState extends State<HomeScreen>
+    with TickerProviderStateMixin, ScreenAnalytics {
   @override
   String get screenName => 'home';
 
@@ -58,20 +59,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       duration: const Duration(milliseconds: 1400),
     );
 
-    _appBarFade   = _fade(0.00, 0.25);
-    _appBarSlide  = _slide(const Offset(0, -0.5), 0.00, 0.25);
-    _heroFade     = _fade(0.07, 0.43);
-    _heroScale    = Tween<double>(begin: 0.95, end: 1).animate(
-      CurvedAnimation(parent: _staggerCtrl,
-          curve: const Interval(0.07, 0.43, curve: Curves.easeOut)));
-    _titleFade    = _fade(0.18, 0.50);
-    _titleSlide   = _slide(const Offset(0, 0.3), 0.18, 0.50);
+    _appBarFade = _fade(0.00, 0.25);
+    _appBarSlide = _slide(const Offset(0, -0.5), 0.00, 0.25);
+    _heroFade = _fade(0.07, 0.43);
+    _heroScale = Tween<double>(begin: 0.95, end: 1).animate(CurvedAnimation(
+        parent: _staggerCtrl,
+        curve: const Interval(0.07, 0.43, curve: Curves.easeOut)));
+    _titleFade = _fade(0.18, 0.50);
+    _titleSlide = _slide(const Offset(0, 0.3), 0.18, 0.50);
     _subtitleFade = _fade(0.25, 0.57);
-    _subtitleSlide= _slide(const Offset(0, 0.3), 0.25, 0.57);
-    _sectionFade  = _fade(0.43, 0.72);
+    _subtitleSlide = _slide(const Offset(0, 0.3), 0.25, 0.57);
+    _sectionFade = _fade(0.43, 0.72);
     _sectionSlide = _slide(const Offset(0, 0.3), 0.43, 0.72);
-    _cardsFade    = _fade(0.54, 0.86);
-    _cardsSlide   = _slide(const Offset(0.15, 0), 0.54, 0.86);
+    _cardsFade = _fade(0.54, 0.86);
+    _cardsSlide = _slide(const Offset(0.15, 0), 0.54, 0.86);
 
     _staggerCtrl.forward();
 
@@ -125,37 +126,37 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       body: ColoredBox(
         color: Colors.black,
         child: BlocConsumer<HomeBloc, HomeState>(
-        // Reagisce a: (1) GPS forzato non disponibile → messaggio; (2) fine del
-        // caricamento dati (isLoading true→false) → tempo di caricamento Home.
-        listenWhen: (prev, curr) =>
-            (!prev.gpsUnavailable && curr.gpsUnavailable) ||
-            (prev.isLoading && !curr.isLoading),
-        listener: (context, state) {
-          if (!state.isLoading) {
-            // Dati Home pronti: registra il tempo di caricamento (load_time_home).
-            reportLoadTime('load_time_home');
-          }
-          if (state.gpsUnavailable) {
-            ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content:
-                    Text('GPS non disponibile. Mostro l\'ultima posizione.'),
-              ),
-            );
-          }
-        },
-        buildWhen: (prev, curr) =>
-            prev.localeVicino != curr.localeVicino ||
-            prev.upcomingEventi != curr.upcomingEventi ||
-            prev.recommendedClubs != curr.recommendedClubs ||
-            prev.isLoading != curr.isLoading ||
-            prev.isGpsForced != curr.isGpsForced ||
-            prev.locationSourceLabel != curr.locationSourceLabel ||
-            prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
-        builder: (context, state) {
-          return SafeArea(
-            bottom: false,
-            child: Column(
+          // Reagisce a: (1) GPS forzato non disponibile → messaggio; (2) fine del
+          // caricamento dati (isLoading true→false) → tempo di caricamento Home.
+          listenWhen: (prev, curr) =>
+              (!prev.gpsUnavailable && curr.gpsUnavailable) ||
+              (prev.isLoading && !curr.isLoading),
+          listener: (context, state) {
+            if (!state.isLoading) {
+              // Dati Home pronti: registra il tempo di caricamento (load_time_home).
+              reportLoadTime('load_time_home');
+            }
+            if (state.gpsUnavailable) {
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content:
+                      Text('GPS non disponibile. Mostro l\'ultima posizione.'),
+                ),
+              );
+            }
+          },
+          buildWhen: (prev, curr) =>
+              prev.localeVicino != curr.localeVicino ||
+              prev.upcomingEventi != curr.upcomingEventi ||
+              prev.recommendedClubs != curr.recommendedClubs ||
+              prev.isLoading != curr.isLoading ||
+              prev.isGpsForced != curr.isGpsForced ||
+              prev.locationSourceLabel != curr.locationSourceLabel ||
+              prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
+          builder: (context, state) {
+            return SafeArea(
+              bottom: false,
+              child: Column(
                 children: [
                   // AppBar — fixed at top
                   SlideTransition(
@@ -188,70 +189,76 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                                   ),
                                 ),
                               )
-                            : RepaintBoundary(child: SingleChildScrollView(
-                                padding: const EdgeInsets.only(bottom: 80),
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    // Hero image (tap → schermata 10 club detail)
-                                    FadeTransition(
-                                      opacity: _heroFade,
-                                      child: ScaleTransition(
-                                        scale: _heroScale,
-                                        child: _buildHeroImage(context, state),
-                                      ),
-                                    ),
-                                    // Club name
-                                    SlideTransition(
-                                      position: _titleSlide,
-                                      child: FadeTransition(
-                                        opacity: _titleFade,
-                                        child: _buildClubName(state),
-                                      ),
-                                    ),
-                                    // Club details
-                                    SlideTransition(
-                                      position: _subtitleSlide,
-                                      child: FadeTransition(
-                                        opacity: _subtitleFade,
-                                        child: _buildClubDetails(state),
-                                      ),
-                                    ),
-                                    // CTA "RISERVA IL TUO POSTO ORA" → schermata 10 (club detail)
-                                    SlideTransition(
-                                      position: _subtitleSlide,
-                                      child: FadeTransition(
-                                        opacity: _subtitleFade,
-                                        child: _buildReserveButton(context, state),
-                                      ),
-                                    ),
-                                    // Club consigliati (altri club vicini)
-                                    if (state.recommendedClubs.isNotEmpty) ...[
-                                      SlideTransition(
-                                        position: _sectionSlide,
-                                        child: FadeTransition(
-                                          opacity: _sectionFade,
-                                          child: _buildSectionTitle(),
+                            : RepaintBoundary(
+                                child: SingleChildScrollView(
+                                  padding: const EdgeInsets.only(bottom: 80),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      // Hero image (tap → schermata 10 club detail)
+                                      FadeTransition(
+                                        opacity: _heroFade,
+                                        child: ScaleTransition(
+                                          scale: _heroScale,
+                                          child:
+                                              _buildHeroImage(context, state),
                                         ),
                                       ),
+                                      // Club name
                                       SlideTransition(
-                                        position: _cardsSlide,
+                                        position: _titleSlide,
                                         child: FadeTransition(
-                                          opacity: _cardsFade,
-                                          child: _buildRecommendedCards(context, state),
+                                          opacity: _titleFade,
+                                          child: _buildClubName(state),
                                         ),
                                       ),
+                                      // Club details
+                                      SlideTransition(
+                                        position: _subtitleSlide,
+                                        child: FadeTransition(
+                                          opacity: _subtitleFade,
+                                          child: _buildClubDetails(state),
+                                        ),
+                                      ),
+                                      // CTA "RISERVA IL TUO POSTO ORA" → schermata 10 (club detail)
+                                      SlideTransition(
+                                        position: _subtitleSlide,
+                                        child: FadeTransition(
+                                          opacity: _subtitleFade,
+                                          child: _buildReserveButton(
+                                              context, state),
+                                        ),
+                                      ),
+                                      // Club consigliati (altri club vicini)
+                                      if (state
+                                          .recommendedClubs.isNotEmpty) ...[
+                                        SlideTransition(
+                                          position: _sectionSlide,
+                                          child: FadeTransition(
+                                            opacity: _sectionFade,
+                                            child: _buildSectionTitle(),
+                                          ),
+                                        ),
+                                        SlideTransition(
+                                          position: _cardsSlide,
+                                          child: FadeTransition(
+                                            opacity: _cardsFade,
+                                            child: _buildRecommendedCards(
+                                                context, state),
+                                          ),
+                                        ),
+                                      ],
+                                      const SizedBox(height: 24),
                                     ],
-                                    const SizedBox(height: 24),
-                                  ],
-                                ),
+                                  ),
                                 ),
                               ),
                   ),
                 ],
               ),
             );
-        },
+          },
         ),
       ),
       // La footer NON è più qui: la monta lo shell globale ([RootShell]), così
@@ -260,7 +267,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
   }
 
   // ── Location Info ────────────────────────────────────────────────────────
-  
+
   Widget _buildLocationInfo(BuildContext context, HomeState state) {
     if (state.localeVicino == null) return const SizedBox.shrink();
 
@@ -300,7 +307,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 );
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF2A2A2A),
                   borderRadius: BorderRadius.circular(20),
@@ -308,7 +316,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 ),
                 child: Row(
                   children: [
-                    const Icon(Icons.my_location, color: Colors.white, size: 14),
+                    const Icon(Icons.my_location,
+                        color: Colors.white, size: 14),
                     const SizedBox(width: 6),
                     Text(
                       'Usa GPS',
@@ -329,7 +338,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 context.read<HomeBloc>().add(const HomeForceGpsEvent(false));
               },
               child: Container(
-                padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+                padding:
+                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
                 decoration: BoxDecoration(
                   color: const Color(0xFF0009FF).withValues(alpha: 0.2),
                   borderRadius: BorderRadius.circular(20),
@@ -385,7 +395,8 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                       width: MediaQuery.of(context).size.width,
                       height: 217,
                       fit: BoxFit.cover,
-                      errorWidget: (_, __, ___) => ImageFallback(seed: club?.id),
+                      errorWidget: (_, __, ___) =>
+                          ImageFallback(seed: club?.id),
                     )
                   : ImageFallback(seed: club?.id),
             ),
@@ -446,8 +457,10 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
     if (locale == null) return const SizedBox.shrink();
 
     final addr = [
-      if (locale.nomeCitta != null && locale.nomeCitta!.isNotEmpty) locale.nomeCitta!,
-      if (locale.indirizzo != null && locale.indirizzo!.isNotEmpty) locale.indirizzo!,
+      if (locale.nomeCitta != null && locale.nomeCitta!.isNotEmpty)
+        locale.nomeCitta!,
+      if (locale.indirizzo != null && locale.indirizzo!.isNotEmpty)
+        locale.indirizzo!,
     ].join(' - ');
 
     // CSS NUOVO/home.css: indirizzo "Milano - Via Alfonso Gatto" 16/500,
@@ -642,7 +655,15 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
                 // in "23:00 - 05…".
                 if (_recommendedInfoLine(club).isNotEmpty)
                   Positioned(
-                    left: 176,
+                    // 170 e non 176: la pill ha 6 di padding interno, quindi
+                    // il TESTO cade a 176 — esattamente il bordo sinistro del
+                    // nome del club e della città. Prima l'orario partiva a
+                    // 182 e risultava rientrato rispetto al nome (punto 2 del
+                    // doc correzioni). Il CSS avrebbe il testo a 180, ma qui
+                    // si vuole l'allineamento perfetto.
+                    // La pill sfora di 1px sulla foto (che chiude a 171): è
+                    // riempita al 6% di alfa, quindi non si vede.
+                    left: 170,
                     top: 48,
                     child: ConstrainedBox(
                       constraints: const BoxConstraints(maxWidth: 90),
@@ -740,7 +761,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin, 
       ),
     );
   }
-
 }
 
 // ── Hero wrap ────────────────────────────────────────────────────────────────
