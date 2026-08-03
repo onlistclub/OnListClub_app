@@ -19,6 +19,7 @@ import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
 import '../../widgets/custom_top_bar.dart';
 import '../../widgets/dashed_line.dart';
+import '../../widgets/fedelta_card.dart';
 import '../../widgets/glow_card.dart';
 import '../../widgets/shared_footer.dart';
 
@@ -189,7 +190,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
               surface: Color(0xFF1A1A1A),
               onSurface: OnlistColors.white,
             ),
-            dialogTheme: const DialogThemeData(backgroundColor: Color(0xFF1A1A1A)),
+            dialogTheme:
+                const DialogThemeData(backgroundColor: Color(0xFF1A1A1A)),
           ),
           child: child!,
         );
@@ -242,14 +244,17 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           SnackBar(
             content: Row(
               children: [
-                const Icon(Icons.check_circle, color: OnlistColors.white, size: 20),
+                const Icon(Icons.check_circle,
+                    color: OnlistColors.white, size: 20),
                 const SizedBox(width: 10),
-                Text('Profilo aggiornato!', style: OnlistTextStyles.hn(color: OnlistColors.white)),
+                Text('Profilo aggiornato!',
+                    style: OnlistTextStyles.hn(color: OnlistColors.white)),
               ],
             ),
             backgroundColor: OnlistColors.blueElectric,
             behavior: SnackBarBehavior.floating,
-            shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
           ),
         );
       }
@@ -354,16 +359,25 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       builder: (ctx) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
         shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
-        title: Text('Disconnetti', style: OnlistTextStyles.hn(color: OnlistColors.white, fontWeight: FontWeight.bold)),
-        content: Text('Sei sicuro di voler uscire dal tuo account?', style: OnlistTextStyles.hn(color: OnlistColors.white.withValues(alpha: 0.7))),
+        title: Text('Disconnetti',
+            style: OnlistTextStyles.hn(
+                color: OnlistColors.white, fontWeight: FontWeight.bold)),
+        content: Text('Sei sicuro di voler uscire dal tuo account?',
+            style: OnlistTextStyles.hn(
+                color: OnlistColors.white.withValues(alpha: 0.7))),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(ctx, false),
-            child: Text('Annulla', style: OnlistTextStyles.hn(color: OnlistColors.white.withValues(alpha: 0.54))),
+            child: Text('Annulla',
+                style: OnlistTextStyles.hn(
+                    color: OnlistColors.white.withValues(alpha: 0.54))),
           ),
           TextButton(
             onPressed: () => Navigator.pop(ctx, true),
-            child: Text('Esci', style: OnlistTextStyles.hn(color: OnlistColors.destructive, fontWeight: FontWeight.bold)),
+            child: Text('Esci',
+                style: OnlistTextStyles.hn(
+                    color: OnlistColors.destructive,
+                    fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -390,8 +404,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           'Ti invieremo un\'email con un link per completare la '
           'cancellazione.\n\nL\'operazione è definitiva: i tuoi dati personali '
           'verranno rimossi e perderai l\'accesso ai ticket già acquistati.',
-          style:
-              OnlistTextStyles.hn(color: OnlistColors.white.withValues(alpha: 0.7)),
+          style: OnlistTextStyles.hn(
+              color: OnlistColors.white.withValues(alpha: 0.7)),
         ),
         actions: [
           TextButton(
@@ -404,7 +418,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
             onPressed: () => Navigator.pop(ctx, true),
             child: Text('Invia email',
                 style: OnlistTextStyles.hn(
-                    color: OnlistColors.destructive, fontWeight: FontWeight.bold)),
+                    color: OnlistColors.destructive,
+                    fontWeight: FontWeight.bold)),
           ),
         ],
       ),
@@ -530,8 +545,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   // ── Pannello Account (CSS NUOVO Rectangle 105: 393 full-width, r32,
   //    gradiente ticket + glow ciano) con la foto profilo che lo scavalca.
   Widget _buildProfilePanel() {
-    final nomeCompleto =
-        '${_nomeCtrl.text} ${_cognomeCtrl.text}'.trim();
+    final nomeCompleto = '${_nomeCtrl.text} ${_cognomeCtrl.text}'.trim();
     // Foto 114×120 a top 157, pannello a top 243 → sporge di 86.
     const double fotoH = 120;
     const double overlap = 86;
@@ -567,7 +581,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                           child: FittedBox(
                             fit: BoxFit.scaleDown,
                             child: Text(
-                              nomeCompleto.isEmpty ? 'Il tuo nome' : nomeCompleto,
+                              nomeCompleto.isEmpty
+                                  ? 'Il tuo nome'
+                                  : nomeCompleto,
                               style: OnlistTextStyles.hn(
                                 fontSize: R.sp(64),
                                 fontWeight: FontWeight.w700,
@@ -656,6 +672,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     );
   }
 
+  bool get _hasFoto => _fotoUrl != null && _fotoUrl!.isNotEmpty;
+
   Widget _buildFotoProfilo() {
     return GestureDetector(
       onTap: _isUploadingFoto ? null : _pickFotoProfilo,
@@ -671,106 +689,67 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         child: Stack(
           fit: StackFit.expand,
           children: [
-            if (_fotoUrl != null)
+            if (_hasFoto)
               CachedNetworkImage(
                 imageUrl: _fotoUrl!,
                 fit: BoxFit.cover,
                 errorWidget: (_, __, ___) =>
                     const ColoredBox(color: Color(0xFF1A1A1A)),
               ),
-            // Velo nero 80% come da CSS (la foto resta leggibile sotto l'icona).
-            const ColoredBox(color: Color(0xCC000000)),
-            Center(
-              child: _isUploadingFoto
-                  ? SizedBox(
-                      width: R.sp(24),
-                      height: R.sp(24),
-                      child: const CircularProgressIndicator(
-                          color: OnlistColors.white, strokeWidth: 2),
-                    )
-                  : Icon(Icons.photo_camera_outlined,
-                      color: OnlistColors.white, size: R.sp(44)),
-            ),
+            if (_isUploadingFoto)
+              // Durante l'upload il velo serve: copre la foto vecchia mentre
+              // arriva la nuova e dà contrasto allo spinner.
+              const ColoredBox(color: Color(0xCC000000))
+            else if (!_hasFoto)
+              // Senza foto resta il placeholder scuro con la macchina al centro.
+              Center(
+                child: Icon(Icons.photo_camera_outlined,
+                    color: OnlistColors.white, size: R.sp(44)),
+              )
+            else
+              // CON foto: niente più velo nero all'80%, che la spegneva del
+              // tutto. Al posto dell'icona grande al centro c'è un badge
+              // piccolo in basso a destra, così la foto si vede pulita e resta
+              // chiaro che è modificabile. Sotto il badge una sfumatura molto
+              // leggera, solo per staccarlo da foto chiare.
+              Positioned.fill(
+                child: Align(
+                  alignment: Alignment.bottomRight,
+                  child: Container(
+                    margin: EdgeInsets.all(R.sp(6)),
+                    padding: EdgeInsets.all(R.sp(5)),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.45),
+                      shape: BoxShape.circle,
+                      border: Border.all(
+                        color: OnlistColors.white.withValues(alpha: 0.5),
+                        width: 1,
+                      ),
+                    ),
+                    child: Icon(Icons.photo_camera_outlined,
+                        color: OnlistColors.white, size: R.sp(16)),
+                  ),
+                ),
+              ),
+            if (_isUploadingFoto)
+              Center(
+                child: SizedBox(
+                  width: R.sp(24),
+                  height: R.sp(24),
+                  child: const CircularProgressIndicator(
+                      color: OnlistColors.white, strokeWidth: 2),
+                ),
+              ),
           ],
         ),
       ),
     );
   }
 
-  // Card "Tu e OnList" (CSS Rectangle 44: 357×126 r8, viola #7300FF).
-  Widget _buildTuEOnlistCard() {
-    return Padding(
-      padding: EdgeInsets.symmetric(horizontal: R.sp(18)),
-      child: Container(
-        height: R.sp(126),
-        width: double.infinity,
-        clipBehavior: Clip.antiAlias,
-        decoration: BoxDecoration(
-          color: const Color(0xFF7300FF),
-          borderRadius: BorderRadius.circular(R.sp(8)),
-        ),
-        child: Stack(
-          children: [
-            // Disco-ball decorativa a destra (cerchio sfumato bianco).
-            Positioned(
-              right: R.sp(20),
-              top: R.sp(21),
-              child: Container(
-                width: R.sp(83),
-                height: R.sp(83),
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  gradient: RadialGradient(
-                    colors: [
-                      OnlistColors.white.withValues(alpha: 0.85),
-                      OnlistColors.white.withValues(alpha: 0.45),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-            Padding(
-              padding: EdgeInsets.fromLTRB(R.sp(22), R.sp(27), 0, 0),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Tu e OnList',
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(20),
-                      fontWeight: FontWeight.w500,
-                      color: OnlistColors.white,
-                      height: 20 / 20,
-                    ),
-                  ),
-                  SizedBox(height: R.sp(9)),
-                  Text(
-                    '$_numeroSerate ${_numeroSerate == 1 ? 'serata' : 'serate'}',
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(32),
-                      fontWeight: FontWeight.w700,
-                      color: OnlistColors.white,
-                      height: 32 / 32,
-                    ),
-                  ),
-                  SizedBox(height: R.sp(9)),
-                  Text(
-                    'da quando ti sei unito al club',
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(12),
-                      fontWeight: FontWeight.w500,
-                      color: OnlistColors.white,
-                      height: 12 / 12,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
+  // Card "Tu e OnList": grafica ufficiale (palla da discoteca, coriandoli,
+  // glow interno) ridisegnata in Flutter invece di usare
+  // `riepilogo_fedelta.svg` — vedi le motivazioni in [FedeltaCard].
+  Widget _buildTuEOnlistCard() => FedeltaCard(numeroSerate: _numeroSerate);
 
   // Pill "Club salvati" (CSS Rectangle 295: 182×33 r13, bianco 20%).
   Widget _buildClubSalvatiPill() {
@@ -923,8 +902,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isUploadingFoto = false);
-      showAppErrorDialog(context,
-          'Impossibile aggiornare la foto profilo.\n$e');
+      showAppErrorDialog(
+          context, 'Impossibile aggiornare la foto profilo.\n$e');
     }
   }
 
@@ -979,7 +958,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       if (i > 0) {
         rows.add(Padding(
           padding: EdgeInsets.only(left: R.sp(_actionRowIndent)),
-          child: Container(height: 1, color: OnlistColors.white.withValues(alpha: 0.08)),
+          child: Container(
+              height: 1, color: OnlistColors.white.withValues(alpha: 0.08)),
         ));
       }
       rows.add(tiles[i]);
@@ -1085,7 +1065,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                 icon,
                 // Il blu brand #1E00FF su fondo nero è illeggibile: righe
                 // normali con icona bianca, come la label (scelta di Luca).
-                color: isDestructive ? color : OnlistColors.white.withValues(alpha: 0.85),
+                color: isDestructive
+                    ? color
+                    : OnlistColors.white.withValues(alpha: 0.85),
                 size: R.sp(22),
               ),
               SizedBox(width: R.sp(14)),
@@ -1193,4 +1175,3 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     );
   }
 }
-

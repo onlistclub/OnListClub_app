@@ -42,8 +42,8 @@ class ImageConstant {
   // (vedi imgNavTicket/imgNavHome/imgNavCart sotto). Lasciati qui perché i
   // file .png esistono ancora su disco: valutare se rimuoverli.
   static const String _svgPath = 'assets/svg/';
-  static String imgNavBagOld = '${_svgPath}bag.png';            // 34×32
-  static String imgNavBellOld = '${_svgPath}notification.png';  // 31×34
+  static String imgNavBagOld = '${_svgPath}bag.png'; // 34×32
+  static String imgNavBellOld = '${_svgPath}notification.png'; // 31×34
   static String imgFooterPillOld = '${_svgPath}selezionato.png'; // 73×43
   static String imgFooterBorderOld = '${_svgPath}bordo_footer.png'; // 354×49
 
@@ -51,12 +51,38 @@ class ImageConstant {
   // Nuova footer a 3 icone (Ticket, Home, Carrello) + nuove icone top bar.
   // SVG con stroke bianco nativo: renderizzare con SvgPicture, non Image.asset.
   static const String _svgUfficiali = '${_svgPath}ufficiali/';
-  static String imgNavTicket = '${_svgUfficiali}Vector.svg';                // 41×29
-  static String imgNavHome = '${_svgUfficiali}home.svg';                    // 33×33
-  static String imgNavCart = '${_svgUfficiali}Shopping_Cart_01.svg';        // 31×32
-  static String imgNavSearch = '${_svgUfficiali}Search_Magnifying_Glass.svg'; // 24×24
-  static String imgNavProfile = '${_svgUfficiali}User_01.svg';              // 24×24
-  static String imgProfileBadgeDot = '${_svgUfficiali}Ellipse 17.svg';      // 16×16
+  static String imgNavTicket = '${_svgUfficiali}Vector.svg'; // 41×29
+  static String imgNavHome = '${_svgUfficiali}home.svg'; // 33×33
+  static String imgNavCart = '${_svgUfficiali}Shopping_Cart_01.svg'; // 31×32
+  // Lente ufficiale fornita da Luca: 34×34, stroke bianco 3px (il vecchio
+  // `Search_Magnifying_Glass.svg` era 24×24 e veniva scalato a 34).
+  static String imgNavSearch = '${_svgUfficiali}Search.svg'; // 34×34
+  static String imgNavProfile = '${_svgUfficiali}User_01.svg'; // 24×24
+  static String imgProfileBadgeDot = '${_svgUfficiali}Ellipse 17.svg'; // 16×16
+
+  // ── Cerchi e frecce ufficiali ─────────────────────────────────────────────
+  /// Cerchio della X nel pop-up serata: 30×30, stroke bianco 1px.
+  static String imgCirclePopup = '${_svgUfficiali}cerchio_pop_up_serata.svg';
+
+  /// X del pop-up serata: 24×24, stroke bianco 2px.
+  static String imgClose = '${_svgUfficiali}chiusura_media.svg';
+
+  /// Cerchio delle frecce del biglietto: 28×28, stroke bianco 2px.
+  static String imgCircleTicket = '${_svgUfficiali}cerchio_biglietto.svg';
+
+  /// Freccia giù (apri biglietto / espandi sezione ordini): 15×15, piena.
+  static String imgArrowDown = '${_svgUfficiali}freccia_giu.svg';
+
+  /// Freccia su (chiudi biglietto): 22×22, piena.
+  static String imgArrowUp = '${_svgUfficiali}freccia_su.svg';
+
+  // ── Info del club (pagina locale) ─────────────────────────────────────────
+  /// Orologio dell'orario di apertura: 19×19, stroke bianco 2px.
+  static String imgClock = '${_svgUfficiali}clock.svg';
+
+  /// Nota musicale dei generi: 17×17, stroke bianco 2px.
+  static String imgMusic = '${_svgUfficiali}music.svg';
+
   // NB: `Rectangle 261.svg` (capsula footer) non è più referenziato: la capsula
   // è disegnata in Flutter (bordo + blur) secondo `footer-bar-ufficiale.css`.
 }

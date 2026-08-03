@@ -1,6 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:qr_flutter/qr_flutter.dart';
 
+import 'package:flutter_svg/flutter_svg.dart';
+
+import '../core/constants/image_constant.dart';
 import '../core/utils/responsive.dart';
 import '../theme/onlist_colors.dart';
 import '../theme/onlist_text_styles.dart';
@@ -114,7 +117,7 @@ class TicketCollapsedCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: R.sp(9)),
-                const _ArrowCircle(down: true),
+                const ArrowCircle(down: true),
               ],
             ),
           ),
@@ -317,7 +320,7 @@ class TicketFrontCard extends StatelessWidget {
                           ),
                         ),
                         SizedBox(height: R.sp(8)),
-                        const _ArrowCircle(down: false),
+                        const ArrowCircle(down: false),
                       ],
                     ),
                   ),
@@ -781,26 +784,40 @@ class _PersonalRow extends StatelessWidget {
   }
 }
 
-/// Cerchio 28 con bordo 2px e freccia (CSS Ellipse 9 + arrow_back ruotata).
-class _ArrowCircle extends StatelessWidget {
+/// Cerchio 28 con freccia, tutto da SVG ufficiali: `cerchio_biglietto.svg`
+/// (28×28, stroke 2px) con dentro `freccia_giu.svg` o `freccia_su.svg`.
+///
+/// Prima erano un `Container` col bordo e le icone Material
+/// (`Icons.arrow_downward`/`arrow_upward`). Essendo un widget condiviso, il
+/// cambio vale sia per aprire sia per chiudere il biglietto, in tutte le
+/// schermate che usano queste card.
+///
+/// Le due frecce hanno viewBox diverse (15 e 22) ma stesso ingombro ottico:
+/// entrambe vengono disegnate dentro il riquadro da 16, come prima.
+class ArrowCircle extends StatelessWidget {
   final bool down;
 
-  const _ArrowCircle({required this.down});
+  const ArrowCircle({super.key, required this.down});
 
   @override
   Widget build(BuildContext context) {
-    return Container(
+    return SizedBox(
       width: R.sp(28),
       height: R.sp(28),
-      alignment: Alignment.center,
-      decoration: BoxDecoration(
-        shape: BoxShape.circle,
-        border: Border.all(color: Colors.white, width: 2),
-      ),
-      child: Icon(
-        down ? Icons.arrow_downward : Icons.arrow_upward,
-        color: Colors.white,
-        size: R.sp(16),
+      child: Stack(
+        alignment: Alignment.center,
+        children: [
+          SvgPicture.asset(
+            ImageConstant.imgCircleTicket,
+            width: R.sp(28),
+            height: R.sp(28),
+          ),
+          SvgPicture.asset(
+            down ? ImageConstant.imgArrowDown : ImageConstant.imgArrowUp,
+            width: R.sp(14),
+            height: R.sp(14),
+          ),
+        ],
       ),
     );
   }

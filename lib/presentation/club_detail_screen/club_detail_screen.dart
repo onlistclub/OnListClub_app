@@ -1,5 +1,6 @@
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_export.dart';
@@ -479,9 +480,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
     // icona music a 490, cioè 11px sotto il fondo della riga orologio (459+20).
     // Le righe sono alte quanto l'icona (20), non quanto il testo.
     //
-    // ICONE: sono ancora quelle Material. Vanno sostituite con gli SVG
-    // ufficiali (orologio e nota musicale) appena Luca li mette in assets/svg —
-    // oggi la cartella non li contiene.
+    // ICONE: SVG ufficiali (`clock.svg` 19×19 e `music.svg` 17×17), renderizzati
+    // dentro il box 20×20 delle vecchie Icon Material così le misure di riga e
+    // l'offset del testo (41 = 15 + 20 + 6) restano identici al CSS.
     return Padding(
       padding: EdgeInsets.fromLTRB(R.sp(15), R.sp(8), R.sp(13), 0),
       child: Column(
@@ -493,8 +494,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                 // R.sp anche su icona e gap: erano px fissi, quindi su schermi
                 // diversi il testo si spostava rispetto ai 41 del CSS
                 // (15 + 20 + 6 = 41).
-                Icon(Icons.access_time_rounded,
-                    color: Colors.white.withValues(alpha: 0.6), size: R.sp(20)),
+                _infoIcon(ImageConstant.imgClock),
                 SizedBox(width: R.sp(6)),
                 Text(
                   orario,
@@ -510,8 +510,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             SizedBox(height: R.sp(11)),
             Row(
               children: [
-                Icon(Icons.music_note_rounded,
-                    color: Colors.white.withValues(alpha: 0.6), size: R.sp(20)),
+                _infoIcon(ImageConstant.imgMusic),
                 SizedBox(width: R.sp(6)),
                 Expanded(
                   child: Text(
@@ -527,6 +526,23 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             ),
           ],
         ],
+      ),
+    );
+  }
+
+  /// Icona SVG delle righe info (orario / generi): box 20×20 come le vecchie
+  /// Icon Material, bianco al 60% come il testo affiancato.
+  Widget _infoIcon(String asset) {
+    return SizedBox(
+      width: R.sp(20),
+      height: R.sp(20),
+      child: SvgPicture.asset(
+        asset,
+        fit: BoxFit.contain,
+        colorFilter: ColorFilter.mode(
+          Colors.white.withValues(alpha: 0.6),
+          BlendMode.srcIn,
+        ),
       ),
     );
   }

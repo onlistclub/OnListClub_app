@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:url_launcher/url_launcher.dart';
 
 import '../../core/app_export.dart';
@@ -411,19 +412,30 @@ class _PopupCard extends StatelessWidget {
           ),
         ),
         const Spacer(),
-        // Close (X) — CSS NUOVO Ellipse 12: cerchio outline 30×30 bianco.
+        // Close (X) — SVG ufficiali: cerchio 30×30 (stroke 1px) con dentro la
+        // X 24×24 (stroke 2px), portata a 16 come nel design. Erano un
+        // Container con bordo e l'icona Material `Icons.close`.
         GestureDetector(
           onTap: () => NavigatorService.goBack(),
           behavior: HitTestBehavior.opaque,
-          child: Container(
+          child: SizedBox(
             width: R.sp(30),
             height: R.sp(30),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: Colors.white, width: R.sp(1)),
+            child: Stack(
+              alignment: Alignment.center,
+              children: [
+                SvgPicture.asset(
+                  ImageConstant.imgCirclePopup,
+                  width: R.sp(30),
+                  height: R.sp(30),
+                ),
+                SvgPicture.asset(
+                  ImageConstant.imgClose,
+                  width: R.sp(16),
+                  height: R.sp(16),
+                ),
+              ],
             ),
-            alignment: Alignment.center,
-            child: Icon(Icons.close, color: Colors.white, size: R.sp(16)),
           ),
         ),
       ],

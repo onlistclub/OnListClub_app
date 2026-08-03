@@ -93,9 +93,11 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
                   behavior: HitTestBehavior.opaque,
                   child: Row(
                     children: [
-                      const Icon(Icons.arrow_back, color: Colors.white, size: 28),
+                      const Icon(Icons.arrow_back,
+                          color: Colors.white, size: 28),
                       const SizedBox(width: 6),
-                      Text('Torna indietro', style: OnlistTextStyles.title32Light),
+                      Text('Torna indietro',
+                          style: OnlistTextStyles.title32Light),
                     ],
                   ),
                 ),
@@ -200,17 +202,9 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
             AnimatedRotation(
               turns: collapsed ? -0.5 : 0,
               duration: const Duration(milliseconds: 250),
-              child: Container(
-                width: R.sp(28),
-                height: R.sp(28),
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  shape: BoxShape.circle,
-                  border: Border.all(color: Colors.white, width: 2),
-                ),
-                child: Icon(Icons.arrow_downward,
-                    color: Colors.white, size: R.sp(16)),
-              ),
+              // Stesso cerchio+freccia SVG del biglietto (widget condiviso):
+              // era un Container col bordo e l'icona Material.
+              child: const ArrowCircle(down: true),
             ),
           ],
         ),
@@ -284,17 +278,23 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
 
   String _stateLabel(String stato) {
     switch (stato.toLowerCase()) {
-      case 'confermata': return 'Confermato';
-      case 'usato': return 'Usato';
-      case 'annullata': return 'Annullato';
-      case 'in_attesa': return 'In attesa';
-      default: return stato;
+      case 'confermata':
+        return 'Confermato';
+      case 'usato':
+        return 'Usato';
+      case 'annullata':
+        return 'Annullato';
+      case 'in_attesa':
+        return 'In attesa';
+      default:
+        return stato;
     }
   }
 
   // ── Raggruppamento per data evento ─────────────────────────────────────────
   DateTime? _prevenditaDate(Map<String, dynamic> item) {
-    final evento = (item['prenotazioni'] as Map<String, dynamic>?)?['eventi'] as Map<String, dynamic>?;
+    final evento = (item['prenotazioni'] as Map<String, dynamic>?)?['eventi']
+        as Map<String, dynamic>?;
     return _parseDate(evento?['data']);
   }
 
@@ -314,9 +314,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
     final buckets = <String, _Bucket>{};
     for (final item in items) {
       final d = dateGetter(item);
-      final key = d == null
-          ? '_none_'
-          : '${d.year}-${d.month}-${d.day}';
+      final key = d == null ? '_none_' : '${d.year}-${d.month}-${d.day}';
       buckets.putIfAbsent(key, () => _Bucket(d)).items.add(item);
     }
     final list = buckets.values.toList()
