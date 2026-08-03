@@ -40,15 +40,13 @@ async function sha256Hex(input: string): Promise<string> {
 // variante scura via @media per chi la supporta. Card in vetro, CTA gradiente blu.
 // Colori come resa sRGB delle custom property oklch() del sito.
 //
-// LOGO: usiamo SEMPRE il logo ufficiale (bianco col bagliore viola) su una
-// "piastra" con sfondo scuro fisso. Non facciamo lo swap chiaro/scuro del logo
-// perché Gmail e Outlook.com ignorano @media prefers-color-scheme e applicano una
-// loro inversione: non sarebbe affidabile. Con la piastra il logo ufficiale sta
-// sempre sul suo fondo nativo, identico in ogni client e in ogni modalità.
+// LOGO: un solo file, il marchio ufficiale Onlist (bianco, bagliore viola sulla
+// "i"), mai swappato tra chiaro/scuro. Cambia solo la piastra dietro al logo:
+// in chiaro un riquadro grigio tenue (il logo bianco altrimenti sparirebbe sullo
+// sfondo chiaro), in scuro trasparente (il logo sta già bene sul suo sfondo nativo).
 const LOGO_URL = "https://www.onlistclub.com/email-logo.png"; // logo ufficiale (bianco)
-const LOGO_PLATE_BG = "#0a0b1e"; // fondo scuro fisso della piastra logo
-const LOGO_PLATE_GRADIENT = "linear-gradient(135deg,#0a0b1e,#150a2b)";
-const LOGO_PLATE_BORDER = "rgba(255,255,255,0.12)"; // bordo chiaro: stacca la piastra anche su fondo scuro
+const LOGO_PLATE_BG_LIGHT = "#8f95aa"; // riquadro grigio tenue, solo in modalità chiara
+const LOGO_PLATE_BORDER_LIGHT = "#747a90";
 
 const LIGHT = {
   bgOuter: "#eef1f8",
@@ -106,6 +104,7 @@ function emailHtml(nome: string, link: string): string {
       .text-muted { color: ${LIGHT.muted} !important; }
       .badge { background-color: ${LIGHT.badgeBg} !important; border-color: ${LIGHT.badgeBorder} !important; color: ${LIGHT.badgeText} !important; }
       .footer-link { color: ${LIGHT.link} !important; }
+      .logo-plate { background-color: ${LOGO_PLATE_BG_LIGHT} !important; border-color: ${LOGO_PLATE_BORDER_LIGHT} !important; }
 
       @media (prefers-color-scheme: dark) {
         body, .bg-outer { background-color: ${DARK.bgOuter} !important; }
@@ -115,6 +114,7 @@ function emailHtml(nome: string, link: string): string {
         .text-muted { color: ${DARK.muted} !important; }
         .badge { background-color: ${DARK.badgeBg} !important; border-color: ${DARK.badgeBorder} !important; color: ${DARK.badgeText} !important; }
         .footer-link { color: ${DARK.link} !important; }
+        .logo-plate { background-color: transparent !important; border-color: transparent !important; }
       }
     </style>
   </head>
@@ -127,7 +127,7 @@ function emailHtml(nome: string, link: string): string {
               <td align="center" style="padding-bottom:28px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                   <tr>
-                    <td align="center" bgcolor="${LOGO_PLATE_BG}" style="background-color:${LOGO_PLATE_BG};background-image:${LOGO_PLATE_GRADIENT};border:1px solid ${LOGO_PLATE_BORDER};border-radius:20px;padding:20px 32px;">
+                    <td align="center" class="logo-plate" bgcolor="${LOGO_PLATE_BG_LIGHT}" style="background-color:${LOGO_PLATE_BG_LIGHT};border:1px solid ${LOGO_PLATE_BORDER_LIGHT};border-radius:20px;padding:20px 32px;">
                       <img src="${LOGO_URL}" alt="OnListClub" width="150" style="display:block;width:150px;height:auto;border:0;margin:0 auto;" />
                     </td>
                   </tr>
