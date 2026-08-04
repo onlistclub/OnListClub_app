@@ -63,10 +63,19 @@ class _RootShellState extends State<RootShell>
   /// che lì si accenda il CARRELLO.
   final ValueNotifier<int?> _routeHighlight = ValueNotifier<int?>(null);
 
+  /// Nessuna icona accesa nella footer.
+  static const int _nessunaTab = -1;
+
   /// Rotte che forzano un'icona diversa da quella del tab.
+  ///
+  /// Ricerca e Account non appartengono a nessuno dei tre tab: lì la footer
+  /// resta tutta spenta, altrimenti resterebbe acceso il pallino della tab da
+  /// cui sei arrivato (di solito Home) indicando una schermata in cui non sei.
   static const Map<String, int> _highlightPerRotta = {
     AppRoutes.bookingScreen: _tabCarrello,
     AppRoutes.cartScreen: _tabCarrello,
+    AppRoutes.nearbyClubsScreen: _nessunaTab,
+    AppRoutes.profileScreen: _nessunaTab,
   };
 
   /// Nome della rotta in cima al Navigator annidato. Serve alla navbar unica
