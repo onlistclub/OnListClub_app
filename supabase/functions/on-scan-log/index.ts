@@ -228,6 +228,10 @@ serve(async (req) => {
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const senderEmail = Deno.env.get("BREVO_SENDER_EMAIL") ?? "no-reply@onlist.club";
     const senderName = Deno.env.get("BREVO_SENDER_NAME") ?? "Onlist Club";
+    // Mittente SMS: alias dedicato e approvato per l'invio SMS (allineato a
+    // send-sms/index.ts). BREVO_SENDER_NAME è per le email e può contenere
+    // uno spazio/testo non valido come sender ID SMS per l'Italia.
+    const smsSenderName = Deno.env.get("BREVO_SMS_SENDER") ?? "OnList";
 
     // ── 2. Parse payload Database Webhook ────────────────────────────────────
     const payload = await req.json().catch(() => null);
@@ -373,7 +377,7 @@ serve(async (req) => {
 
         const BREVO_SMS_URL = "https://api.brevo.com/v3/transactionalSMS/sms";
         const smsBody = {
-          sender: senderName.length <= 11 ? senderName : "OnListClub",
+          sender: smsSenderName,
           recipient: telefono,
           content: smsContent,
           type: "transactional",
