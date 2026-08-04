@@ -14,6 +14,7 @@ import '../../core/services/user_profile_manager.dart';
 import '../../routes/app_routes.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../theme/onlist_text_styles.dart';
 import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/shimmer_loading.dart';
@@ -536,7 +537,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                   Text(
                     'Cambia raggio',
                     style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: OnlistTextStyles.family,
                         color: Colors.white,
                         fontWeight: FontWeight.w700,
                         fontSize: 18),
@@ -607,7 +608,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                     Text(
                       '© OpenStreetMap, © CARTO',
                       style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: OnlistTextStyles.family,
                         fontSize: 9,
                         color: Colors.white24,
                       ),
@@ -618,7 +619,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                     child: Text(
                       '$tempRaggio km',
                       style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: OnlistTextStyles.family,
                         fontSize: 22,
                         fontWeight: FontWeight.w800,
                         color: Colors.white,
@@ -659,12 +660,12 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                     children: [
                       Text('2 km',
                           style: TextStyle(
-                              fontFamily: 'Helvetica',
+                              fontFamily: OnlistTextStyles.family,
                               fontSize: 11,
                               color: Colors.white38)),
                       Text('50 km',
                           style: TextStyle(
-                              fontFamily: 'Helvetica',
+                              fontFamily: OnlistTextStyles.family,
                               fontSize: 11,
                               color: Colors.white38)),
                     ],
@@ -677,7 +678,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                         onPressed: () => Navigator.pop(ctx, false),
                         child: Text('Annulla',
                             style: TextStyle(
-                                fontFamily: 'Helvetica',
+                                fontFamily: OnlistTextStyles.family,
                                 color: Colors.white54)),
                       ),
                       const SizedBox(width: 8),
@@ -690,7 +691,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                         ),
                         child: Text('Applica',
                             style: TextStyle(
-                                fontFamily: 'Helvetica',
+                                fontFamily: OnlistTextStyles.family,
                                 color: Colors.white,
                                 fontWeight: FontWeight.w600)),
                       ),
@@ -782,7 +783,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                       Text(
                                         '$raggio km',
                                         style: TextStyle(
-                                          fontFamily: 'Helvetica',
+                                          fontFamily: OnlistTextStyles.family,
                                           fontSize: 12,
                                           fontWeight: FontWeight.w600,
                                           color: OnlistColors.blueElectric,
@@ -813,7 +814,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                       Text(
                                         locLabel,
                                         style: TextStyle(
-                                          fontFamily: 'Helvetica',
+                                          fontFamily: OnlistTextStyles.family,
                                           fontSize: 11,
                                           color: Colors.white54,
                                         ),
@@ -869,7 +870,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                       Text(
                                         isGpsForced ? 'Rimuovi GPS' : 'Usa GPS',
                                         style: TextStyle(
-                                          fontFamily: 'Helvetica',
+                                          fontFamily: OnlistTextStyles.family,
                                           fontSize: 10,
                                           color: Colors.white,
                                           fontWeight: FontWeight.w600,
@@ -904,14 +905,14 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                   focusNode: _searchFocus,
                   textInputAction: TextInputAction.search,
                   style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: OnlistTextStyles.family,
                       fontSize: 14,
                       color: Colors.white,
                       fontWeight: FontWeight.w500),
                   decoration: InputDecoration(
                     hintText: 'Cerca locale o città…',
                     hintStyle: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: OnlistTextStyles.family,
                         fontSize: 14,
                         color: Colors.white38),
                     prefixIcon: const Icon(Icons.search,
@@ -1003,7 +1004,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                           const Text(
                             'Errore nel caricamento',
                             style: TextStyle(
-                                fontFamily: 'Helvetica',
+                                fontFamily: OnlistTextStyles.family,
                                 color: Colors.white54),
                           ),
                           const SizedBox(height: 12),
@@ -1012,7 +1013,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                             child: const Text(
                               'Riprova',
                               style: TextStyle(
-                                  fontFamily: 'Helvetica',
+                                  fontFamily: OnlistTextStyles.family,
                                   color: OnlistColors.blueElectric),
                             ),
                           ),
@@ -1053,7 +1054,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                       ? 'Posizione non disponibile. Mostro i locali più popolari.'
                                       : 'Imposta la tua città per vedere i locali vicini.',
                                   style: const TextStyle(
-                                    fontFamily: 'Helvetica',
+                                    fontFamily: OnlistTextStyles.family,
                                     fontSize: 12,
                                     color: Colors.white70,
                                   ),
@@ -1064,7 +1065,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                                 child: const Text(
                                   'Riprova',
                                   style: TextStyle(
-                                    fontFamily: 'Helvetica',
+                                    fontFamily: OnlistTextStyles.family,
                                     fontSize: 12,
                                     color: OnlistColors.blueElectric,
                                   ),
@@ -1132,7 +1133,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                 ? 'Nessun locale corrisponde ai filtri.'
                 : 'Nessun locale trovato nel raggio di ${data.raggio} km.',
             style: TextStyle(
-                fontFamily: 'Helvetica', fontSize: 15, color: Colors.white54),
+                fontFamily: OnlistTextStyles.family, fontSize: 15, color: Colors.white54),
             textAlign: TextAlign.center,
           ),
         ),
@@ -1151,7 +1152,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
           child: Text(
             'Nessun locale trovato per “$q”.',
             style: TextStyle(
-                fontFamily: 'Helvetica', fontSize: 15, color: Colors.white54),
+                fontFamily: OnlistTextStyles.family, fontSize: 15, color: Colors.white54),
             textAlign: TextAlign.center,
           ),
         ),
@@ -1191,7 +1192,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
         child: Text(
           text,
           style: TextStyle(
-            fontFamily: 'Helvetica',
+            fontFamily: OnlistTextStyles.family,
             fontSize: 15,
             fontWeight: FontWeight.w700,
             color: Colors.white,
@@ -1239,7 +1240,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
             Text(
               'Nessuna città trovata',
               style: TextStyle(
-                fontFamily: 'Helvetica',
+                fontFamily: OnlistTextStyles.family,
                 fontSize: 13,
                 color: Colors.white54,
               ),
@@ -1278,7 +1279,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                     child: Text(
                       c.nomeCitta,
                       style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: OnlistTextStyles.family,
                         fontSize: 14,
                         color: Colors.white,
                       ),
@@ -1289,7 +1290,7 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
                   Text(
                     'Cerca qui',
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: OnlistTextStyles.family,
                       fontSize: 11,
                       fontWeight: FontWeight.w600,
                       color: OnlistColors.blueElectric,
@@ -1347,7 +1348,7 @@ class _FiltersButton extends StatelessWidget {
               Text(
                 'Filtri',
                 style: TextStyle(
-                  fontFamily: 'Helvetica',
+                  fontFamily: OnlistTextStyles.family,
                   fontSize: 13,
                   fontWeight: active ? FontWeight.w600 : FontWeight.w400,
                   color: active ? Colors.white : Colors.white54,
@@ -1366,7 +1367,7 @@ class _FiltersButton extends StatelessWidget {
                   child: Text(
                     '$count',
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: OnlistTextStyles.family,
                       fontSize: 10,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -1462,7 +1463,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                   Text(
                     'Filtri',
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: OnlistTextStyles.family,
                       fontSize: 17,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -1481,7 +1482,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                       child: Text(
                         'Azzera',
                         style: TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: OnlistTextStyles.family,
                           fontSize: 13,
                           fontWeight: FontWeight.w600,
                           color: OnlistColors.blueElectric,
@@ -1562,7 +1563,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                   child: Text(
                     _count == 1 ? 'Mostra 1 locale' : 'Mostra $_count locali',
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: OnlistTextStyles.family,
                       fontSize: 15,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -1585,7 +1586,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
         Text(
           title,
           style: TextStyle(
-            fontFamily: 'Helvetica',
+            fontFamily: OnlistTextStyles.family,
             fontSize: 13,
             fontWeight: FontWeight.w600,
             color: Colors.white54,
@@ -1632,7 +1633,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Helvetica',
+                fontFamily: OnlistTextStyles.family,
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                 color: Colors.white,
@@ -1687,7 +1688,7 @@ class _SortChip extends StatelessWidget {
             Text(
               label,
               style: TextStyle(
-                fontFamily: 'Helvetica',
+                fontFamily: OnlistTextStyles.family,
                 fontSize: 13,
                 fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
                 color: Colors.white,
@@ -1817,7 +1818,7 @@ class _ClubListTile extends StatelessWidget {
                   Text(
                     club.nome,
                     style: TextStyle(
-                      fontFamily: 'Helvetica',
+                      fontFamily: OnlistTextStyles.family,
                       fontSize: 16,
                       fontWeight: FontWeight.w700,
                       color: Colors.white,
@@ -1828,7 +1829,7 @@ class _ClubListTile extends StatelessWidget {
                     Text(
                       club.indirizzoCompleto,
                       style: TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: OnlistTextStyles.family,
                           fontSize: 12,
                           color: Colors.white54),
                       maxLines: 1,
@@ -1840,7 +1841,7 @@ class _ClubListTile extends StatelessWidget {
                     Text(
                       club.generiString,
                       style: TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: OnlistTextStyles.family,
                           fontSize: 11,
                           color: OnlistColors.blueElectric),
                       maxLines: 1,
@@ -1868,7 +1869,7 @@ class _ClubListTile extends StatelessWidget {
                     child: Text(
                       distLabel,
                       style: TextStyle(
-                        fontFamily: 'Helvetica',
+                        fontFamily: OnlistTextStyles.family,
                         fontSize: 11,
                         fontWeight: FontWeight.w600,
                         color: Colors.white70,
@@ -1886,7 +1887,7 @@ class _ClubListTile extends StatelessWidget {
                       Text(
                         '${club.famosita}',
                         style: TextStyle(
-                          fontFamily: 'Helvetica',
+                          fontFamily: OnlistTextStyles.family,
                           fontSize: 10,
                           color: Colors.white38,
                         ),

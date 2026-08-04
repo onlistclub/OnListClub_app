@@ -20,7 +20,16 @@ import 'onlist_colors.dart';
 class OnlistTextStyles {
   OnlistTextStyles._();
 
-  static const String _family = 'OnlistHN';
+  /// Nome della famiglia bundle. **Non è "HelveticaNeue"**: su iOS quella è una
+  /// famiglia di sistema, e dichiarando la nostra con lo stesso nome i `w500`
+  /// uscivano in Roman. Vale lo stesso per "Helvetica".
+  ///
+  /// Pubblica perché serve alle schermate legacy che costruiscono `TextStyle`
+  /// a mano invece di passare da [hn]: meglio una costante che 35 stringhe
+  /// sparse.
+  static const String family = 'OnlistHN';
+
+  static const String _family = family;
 
   /// Helper per stili ad-hoc sulla famiglia (sostituisce GoogleFonts.inter(...)
   /// nelle schermate con molti stili inline). Stessa firma dei parametri usati.
