@@ -562,20 +562,18 @@ class TicketBackCard extends StatelessWidget {
                             width: R.sp(250),
                             height: R.sp(250),
                             decoration: BoxDecoration(
-                              // Nero pieno, non più bianco 20% traslucido: i
-                              // moduli del QR sono bianchi, quindi serve un
-                              // fondo opaco per un contrasto reale (non una
-                              // sfumatura che varia a seconda della luminosità
-                              // schermo/fotocamera) — vedi nota sullo scanner.
-                              color: Colors.black,
-                              // Il CSS non esporta lo stroke ma nel PNG ufficiale
-                              // c'è: 1px #8C8EFF sul bordo del pannello, cioè
-                              // bianco ~55% sul fondo della card. Senza, il
-                              // riquadro sfumava nel biglietto senza stacco.
-                              border: Border.all(
-                                color: const Color(0x8CFFFFFF),
-                                width: 1,
-                              ),
+                              // BIANCO PIENO con moduli NERI: la polarità
+                              // standard del QR, la stessa del totem recensioni
+                              // che lo scanner legge senza problemi.
+                              //
+                              // Prima era il contrario (moduli bianchi su fondo
+                              // scuro): un QR "invertito". Lo standard dà per
+                              // scontato scuro-su-chiaro, e parecchi lettori non
+                              // provano nemmeno il caso opposto — per loro non
+                              // c'è nessun codice da leggere. È il motivo per
+                              // cui il QR dell'app non si scansionava mentre
+                              // quello stampato sì.
+                              color: Colors.white,
                               borderRadius: BorderRadius.circular(R.sp(16)),
                             ),
                             // Cornice bianca attorno al QR. Non si stringe oltre:
@@ -588,14 +586,18 @@ class TicketBackCard extends StatelessWidget {
                             child: QrImageView(
                               data: qrData,
                               version: QrVersions.auto,
-                              backgroundColor: Colors.transparent,
+                              // Anche la quiet zone dev'essere bianca: se
+                              // restasse trasparente il margine prenderebbe il
+                              // blu del pannello e il lettore non troverebbe il
+                              // bordo del codice.
+                              backgroundColor: Colors.white,
                               eyeStyle: const QrEyeStyle(
                                 eyeShape: QrEyeShape.square,
-                                color: Colors.white,
+                                color: Colors.black,
                               ),
                               dataModuleStyle: const QrDataModuleStyle(
                                 dataModuleShape: QrDataModuleShape.square,
-                                color: Colors.white,
+                                color: Colors.black,
                               ),
                             ),
                           ),
