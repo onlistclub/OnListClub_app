@@ -165,7 +165,9 @@ class _FavoriteBannerState extends State<FavoriteBanner>
   Widget _contenuto() {
     final BorderRadius raggio = BorderRadius.circular(R.sp(100));
 
-    return Center(
+    // Ancorato a SINISTRA, non più centrato (correzioni 1.11).
+    return Align(
+      alignment: Alignment.centerLeft,
       child: Container(
         padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(7), R.sp(15), R.sp(7)),
         decoration: BoxDecoration(
@@ -196,7 +198,23 @@ class _FavoriteBannerState extends State<FavoriteBanner>
                 mainAxisSize: MainAxisSize.min,
                 children: [
                   // Segnalibro ufficiale, ridotto all'altezza del testo.
-                  SvgPicture.asset(ImageConstant.imgBookmark, height: R.sp(15)),
+                  //
+                  // Larghezza dichiarata insieme all'altezza, nel rapporto
+                  // nativo 19:23: dandogli solo l'altezza dentro una Row la
+                  // larghezza resta senza vincolo e il disegno viene tagliato
+                  // (correzioni 1.11). Il riquadro è 1px più grande del
+                  // disegno perché nel file lo stroke arriva esattamente sul
+                  // bordo del viewBox, e la punta in basso si perdeva.
+                  SizedBox(
+                    width: R.sp(12.4 + 1),
+                    height: R.sp(15 + 1),
+                    child: SvgPicture.asset(
+                      ImageConstant.imgBookmark,
+                      width: R.sp(12.4),
+                      height: R.sp(15),
+                      fit: BoxFit.contain,
+                    ),
+                  ),
                   SizedBox(width: R.sp(6)),
                   Text(
                     widget.text,

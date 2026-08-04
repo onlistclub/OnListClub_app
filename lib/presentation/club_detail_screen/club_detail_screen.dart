@@ -328,7 +328,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
           // `showFavoriteBadge` (vedi [FavoriteBanner], correzioni 1.1 punto 4).
           Positioned(
             top: 10,
-            left: 0,
+            // Ancorato a sinistra (correzioni 1.11), staccato di 10 dal bordo
+            // arrotondato dell'immagine.
+            left: R.sp(10),
             right: 50,
             child: FavoriteBanner(visible: state.showFavoriteBadge),
           ),
@@ -372,16 +374,33 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
               // Segnalibro ufficiale: icona 32×40 dentro il riquadro 48×48 del
               // CSS. Pieno = club salvato, vuoto = non salvato (il Figma
               // disegna solo il vuoto, vedi [ImageConstant.imgBookmarkLargeFilled]).
+              //
+              // Il passaggio vuoto→pieno è una DISSOLVENZA (correzioni 1.11):
+              // le due versioni stanno una sopra l'altra e cambia solo
+              // l'opacità di quella piena — nessun cambio di layout, quindi
+              // costa niente e non fa saltare l'icona.
               child: SizedBox(
                 width: R.sp(48),
                 height: R.sp(48),
                 child: Center(
-                  child: SvgPicture.asset(
-                    state.isPreferito
-                        ? ImageConstant.imgBookmarkLargeFilled
-                        : ImageConstant.imgBookmarkLarge,
+                  child: SizedBox(
                     width: R.sp(32),
                     height: R.sp(40),
+                    child: Stack(
+                      fit: StackFit.expand,
+                      children: [
+                        SvgPicture.asset(ImageConstant.imgBookmarkLarge,
+                            fit: BoxFit.contain),
+                        AnimatedOpacity(
+                          opacity: state.isPreferito ? 1 : 0,
+                          duration: const Duration(milliseconds: 260),
+                          curve: Curves.easeOut,
+                          child: SvgPicture.asset(
+                              ImageConstant.imgBookmarkLargeFilled,
+                              fit: BoxFit.contain),
+                        ),
+                      ],
+                    ),
                   ),
                 ),
               ),
