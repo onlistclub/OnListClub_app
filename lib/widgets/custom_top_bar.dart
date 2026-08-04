@@ -18,6 +18,17 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   final VoidCallback? onProfileTap;
   final bool isHome;
 
+  /// Icona "accesa" perché sei già su quella schermata.
+  ///
+  /// Stessa logica della [SharedFooter]: l'attiva resta a piena opacità e
+  /// l'altra si attenua. Se non sei né in Ricerca né in Account restano
+  /// entrambe piene — lì non c'è niente da segnalare.
+  final bool searchAttiva;
+  final bool profiloAttivo;
+
+  /// Opacità dell'icona non attiva, identica a quella della footer.
+  static const double _opacitaSpenta = 0.5;
+
   const CustomTopBar({
     Key? key,
     this.showProfile = true,
@@ -25,7 +36,17 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
     this.onSearchTap,
     this.onProfileTap,
     this.isHome = false,
+    this.searchAttiva = false,
+    this.profiloAttivo = false,
   }) : super(key: key);
+
+  /// Opacità di un'icona: piena se è la sua schermata o se nessuna delle due
+  /// lo è, attenuata se "accesa" è l'altra.
+  double _opacita(bool attiva) {
+    final bool qualcunaAttiva = searchAttiva || profiloAttivo;
+    if (!qualcunaAttiva) return 1.0;
+    return attiva ? 1.0 : _opacitaSpenta;
+  }
 
   /// Altezza della scritta "OnList": dimensione fissa (non scalata su R.w),
   /// coerente con le icone search/profile (32px) — misurato su
@@ -76,8 +97,11 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                 // profilo resta ancorato al bordo, quindi si muove la lente.
                 padding:
                     EdgeInsets.fromLTRB(R.sp(6), R.sp(6), R.sp(2.5), R.sp(6)),
-                child: SvgPicture.asset(ImageConstant.imgNavSearch,
-                    width: R.sp(34), height: R.sp(34)),
+                child: Opacity(
+                  opacity: _opacita(searchAttiva),
+                  child: SvgPicture.asset(ImageConstant.imgNavSearch,
+                      width: R.sp(34), height: R.sp(34)),
+                ),
               ),
             ),
           if (showProfile)
@@ -89,8 +113,11 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [
-                    SvgPicture.asset(ImageConstant.imgNavProfile,
-                        width: 34, height: 34),
+                    Opacity(
+                      opacity: _opacita(profiloAttivo),
+                      child: SvgPicture.asset(ImageConstant.imgNavProfile,
+                          width: 34, height: 34),
+                    ),
                     // NOTIFICHE DISATTIVATE (MVP): pallino "hai notifiche non
                     // lette" nascosto insieme alla pagina notifiche. Riattivare
                     // ripristinando anche l'import di BadgeService sopra.

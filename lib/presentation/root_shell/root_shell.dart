@@ -193,10 +193,13 @@ class _RootShellState extends State<RootShell>
         final bool suRicerca = rotta == AppRoutes.nearbyClubsScreen;
         return CustomTopBar(
           isHome: suHome,
-          // Su Account e su Ricerca l'icona corrispondente resta muta: ci sei
-          // già, il tap non deve portarti dove sei.
+          // Su Account e su Ricerca l'icona corrispondente resta muta (ci sei
+          // già, il tap non deve portarti dove sei) e si ACCENDE, mentre
+          // l'altra si attenua: stessa logica della footer.
           onProfileTap: suAccount ? () {} : null,
           onSearchTap: suRicerca ? () {} : null,
+          profiloAttivo: suAccount,
+          searchAttiva: suRicerca,
         );
       },
     );
