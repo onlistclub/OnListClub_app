@@ -264,8 +264,12 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                           // CSS NUOVO: la riga generi chiude a 510 (icona 490+20,
                           // non il testo a 509) → titolo sezione a 519.
                           SizedBox(height: R.sp(9)),
-                          // Prossime serate (la PRENOTA serata naviga alla
-                          // bookingScreen, pagina di scelta Tavolo/Prevendita)
+                          // Prossime serate. Il PRENOTA della card apre il
+                          // POP-UP della serata, non la scelta ticket: prima di
+                          // scegliere il biglietto l'utente deve poter leggere
+                          // dress code, età minima e line-up. Alla scelta
+                          // ticket si arriva dal pop-up, con "Acquista il tuo
+                          // ticket".
                           if (state.serate.isNotEmpty || !state.isLoading)
                             SlideTransition(
                               position: _sectionsSlide,
@@ -798,7 +802,7 @@ class _SerataCard extends StatelessWidget {
                     onTap: isSoldOut
                         ? null
                         : () => NavigatorService.pushNamed(
-                              AppRoutes.bookingScreen,
+                              AppRoutes.eventInfoPopupScreen,
                               arguments: {'serata': serata, 'club': locale},
                             ),
                     child: Container(
@@ -1021,7 +1025,7 @@ class _SerataCompactCard extends StatelessWidget {
                     onTap: isSoldOut
                         ? null
                         : () => NavigatorService.pushNamed(
-                              AppRoutes.bookingScreen,
+                              AppRoutes.eventInfoPopupScreen,
                               arguments: {'serata': serata, 'club': locale},
                             ),
                     child: Container(

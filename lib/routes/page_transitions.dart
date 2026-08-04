@@ -55,6 +55,11 @@ enum AppTransition {
   /// Dissolvenza con micro-scala. Per cambi a pari livello e ingressi
   /// "atmosferici" (splash → auth/home, schermata di successo).
   fade,
+
+  /// Pop-up che "arriva": parte piccolo e trasparente e si apre con un
+  /// rimbalzo, come una finestra che scatta in primo piano. Per il pop-up
+  /// info serata, che è una rotta ma deve sembrare un pannello sovrapposto.
+  popup,
 }
 
 /// Costruisce la `PageRoute` per una rotta, applicando la transizione scelta.
@@ -78,6 +83,18 @@ Route<dynamic> buildAppRoute(
         pageBuilder: (context, _, __) => builder(context),
         transitionsBuilder: _fadeThrough,
       );
+    case AppTransition.popup:
+      return AppPageRoute<dynamic>(
+        settings: settings,
+        enableBackGesture: enableBackGesture,
+        transition: AppTransition.popup,
+        // Più lunga dell'ingresso normale: il rimbalzo ha bisogno di spazio
+        // per leggersi. In uscita invece va via svelto, senza rimbalzo.
+        transitionDuration: const Duration(milliseconds: 340),
+        reverseTransitionDuration: const Duration(milliseconds: 200),
+        pageBuilder: (context, _, __) => builder(context),
+        transitionsBuilder: _popup,
+      );
     case AppTransition.sharedAxis:
       return AppPageRoute<dynamic>(
         settings: settings,
@@ -89,6 +106,40 @@ Route<dynamic> buildAppRoute(
         transitionsBuilder: _sharedAxisHorizontal,
       );
   }
+}
+
+// ── Pop-up ────────────────────────────────────────────────────────────────────
+// Il pannello arriva da dietro: parte al 90%, si apre superando di un soffio
+// la sua misura e si assesta (easeOutBack). L'opacità sale prima della scala,
+// così il rimbalzo si vede già a pannello leggibile invece che su un fantasma.
+//
+// Solo Transform e Opacity, nessun layout: 60fps anche su S7. In chiusura
+// niente rimbalzo — tornare indietro deve essere immediato, non giocoso.
+Widget _popup(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  final scala = Tween<double>(begin: 0.90, end: 1.0).animate(
+    CurvedAnimation(
+      parent: animation,
+      curve: Curves.easeOutBack,
+      reverseCurve: Curves.easeInCubic,
+    ),
+  );
+  // L'opacità ha una curva sua: `easeOutBack` esce da 0..1 e farebbe scattare
+  // l'assert di FadeTransition.
+  final opacita = CurvedAnimation(
+    parent: animation,
+    curve: const Interval(0.0, 0.55, curve: Curves.easeOut),
+    reverseCurve: Curves.easeIn,
+  );
+
+  return FadeTransition(
+    opacity: opacita,
+    child: ScaleTransition(scale: scala, child: child),
+  );
 }
 
 // ── Shared-axis orizzontale ───────────────────────────────────────────────────
@@ -323,6 +374,14 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
               opacity = cv;
               dx = 0.06 * (1.0 - cv);
               scale = 1.0;
+            case AppTransition.popup:
+              // Il pannello arriva da dietro: opacità piena già a metà corsa,
+              // così il rimbalzo si vede su un pop-up leggibile e non su un
+              // fantasma. La scala passa da easeOutBack, che sfora l'1 e
+              // rientra — è quello a dare lo "scatto" in primo piano.
+              opacity = (cv / 0.55).clamp(0.0, 1.0);
+              dx = 0.0;
+              scale = 0.90 + 0.10 * Curves.easeOutBack.transform(v);
           }
         }
 

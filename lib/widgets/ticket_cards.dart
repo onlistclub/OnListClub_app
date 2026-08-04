@@ -15,7 +15,7 @@ import 'ticket_shape.dart';
 /// "Riepilogo ordini". Tre stati, ognuno un widget a sé:
 ///
 /// - [TicketCollapsedCard] — biglietto chiuso (350×167): solo nome del locale
-///   e "Visualizza QR Code" con la freccia giù.
+///   e "Apri biglietto" con la freccia giù.
 /// - [TicketFrontCard] — biglietto aperto, FRONTE (350×614): tipo ticket,
 ///   quantità, dati personali, pagamento e il bottone "VISUALIZZA QR CODE".
 /// - [TicketBackCard] — biglietto aperto, RETRO (350×614): nome locale,
@@ -66,16 +66,19 @@ class TicketCollapsedCard extends StatelessWidget {
 
   /// Riga sotto il nome del locale.
   ///
-  /// Nel riepilogo ordini è "Visualizza QR Code"; il carrello riusa la stessa
-  /// card per gli ordini in sospeso e ci mette "Continua l'ordine", perché lì
-  /// un QR non esiste ancora — l'ordine non è concluso.
+  /// "Apri biglietto" ovunque si tocchi per aprirlo (ordine effettuato e
+  /// riepilogo ordini): il tocco apre la card, il QR è un passo successivo,
+  /// quindi "Visualizza QR Code" prometteva la cosa sbagliata.
+  ///
+  /// Il carrello riusa la stessa card per gli ordini in sospeso e ci mette
+  /// "Continua l'ordine": lì un biglietto da aprire non c'è ancora.
   final String label;
 
   const TicketCollapsedCard({
     Key? key,
     required this.clubName,
     required this.onTap,
-    this.label = 'Visualizza QR Code',
+    this.label = 'Apri biglietto',
   }) : super(key: key);
 
   @override
@@ -149,7 +152,7 @@ class TicketFrontCard extends StatelessWidget {
   /// Apre il retro col QR ("VISUALIZZA QR CODE").
   final VoidCallback onShowQr;
 
-  /// Richiude il biglietto ("Nascondi QR Code" + freccia su).
+  /// Richiude il biglietto ("Chiudi Biglietto" + freccia su).
   final VoidCallback onCollapse;
 
   /// Azione "ANNULLA PREVENDITA" (flusso critico non previsto dal Figma:
@@ -312,7 +315,10 @@ class TicketFrontCard extends StatelessWidget {
                   ),
                 ),
                 SizedBox(height: R.sp(11)),
-                // "Nascondi QR Code" + freccia su → richiude il biglietto.
+                // "Chiudi Biglietto" + freccia su → richiude il biglietto.
+                // È l'opposto di "Apri biglietto" della card chiusa: prima
+                // diceva "Nascondi QR Code", che è tutt'altra azione (quella
+                // è la pill qui sopra).
                 Center(
                   child: GestureDetector(
                     onTap: onCollapse,
@@ -320,7 +326,7 @@ class TicketFrontCard extends StatelessWidget {
                     child: Column(
                       children: [
                         Text(
-                          'Nascondi QR Code',
+                          'Chiudi Biglietto',
                           style: OnlistTextStyles.hn(
                             color: Colors.white,
                             fontSize: R.sp(15),

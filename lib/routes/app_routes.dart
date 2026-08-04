@@ -77,6 +77,13 @@ class AppRoutes {
     paymentSuccessScreen,
   };
 
+  /// Rotte che entrano come un POP-UP: piccole e trasparenti, si aprono con un
+  /// rimbalzo. È una rotta a tutti gli effetti, ma deve dare la sensazione di
+  /// un pannello che scatta in primo piano sopra il dettaglio del club.
+  static const Set<String> _popupRoutes = {
+    eventInfoPopupScreen,
+  };
+
   /// Schermate SENZA swipe-back. Sono il flusso pre-home (splash → auth →
   /// registrazione → posizione), dove "indietro" non deve esistere perché più
   /// indietro della home non c'è nulla, più `paymentSuccess`: lì la prenotazione
@@ -124,9 +131,14 @@ class AppRoutes {
   static Route<dynamic>? onGenerateRoute(RouteSettings settings) {
     final builder = routes[settings.name];
     if (builder == null) return null;
-    final transition = _fadeRoutes.contains(settings.name)
-        ? AppTransition.fade
-        : AppTransition.sharedAxis;
+    final AppTransition transition;
+    if (_popupRoutes.contains(settings.name)) {
+      transition = AppTransition.popup;
+    } else if (_fadeRoutes.contains(settings.name)) {
+      transition = AppTransition.fade;
+    } else {
+      transition = AppTransition.sharedAxis;
+    }
     return buildAppRoute(
       settings,
       builder,
