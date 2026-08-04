@@ -71,10 +71,6 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
   // coda dell'occhio senza catturare l'attenzione.
   static const double _bobAmplitude = 2;
 
-  /// Ingombro del blocco "torna alla home" (testo 20 + gap 9 + freccia 30 più
-  /// il respiro sopra e sotto): è lo spazio che lo scroll si riserva in fondo
-  /// perché il biglietto non finisca dietro la scritta.
-  static const double _tornaHomeBloccoH = 75;
   late final AnimationController _bobCtrl;
   late final Animation<double> _bob;
 
@@ -201,22 +197,18 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
           child: Column(
             children: [
               const TopBarSlot(),
-              // Scorre SOLO la parte dei biglietti: "torna alla home" è
-              // ancorata sopra la footer, sovrapposta allo scroll invece che
-              // in coda alla Column — così non porta con sé nessuna fascia
-              // nera (vedi il Positioned in fondo allo Stack).
+              // "torna alla home" sta DENTRO lo scroll, in coda al biglietto:
+              // all'inizio non si vede, compare scendendo. Le due versioni
+              // precedenti non andavano — in coda alla Column si portava dietro
+              // una fascia nera che tagliava il biglietto, sovrapposta in uno
+              // Stack finiva sopra la card.
               Expanded(
-                child: Stack(
-                  children: [
-                    SingleChildScrollView(
+                child: SingleChildScrollView(
                   // Margini 18 invece dei 21 del CSS: scostamento VOLUTO da
                   // Luca per allargare il biglietto di ~6px (stesso valore di
                   // prevendita_detail_screen — sono la stessa card).
-                  // In basso si riserva lo spazio del blocco "torna alla home"
-                  // e della footer: il biglietto finisce SOPRA la scritta, non
-                  // ci va sotto.
-                  padding: EdgeInsets.fromLTRB(R.sp(18), 0, R.sp(18),
-                      R.sp(_tornaHomeBloccoH) + SharedFooter.height),
+                  padding: EdgeInsets.fromLTRB(
+                      R.sp(18), 0, R.sp(18), SharedFooter.height),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -271,26 +263,16 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                             children: _buildTickets(),
                           ),
                         ),
+                      // "torna alla home" in coda al biglietto: testo in
+                      // gradiente + freccia giù (CSS: linear-gradient(90deg,
+                      // #FFF, #0018C6)). Nessuno sfondo, quindi niente fascia
+                      // nera, e nessuna sovrapposizione: sta semplicemente
+                      // sotto la card.
+                      SizedBox(height: R.sp(18)),
+                      Center(child: _buildTornaAllaHome()),
+                      SizedBox(height: R.sp(8)),
                     ],
                   ),
-                ),
-                    // "torna alla home" FISSA appena sopra la footer — testo in
-                    // gradiente + freccia giù (CSS: linear-gradient(90deg,
-                    // #FFF, #0018C6)). Fuori dallo scroll, quindi resta sempre
-                    // a schermo qualunque sia l'altezza del biglietto.
-                    //
-                    // Sta DENTRO lo Stack e senza sfondo: prima era una riga
-                    // in Column, quindi si portava dietro una fascia nera
-                    // opaca che tagliava il fondo del biglietto (correzioni
-                    // 1.11). Lo spazio se lo riserva il padding dello scroll
-                    // qui sopra.
-                    Positioned(
-                      left: 0,
-                      right: 0,
-                      bottom: SharedFooter.height + R.sp(8),
-                      child: Center(child: _buildTornaAllaHome()),
-                    ),
-                  ],
                 ),
               ),
             ],

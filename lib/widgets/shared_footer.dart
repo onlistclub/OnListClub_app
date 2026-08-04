@@ -73,6 +73,15 @@ class SharedFooter extends StatelessWidget {
   static const double _dotRight = -3;
   static const double _dotTop = -2;
 
+  // Alone attorno al tratto delle icone: una copia sfocata dell'icona dietro
+  // quella nitida. Vale per tutte e tre, attiva o no — l'attenuazione al 50%
+  // delle inattive resta e si porta dietro anche il suo alone.
+  //
+  // Costa un layer per icona, ma la footer è statica: si ridisegna solo al
+  // cambio tab o quando compare il pallino, non a ogni frame.
+  static const double _glowSigma = 3;
+  static const double _glowOpacity = 0.6;
+
   /// Altezza di "clearance" usata dalle schermate con `extendBody: true` come
   /// padding di fondo, così l'ultimo contenuto scrollabile supera la capsula.
   /// Coincide con l'ingombro reale del widget: capsula + margine inferiore.
@@ -160,6 +169,35 @@ class SharedFooter extends StatelessWidget {
     );
   }
 
+  /// Icona con il suo alone: la stessa SVG disegnata due volte, prima sfocata
+  /// e poi nitida sopra. Nessun asset in più e nessun colore inventato — è il
+  /// tratto bianco dell'icona stessa che sborda.
+  Widget _iconaConAlone(String iconPath) {
+    final Widget icona = SvgPicture.asset(iconPath, fit: BoxFit.contain);
+    return Stack(
+      // La sfocatura deborda dal riquadro dell'icona: senza questo verrebbe
+      // tagliata di netto e sembrerebbe un rettangolo chiaro.
+      clipBehavior: Clip.none,
+      children: [
+        Positioned.fill(
+          child: IgnorePointer(
+            child: Opacity(
+              opacity: _glowOpacity,
+              child: ImageFiltered(
+                imageFilter: ImageFilter.blur(
+                  sigmaX: R.sp(_glowSigma),
+                  sigmaY: R.sp(_glowSigma),
+                ),
+                child: icona,
+              ),
+            ),
+          ),
+        ),
+        Positioned.fill(child: icona),
+      ],
+    );
+  }
+
   Widget _buildNavItem(double width, double height, String iconPath, int index,
       String routeName,
       {bool badge = false}) {
@@ -192,7 +230,7 @@ class SharedFooter extends StatelessWidget {
               Positioned.fill(
                 child: Opacity(
                   opacity: isSelected ? 1.0 : 0.5,
-                  child: SvgPicture.asset(iconPath, fit: BoxFit.contain),
+                  child: _iconaConAlone(iconPath),
                 ),
               ),
               if (badge)
