@@ -50,15 +50,28 @@ flutter:
     - assets/svg/ufficiali/
     - env.json
   fonts:
+    # I file OnlistHN-*.otf sono gli stessi glifi e le stesse metriche dei
+    # vecchi HelveticaNeue*.otf: cambia SOLO il nome dichiarato dentro il file
+    # (famiglia, nome completo, nome PostScript), da "Helvetica Neue" a
+    # "OnlistHN".
+    #
+    # Perche': su iOS "Helvetica Neue" e' una famiglia di SISTEMA. Rinominare
+    # solo il `family:` qui sotto non bastava — il nome interno continuava a
+    # collidere, e le facce venivano risolte contro quelle di sistema, dove il
+    # w500 finisce sul Regular. Da qui i grassetti che sparivano sul telefono e
+    # si vedevano su desktop.
+    #
+    # I vecchi file restano in assets/fonts/ ma NON sono piu' dichiarati: non
+    # finiscono nel bundle. Non rimetterli.
     - family: OnlistHN
       fonts:
-        - asset: assets/fonts/HelveticaNeueLight.otf
+        - asset: assets/fonts/OnlistHN-Light.otf
           weight: 300
-        - asset: assets/fonts/HelveticaNeueRoman.otf
+        - asset: assets/fonts/OnlistHN-Roman.otf
           weight: 400
-        - asset: assets/fonts/HelveticaNeueMedium.otf
+        - asset: assets/fonts/OnlistHN-Medium.otf
           weight: 500
-        - asset: assets/fonts/HelveticaNeueBold.otf
+        - asset: assets/fonts/OnlistHN-Bold.otf
           weight: 700
 
 flutter_launcher_icons:
