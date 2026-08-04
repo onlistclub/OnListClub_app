@@ -6,7 +6,7 @@ import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/back_row.dart';
 import '../../widgets/app_loading_indicator.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/staggered_item.dart';
 import '../../widgets/ticket_cards.dart';
@@ -82,7 +82,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
           bottom: false,
           child: Column(
             children: [
-              const CustomTopBar(),
+              const TopBarSlot(),
               // ── "← Torna indietro" (Figma 17) ─────────────────────────────
               // Icona 28 + testo title32Light. Respiro sopra/sotto come il
               // design ufficiale (riepilogo-ordini.css: arrow top 112 sotto la

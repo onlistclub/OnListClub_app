@@ -7,7 +7,7 @@ import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/glow_card.dart';
 import '../../widgets/shared_footer.dart';
 
@@ -54,7 +54,7 @@ class EventInfoPopupScreen extends StatelessWidget {
           bottom: false,
           child: Column(
             children: [
-              const CustomTopBar(),
+              const TopBarSlot(),
               Expanded(
                 // La card deve essere alta quanto il suo contenuto (non
                 // forzata a riempire tutto lo schermo): SliverFillRemaining

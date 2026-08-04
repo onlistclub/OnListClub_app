@@ -9,7 +9,7 @@ import '../../core/models/locale_model.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/glow_card.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/animated_press.dart';
@@ -163,7 +163,7 @@ class _HomeScreenState extends State<HomeScreen>
                     position: _appBarSlide,
                     child: FadeTransition(
                       opacity: _appBarFade,
-                      child: const CustomTopBar(isHome: true),
+                      child: const TopBarSlot(isHome: true),
                     ),
                   ),
                   // Location info & GPS toggle

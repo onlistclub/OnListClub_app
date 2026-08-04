@@ -4,10 +4,16 @@ import '../../core/services/navigator_service.dart';
 import '../../core/services/pending_order_service.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/page_transitions.dart';
+import '../../widgets/custom_top_bar.dart';
+import '../../widgets/root_shell_scope.dart';
 import '../../widgets/shared_footer.dart';
 import '../home_screen/home_screen.dart';
 import '../orders_screen/orders_screen.dart';
 import '../cart_screen/cart_screen.dart';
+
+// `RootShellScope` viveva in questo file: ri-esportato perché diverse
+// schermate lo importano ancora da qui.
+export '../../widgets/root_shell_scope.dart';
 
 /// Shell persistente post-login.
 ///
@@ -63,11 +69,17 @@ class _RootShellState extends State<RootShell>
     AppRoutes.cartScreen: _tabCarrello,
   };
 
+  /// Nome della rotta in cima al Navigator annidato. Serve alla navbar unica
+  /// per scegliere la sua variante (vedi [_navbar]).
+  final ValueNotifier<String?> _rottaInCima =
+      ValueNotifier<String?>(_shellHomeRoute);
+
   late final _HighlightObserver _routeObserver =
       _HighlightObserver(onTop: _aggiornaHighlight);
 
   void _aggiornaHighlight(String? routeName) {
     _routeHighlight.value = _highlightPerRotta[routeName];
+    _rottaInCima.value = routeName;
   }
 
   // Animazione del cambio tab: fade + micro-scala (stessa "personalità" della
@@ -115,6 +127,7 @@ class _RootShellState extends State<RootShell>
     _tabAnim.dispose();
     _tab.dispose();
     _routeHighlight.dispose();
+    _rottaInCima.dispose();
     super.dispose();
   }
 
@@ -161,6 +174,34 @@ class _RootShellState extends State<RootShell>
     );
   }
 
+  /// La navbar unica dell'app.
+  ///
+  /// Le due varianti che prima si sceglievano le schermate ora le decide lo
+  /// shell, che sa già sia il tab attivo sia la rotta in cima:
+  ///  - `isHome` quando si guarda davvero la Home (tab Home e nessun
+  ///    dettaglio sopra);
+  ///  - profilo "muto" quando la rotta in cima è l'Account: sei già lì, il tap
+  ///    non deve fare nulla.
+  Widget _navbar() {
+    return AnimatedBuilder(
+      animation: Listenable.merge([_tab, _rottaInCima]),
+      builder: (_, __) {
+        final String? rotta = _rottaInCima.value;
+        final bool suHome =
+            rotta == _shellHomeRoute && _tab.value == _tabHome;
+        final bool suAccount = rotta == AppRoutes.profileScreen;
+        final bool suRicerca = rotta == AppRoutes.nearbyClubsScreen;
+        return CustomTopBar(
+          isHome: suHome,
+          // Su Account e su Ricerca l'icona corrispondente resta muta: ci sei
+          // già, il tap non deve portarti dove sei.
+          onProfileTap: suAccount ? () {} : null,
+          onSearchTap: suRicerca ? () {} : null,
+        );
+      },
+    );
+  }
+
   Route<dynamic>? _onGenerateShellRoute(RouteSettings settings) {
     if (settings.name == _shellHomeRoute) return _shellHome(settings);
     // I dettagli riusano il sistema unico di rotte/transizioni dell'app
@@ -176,14 +217,32 @@ class _RootShellState extends State<RootShell>
         backgroundColor: Colors.black,
         // La footer flotta: i contenuti scorrono dietro la capsula.
         extendBody: true,
-        body: Navigator(
-          key: _navKey,
-          observers: [_routeObserver],
-          onGenerateInitialRoutes: (navigator, initialRoute) =>
-              <Route<dynamic>>[
-            _shellHome(const RouteSettings(name: _shellHomeRoute)),
-          ],
-          onGenerateRoute: _onGenerateShellRoute,
+        // La navbar sta FUORI dal Navigator, esattamente come la footer: è una
+        // sola per tutta la sessione, quindi non si ricostruisce a ogni
+        // navigazione e non scorre con lo swipe. Prima ne montava una ognuna
+        // delle 12 schermate, e durante la transizione se ne vedevano DUE che
+        // si incrociavano — l'effetto "si ricarica ogni volta".
+        //
+        // Il SafeArea sta qui e non nelle schermate: quelle che ne hanno uno
+        // proprio se lo ritrovano a padding zero, quindi resta innocuo.
+        body: SafeArea(
+          bottom: false,
+          child: Column(
+            children: [
+              _navbar(),
+              Expanded(
+                child: Navigator(
+                  key: _navKey,
+                  observers: [_routeObserver],
+                  onGenerateInitialRoutes: (navigator, initialRoute) =>
+                      <Route<dynamic>>[
+                    _shellHome(const RouteSettings(name: _shellHomeRoute)),
+                  ],
+                  onGenerateRoute: _onGenerateShellRoute,
+                ),
+              ),
+            ],
+          ),
         ),
         // Unica footer dell'app: fuori dalle route → fissa in ogni situazione.
         // L'icona accesa è quella del tab, a meno che la rotta in cima non ne
@@ -240,22 +299,3 @@ class _HighlightObserver extends NavigatorObserver {
       _notifica(newRoute);
 }
 
-/// Espone [switchToTab] ai discendenti dello shell (tab e dettagli), es. il
-/// "Torna indietro" di Ordini che deve tornare alla Home come TAB invece di
-/// renavigare/ricostruire. Se `RootShellScope.of(context)` è null la schermata
-/// non è dentro lo shell e i chiamanti applicano il fallback legacy.
-class RootShellScope extends InheritedWidget {
-  const RootShellScope({
-    Key? key,
-    required this.switchToTab,
-    required Widget child,
-  }) : super(key: key, child: child);
-
-  final void Function(int index) switchToTab;
-
-  static RootShellScope? of(BuildContext context) =>
-      context.dependOnInheritedWidgetOfExactType<RootShellScope>();
-
-  @override
-  bool updateShouldNotify(RootShellScope oldWidget) => false;
-}

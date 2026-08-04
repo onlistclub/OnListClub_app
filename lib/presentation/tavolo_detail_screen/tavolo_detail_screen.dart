@@ -4,7 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 
 import '../../core/app_export.dart';
 import '../../widgets/app_loading_indicator.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
 
 /// Dettaglio prenotazione tavolo — design Figma "Notifiche x tavolo.png"
@@ -157,6 +157,6 @@ class TavoloDetailScreen extends StatelessWidget {
   Widget _buildTopBar(BuildContext context) {
     // Navbar fissa condivisa: stesso logo (wordmark) e stesse icone di
     // tutte le altre schermate con navbar.
-    return const CustomTopBar();
+    return const TopBarSlot();
   }
 }

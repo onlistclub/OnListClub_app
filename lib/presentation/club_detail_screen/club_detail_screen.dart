@@ -10,7 +10,7 @@ import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/back_row.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/favorite_banner.dart';
 import '../../widgets/shared_footer.dart';
@@ -210,7 +210,7 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                     position: _appBarSlide,
                     child: FadeTransition(
                       opacity: _appBarFade,
-                      child: const CustomTopBar(),
+                      child: const TopBarSlot(),
                     ),
                   ),
                   // Torna indietro

@@ -27,7 +27,7 @@ import '../../widgets/image_fallback.dart';
 import '../../widgets/onlist_price_text.dart';
 import '../../widgets/onlist_ticket_title.dart';
 import '../../widgets/animated_press.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/ticket_shape.dart';
 
@@ -222,7 +222,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           bottom: false,
           child: Column(
             children: [
-              const CustomTopBar(),
+              const TopBarSlot(),
               _buildTopBar(),
               Expanded(
                 child: _isLoading

@@ -5,7 +5,7 @@ import '../../core/services/orders_service.dart';
 import '../../core/utils/responsive.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/onlist_text_styles.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/flip_card.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/ticket_cards.dart';
@@ -200,7 +200,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
           bottom: false,
           child: Column(
             children: [
-              const CustomTopBar(),
+              const TopBarSlot(),
               // Scorre SOLO la parte dei biglietti: "torna alla home" è
               // ancorata sopra la footer, sovrapposta allo scroll invece che
               // in coda alla Column — così non porta con sé nessuna fascia

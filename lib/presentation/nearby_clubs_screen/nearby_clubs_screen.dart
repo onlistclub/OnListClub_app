@@ -14,7 +14,7 @@ import '../../core/services/user_profile_manager.dart';
 import '../../routes/app_routes.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/staggered_item.dart';
@@ -730,10 +730,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
           child: Column(
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            // ── CustomTopBar ──
+            // ── Navbar (dentro lo shell la monta lui, vedi TopBarSlot) ──
             // Icona ricerca mostrata anche qui per uniformità con le altre
             // schermate: no-op perché si è già nella schermata di ricerca.
-            CustomTopBar(onSearchTap: () {}),
+            TopBarSlot(onSearchTap: () {}),
             // Subheader with back button and chips
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),

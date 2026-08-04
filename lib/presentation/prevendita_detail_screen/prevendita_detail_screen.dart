@@ -3,7 +3,7 @@ import 'package:flutter/material.dart';
 import '../../core/app_export.dart';
 import '../../core/services/orders_service.dart';
 import '../../widgets/back_row.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/flip_card.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/ticket_cards.dart';
@@ -124,7 +124,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
           bottom: false,
           child: Column(
             children: [
-              const CustomTopBar(),
+              const TopBarSlot(),
               _buildBackRow(),
               Expanded(
                 child: SingleChildScrollView(

@@ -12,7 +12,7 @@ import '../../core/utils/responsive.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/back_row.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/onlist_price_text.dart';
 import '../../widgets/onlist_primary_button.dart';
@@ -205,7 +205,7 @@ class _CartScreenState extends State<CartScreen>
           bottom: false,
           child: Column(
             children: [
-              const CustomTopBar(),
+              const TopBarSlot(),
               // Il "Torna indietro" c'è in entrambi i mock nuovi, quindi ora
               // si vede sempre. Arrivando dalla tab carrello non c'è nulla da
               // spopolare: come in Ordini, riporta alla Home come TAB.

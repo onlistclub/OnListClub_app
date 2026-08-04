@@ -19,7 +19,7 @@ import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/back_row.dart';
 import '../../widgets/app_loading_indicator.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/dashed_line.dart';
 import '../../widgets/photo_crop_sheet.dart';
 import '../../widgets/fedelta_card.dart';
@@ -509,7 +509,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
             children: [
               // Navbar fissa condivisa (logo + ricerca + persona) — come Figma.
               // Tap "persona" no-op: si è già sulla pagina Account.
-              CustomTopBar(onProfileTap: () {}),
+              TopBarSlot(onProfileTap: () {}),
               _buildBackRow(),
               Expanded(
                 child: _isLoading

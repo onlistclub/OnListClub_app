@@ -7,7 +7,7 @@ import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/app_loading_indicator.dart';
-import '../../widgets/custom_top_bar.dart';
+import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/staggered_item.dart';
 
@@ -46,7 +46,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> with ScreenAn
           bottom: false,
           child: Column(
             children: [
-              const CustomTopBar(),
+              const TopBarSlot(),
               Expanded(
                 child: FutureBuilder<List<NotificationModel>>(
                   future: _future,
