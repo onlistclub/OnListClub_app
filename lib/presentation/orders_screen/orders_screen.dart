@@ -36,6 +36,13 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
   void initState() {
     super.initState();
     _loadData();
+    OrdersService.revisione.addListener(_loadData);
+  }
+
+  @override
+  void dispose() {
+    OrdersService.revisione.removeListener(_loadData);
+    super.dispose();
   }
 
   // MVP: la sezione "Tavoli" è nascosta a livello di design; carichiamo solo le

@@ -4,6 +4,7 @@ import 'package:intl/intl.dart';
 import 'analytics_service.dart';
 import 'messaging_service.dart';
 import 'notification_service.dart';
+import 'orders_service.dart';
 
 /// Accesso alle tabelle `prevendite` e `prenotazioni_tavolo` su Supabase.
 ///
@@ -309,6 +310,11 @@ class BookingService {
       // Stock prevendite: gestito dal trigger DB trg_decrement_prevendita_stock
       // (decremento atomico server-side, nessuna race condition)
 
+      // Il ticket esiste da ora: la schermata Ordini (montata in un
+      // IndexedStack, vedi RootShell) deve ricaricare anche se l'utente non
+      // ripassa dalla Home.
+      OrdersService.segnalaNuovoOrdine();
+
       // 2b. Email di conferma prevendita.
       // NON await: un invio fallito non deve bloccare il checkout già confermato.
       _sendTicketConfirmationEmail(
@@ -428,11 +434,13 @@ class BookingService {
           '';
       final inizioRaw = eventoData['inizio_evento'];
       String dataEvento = '';
+      DateTime? dataEventoDt;
       if (inizioRaw != null) {
         final dt = DateTime.tryParse(inizioRaw.toString());
         if (dt != null) {
+          dataEventoDt = dt.toLocal();
           dataEvento =
-              DateFormat('EEEE d MMMM yyyy', 'it_IT').format(dt.toLocal());
+              DateFormat('EEEE d MMMM yyyy', 'it_IT').format(dataEventoDt);
         }
       }
 
@@ -454,6 +462,7 @@ class BookingService {
         localeNome: localeNome,
         eventoNome: eventoNome,
         dataEvento: dataEvento,
+        dataEventoDt: dataEventoDt,
         tipoTicket: tipoTicket,
       );
       debugPrint('[BookingService] email conferma prevendita inviata a $email');

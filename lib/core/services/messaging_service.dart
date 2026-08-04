@@ -125,6 +125,7 @@ class MessagingService {
     required String localeNome,
     required String eventoNome,
     required String dataEvento,
+    DateTime? dataEventoDt,
     String? tipoTicket,
   }) {
     final nomeDisplay = nome.isNotEmpty ? nome : 'amico';
@@ -133,6 +134,7 @@ class MessagingService {
       localeNome: localeNome,
       eventoNome: eventoNome,
       dataEvento: dataEvento,
+      dataEventoDt: dataEventoDt,
       tipoTicket: tipoTicket,
     );
     return sendEmail(
@@ -317,12 +319,30 @@ class MessagingService {
     );
   }
 
+  /// Saluto in testa all'email di conferma, in base a quanto manca alla
+  /// serata: stasera/stanotte, domani sera, oppure il giorno della settimana
+  /// (da 2 giorni di distanza in su, "2" incluso).
+  static String _salutoPrevendita(DateTime? dataEventoDt) {
+    if (dataEventoDt == null) return 'Ci vediamo stanotte! 🎉';
+    final ora = DateTime.now();
+    final oggi = DateTime(ora.year, ora.month, ora.day);
+    final giornoEvento =
+        DateTime(dataEventoDt.year, dataEventoDt.month, dataEventoDt.day);
+    final giorni = giornoEvento.difference(oggi).inDays;
+    if (giorni <= 0) return 'Ci vediamo stanotte! 🎉';
+    if (giorni == 1) return 'Ci vediamo domani sera! 🎉';
+    final giornoSettimana =
+        DateFormat('EEEE', 'it_IT').format(dataEventoDt);
+    return 'Ci vediamo $giornoSettimana! 🎉';
+  }
+
   // ── Order Confirmation ─────────────────────────────────────────────────────
   static String _buildOrderConfirmationHtml({
     required String nome,
     required String localeNome,
     required String eventoNome,
     required String dataEvento,
+    DateTime? dataEventoDt,
     String? tipoTicket,
   }) {
     final rows = [
@@ -335,7 +355,7 @@ class MessagingService {
     final card =
         _badge('Prevendita confermata') +
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
-        'Ci vediamo stanotte! 🎉</h1>'
+        '${_salutoPrevendita(dataEventoDt)}</h1>'
         '<p class="text-body" style="margin:0 0 24px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
         'Ciao <strong style="color:#12131c;">$nome</strong>, la tua prevendita è confermata. Ecco il riepilogo:</p>'
         + _infoBox(rows)

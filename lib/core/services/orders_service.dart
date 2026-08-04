@@ -11,6 +11,17 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class OrdersService {
   static SupabaseClient get _client => Supabase.instance.client;
 
+  /// Cambia ogni volta che un nuovo ordine (prevendita) viene creato.
+  ///
+  /// `OrdersScreen` resta MONTATA in un IndexedStack (vedi RootShell): senza
+  /// questo segnale il suo `initState` non torna più a chiamarsi, quindi un
+  /// acquisto fatto senza passare dalla Home non comparirebbe nel riepilogo
+  /// finché non si ricrea l'intera shell (stesso schema di
+  /// `PendingOrderService.revisione` per il carrello).
+  static final ValueNotifier<int> revisione = ValueNotifier<int>(0);
+
+  static void segnalaNuovoOrdine() => revisione.value++;
+
   // ─────────────────────────────────────────────────────────────────────────────
   // PREVENDITE
   // ─────────────────────────────────────────────────────────────────────────────
