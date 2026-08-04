@@ -752,6 +752,20 @@ class _QuantityRow extends StatelessWidget {
 
   const _QuantityRow({required this.quantita, required this.descrizione});
 
+  /// Margine sinistro della riga, in px design dal bordo della card.
+  static const double _leftDesign = 26;
+
+  /// Quota a cui parte la descrizione ("Welcome drink", "+ 2 drink"…), sempre
+  /// in px design dal bordo della card.
+  ///
+  /// Il CSS la mette a 148 (left 169 su card a 21); nella 1.1 avevi chiesto di
+  /// spostarla ancora a destra e nella 1.11 di nuovo, quindi qui sta a **160**.
+  /// Con la card larga 350 e il margine destro di 20 restano 170 px per il
+  /// testo, che a corpo 24 basta per "Welcome drink".
+  static const double _descrizioneXDesign = 160;
+
+  double get _rowLeft => R.sp(_leftDesign);
+
   @override
   Widget build(BuildContext context) {
     final style = OnlistTextStyles.hn(
@@ -762,14 +776,19 @@ class _QuantityRow extends StatelessWidget {
       letterSpacing: -0.05 * 24,
     );
     return Padding(
-      padding: EdgeInsets.only(left: R.sp(26), right: R.sp(20)),
+      padding: EdgeInsets.only(left: _rowLeft, right: R.sp(20)),
       child: Row(
         children: [
-          Text('Ticket x $quantita', style: style),
-          if (descrizione != null && descrizione!.isNotEmpty) ...[
-            // CSS: la descrizione parte a x 170 e l'app c'era già (169). Gli 8px
-            // in più (28 → 36) sono uno scostamento VOLUTO da Luca.
-            SizedBox(width: R.sp(36)),
+          // Slot a larghezza FISSA per "Ticket x N": così la descrizione parte
+          // sempre alla stessa quota. Prima era "testo + 36 di spazio", quindi
+          // la sua posizione dipendeva da quanto misurava "Ticket x N" e
+          // ballava da un biglietto all'altro (correzioni 1.11: "metti più a
+          // destra l'info Welcome Drink").
+          SizedBox(
+            width: R.sp(_descrizioneXDesign - _leftDesign),
+            child: Text('Ticket x $quantita', style: style),
+          ),
+          if (descrizione != null && descrizione!.isNotEmpty)
             Flexible(
               child: Text(
                 descrizione!,
@@ -778,7 +797,6 @@ class _QuantityRow extends StatelessWidget {
                 style: style,
               ),
             ),
-          ],
         ],
       ),
     );

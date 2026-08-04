@@ -25,6 +25,37 @@ class BookingService {
   /// `get_tavoli_disponibilita`. Necessaria perche' la RLS di prenotazioni_tavolo
   /// nasconde le prenotazioni altrui: leggere l'occupazione dal client porterebbe
   /// a vedere libero cio' che libero non e' (overbooking tra utenti diversi).
+  /// Nome e cognome da mettere sul biglietto.
+  ///
+  /// Il profilo su `utenti` viene prima; se è vuoto si guarda nei metadati
+  /// dell'account, che Google e Apple riempiono al primo accesso
+  /// (`given_name`/`family_name`, oppure `full_name`/`name` da spezzare).
+  /// Nessun ripiego sull'email: meglio due campi vuoti che uno username.
+  static (String, String) _nomeCognome({
+    required String? nomeProfilo,
+    required String? cognomeProfilo,
+    required Map<String, dynamic>? metadata,
+  }) {
+    final nome = (nomeProfilo ?? '').trim();
+    final cognome = (cognomeProfilo ?? '').trim();
+    if (nome.isNotEmpty || cognome.isNotEmpty) return (nome, cognome);
+
+    String meta(String chiave) => (metadata?[chiave] as String? ?? '').trim();
+
+    final given = meta('given_name');
+    final family = meta('family_name');
+    if (given.isNotEmpty || family.isNotEmpty) return (given, family);
+
+    final completo =
+        meta('full_name').isNotEmpty ? meta('full_name') : meta('name');
+    if (completo.isEmpty) return ('', '');
+    final parti = completo.split(RegExp(r'\s+'));
+    return (
+      parti.first,
+      parti.length > 1 ? parti.sublist(1).join(' ') : '',
+    );
+  }
+
   static Future<Map<String, bool>> _loadOccupazione(String eventoId) async {
     final res = await _client
         .rpc('get_tavoli_disponibilita', params: {'p_id_evento': eventoId});
@@ -101,14 +132,22 @@ class BookingService {
         .select('nome, cognome')
         .eq('id', user.id)
         .maybeSingle();
-    final nomeCompleto = [
-      profilo?['nome'] as String? ?? '',
-      profilo?['cognome'] as String? ?? '',
-    ].where((s) => s.isNotEmpty).join(' ');
-    final emailLocalPart = user.email?.split('@').first ?? '';
-    final nomeCliente = nomeCompleto.isNotEmpty
-        ? nomeCompleto
-        : (emailLocalPart.isNotEmpty ? emailLocalPart : 'Cliente OnList');
+    // Nome e cognome del biglietto, in ordine di attendibilità:
+    //   1. il profilo su `utenti`
+    //   2. i metadati dell'account (Google/Apple li riempiono al primo login)
+    // Se manca tutto NON si ripiega più sulla parte locale dell'email: sul
+    // biglietto usciva "Nome: andre.beri0531" col cognome vuoto (correzioni
+    // 1.11), che allo staff all'ingresso non dice nulla e non si confronta
+    // con un documento.
+    final (String nomeUtente, String cognomeUtente) = _nomeCognome(
+      nomeProfilo: profilo?['nome'] as String?,
+      cognomeProfilo: profilo?['cognome'] as String?,
+      metadata: user.userMetadata,
+    );
+    final nomeCompleto =
+        [nomeUtente, cognomeUtente].where((s) => s.isNotEmpty).join(' ');
+    final nomeCliente =
+        nomeCompleto.isNotEmpty ? nomeCompleto : 'Cliente OnList';
 
     final validTavoloId =
         (tavoloId != null && tavoloId.isNotEmpty) ? tavoloId : null;
@@ -250,12 +289,9 @@ class BookingService {
           nome = parts[0];
           cognome = parts.length > 1 ? parts.sublist(1).join(' ') : '';
         } else {
-          nome = profilo?['nome'] as String? ?? '';
-          cognome = profilo?['cognome'] as String? ?? '';
-
-          if (nome.isEmpty && cognome.isEmpty) {
-            nome = emailLocalPart.isNotEmpty ? emailLocalPart : 'Cliente';
-          }
+          // Stessa scala di attendibilità del `nomeCliente` qui sopra.
+          nome = nomeUtente;
+          cognome = cognomeUtente;
         }
 
         final dob = (holder['dob'] ?? '').trim();

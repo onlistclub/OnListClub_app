@@ -878,18 +878,23 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               padding: EdgeInsets.only(left: R.sp(26), right: R.sp(20)),
               child: Row(
                 children: [
-                  Text(
-                    'Ticket x 1',
-                    style: OnlistTextStyles.hn(
-                      color: Colors.white,
-                      fontSize: R.sp(24),
-                      fontWeight: FontWeight.w400,
-                      height: 1.0,
-                      letterSpacing: -0.05 * 24,
+                  // Slot fisso: la descrizione parte sempre a 160 dal bordo
+                  // della card, non "dopo il testo" (stessa scelta e stesso
+                  // valore di `_QuantityRow` nel biglietto — correzioni 1.11).
+                  SizedBox(
+                    width: R.sp(160 - 26),
+                    child: Text(
+                      'Ticket x 1',
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(24),
+                        fontWeight: FontWeight.w400,
+                        height: 1.0,
+                        letterSpacing: -0.05 * 24,
+                      ),
                     ),
                   ),
                   if (riepilogo.isNotEmpty) ...[
-                    SizedBox(width: R.sp(28)),
                     Flexible(
                       child: Text(
                         riepilogo,
