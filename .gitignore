@@ -32,6 +32,12 @@ migrate_working_dir/
 /env.json
 /run_dev.bat
 /run_prod.bat
+# Segreti delle Edge Function (Brevo): mai nel repo, mai negli asset dell'app.
+supabase/functions/.env.secrets
+# Firma di release Android: credenziali e keystore fuori dal repo.
+/android/key.properties
+*.jks
+*.keystore
 /\.metadata
 /build/
 /coverage/

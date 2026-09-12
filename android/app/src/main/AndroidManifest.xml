@@ -9,7 +9,7 @@
     <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 
     <application
-            android:label="OnListClub V1"
+            android:label="OnListClub"
             android:name="${applicationName}"
             android:icon="@mipmap/ic_launcher">
         <activity

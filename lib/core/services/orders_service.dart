@@ -44,7 +44,11 @@ class OrdersService {
       final items = await _client
           .from('prenotazioni_prevendite')
           .select(
-            'id, nome, cognome, data_nascita, id_prenotazione, id_prevendita, '
+            // `checked_in_at`: se valorizzato il biglietto è già passato dal
+            // lettore all'ingresso, e il dettaglio non deve più offrire
+            // l'annullamento (la RPC lo rifiuterebbe comunque, vedi 013).
+            'id, nome, cognome, data_nascita, checked_in_at, '
+            'id_prenotazione, id_prevendita, '
             'prenotazioni(id, stato, created_at, id_evento, '
             'eventi(id, nome, inizio_evento, club_id, '
             'locali(id, nome, foto_url))), '
@@ -101,12 +105,28 @@ class OrdersService {
   /// DEFINER): imposta `stato='annullata'` per la prenotazione dell'utente, il
   /// che fa scattare il trigger `trg_restore_prevendita_stock` → il posto torna
   /// libero. La prenotazione annullata viene poi nascosta dalla lista ordini.
+  /// Solleva un messaggio leggibile quando la RPC rifiuta: senza questa
+  /// traduzione l'utente si vedeva sbattere in faccia il testo grezzo di
+  /// PostgrestException.
   static Future<void> annullaPrevendita(String idPrenotazione) async {
     final user = _client.auth.currentUser;
     if (user == null) throw Exception('Utente non autenticato');
-    await _client.rpc('annulla_prevendita', params: {
-      'p_id_prenotazione': idPrenotazione,
-    });
+    try {
+      await _client.rpc('annulla_prevendita', params: {
+        'p_id_prenotazione': idPrenotazione,
+      });
+    } on PostgrestException catch (e) {
+      // P0003 (migration 013): un biglietto dell'ordine è già entrato, il posto
+      // non deve tornare a magazzino.
+      if (e.code == 'P0003') {
+        throw Exception(
+            'Questo biglietto risulta già utilizzato all\'ingresso: non può più essere annullato.');
+      }
+      if (e.code == 'P0002') {
+        throw Exception('Prenotazione non trovata o già annullata.');
+      }
+      rethrow;
+    }
   }
 
   // ─────────────────────────────────────────────────────────────────────────────

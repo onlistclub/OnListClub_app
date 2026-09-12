@@ -78,7 +78,10 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     } catch (e) {
       if (!mounted) return;
       setState(() => _isAnnullando = false);
-      showAppErrorDialog(context, 'Errore annullamento: $e');
+      // OrdersService traduce già i rifiuti della RPC in frasi leggibili:
+      // qui resta solo da togliere il prefisso "Exception: ".
+      final messaggio = e.toString().replaceFirst(RegExp(r'^Exception:\s*'), '');
+      showAppErrorDialog(context, messaggio);
     }
   }
 
@@ -98,6 +101,11 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
     final stato =
         _annullata ? 'annullata' : (prenotazione?['stato'] ?? 'in_attesa');
     final isAnnullata = stato.toString().toLowerCase() == 'annullata';
+    // Biglietto già passato dal lettore: il posto è consumato, annullarlo lo
+    // rimetterebbe in vendita mentre la persona è dentro. La RPC lo rifiuta
+    // comunque (migration 013), qui si evita di offrire un pulsante che non
+    // può funzionare.
+    final isEntrato = item['checked_in_at'] != null;
     // ID della prenotazione madre: è quello che la RPC `annulla_prevendita`
     // si aspetta. NON confonderlo con item['id'] (riga prenotazioni_prevendite).
     final idPrenotazione = (prenotazione?['id'] ?? item['id'])?.toString();
@@ -157,11 +165,13 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                       prezzo: _formatPrezzo(prevendita?['prezzo']),
                       onShowQr: () => setState(() => _showQr = true),
                       onCollapse: () => NavigatorService.goBack(),
-                      onAnnulla:
-                          isAnnullata ? null : () => _annulla(idPrenotazione),
+                      onAnnulla: (isAnnullata || isEntrato)
+                          ? null
+                          : () => _annulla(idPrenotazione),
                       isAnnullando: _isAnnullando,
-                      annullataLabel:
-                          isAnnullata ? 'PREVENDITA ANNULLATA' : null,
+                      annullataLabel: isAnnullata
+                          ? 'PREVENDITA ANNULLATA'
+                          : (isEntrato ? 'GIÀ UTILIZZATO' : null),
                     ),
                   ),
                 ),

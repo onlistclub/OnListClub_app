@@ -26,6 +26,11 @@ dependencies:
   latlong2: ^0.10.1
   qr_flutter: ^4.1.0
   device_info_plus: ^13.2.0
+  # Versione dell'app negli eventi analytics: letta dal pubspec a runtime
+  # invece di essere ricopiata a mano in analytics_service.dart. Era già nel
+  # pubspec.lock come dipendenza transitiva, qui la dichiariamo perché la
+  # usiamo direttamente.
+  package_info_plus: ^10.2.0
   # Foto profilo (schermata Account): selezione immagine da galleria/fotocamera,
   # poi upload su Supabase Storage (bucket `avatars`).
   image_picker: ^1.1.2
@@ -48,7 +53,9 @@ flutter:
     - assets/images/3.0x/
     - assets/svg/
     - assets/svg/ufficiali/
-    - env.json
+    # env.json NON va qui: un asset finisce dentro l'APK/IPA e chiunque può
+    # estrarlo. Le chiavi entrano a build-time con
+    # `--dart-define-from-file=env.json` (vedi run_dev.bat / lib/main.dart).
   fonts:
     # I file OnlistHN-*.otf sono gli stessi glifi e le stesse metriche dei
     # vecchi HelveticaNeue*.otf: cambia SOLO il nome dichiarato dentro il file

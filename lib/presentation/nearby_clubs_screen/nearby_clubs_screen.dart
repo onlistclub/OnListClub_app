@@ -89,8 +89,10 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   @override
   void initState() {
     super.initState();
-    // Funnel: apertura della schermata di ricerca (source 'open').
-    AnalyticsService.logSearch(source: 'open');
+    // NIENTE logSearch qui: aprire la schermata non è una ricerca. Contarlo
+    // gonfiava le "Ricerche" del foglio con un evento per ogni apertura, e
+    // l'apertura è già registrata dal mixin ScreenAnalytics come `screen_*`.
+    // Le ricerche vere restano quelle su selezione città e invio del testo.
     if (_cachedData != null) {
       // Riapertura: dati subito dalla cache (nessun ricaricamento visibile),
       // poi refresh silenzioso in background — che sostituisce i dati sul posto,

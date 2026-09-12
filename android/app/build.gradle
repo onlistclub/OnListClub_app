@@ -1,10 +1,33 @@
 // android/app/build.gradle
+//
+// ⚠️  Accanto a questo file esiste ancora build.gradle.kts, avanzo del template
+//     Flutter, con un applicationId DIVERSO (com.onlistforrocketprovasapplication.
+//     OnListClub). Gradle, trovando entrambi, usa questo (Groovy) e ignora
+//     l'altro — ma vanno cancellati prima del lancio, insieme a
+//     ../build.gradle.kts e ../settings.gradle.kts, per non lasciare in giro
+//     un'identita' dell'app alternativa.
+
 plugins {
     id "com.android.application"
     id "kotlin-android"
     // The Flutter Gradle Plugin must be applied after the Android and Kotlin Gradle plugins.
     id "dev.flutter.flutter-gradle-plugin"
     // NOTA: com.google.gms.google-services rimosso — app usa Supabase, non Firebase
+}
+
+// Firma di release: le credenziali della keystore stanno in android/key.properties,
+// fuori dal repo (vedi key.properties.example). Senza quel file la release
+// resta firmata con la chiave di debug — utile per provare in locale, rifiutata
+// dagli store e impossibile da aggiornare in seguito.
+// (`plugins {}` deve restare la prima istruzione dello script: da qui in giu'.)
+def keystoreProperties = new Properties()
+def keystorePropertiesFile = rootProject.file("key.properties")
+def hasReleaseKeystore = keystorePropertiesFile.exists()
+if (hasReleaseKeystore) {
+    keystorePropertiesFile.withInputStream { keystoreProperties.load(it) }
+} else {
+    logger.warn("\n⚠️  android/key.properties assente: la build di release usera' la " +
+                "chiave di DEBUG. Non caricarla sullo store.\n")
 }
 
 android {
@@ -22,7 +45,9 @@ android {
     }
 
     defaultConfig {
-        // TODO: Specify your own unique Application ID (https://developer.android.com/studio/build/application-id.html).
+        // Identita' definitiva dell'app su Google Play. Dopo la prima
+        // pubblicazione non si cambia piu': cambiarlo significa un'altra app,
+        // con altri utenti e altre recensioni.
         applicationId = "com.onlistclub.app"
         // You can update the following values to match your application needs.
         // For more information, see: https://flutter.dev/to/review-gradle-config.
@@ -34,14 +59,25 @@ android {
         minSdkVersion flutter.minSdkVersion
     }
 
+    signingConfigs {
+        if (hasReleaseKeystore) {
+            release {
+                storeFile = file(keystoreProperties['storeFile'])
+                storePassword = keystoreProperties['storePassword']
+                keyAlias = keystoreProperties['keyAlias']
+                keyPassword = keystoreProperties['keyPassword']
+            }
+        }
+    }
+
     buildTypes {
         release {
-            // TODO: Add your own signing config for the release build.
-            // Signing with the debug keys for now, so `flutter run --release` works.
-
             minifyEnabled false
             shrinkResources false
-            signingConfig = signingConfigs.debug
+            // Con key.properties: chiave vera. Senza: chiave di debug, così
+            // `flutter run --release` continua a funzionare in locale — ma il
+            // warning stampato sopra dice che quel binario non e' pubblicabile.
+            signingConfig = hasReleaseKeystore ? signingConfigs.release : signingConfigs.debug
         }
     }
 }

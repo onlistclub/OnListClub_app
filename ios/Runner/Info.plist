@@ -13,7 +13,7 @@
 		<key>CFBundleName</key>
 		<string>OnListClub</string>
 		<key>CFBundleDisplayName</key>
-		<string>OnListClub V1</string>
+		<string>OnListClub</string>
 		<key>CFBundlePackageType</key>
 		<string>APPL</string>
 		<key>CFBundleShortVersionString</key>
@@ -41,9 +41,17 @@
 			<string>UIInterfaceOrientationLandscapeLeft</string>
 			<string>UIInterfaceOrientationLandscapeRight</string>
 		</array>
+		<!-- Solo "mentre usi l'app": LocationService chiama
+		     Geolocator.requestPermission(), che su iOS chiede When In Use e
+		     nient'altro. `always` viene accettato se l'utente lo concede da
+		     Impostazioni, ma non lo chiediamo mai e non c'è niente che giri in
+		     background.
+		     NSLocationAlwaysAndWhenInUseUsageDescription era dichiarata qui:
+		     rimossa. Dichiarare la posizione in background senza usarla fa
+		     scattare in App Review la domanda "dov'è la funzionalità?", che
+		     senza una risposta diventa un rifiuto. Va rimessa solo il giorno in
+		     cui servirà davvero il tracciamento a schermo spento. -->
 		<key>NSLocationWhenInUseUsageDescription</key>
-		<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
-		<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
 		<string>La tua posizione viene usata per mostrarti eventi e persone vicino a te.</string>
 		<!-- Foto profilo (schermata Account): image_picker apre la libreria
 		     foto. Senza questa chiave iOS chiude l'app al primo accesso e
@@ -52,6 +60,15 @@
 		     va aggiunta solo se in futuro si offre lo scatto diretto. -->
 		<key>NSPhotoLibraryUsageDescription</key>
 		<string>Scegli una foto dalla tua libreria per impostarla come immagine del profilo.</string>
+		<!-- Export compliance: l'app usa solo HTTPS/TLS standard di sistema
+		     (Supabase, Brevo via edge function) e nessuna crittografia
+		     proprietaria, quindi rientra nelle esenzioni. Dichiararlo qui evita
+		     che App Store Connect fermi OGNI upload con la domanda
+		     sull'export compliance, da rispondere a mano ogni volta.
+		     Se un giorno l'app implementasse cifratura propria, questa chiave
+		     va rivista: la dichiarazione è vincolante. -->
+		<key>ITSAppUsesNonExemptEncryption</key>
+		<false/>
 		<key>CADisableMinimumFrameDurationOnPhone</key>
 		<true/>
 		<key>UIApplicationSupportsIndirectInputEvents</key>

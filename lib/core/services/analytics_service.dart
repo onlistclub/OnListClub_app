@@ -1,4 +1,5 @@
 import 'package:device_info_plus/device_info_plus.dart';
+import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -18,8 +19,12 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 class AnalyticsService {
   static final _client = Supabase.instance.client;
 
-  // Versione app (aggiornala ogni release)
-  static const String _appVersion = '1.0.0';
+  // Versione app: letta dal pubspec all'avvio (initDeviceInfo), non ricopiata
+  // a mano. Una costante qui dentro sopravvive a ogni release che qualcuno si
+  // dimentica di aggiornare, e da quel momento tutti gli eventi mentono sulla
+  // versione — con il risultato che un crash della 1.0.3 sembra della 1.0.0.
+  // Il fallback vale solo finché initDeviceInfo non è passata.
+  static String _appVersion = '0.0.0';
 
   // ── Info dispositivo (popolate una volta all'avvio da initDeviceInfo) ──────
   // Allegate al metadata di OGNI evento così il foglio di monitoraggio (TAB
@@ -39,6 +44,19 @@ class AnalyticsService {
   /// Va chiamata in `main()` dopo l'init di Supabase e prima di `runApp`.
   /// Fire-and-forget: qualsiasi errore viene ignorato (mai bloccare l'avvio).
   static Future<void> initDeviceInfo() async {
+    // In un try suo: se la lettura del pacchetto fallisce, il modello del
+    // dispositivo si legge lo stesso (e viceversa).
+    try {
+      final info = await PackageInfo.fromPlatform();
+      // "1.0.0+3": teniamo anche il build number, è quello che distingue due
+      // caricamenti sullo store con lo stesso version name.
+      _appVersion = info.buildNumber.isEmpty
+          ? info.version
+          : '${info.version}+${info.buildNumber}';
+    } catch (e) {
+      debugPrint('[Analytics] ⚠️ lettura versione app fallita: $e');
+    }
+
     try {
       if (kIsWeb) {
         _platformOverride = 'web';
@@ -170,23 +188,6 @@ class AnalyticsService {
         metadata: {'enabled': enabled},
       );
 
-  /// Registra l'esito della ricerca club nella NearbyClubs screen.
-  static Future<void> logClubSearch({
-    required int resultsCount,
-    String? cityFilter,
-    int? radius,
-    String? sortMode,
-  }) =>
-      log(
-        event: 'club_search',
-        metadata: {
-          'results_count': resultsCount,
-          'city_filter':   cityFilter,
-          'radius_km':     radius,
-          'sort_mode':     sortMode,
-        },
-      );
-
   /// Registra l'apertura della scheda di un club.
   static Future<void> logClubViewed({
     required String clubId,
@@ -200,32 +201,22 @@ class AnalyticsService {
         },
       );
 
-  /// Registra il completamento di una prenotazione (tavolo o prevendita).
-  static Future<void> logBookingCompleted({
-    required String type, // 'tavolo' | 'prevendita'
-    required String clubId,
-    required String eventId,
-    double? totalPrice,
-  }) =>
-      log(
-        event: 'booking_completed',
-        metadata: {
-          'type':        type,
-          'club_id':     clubId,
-          'event_id':    eventId,
-          'total_price': totalPrice,
-        },
-      );
-
   // ── Funnel di conversione (nomi evento richiesti dal foglio MVP) ───────────
   // Questi event_name sono quelli che la dashboard interroga per il funnel
-  // "apertura → prenotazione" e per la distribuzione oraria. Sono volutamente
-  // separati dagli helper "storici" (logClubViewed/logClubSearch/…), che
-  // restano per non perdere continuità con i dati già raccolti.
+  // "apertura → prenotazione" e per la distribuzione oraria.
+  //
+  // Qui vivevano anche `logClubSearch` (event 'club_search') e
+  // `logBookingCompleted` (event 'booking_completed'), tenuti "per continuità
+  // con i dati già raccolti". Non li chiamava nessuno: nessuna continuità da
+  // preservare, solo due nomi evento in più che somigliavano a 'search' e
+  // 'booking_complete' e rendevano ambiguo quale dei due leggere.
+  // `logClubViewed` invece è vivo (club_detail_screen) e resta.
 
   /// Funnel: l'utente sta cercando un locale.
-  /// [source] distingue l'origine: 'open' (apertura schermata ricerca),
-  /// 'city' (selezione città), 'submit' (invio testo di ricerca).
+  /// [source] distingue l'origine: 'city' (selezione città) o 'submit'
+  /// (invio del testo di ricerca). Entrambe sono ricerche vere: la semplice
+  /// apertura della schermata NON entra qui, la registra già il mixin
+  /// ScreenAnalytics come `screen_*`.
   static Future<void> logSearch({String? query, String? source}) => log(
         event: 'search',
         metadata: {

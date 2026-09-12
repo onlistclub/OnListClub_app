@@ -1,8 +1,14 @@
 /// Entry point dell'app OnListClub.
 ///
-/// Inizializza Flutter, blocca l'orientamento verticale, carica le chiavi
-/// (Supabase + Google) da `--dart-define` con fallback a `env.json`, inizializza
-/// Supabase e fa partire `MaterialApp` con le rotte definite in `AppRoutes`.
+/// Inizializza Flutter, blocca l'orientamento verticale, legge le chiavi
+/// (Supabase + Google) dai `--dart-define`, inizializza Supabase e fa partire
+/// `MaterialApp` con le rotte definite in `AppRoutes`.
+///
+/// Le chiavi arrivano SOLO da `--dart-define`: `env.json` non è più un asset
+/// dell'app (vedi pubspec.yaml). Passalo al comando di build, che è la stessa
+/// cosa senza spedire il file dentro l'APK:
+///     flutter run   --dart-define-from-file=env.json
+///     flutter build appbundle --dart-define-from-file=env.json
 library;
 
 import 'package:flutter/foundation.dart'
@@ -18,7 +24,6 @@ import 'core/services/auth_service.dart';
 import 'core/services/location_service.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
-import 'dart:convert';
 
 var globalMessengerKey = GlobalKey<ScaffoldMessengerState>();
 
@@ -30,11 +35,11 @@ const SystemUiOverlayStyle _kLightStatusBar = SystemUiOverlayStyle(
   statusBarBrightness: Brightness.dark, // iOS: sfondo scuro → contenuti chiari
 );
 
-// Chiavi lette a build-time da --dart-define. Esempio:
-//   flutter run --dart-define=SUPABASE_URL=... \
-//               --dart-define=SUPABASE_ANON_KEY=... \
-//               --dart-define=GOOGLE_WEB_CLIENT_ID=...
-// In assenza di --dart-define, si fa fallback su env.json (solo per dev locale).
+// Chiavi lette a build-time da --dart-define (vedi run_dev.bat / run_prod.bat).
+//
+// Niente fallback su un file dentro il bundle: un asset è leggibile da chiunque
+// scompatti l'APK o l'IPA. env.json conteneva anche la BREVO_API_KEY, cioè la
+// facoltà di mandare email e SMS a nome di OnListClub.
 const _kSupabaseUrlDefine = String.fromEnvironment('SUPABASE_URL');
 const _kSupabaseAnonKeyDefine = String.fromEnvironment('SUPABASE_ANON_KEY');
 const _kGoogleWebClientIdDefine =
@@ -66,27 +71,22 @@ Future<void> main() async {
   SystemChrome.setSystemUIOverlayStyle(_kLightStatusBar);
 
   debugPrint('[Startup] Loading env...');
-  // Priorità: --dart-define (sicuro, non finisce negli asset).
-  // Fallback: env.json (dev locale, da rimuovere prima della release).
-  String supabaseUrl = _kSupabaseUrlDefine;
-  String supabaseAnonKey = _kSupabaseAnonKeyDefine;
+  final String supabaseUrl = _kSupabaseUrlDefine;
+  final String supabaseAnonKey = _kSupabaseAnonKeyDefine;
   String? googleClientId =
       _kGoogleWebClientIdDefine.isEmpty ? null : _kGoogleWebClientIdDefine;
   String? googleIosId =
       _kGoogleIosClientIdDefine.isEmpty ? null : _kGoogleIosClientIdDefine;
 
+  // Senza queste due l'app non parla con nessuno: meglio fermarsi qui, con un
+  // messaggio che dice cosa manca, che pubblicare una build muta che sembra
+  // solo "lenta a caricare".
   if (supabaseUrl.isEmpty || supabaseAnonKey.isEmpty) {
-    debugPrint(
-        '[Startup] ⚠️ --dart-define non impostate, fallback a env.json');
-    final env = await _loadEnvSafe();
-    if (supabaseUrl.isEmpty) {
-      supabaseUrl = (env['SUPABASE_URL'] as String?) ?? '';
-    }
-    if (supabaseAnonKey.isEmpty) {
-      supabaseAnonKey = (env['SUPABASE_ANON_KEY'] as String?) ?? '';
-    }
-    googleClientId ??= env['GOOGLE_WEB_CLIENT_ID'] as String?;
-    googleIosId ??= env['GOOGLE_IOS_CLIENT_ID'] as String?;
+    throw StateError(
+      'SUPABASE_URL / SUPABASE_ANON_KEY mancanti: la build è stata lanciata '
+      'senza --dart-define. Usa "flutter run --dart-define-from-file=env.json" '
+      '(o run_dev.bat / run_prod.bat).',
+    );
   }
 
   googleWebClientId = googleClientId;
@@ -176,20 +176,6 @@ Future<void> main() async {
   debugPrint('[Startup] Initialization complete.');
 
   runApp(const MyApp());
-}
-
-Future<Map<String, dynamic>> _loadEnvSafe() async {
-  try {
-    final raw = await rootBundle.loadString('env.json');
-    return jsonDecode(raw) as Map<String, dynamic>;
-  } catch (_) {
-    try {
-      final raw = await rootBundle.loadString('assets/env.json');
-      return jsonDecode(raw) as Map<String, dynamic>;
-    } catch (_) {
-      return {};
-    }
-  }
 }
 
 class MyApp extends StatelessWidget {
