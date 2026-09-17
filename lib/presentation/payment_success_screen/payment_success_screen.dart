@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 
 import '../../core/services/navigator_service.dart';
 import '../../core/services/orders_service.dart';
+import '../../core/services/pending_order_service.dart';
+import '../../core/services/ticket_non_visti_service.dart';
 import '../../core/utils/responsive.dart';
 import '../../routes/app_routes.dart';
 import '../../theme/onlist_text_styles.dart';
@@ -13,7 +15,7 @@ import '../../widgets/ticket_cards.dart';
 /// Conferma ordine + "Visualizza ticket" (design NUOVO "Ordine Effettuato").
 ///
 /// Tre stati della stessa schermata:
-/// 1. biglietti CHIUSI ([TicketCollapsedCard]) sotto il titolo a cascata;
+/// 1. biglietti CHIUSI ([TicketCollapsedCard]) sotto "ORDINE effettuato";
 /// 2. biglietto APERTO, fronte ([TicketFrontCard]) con dati e pagamento;
 /// 3. biglietto APERTO, retro ([TicketBackCard]) col QR code reale.
 ///
@@ -49,8 +51,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
   bool _loadStarted = false;
 
   // ── Apertura del biglietto ────────────────────────────────────────────────
-  // Aprendo un biglietto la card passa da 167 a 614 px e sparisce il titolo a
-  // cascata: prima succedeva tutto in un frame, da cui il salto brusco.
+  // Aprendo un biglietto la card passa da 140 a 614 px e sparisce
+  // l'intestazione: prima succedeva tutto in un frame, da cui il salto brusco.
   //
   // Ora l'effetto è in DUE TEMPI: la scatola cresce (AnimatedSize, 320ms
   // easeOutCubic) e il contenuto entra DOPO, con ~120ms di ritardo, in fade +
@@ -77,6 +79,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
   @override
   void initState() {
     super.initState();
+    PendingOrderService().sospendiPerConferma();
 
     _openCtrl = AnimationController(
       vsync: this,
@@ -117,6 +120,9 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
 
   @override
   void dispose() {
+    // Lasciata la conferma: se restano ordini in sospeso il pallino del
+    // carrello si riaccende.
+    PendingOrderService().riprendiDopoConferma();
     _openCtrl.dispose();
     _bobCtrl.dispose();
     super.dispose();
@@ -183,8 +189,21 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     }
   }
 
+  /// Distanza della freccia di "torna alla home" dalla capsula della footer
+  /// (CSS: freccia 746+30 = 776, capsula a 781).
+  static const double _tornaHomeSopraFooter = 5;
+
+  /// Ingombro di "torna alla home" fisso: testo 20 + freccia 30 + stacco.
+  static double get _tornaHomeIngombro =>
+      R.sp(20 + 30 + _tornaHomeSopraFooter);
+
   @override
   Widget build(BuildContext context) {
+    // "torna alla home" coi biglietti chiusi sta FISSO appena sopra la footer,
+    // con la freccia che punta all'icona Home (doc correzioni 16/09). Con un
+    // biglietto aperto (614px) invece torna in coda allo scroll: fisso finiva
+    // sopra la card.
+    final bool tornaHomeFisso = _openedIndex == null;
     // Design NUOVO: sfondo NERO FISSO.
     return Scaffold(
       backgroundColor: Colors.black,
@@ -192,23 +211,24 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
       extendBody: true,
       body: ColoredBox(
         color: Colors.black,
-        child: SafeArea(
+        child: Stack(
+          children: [
+            SafeArea(
           bottom: false,
           child: Column(
             children: [
               const TopBarSlot(),
-              // "torna alla home" sta DENTRO lo scroll, in coda al biglietto:
-              // all'inizio non si vede, compare scendendo. Le due versioni
-              // precedenti non andavano — in coda alla Column si portava dietro
-              // una fascia nera che tagliava il biglietto, sovrapposta in uno
-              // Stack finiva sopra la card.
               Expanded(
                 child: SingleChildScrollView(
                   // Margini 18 invece dei 21 del CSS: scostamento VOLUTO da
                   // Luca per allargare il biglietto di ~6px (stesso valore di
                   // prevendita_detail_screen — sono la stessa card).
                   padding: EdgeInsets.fromLTRB(
-                      R.sp(18), 0, R.sp(18), SharedFooter.height),
+                      R.sp(18),
+                      0,
+                      R.sp(18),
+                      SharedFooter.height +
+                          (tornaHomeFisso ? _tornaHomeIngombro : 0)),
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.start,
                     children: [
@@ -220,13 +240,15 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                         duration: _expandDuration,
                         curve: _expandCurve,
                         alignment: Alignment.topCenter,
+                        // CSS: top bar chiude a ~118, ORDINE a 139,
+                        // "Visualizza ticket" a 275.
                         child: _openedIndex == null
                             ? Column(
                                 crossAxisAlignment: CrossAxisAlignment.start,
                                 children: [
-                                  SizedBox(height: R.sp(49)),
-                                  _buildCascadeTitle(),
-                                  SizedBox(height: R.sp(45)),
+                                  SizedBox(height: R.sp(21)),
+                                  _buildHeader(),
+                                  SizedBox(height: R.sp(26)),
                                 ],
                               )
                             : SizedBox(height: R.sp(12)),
@@ -252,7 +274,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                           ),
                         )
                       else
-                        // La scatola cresce da 167 a 614; il contenuto entra
+                        // La scatola cresce da 140 a 614; il contenuto entra
                         // dopo (vedi _buildOpenTicket).
                         AnimatedSize(
                           duration: _expandDuration,
@@ -263,47 +285,99 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                             children: _buildTickets(),
                           ),
                         ),
-                      // "torna alla home" in coda al biglietto: testo in
-                      // gradiente + freccia giù (CSS: linear-gradient(90deg,
-                      // #FFF, #0018C6)). Nessuno sfondo, quindi niente fascia
-                      // nera, e nessuna sovrapposizione: sta semplicemente
-                      // sotto la card.
-                      SizedBox(height: R.sp(18)),
-                      Center(child: _buildTornaAllaHome()),
-                      SizedBox(height: R.sp(8)),
+                      if (!tornaHomeFisso) ...[
+                        SizedBox(height: R.sp(18)),
+                        Center(child: _buildTornaAllaHome()),
+                        SizedBox(height: R.sp(8)),
+                      ],
                     ],
                   ),
                 ),
               ),
             ],
           ),
+            ),
+            if (tornaHomeFisso)
+              Positioned(
+                left: 0,
+                right: 0,
+                bottom: SharedFooter.height + R.sp(_tornaHomeSopraFooter),
+                child: Center(child: _buildTornaAllaHome()),
+              ),
+          ],
         ),
       ),
       // Footer: unica e globale, montata da RootShell (non qui).
     );
   }
 
-  // ── Titolo "a cascata" (CSS: ORDINE 64/300, EFFETTUATO 36, sottotitolo 20)
-  Widget _buildCascadeTitle() {
-    return FittedBox(
-      fit: BoxFit.scaleDown,
-      alignment: Alignment.centerLeft,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
+  // ── Intestazione "ORDINE effettuato" + spunta (CSS NUOVO 16/09) ──────────
+  // Coordinate CSS assolute, riportate a una scatola che parte a y 139 e a
+  // x 18 (margine dello scroll):
+  //  - ORDINE: riquadro 341×88 a (24,139), bianco che sfuma dal 62.98%;
+  //  - effettuato: 39px bold, box 169 a x 112, linea di base a ~240 (PNG);
+  //  - spunta: cerchio 23 #0009FF a (269,204).
+  static const double _headerH = 110;
+
+  Widget _buildHeader() {
+    return SizedBox(
+      height: R.sp(_headerH),
+      width: double.infinity,
+      child: Stack(
+        clipBehavior: Clip.none,
         children: [
-          const Padding(
-            padding: EdgeInsets.only(left: 19),
-            child: Text('ORDINE', style: OnlistTextStyles.display64Light),
+          Positioned(
+            left: R.sp(24 - 18),
+            top: 0,
+            width: R.sp(341),
+            height: R.sp(88),
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.white, Colors.white, Color(0x00FFFFFF)],
+                stops: [0.0, 0.6298, 1.0],
+              ).createShader(bounds),
+              child: const FittedBox(
+                fit: BoxFit.fill,
+                child: _OrdineGlifi(),
+              ),
+            ),
           ),
-          const Padding(
-            padding: EdgeInsets.only(left: 142),
-            child: Text('EFFETTUATO', style: OnlistTextStyles.title36Light),
+          // Linea di base a 101 dall'alto della scatola (240−139). Con
+          // height 1 la base cade al 78.3% del corpo (ascent 71.4 su 91.2 di
+          // OnlistHN): 42 × 0.783 = 32.9 → top 68.
+          Positioned(
+            left: R.sp(112 - 18),
+            top: R.sp(68),
+            child: Text(
+              'effettuato',
+              style: OnlistTextStyles.hn(
+                color: Colors.white,
+                // 42 e non 39: il CSS usa un display font più largo, con
+                // OnlistHN bold a 42 la parola torna larga 169 come nel box.
+                fontSize: R.sp(42),
+                fontWeight: FontWeight.w700,
+                height: 1.0,
+                letterSpacing: -0.07 * R.sp(42),
+              ),
+            ),
           ),
-          const SizedBox(height: 8),
-          const Padding(
-            padding: EdgeInsets.only(left: 192),
-            child:
-                Text('Buon divertimento!', style: OnlistTextStyles.body20Light),
+          Positioned(
+            left: R.sp(269 - 18),
+            top: R.sp(204 - 139),
+            child: Container(
+              width: R.sp(23),
+              height: R.sp(23),
+              decoration: const BoxDecoration(
+                color: Color(0xFF0009FF),
+                shape: BoxShape.circle,
+              ),
+              alignment: Alignment.center,
+              child: Icon(Icons.check_rounded,
+                  color: Colors.white, size: R.sp(17)),
+            ),
           ),
         ],
       ),
@@ -336,6 +410,10 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
           child: TicketCollapsedCard(
             clubName: _clubName(_tickets[i]),
             onTap: () {
+              // Biglietto aperto: si spegne il pallino dei TICKET.
+              TicketNonVistiService().segnaVisto(
+                  (_tickets[i]['prenotazioni'] as Map<String, dynamic>?)?['id']
+                      ?.toString());
               setState(() {
                 _openedIndex = i;
                 _showQr = false;
@@ -437,7 +515,9 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
               ),
             ),
           ),
-          SizedBox(height: R.sp(9)),
+          // CSS: la freccia (box 30 a 746) parte 3px prima della fine del
+          // testo (729+20): il glifo ha già margine interno, quindi niente
+          // spazio in mezzo.
           Icon(Icons.arrow_downward, color: Colors.white, size: R.sp(30)),
         ],
       ),
@@ -472,5 +552,47 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     final d = DateTime.tryParse(raw.toString());
     if (d == null) return '';
     return '${d.day}/${d.month}/${d.year}';
+  }
+}
+
+/// "ORDINE" ritagliato ESATTAMENTE sui glifi, così il FittedBox che lo
+/// stira nel riquadro 341×88 del CSS non conta lo spazio vuoto sopra e sotto
+/// le maiuscole.
+///
+/// Misure di OnlistHN-Bold a corpo 100 (height 1): linea di base a 78.3,
+/// maiuscole alte 73 (con l'overshoot della O) e 2 sotto la base → i glifi
+/// vanno da 5.3 a 80.3, 75 di altezza. Con letter-spacing −17 la parola è
+/// larga 290.5: il rapporto 290.5/75 coincide con 341/88, quindi lo
+/// stiramento resta uniforme (le lettere strette e fitte del Figma).
+class _OrdineGlifi extends StatelessWidget {
+  const _OrdineGlifi();
+
+  static const double _corpo = 100;
+  static const double _altezzaGlifi = 75;
+
+  /// Allinea il box di 100 dentro i 75 visibili con il bordo alto delle
+  /// maiuscole (5.3) sul bordo: (75−100)·(a+1)/2 = −5.3 → a = −0.576.
+  static const double _allineamentoY = -0.576;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: Align(
+        alignment: const Alignment(0, _allineamentoY),
+        heightFactor: _altezzaGlifi / _corpo,
+        child: Text(
+          'ORDINE',
+          maxLines: 1,
+          textScaler: TextScaler.noScaling,
+          style: OnlistTextStyles.hn(
+            color: Colors.white,
+            fontSize: _corpo,
+            fontWeight: FontWeight.w700,
+            height: 1.0,
+            letterSpacing: -17,
+          ),
+        ),
+      ),
+    );
   }
 }

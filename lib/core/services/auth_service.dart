@@ -20,6 +20,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../routes/app_routes.dart';
 import 'navigator_service.dart';
 import 'pending_order_service.dart';
+import 'ticket_non_visti_service.dart';
 
 class AuthService {
   AuthService._();
@@ -80,6 +81,7 @@ class AuthService {
     // addosso al prossimo utente che entra (le righe sul DB no, quelle le
     // filtra la RLS).
     PendingOrderService().reset();
+    TicketNonVistiService().reset();
     try {
       await Supabase.instance.client.auth.signOut();
     } catch (e) {

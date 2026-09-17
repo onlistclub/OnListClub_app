@@ -18,6 +18,8 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// | apre il carrello                 | visto=true          | spento  |
 /// | rientra ed esce di nuovo         | visto=false         | ACCESO  |
 /// | "PRENOTA ORA"                    | cancellata          | spento  |
+/// | conferma ordine aperta           | (altri sospesi)     | spento  |
+/// | esce dalla conferma              | (altri sospesi)     | ACCESO  |
 ///
 /// Mentre l'utente è DENTRO la lista ticket il pallino resta spento anche se
 /// la riga è già `visto=false`: quel "sono dentro adesso" sta solo in memoria
@@ -59,6 +61,23 @@ class PendingOrderService {
   /// Serata di cui l'utente sta guardando i ticket PROPRIO ORA. Solo in
   /// memoria: vedi la nota in testa alla classe.
   String? _eventoAperto;
+
+  /// True mentre è aperta la conferma "Ordine effettuato": lì il pallino del
+  /// carrello resta spento anche se ci sono altri sospesi (il pallino nuovo
+  /// sta sui TICKET). Solo in memoria, quindi un riavvio lo riaccende.
+  bool _inConferma = false;
+
+  /// Entrata nella conferma ordine.
+  void sospendiPerConferma() {
+    _inConferma = true;
+    pallino.value = false;
+  }
+
+  /// Uscita dalla conferma ordine: il pallino torna a dire la verità.
+  Future<void> riprendiDopoConferma() async {
+    _inConferma = false;
+    await aggiornaPallino();
+  }
 
   // ── Scritture ─────────────────────────────────────────────────────────────
 
@@ -144,6 +163,7 @@ class PendingOrderService {
   /// deve mostrare i sospesi di quello precedente).
   void reset() {
     _eventoAperto = null;
+    _inConferma = false;
     pallino.value = false;
   }
 
@@ -178,7 +198,7 @@ class PendingOrderService {
   /// visto, e diverso da quello che l'utente sta guardando in questo momento.
   Future<void> aggiornaPallino() async {
     final utente = _userId;
-    if (utente == null) {
+    if (utente == null || _inConferma) {
       pallino.value = false;
       return;
     }
@@ -190,8 +210,11 @@ class PendingOrderService {
           .eq('visto', false)
           .gt('created_at', _limiteValidita());
 
-      pallino.value = List<Map<String, dynamic>>.from(righe)
-          .any((r) => r['id_evento']?.toString() != _eventoAperto);
+      // Ricontrollato dopo l'attesa: la conferma può essersi aperta mentre
+      // la query era in corso.
+      pallino.value = !_inConferma &&
+          List<Map<String, dynamic>>.from(righe)
+              .any((r) => r['id_evento']?.toString() != _eventoAperto);
     } catch (e) {
       debugPrint('[PendingOrderService] aggiornaPallino fallito: $e');
     }

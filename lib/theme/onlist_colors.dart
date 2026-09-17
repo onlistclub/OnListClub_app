@@ -217,30 +217,26 @@ class OnlistColors {
     colors: [Color(0x80000000), Color(0x800015FF)],
   );
 
-  /// Card "Club consigliati" della Home. CSS NUOVO/home.css impila DUE frame
-  /// identici e semitrasparenti nella stessa identica posizione — `Frame 352`
-  /// (stop 39.42%) e `Frame 353` (stop 48.08%), entrambi
-  /// `linear-gradient(90deg, rgba(0,119,255,.8) → rgba(0,0,255,.8))`.
-  /// Disegnandone uno solo la card viene molto più scura del design.
-  ///
-  /// Qui la composizione dei due layer su nero è PRECALCOLATA in un unico
-  /// gradiente opaco: stesso pixel, un fill invece di due e senza blending
-  /// (più leggero anche dell'implementazione precedente a un layer alpha).
-  ///   G = 0.8·G(frame353) + 0.16·G(frame352)   →  114, 114, 97, 64, 0
-  ///   B = 0.8·255 + 0.16·255 = 245 costante
-  /// Verifica sul PNG ufficiale: a x_rel 200 il Figma misura G=100, il modello
-  /// a due layer dà 98.4 (un layer solo darebbe 72).
+  /// Card "Club consigliati" (Home) e "Prossime serate" (dettaglio club).
+  /// CSS NUOVO del 16/09 (home.css Rectangle 297, Disco singola Rectangle
+  /// 301): `linear-gradient(90deg, #0077FF 57.69%, #0000FF 100%)`, opaco.
   static const LinearGradient homeClubCard = LinearGradient(
     begin: Alignment.centerLeft,
     end: Alignment.centerRight,
-    colors: [
-      Color(0xFF0072F5),
-      Color(0xFF0072F5),
-      Color(0xFF0061F5),
-      Color(0xFF0040F5),
-      Color(0xFF0000F5),
-    ],
-    stops: [0.0, 0.3942, 0.55, 0.70, 1.0],
+    colors: [Color(0xFF0077FF), Color(0xFF0000FF)],
+    stops: [0.5769, 1.0],
+  );
+
+  /// Bottone PRENOTA delle card club/serata (Rectangle 298/302):
+  /// `radial-gradient(97.76% 829.58% at 76.12% 25%, rgba(255,255,255,.2),
+  /// rgba(0,0,255,.2))`. Il raggio verticale (8× l'altezza) rende l'ellisse
+  /// una fascia verticale: il colore dipende solo da x, quindi basta un
+  /// lineare. Estremi calcolati alla distanza reale dal centro (76.12%).
+  static const LinearGradient cardPrenotaButton = LinearGradient(
+    begin: Alignment.centerLeft,
+    end: Alignment.centerRight,
+    colors: [Color(0x333838FF), Color(0x33FFFFFF), Color(0x33C1C1FF)],
+    stops: [0.0, 0.7612, 1.0],
   );
 
   // ── Gradienti bottoni ───────────────────────────────────────────────────

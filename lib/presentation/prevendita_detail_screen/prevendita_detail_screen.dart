@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/app_export.dart';
 import '../../core/services/orders_service.dart';
+import '../../core/services/ticket_non_visti_service.dart';
 import '../../widgets/back_row.dart';
 import '../../widgets/top_bar_slot.dart';
 import '../../widgets/flip_card.dart';
@@ -36,6 +37,22 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
 
   /// True quando si mostra il RETRO del biglietto (QR).
   bool _showQr = false;
+
+  bool _segnatoVisto = false;
+
+  @override
+  void didChangeDependencies() {
+    super.didChangeDependencies();
+    if (_segnatoVisto) return;
+    _segnatoVisto = true;
+    // Aprire il biglietto dal riepilogo spegne il pallino dei TICKET.
+    final item = ModalRoute.of(context)?.settings.arguments;
+    if (item is Map) {
+      final prenotazione = item['prenotazioni'];
+      TicketNonVistiService().segnaVisto(
+          prenotazione is Map ? prenotazione['id']?.toString() : null);
+    }
+  }
 
   Future<void> _annulla(String? idPrenotazione) async {
     if (idPrenotazione == null || idPrenotazione.isEmpty) return;
@@ -180,7 +197,8 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
           ),
         ),
       ),
-      bottomNavigationBar: const SharedFooter(currentIndex: 0),
+      // Footer: unica e globale, montata da RootShell (non qui). Quella che
+      // stava qui si sovrapponeva alla globale e ne copriva i pallini.
     );
   }
 

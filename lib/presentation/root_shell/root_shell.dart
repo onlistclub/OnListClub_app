@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import '../../core/services/navigator_service.dart';
 import '../../core/services/pending_order_service.dart';
+import '../../core/services/ticket_non_visti_service.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/page_transitions.dart';
 import '../../widgets/custom_top_bar.dart';
@@ -123,6 +124,8 @@ class _RootShellState extends State<RootShell>
     // colpo dentro la scelta ticket): al primo avvio dello shell il pallino
     // va acceso.
     PendingOrderService().aggiornaPallino();
+    // Stessa cosa per i biglietti comprati e mai aperti (pallino TICKET).
+    TicketNonVistiService().carica();
   }
 
   @override
@@ -263,15 +266,19 @@ class _RootShellState extends State<RootShell>
           valueListenable: _tab,
           builder: (_, index, __) => ValueListenableBuilder<int?>(
             valueListenable: _routeHighlight,
-            builder: (_, forzato, __) => ValueListenableBuilder<bool>(
-              // Pallino blu sul carrello: ordine lasciato in sospeso e non
-              // ancora visto. Sta qui e non nelle schermate perché la footer
-              // è unica e globale.
-              valueListenable: PendingOrderService().pallino,
-              builder: (_, sospeso, __) => SharedFooter(
+            // Pallini blu: carrello = ordine lasciato in sospeso e non ancora
+            // visto; ticket = biglietto comprato e non ancora aperto. Stanno
+            // qui e non nelle schermate perché la footer è unica e globale.
+            builder: (_, forzato, __) => AnimatedBuilder(
+              animation: Listenable.merge([
+                PendingOrderService().pallino,
+                TicketNonVistiService().pallino,
+              ]),
+              builder: (_, __) => SharedFooter(
                 currentIndex: forzato ?? index,
                 onTabSelected: switchToTab,
-                badgeCarrello: sospeso,
+                badgeCarrello: PendingOrderService().pallino.value,
+                badgeTicket: TicketNonVistiService().pallino.value,
               ),
             ),
           ),

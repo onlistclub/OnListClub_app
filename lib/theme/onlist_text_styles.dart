@@ -55,32 +55,12 @@ class OnlistTextStyles {
 
   // ── Titoli grandi (display) ─────────────────────────────────────────────
 
-  /// Titolo "ORDINE" della schermata 15. 64/63 w300 LS -0.07em.
-  static const TextStyle display64Light = TextStyle(
-    fontFamily: _family,
-    fontWeight: FontWeight.w300,
-    fontSize: 64,
-    height: 63 / 64,
-    letterSpacing: -0.07 * 64,
-    color: OnlistColors.white,
-  );
-
   /// "Accedi" / "Registrati" headline auth. 40/40 w400.
   static const TextStyle display40Regular = TextStyle(
     fontFamily: _family,
     fontWeight: FontWeight.w400,
     fontSize: 40,
     height: 1.0,
-    color: OnlistColors.white,
-  );
-
-  /// "EFFETTUATO" schermata 15. 36/36 w300 LS -0.07em.
-  static const TextStyle title36Light = TextStyle(
-    fontFamily: _family,
-    fontWeight: FontWeight.w300,
-    fontSize: 36,
-    height: 1.0,
-    letterSpacing: -0.07 * 36,
     color: OnlistColors.white,
   );
 
@@ -158,16 +138,6 @@ class OnlistTextStyles {
     fontWeight: FontWeight.w700,
     fontSize: 20,
     height: 23 / 20,
-    letterSpacing: -0.07 * 20,
-    color: OnlistColors.white,
-  );
-
-  /// "Buon divertimento!" schermata 15. 20/20 w300 LS -0.07em.
-  static const TextStyle body20Light = TextStyle(
-    fontFamily: _family,
-    fontWeight: FontWeight.w300,
-    fontSize: 20,
-    height: 1.0,
     letterSpacing: -0.07 * 20,
     color: OnlistColors.white,
   );

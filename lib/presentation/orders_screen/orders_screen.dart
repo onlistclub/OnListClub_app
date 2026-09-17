@@ -205,10 +205,10 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
     );
   }
 
-  // ── Card prevendita: biglietto con tacche (CSS "(NUOVO) - Riepilogo Ticket")
-  // Card 350×167 design px: solo nome del locale grande al centro +
-  // "Visualizza QR Code" con cerchietto-freccia. Prezzo/tipo/quantità vivono
-  // nella schermata di dettaglio (ticket aperto).
+  // ── Card prevendita (CSS "(NUOVO) - Riepilogo Ticket") ────────────────────
+  // Card 350×140 design px: nome del locale grande e sfumato con "Apri
+  // biglietto" attaccato sotto, e il cerchietto-freccia. Prezzo/tipo/quantità
+  // vivono nella schermata di dettaglio (ticket aperto).
   Widget _buildPrevenditaCard(Map<String, dynamic> item) {
     final prenotazione = item['prenotazioni'] as Map<String, dynamic>?;
     final evento = prenotazione?['eventi'] as Map<String, dynamic>?;

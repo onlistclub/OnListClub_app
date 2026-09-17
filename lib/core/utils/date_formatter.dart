@@ -28,4 +28,15 @@ class DateFormatter {
   }
 
   static String formatShort(DateTime d) => _short.format(d);
+
+  static const _giorniBrevi = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
+  static const _mesiBrevi = [
+    'Gen', 'Feb', 'Mar', 'Apr', 'Mag', 'Giu',
+    'Lug', 'Ago', 'Set', 'Ott', 'Nov', 'Dic',
+  ];
+
+  /// Giorno della settimana, giorno e mese abbreviati (es. `Dom 19 Apr`),
+  /// formato delle card serata/club del design.
+  static String formatBreve(DateTime d) =>
+      '${_giorniBrevi[d.weekday - 1]} ${d.day} ${_mesiBrevi[d.month - 1]}';
 }

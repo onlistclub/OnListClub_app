@@ -1,91 +1,40 @@
-# NearbyClubsScreen — Locali vicini
+# NearbyClubsScreen — Ricerca club
+
+Design: `docs/figma_screen/off/NUOVO/Ricerca Club*.css` (aggiornati il
+16/09/2026), riprodotto alla lettera.
 
 ## Cosa fa
 
-Mostra la **lista dei club vicini** all'utente, con possibilità di filtrarli e visualizzarli anche su una **mappa**. Si raggiunge dalla home, tramite la voce "scopri locali" o la lente di ricerca.
+- **Barra** "Cerca locale o città..." e tre **chip**: raggio (apre il popup
+  raggio), "Usa GPS" (al 50% quando è spento), "Filtri".
+- **Senza testo** (o con meno di 2 caratteri): lista dei locali nel raggio,
+  ordinati per distanza, con i filtri applicati.
+- **Con testo**:
+  - riquadro con fino a 3 città/luoghi e "Cerca qui";
+  - "Forse stai cercando :": locali il cui nome contiene il testo, in tutte
+    le città;
+  - "Altri locali in linea con la tua ricerca :": altri locali delle stesse
+    città, comprese quelle che corrispondono al testo.
+- **"Cerca qui"**: la città diventa il centro della ricerca e il suo nome
+  resta nella barra; la X la toglie e si torna alla posizione automatica.
+- **Popup raggio**: mappa OpenStreetMap scurita (`darkModeTileBuilder`: le
+  basemap CARTO ora chiedono una API key) con cerchio del raggio, slider 2–50 km.
+- **Pannello filtri**: macro-categorie musicali (mappa `_categorieGeneri`
+  sui generi del DB) e prezzo a 5 livelli (`locali.prezzo_indicativo` 1–5,
+  migration `docs/database/migrations/2026-09-17_prezzo_indicativo_5_livelli.sql`).
+  Le scelte si applicano subito; il bottone mostra quanti risultati restano.
 
-I locali vengono ordinati per **distanza** o per **popolarità**, e si possono filtrare per:
-- **Generi musicali** (es. techno, house, hip-hop)
-- **Città** (utile quando l'utente cerca in un'altra zona)
-- **Fascia di prezzo** (€ / €€ / €€€)
-- **Stringa di ricerca** (per nome del locale)
+## Posizione (ordine di priorità in `_load`)
 
----
+1. Città scelta con "Cerca qui".
+2. GPS forzato (se fallisce: città salvata).
+3. Città salvata nelle impostazioni.
+4. Città più vicina all'ultima posizione GPS in cache.
+5. Nessuna: locali più popolari e un avviso con "Riprova".
 
-## File coinvolti
+## Note
 
-```
-nearby_clubs_screen/
-└── nearby_clubs_screen.dart   <- UI + state della schermata (setState)
-```
-
-Schermata "semplice": niente BLoC. Lo stato locale (filtri, ordinamento, città custom) è gestito con `setState`.
-
----
-
-## Come funziona (flusso)
-
-```
-Utente apre la schermata
-        |
-        v
-_load() raccoglie i dati di posizione:
-   1. raggio km dell'utente               (UserProfileManager)
-   2. flag isGpsForced                    (LocationService)
-   3. coordinate:
-      - GPS in tempo reale (3s timeout)
-      - se nega o timeout → città salvata in profilo
-      - se anche quella manca → fallback su Roma
-        |
-        v
-ClubService carica i locali entro il raggio
-        |
-        v
-La lista viene filtrata e ordinata in memoria
-in base a:
-   _searchQuery, _selectedGeneri,
-   _selectedCitta, _selectedPrezzo, _sortMode
-        |
-        v
-Visualizzata come:
-   - lista verticale di card (default)
-   - mappa OpenStreetMap (toggle)
-```
-
----
-
-## Dettagli implementativi
-
-**State management:** `setState` puro. Lo stato della schermata è autocontenuto, quindi non serve un BLoC.
-
-**Mappa:** usa `flutter_map` con tile di OpenStreetMap e `latlong2` per le coordinate.
-
-**Stock images fallback:** se un locale non ha foto, si usa una delle 4 immagini di stock in `assets/images/stock_club_<n>.jpg` (selezione deterministica in base all'id).
-
-**Geolocator timeout:** la richiesta GPS scade in 3 secondi (`timeLimit: Duration(seconds: 3)`) per non bloccare l'apertura della schermata se la posizione è lenta.
-
-**Analytics:** `screenName = 'search_nearby'` (via mixin `ScreenAnalytics`).
-
----
-
-## Filtri disponibili
-
-| Filtro | Valore | Come è applicato |
-|---|---|---|
-| Ricerca testuale | `_searchQuery` | Match su `nome.toLowerCase()` |
-| Generi musicali | `Set<String> _selectedGeneri` | Intersezione con `generi_musicali` del locale |
-| Città | `Set<String> _selectedCitta` | Match esatto sul nome città |
-| Prezzo | `int? _selectedPrezzo` (1/2/3) | Confronto con la colonna `fascia_prezzo` |
-| Ordinamento | `_SortMode` (distanza / popolarità) | Sort della lista in memoria |
-
----
-
-## Dipendenze
-
-| Da dove | Cosa usa |
-|---|---|
-| `core/services/club_service.dart` | Fetch dei locali |
-| `core/services/location_service.dart` | Flag `isGpsForced`, città salvata |
-| `core/services/user_profile_manager.dart` | Raggio km dell'utente |
-| `core/models/locale_model.dart`, `citta_model.dart` | Modelli |
-| `flutter_map` + `latlong2` + `geolocator` | Mappa e posizione |
+- Stato con `setState`, nessun BLoC. I dati restano in una cache statica
+  (`_cachedData`) così riaprendo la Ricerca non lampeggia lo scheletro.
+- Ricerca testuale con debounce di 300 ms e numero di sequenza per scartare
+  le risposte superate.

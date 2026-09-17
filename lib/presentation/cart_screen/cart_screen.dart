@@ -239,10 +239,10 @@ class _CartScreenState extends State<CartScreen>
   }
 
   // ── Carrello con un ordine in sospeso ──────────────────────────────────────
-  // CSS "Carrello in sospeso": titolo 36/500 a left 30 top 170, card 350×167
-  // a top 220 — la stessa [TicketCollapsedCard] del riepilogo ordini, con
-  // "Continua l'ordine" al posto di "Visualizza QR Code" (un ordine in sospeso
-  // il QR non ce l'ha: non è ancora concluso).
+  // CSS "Carrello in sospeso": titolo 36/500 a left 30 top 170, card 350×143
+  // a top 220 — la stessa [TicketCollapsedCard] del riepilogo ordini (140),
+  // con "Continua l'ordine" al posto di "Apri biglietto" (un ordine in sospeso
+  // il biglietto non ce l'ha: non è ancora concluso).
   Widget _buildSospesiView() {
     return ListView.separated(
       padding: EdgeInsets.fromLTRB(

@@ -7,9 +7,10 @@ class HomeState extends Equatable {
   final LocaleModel? localeVicino;
   final List<SerataModel> upcomingEventi;
   final List<LocaleModel> recommendedClubs;
+  /// Prima serata futura di ogni club consigliato (chiave: id club).
+  final Map<String, SerataModel> nextSerataByClub;
   final int raggioKm;
   final bool isGpsForced;
-  final String locationSourceLabel;
   /// True quando il GPS è stato forzato ma non è disponibile (permesso negato,
   /// preview web, timeout): la UI mostra un messaggio e mantiene l'ultima
   /// posizione invece di ricadere in silenzio sul club più famoso.
@@ -22,9 +23,9 @@ class HomeState extends Equatable {
     this.localeVicino,
     this.upcomingEventi = const [],
     this.recommendedClubs = const [],
+    this.nextSerataByClub = const {},
     this.raggioKm = 20,
     this.isGpsForced = false,
-    this.locationSourceLabel = '',
     this.gpsUnavailable = false,
   });
 
@@ -36,9 +37,9 @@ class HomeState extends Equatable {
         localeVicino,
         upcomingEventi,
         recommendedClubs,
+        nextSerataByClub,
         raggioKm,
         isGpsForced,
-        locationSourceLabel,
         gpsUnavailable,
       ];
 
@@ -49,9 +50,9 @@ class HomeState extends Equatable {
     LocaleModel? localeVicino,
     List<SerataModel>? upcomingEventi,
     List<LocaleModel>? recommendedClubs,
+    Map<String, SerataModel>? nextSerataByClub,
     int? raggioKm,
     bool? isGpsForced,
-    String? locationSourceLabel,
     bool? gpsUnavailable,
   }) {
     return HomeState(
@@ -62,9 +63,9 @@ class HomeState extends Equatable {
       localeVicino: localeVicino ?? this.localeVicino,
       upcomingEventi: upcomingEventi ?? this.upcomingEventi,
       recommendedClubs: recommendedClubs ?? this.recommendedClubs,
+      nextSerataByClub: nextSerataByClub ?? this.nextSerataByClub,
       raggioKm: raggioKm ?? this.raggioKm,
       isGpsForced: isGpsForced ?? this.isGpsForced,
-      locationSourceLabel: locationSourceLabel ?? this.locationSourceLabel,
       gpsUnavailable: gpsUnavailable ?? this.gpsUnavailable,
     );
   }

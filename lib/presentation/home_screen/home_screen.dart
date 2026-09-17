@@ -6,13 +6,16 @@ import '../../core/app_export.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/club_service.dart';
 import '../../core/models/locale_model.dart';
+import '../../core/models/serata_model.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../core/utils/date_formatter.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/top_bar_slot.dart';
 import '../../widgets/glow_card.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/animated_press.dart';
+import '../../widgets/card_prenota_button.dart';
 import '../../widgets/image_fallback.dart';
 import '../../core/services/notification_service.dart';
 import 'bloc/home_bloc.dart';
@@ -150,8 +153,7 @@ class _HomeScreenState extends State<HomeScreen>
               prev.upcomingEventi != curr.upcomingEventi ||
               prev.recommendedClubs != curr.recommendedClubs ||
               prev.isLoading != curr.isLoading ||
-              prev.isGpsForced != curr.isGpsForced ||
-              prev.locationSourceLabel != curr.locationSourceLabel ||
+              prev.nextSerataByClub != curr.nextSerataByClub ||
               prev.selectedBottomNavIndex != curr.selectedBottomNavIndex,
           builder: (context, state) {
             return SafeArea(
@@ -164,14 +166,6 @@ class _HomeScreenState extends State<HomeScreen>
                     child: FadeTransition(
                       opacity: _appBarFade,
                       child: const TopBarSlot(isHome: true),
-                    ),
-                  ),
-                  // Location info & GPS toggle
-                  SlideTransition(
-                    position: _appBarSlide,
-                    child: FadeTransition(
-                      opacity: _appBarFade,
-                      child: _buildLocationInfo(context, state),
                     ),
                   ),
                   // Scrollable content
@@ -263,107 +257,6 @@ class _HomeScreenState extends State<HomeScreen>
       ),
       // La footer NON è più qui: la monta lo shell globale ([RootShell]), così
       // resta fissa. La Home vive sempre come tab dentro lo shell.
-    );
-  }
-
-  // ── Location Info ────────────────────────────────────────────────────────
-
-  Widget _buildLocationInfo(BuildContext context, HomeState state) {
-    if (state.localeVicino == null) return const SizedBox.shrink();
-
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 4),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-        children: [
-          // Sinistra: icona posizione + label + chip raggio
-          Expanded(
-            child: Row(
-              children: [
-                if (state.locationSourceLabel.isNotEmpty) ...[
-                  Flexible(
-                    child: Text(
-                      state.locationSourceLabel,
-                      style: OnlistTextStyles.hn(
-                        fontSize: R.sp(12),
-                        color: Colors.white70,
-                        fontWeight: FontWeight.w500,
-                      ),
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                ],
-              ],
-            ),
-          ),
-          const SizedBox(width: 8),
-          // Destra: GPS toggle
-          if (!state.isGpsForced)
-            GestureDetector(
-              onTap: () {
-                context.read<HomeBloc>().add(const HomeForceGpsEvent(true));
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Ricerca tramite GPS attivata')),
-                );
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF2A2A2A),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF444444)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.my_location,
-                        color: Colors.white, size: 14),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Usa GPS',
-                      style: OnlistTextStyles.hn(
-                        fontSize: R.sp(12),
-                        color: Colors.white,
-                        // Il bundle non ha una faccia 600: il 600 cadeva sul 700.
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          if (state.isGpsForced)
-            GestureDetector(
-              onTap: () {
-                context.read<HomeBloc>().add(const HomeForceGpsEvent(false));
-              },
-              child: Container(
-                padding:
-                    const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-                decoration: BoxDecoration(
-                  color: const Color(0xFF0009FF).withValues(alpha: 0.2),
-                  borderRadius: BorderRadius.circular(20),
-                  border: Border.all(color: const Color(0xFF0009FF)),
-                ),
-                child: Row(
-                  children: [
-                    const Icon(Icons.close, color: Colors.white, size: 14),
-                    const SizedBox(width: 6),
-                    Text(
-                      'Rimuovi GPS',
-                      style: OnlistTextStyles.hn(
-                        fontSize: R.sp(12),
-                        color: Colors.white,
-                        // Il bundle non ha una faccia 600: il 600 cadeva sul 700.
-                        fontWeight: FontWeight.w700,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-        ],
-      ),
     );
   }
 
@@ -463,20 +356,17 @@ class _HomeScreenState extends State<HomeScreen>
         locale.indirizzo!,
     ].join(' - ');
 
-    // CSS NUOVO/home.css: indirizzo "Milano - Via Alfonso Gatto" 16/500,
-    // left 13, 6px sotto il nome.
-    // Il w700 di ripiego (la faccia Medium non si agganciava e il testo usciva
-    // in Roman) è rientrato: la causa era il nome famiglia `HelveticaNeue`, che
-    // collideva con la famiglia di sistema iOS. Vedi OnlistTextStyles.
+    // CSS NUOVO/home.css (16/09): indirizzo 22/400 a left 13, 2px sotto il
+    // nome (nome top 360 + 36 → indirizzo top 398).
     return Padding(
-      padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(6), R.sp(13), 0),
+      padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(2), R.sp(13), 0),
       child: Text(
         addr,
         style: OnlistTextStyles.hn(
-          fontSize: R.sp(16),
+          fontSize: R.sp(22),
           color: Colors.white,
-          fontWeight: FontWeight.w500,
-          height: 16 / 16,
+          fontWeight: FontWeight.w400,
+          height: 22 / 22,
         ),
         maxLines: 1,
         overflow: TextOverflow.ellipsis,
@@ -494,7 +384,8 @@ class _HomeScreenState extends State<HomeScreen>
     if (club == null) return const SizedBox.shrink();
 
     return Padding(
-      padding: EdgeInsets.fromLTRB(R.sp(12.5), R.sp(14), R.sp(12.5), 0),
+      // CSS: CTA top 431, indirizzo chiude a 420 → 11.
+      padding: EdgeInsets.fromLTRB(R.sp(12.5), R.sp(11), R.sp(12.5), 0),
       child: AnimatedPress(
         onPressed: () => _navigateToClubDetail(context, club),
         child: SizedBox(
@@ -528,23 +419,19 @@ class _HomeScreenState extends State<HomeScreen>
   // ── Section title "Club consigliati" ───────────────────────────────────────
 
   Widget _buildSectionTitle() {
-    // CSS NUOVO/home.css: titolo sezione 32/700/-0.08 a left 13. (Nel Figma la
-    // label è "Prossime serate" per errore: la sezione mostra CLUB → il testo
-    // resta "Club consigliati".)
-    // SPAZIATURA: misurando i PNG, nel Figma corrono 12px dal fondo della CTA
-    // alla cima delle lettere e 23px dalle lettere alla prima card; il valore
-    // fedele sarebbe quindi 7.5 sopra e 20 sotto. Sopra usiamo 14: scostamento
-    // VOLUTO da Luca per staccare il titolo dalla CTA più del design.
+    // CSS NUOVO/home.css (16/09): 36/41/700/-0.08 a left 13, prima card 6px
+    // sotto il riquadro del testo (528 → 534). Sopra il CSS darebbe 7 dalla
+    // CTA: usiamo 14, scostamento VOLUTO da Luca per staccare il titolo.
     return Padding(
-      padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(14), R.sp(13), R.sp(20)),
+      padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(14), R.sp(13), R.sp(6)),
       child: Text(
         'Club consigliati',
         style: OnlistTextStyles.hn(
-          fontSize: R.sp(32),
+          fontSize: R.sp(36),
           fontWeight: FontWeight.w700,
           color: Colors.white,
-          height: 37 / 32,
-          letterSpacing: -0.08 * 32,
+          height: 41 / 36,
+          letterSpacing: -0.08 * R.sp(36),
         ),
       ),
     );
@@ -558,67 +445,70 @@ class _HomeScreenState extends State<HomeScreen>
       children: [
         for (final club in state.recommendedClubs)
           Padding(
-            // CSS NUOVO: card a left 11, gap verticale 9 tra le card.
-            padding: EdgeInsets.fromLTRB(R.sp(11), 0, R.sp(11), R.sp(9)),
+            // CSS NUOVO (16/09): card a left 13, passo 114 → 12 tra le card.
+            padding: EdgeInsets.fromLTRB(R.sp(13), 0, R.sp(13), R.sp(12)),
             child: _scaleToWidth(
-              designW: 369,
-              designH: 108,
-              child: _buildRecommendedClubCard(context, club),
+              designW: _cardW,
+              designH: _cardH,
+              child: _buildRecommendedClubCard(
+                  context, club, state.nextSerataByClub[club.id]),
             ),
           ),
       ],
     );
   }
 
-  /// Riga info sotto il nome nelle card consigliate: orario apertura–chiusura
-  /// (design ufficiale). Fallback ai generi musicali se il locale non ha orari.
-  String _recommendedInfoLine(LocaleModel club) {
-    final orario = club.orarioString;
-    return orario.isNotEmpty ? orario : club.generiString;
-  }
+  static const double _cardW = 367;
+  static const double _cardH = 102;
 
-  Widget _buildRecommendedClubCard(BuildContext context, LocaleModel club) {
-    // Card club NUOVO design (home.css Frame 352 + 353): 369×108 r10, con
-    // ombra interna nera (inset 0 4 100 25%); foto 165×95 r7 a (6,7); nome
-    // 32/700; pill info blu con l'orario; città 12/700 80%; PRENOTA 86×38
-    // r6.48. Il gradiente è la composizione dei DUE frame sovrapposti del CSS
-    // (vedi OnlistColors.homeClubCard): prima ne disegnavamo uno solo e la
-    // card veniva troppo scura.
-    // NB: siamo dentro _scaleToWidth(369×108) → px design puri, niente R.sp.
+  /// Card club, CSS NUOVO/home.css (16/09) Rectangle 297: 367×102 r7.
+  /// Righe a destra della foto: prossima serata ("Dom 19 Apr"), orario,
+  /// città. Senza serate in programma la data sparisce e l'orario del locale
+  /// sale al suo posto.
+  /// NB: siamo dentro _scaleToWidth(367×102) → px design puri, niente R.sp.
+  Widget _buildRecommendedClubCard(
+      BuildContext context, LocaleModel club, SerataModel? serata) {
+    final String orario = serata?.orarioString ??
+        (club.orarioString.isNotEmpty ? club.orarioString : club.generiString);
+    final TextStyle riga = OnlistTextStyles.hn(
+      fontSize: 19,
+      fontWeight: FontWeight.w400,
+      color: Colors.white,
+      height: 19 / 19,
+    );
+
     return AnimatedPress(
       onPressed: () => _navigateToClubDetail(context, club),
       child: ClipRRect(
-        borderRadius: BorderRadius.circular(10),
+        borderRadius: BorderRadius.circular(7),
         child: SizedBox(
-          width: 369,
-          height: 108,
-          child: GlowCard(
-            gradient: OnlistColors.homeClubCard,
-            radius: 10,
-            glowColor: const Color(0x40000000), // rgba(0,0,0,0.25)
-            glowSigma: 50, // blur CSS 100
-            glowOffset: const Offset(0, 4),
+          width: _cardW,
+          height: _cardH,
+          child: DecoratedBox(
+            decoration: const BoxDecoration(
+              gradient: OnlistColors.homeClubCard,
+            ),
             child: Stack(
               children: [
-                // Foto del club — 165×95 r7 a (6,7) come da CSS.
+                // Foto 153×88 r3 a (6,8).
                 Positioned(
                   left: 6,
-                  top: 7,
+                  top: 8,
                   child: _heroWrap(
                     tag: 'club-img-${club.id}',
                     enabled: club.fotoUrl != null,
                     child: ClipRRect(
-                      borderRadius: BorderRadius.circular(7),
+                      borderRadius: BorderRadius.circular(3),
                       child: Container(
-                        width: 165,
-                        height: 95,
+                        width: 153,
+                        height: 88,
                         color: const Color(0xFF2A2A2A),
                         child: club.fotoUrl != null
                             ? CachedNetworkImage(
                                 imageUrl: club.fotoUrl!,
                                 fit: BoxFit.cover,
-                                memCacheWidth: 495,
-                                memCacheHeight: 285,
+                                memCacheWidth: 459,
+                                memCacheHeight: 264,
                                 errorWidget: (_, __, ___) =>
                                     ImageFallback(seed: club.id),
                               )
@@ -627,131 +517,76 @@ class _HomeScreenState extends State<HomeScreen>
                     ),
                   ),
                 ),
-                // Nome del club (CSS: left 187 → 176 rel, top 7, 32/700/-0.08).
+                // Nome (166,6) 32/37/700/-0.08.
                 Positioned(
-                  left: 176,
-                  top: 7,
-                  child: SizedBox(
-                    width: 184,
+                  left: 166,
+                  top: 6,
+                  right: 8,
+                  child: Text(
+                    club.nome,
+                    maxLines: 1,
+                    overflow: TextOverflow.ellipsis,
+                    style: OnlistTextStyles.hn(
+                      fontSize: 32,
+                      fontWeight: FontWeight.w700,
+                      color: Colors.white,
+                      height: 37 / 32,
+                      letterSpacing: -0.08 * 32,
+                    ),
+                  ),
+                ),
+                // Data (167,43) e orario (167,63), 19/400. Larghezza fino al
+                // bottone PRENOTA (x 294), che l'orario affianca.
+                if (serata != null)
+                  Positioned(
+                    left: 167,
+                    top: 43,
+                    width: 123,
                     child: Text(
-                      club.nome,
+                      DateFormatter.formatBreve(serata.data),
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: riga,
+                    ),
+                  ),
+                if (orario.isNotEmpty)
+                  Positioned(
+                    left: 167,
+                    top: serata != null ? 63 : 43,
+                    width: 123,
+                    child: Text(
+                      orario,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: riga,
+                    ),
+                  ),
+                // Città (167,84) 12/500 all'80%.
+                Positioned(
+                  left: 167,
+                  top: 84,
+                  width: 123,
+                  child: Opacity(
+                    opacity: 0.8,
+                    child: Text(
+                      club.nomeCitta ?? '',
                       maxLines: 1,
                       overflow: TextOverflow.ellipsis,
                       style: OnlistTextStyles.hn(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w500,
                         color: Colors.white,
-                        height: 37 / 32,
-                        letterSpacing: -0.08 * 32,
+                        height: 12 / 12,
                       ),
                     ),
                   ),
                 ),
-                // Pill info (CSS Rectangle 188: 78×30 r4, blu 20% × opacity .3)
-                // con dentro l'orario del club (i dati sono CLUB, niente data).
-                // La pill si dimensiona sul testo entro i 90px liberi fino al
-                // bottone PRENOTA (x 274): con la larghezza fissa a 78 e padding
-                // 4 restavano 70px utili e "23:00 - 05:00" (~72) usciva troncato
-                // in "23:00 - 05…".
-                if (_recommendedInfoLine(club).isNotEmpty)
-                  Positioned(
-                    // 170 e non 176: la pill ha 6 di padding interno, quindi
-                    // il TESTO cade a 176 — esattamente il bordo sinistro del
-                    // nome del club e della città. Prima l'orario partiva a
-                    // 182 e risultava rientrato rispetto al nome (punto 2 del
-                    // doc correzioni). Il CSS avrebbe il testo a 180, ma qui
-                    // si vuole l'allineamento perfetto.
-                    // La pill sfora di 1px sulla foto (che chiude a 171): è
-                    // riempita al 6% di alfa, quindi non si vede.
-                    left: 170,
-                    top: 48,
-                    child: ConstrainedBox(
-                      constraints: const BoxConstraints(maxWidth: 90),
-                      child: Container(
-                        decoration: BoxDecoration(
-                          color: const Color(0x0F002AFF), // 0.2 × 0.3 ≈ 6%
-                          borderRadius: BorderRadius.circular(4),
-                        ),
-                        // 9 + 12 (riga) + 9 = 30 di altezza come da CSS, ma
-                        // senza width/height fissi: così la pill abbraccia il
-                        // testo invece di tagliarlo.
-                        padding: const EdgeInsets.symmetric(
-                            horizontal: 6, vertical: 9),
-                        child: Text(
-                          _recommendedInfoLine(club),
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: OnlistTextStyles.hn(
-                            fontSize: 12,
-                            fontWeight: FontWeight.w400,
-                            color: Colors.white,
-                            height: 12 / 12,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                // Città (CSS: left 176 rel, top 90, 12/700, opacità 80%).
+                // PRENOTA (294,67) 67×26 r7 (Rectangle 298).
                 Positioned(
-                  left: 176,
-                  top: 90,
-                  child: Opacity(
-                    opacity: 0.8,
-                    child: SizedBox(
-                      width: 90,
-                      child: Text(
-                        club.nomeCitta ?? '',
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: OnlistTextStyles.hn(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          height: 12 / 12,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-                // PRENOTA (CSS Bottoni: 86×38 a (274,61), r6.48, gradiente
-                // 90deg #0066FF→#0084FF scurito dal velo nero 20% — colori
-                // pre-moltiplicati; una card del CSS ha →#000000: svista,
-                // consolidato su #0084FF).
-                Positioned(
-                  left: 274,
-                  top: 61,
-                  child: GestureDetector(
+                  left: 294,
+                  top: 67,
+                  child: CardPrenotaButton(
                     onTap: () => _navigateToClubDetail(context, club),
-                    child: Container(
-                      width: 86,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        gradient: const LinearGradient(
-                          colors: [Color(0xFF0052CC), Color(0xFF006ACC)],
-                          begin: Alignment.centerLeft,
-                          end: Alignment.centerRight,
-                        ),
-                        borderRadius: BorderRadius.circular(6.48),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            offset: const Offset(0, 4),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        'PRENOTA',
-                        style: OnlistTextStyles.hn(
-                          fontSize: 15.55,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          height: 18 / 15.55,
-                          letterSpacing: -0.1 * 15.55,
-                        ),
-                      ),
-                    ),
                   ),
                 ),
               ],
@@ -827,13 +662,13 @@ class _HomeSkeleton extends StatelessWidget {
             SizedBox(height: 14),
             // Card consigliate
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: ShimmerBox(width: double.infinity, height: 108),
+              padding: EdgeInsets.symmetric(horizontal: 13),
+              child: ShimmerBox(width: double.infinity, height: 102),
             ),
-            SizedBox(height: 8),
+            SizedBox(height: 12),
             Padding(
-              padding: EdgeInsets.symmetric(horizontal: 10),
-              child: ShimmerBox(width: double.infinity, height: 108),
+              padding: EdgeInsets.symmetric(horizontal: 13),
+              child: ShimmerBox(width: double.infinity, height: 102),
             ),
           ],
         ),

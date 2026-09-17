@@ -19,7 +19,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     on<HomeInitialEvent>(_onInitialize);
     on<HomeBottomNavSelectedEvent>(_onBottomNavSelected);
     on<HomeRefreshEvent>(_onRefresh);
-    on<HomeForceGpsEvent>(_onForceGps);
   }
 
   Future<void> _onInitialize(
@@ -34,17 +33,6 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
     Emitter<HomeState> emit,
   ) async {
     emit(state.copyWith(isGpsForced: LocationService.isGpsForced));
-    await _load(emit);
-  }
-
-  Future<void> _onForceGps(
-    HomeForceGpsEvent event,
-    Emitter<HomeState> emit,
-  ) async {
-    LocationService.isGpsForced = event.enable;
-    emit(state.copyWith(isGpsForced: event.enable));
-    // Analytics: traccia il toggle GPS forzato
-    AnalyticsService.logGpsForced(enabled: event.enable);
     await _load(emit);
   }
 
@@ -190,6 +178,15 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
           .where((c) => c.id != locale.id)
           .take(8)
           .toList(growable: false);
+      // Data della prossima serata sulle card: se la query fallisce le card
+      // mostrano solo l'orario, la Home non deve saltare per questo.
+      Map<String, SerataModel> prossime = const {};
+      try {
+        prossime = await ClubService.getProssimeSerate(
+            recommended.map((c) => c.id).toList(growable: false));
+      } catch (e) {
+        debugPrint('[HomeBloc] ⚠️ prossime serate non caricate: $e');
+      }
       debugPrint('[HomeBloc] 📅 Eventi trovati: ${eventi.length} per ${locale.nome}');
       debugPrint('[HomeBloc] 🏟️ Club consigliati: ${recommended.length}');
 
@@ -208,8 +205,8 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         localeVicino: locale,
         upcomingEventi: eventi,
         recommendedClubs: recommended,
+        nextSerataByClub: prossime,
         raggioKm: raggio,
-        locationSourceLabel: sourceLabel,
       ));
       debugPrint('[HomeBloc] ✅ _load() COMPLETATO — club=${locale.nome}, source=$sourceLabel');
     } catch (e, stack) {

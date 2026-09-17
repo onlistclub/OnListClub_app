@@ -1,28 +1,64 @@
 import 'dart:async';
+import 'dart:ui' show ImageFilter;
+
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
+
 import '../../core/models/citta_model.dart';
 import '../../core/models/locale_model.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/services/club_service.dart';
 import '../../core/services/location_service.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/user_profile_manager.dart';
-import '../../routes/app_routes.dart';
-import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../core/utils/responsive.dart';
+import '../../routes/app_routes.dart';
 import '../../theme/onlist_text_styles.dart';
-import '../../widgets/top_bar_slot.dart';
+import '../../widgets/image_fallback.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/shimmer_loading.dart';
 import '../../widgets/staggered_item.dart';
-import '../../widgets/image_fallback.dart';
-import '../../theme/onlist_colors.dart';
+import '../../widgets/top_bar_slot.dart';
 
-enum _SortMode { distanza, popolarita }
+// ── Design "Ricerca Club" (Figma off/NUOVO, CSS del 16/09/2026) ─────────────
+// Tutte le misure sono px design (frame 393×852) scalate con R.sp, oppure px
+// design puri dentro i blocchi a scala fissa (_ScalaFissa).
+
+/// Sfondo schermata: `linear-gradient(180deg, #000000 0%, #0000FF 100%)`.
+const LinearGradient _sfondo = LinearGradient(
+  begin: Alignment.topCenter,
+  end: Alignment.bottomCenter,
+  colors: [Color(0xFF000000), Color(0xFF0000FF)],
+);
+
+/// Riempimento "vetro" di barra, chip e riquadro suggerimenti:
+/// blu 12% sopra bianco 4% (`linear-gradient(…0,0,255,.12…), rgba(255,255,255,.04)`)
+/// già composti in un unico colore.
+const Color _vetro = Color(0x283A3AFF);
+
+/// Bordo 1px `rgba(0, 21, 255, 0.29)`.
+const Color _vetroBordo = Color(0x4A0015FF);
+
+/// Margine laterale dei contenuti: barra e card larghe 367 su 393.
+const double _margine = 13;
+
+/// Stile musicale del pannello filtri: macro-categorie del Figma, ognuna
+/// raggruppa i generi presenti nel DB. "Italiana" del Figma non ha generi
+/// corrispondenti nel DB, quindi non compare.
+const Map<String, Set<String>> _categorieGeneri = {
+  'Mainstream / Commerciale': {'Commercial', 'Pop', 'Dance', 'Revival'},
+  'Elettronica': {'House', 'Techno', 'Electro', 'EDM'},
+  'Urban': {'Hip Hop', 'Reggaeton'},
+  'Rock / Indie': {'Rock', 'Indie'},
+};
+
+/// Livelli del filtro prezzo ($ … $$$$$), uguali a `locali.prezzo_indicativo`.
+const int _livelliPrezzo = 5;
 
 class NearbyClubsScreen extends StatefulWidget {
   const NearbyClubsScreen({Key? key}) : super(key: key);
@@ -39,86 +75,80 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
   String get screenName => 'search_nearby';
 
   // Cache in memoria condivisa tra le aperture: riaprendo la Ricerca si mostrano
-  // subito gli ultimi dati (niente spinner/ricaricamento a schermo intero),
-  // mentre un refresh silenzioso in background li aggiorna.
+  // subito gli ultimi dati, mentre un refresh silenzioso li aggiorna.
   static _NearbyData? _cachedData;
 
   /// Ultimi dati mostrati. La UI legge SEMPRE da qui, non da un `FutureBuilder`:
-  /// assegnare un future nuovo riportava lo snapshot a `waiting` per un frame,
-  /// quindi alla riapertura lo scheletro lampeggiava e la lista si ricostruiva
-  /// da zero (le entrate `StaggeredItem` ripartivano) — il "saltino".
-  /// Null = non abbiamo ancora nulla da mostrare → scheletro.
+  /// assegnare un future nuovo riportava lo snapshot a `waiting` per un frame
+  /// (lo scheletro lampeggiava alla riapertura). Null = scheletro.
   _NearbyData? _data;
 
   /// Il caricamento corrente è fallito e non abbiamo dati da mostrare.
   bool _loadError = false;
 
-  /// Marker monotonico dei caricamenti: scarta le risposte ormai obsolete
-  /// (es. cambio città mentre il load precedente è ancora in volo).
+  /// Marker monotonico dei caricamenti: scarta le risposte obsolete.
   int _loadSeq = 0;
-  String _searchQuery = '';
-  _SortMode _sortMode = _SortMode.distanza;
-  final Set<String> _selectedGeneri = {};
-  final Set<String> _selectedCitta = {};
-  int? _selectedPrezzo; // null = tutti, 1/2/3 = €/€€/€€€
-  CittaModel?
-      _customCity; // città cercata manualmente: ha priorità su GPS/saved
 
-  // ── Barra di ricerca unificata ─────────────────────────────────────────────
-  // Un solo campo cerca sia locali (filtro client-side sulla lista già
-  // caricata) sia città (query su Supabase, ricentra la ricerca).
+  // ── Filtri ────────────────────────────────────────────────────────────────
+  final Set<String> _selectedCategorie = {};
+  int? _selectedPrezzo; // null = tutti, 1…5
+
+  /// Città scelta con "Cerca qui": ha priorità su GPS e città salvata.
+  CittaModel? _customCity;
+
+  // ── Barra di ricerca ──────────────────────────────────────────────────────
+  // Un solo campo cerca sia locali sia città. Dopo "Cerca qui" la barra mostra
+  // il nome della città scelta ([_barraMostraCitta]): la X la toglie e la
+  // ricerca torna alla posizione automatica.
   final TextEditingController _searchCtrl = TextEditingController();
   final FocusNode _searchFocus = FocusNode();
-  Timer? _cityDebounce;
-  List<CittaModel> _cityResults = [];
-  bool _cityLoading = false;
-  // Marker monotonico per scartare risposte di chiamate ormai obsolete
-  // (es. utente digita "mil" mentre "mi" è ancora in volo).
-  int _citySeq = 0;
+  String _searchQuery = '';
+  bool _barraMostraCitta = false;
 
-  // ── Fallback ricerca locali (BUG A) ─────────────────────────────────────────
-  // Quando la ricerca nella zona corrente è VUOTA, si allarga per nome a TUTTE
-  // le città in due sezioni. Compaiono solo in quel caso (vedi _buildEmptyOrFallback).
-  List<LocaleModel> _fbStrong = []; // "Forse stai cercando" (match per nome)
-  List<LocaleModel> _fbRelated = []; // "Altri in linea" (stessa zona dei match)
-  bool _fbLoading = false;
-  int _fbSeq = 0;
-  String? _fbQuery; // query per cui il fallback corrente è calcolato/in corso
-  Timer? _fbDebounce;
+  // ── Risultati della ricerca testuale ──────────────────────────────────────
+  // Con almeno 2 caratteri: città da proporre ("Cerca qui"), locali per nome
+  // su tutte le città ("Forse stai cercando") e altri locali delle stesse zone
+  // ("Altri locali in linea con la tua ricerca").
+  Timer? _searchDebounce;
+  int _searchSeq = 0;
+  bool _searchLoading = false;
+  List<CittaModel> _cityResults = [];
+  List<LocaleModel> _forse = [];
+  List<LocaleModel> _altri = [];
+
+  static const int _maxCitta = 3;
+
+  bool get _ricercaAttiva => _searchQuery.trim().length >= 2;
 
   @override
   void initState() {
     super.initState();
-    // NIENTE logSearch qui: aprire la schermata non è una ricerca. Contarlo
-    // gonfiava le "Ricerche" del foglio con un evento per ogni apertura, e
-    // l'apertura è già registrata dal mixin ScreenAnalytics come `screen_*`.
-    // Le ricerche vere restano quelle su selezione città e invio del testo.
+    // NIENTE logSearch qui: aprire la schermata non è una ricerca (l'apertura
+    // la registra già ScreenAnalytics).
     if (_cachedData != null) {
-      // Riapertura: dati subito dalla cache (nessun ricaricamento visibile),
-      // poi refresh silenzioso in background — che sostituisce i dati sul posto,
-      // senza passare per lo scheletro.
       _data = _cachedData;
       _reload(showSkeleton: false);
     } else {
-      // Tempo di caricamento della ricerca: quando i dati (posizione + locali)
-      // sono pronti la prima volta. reportLoadTime è guardato → una sola volta,
-      // per questo lo chiediamo solo qui e non sui refresh/cambi raggio.
       _reload(reportLoad: true);
     }
   }
 
+  @override
+  void dispose() {
+    _searchDebounce?.cancel();
+    _searchCtrl.dispose();
+    _searchFocus.dispose();
+    super.dispose();
+  }
+
   /// Ricarica i dati. Con `showSkeleton: false` la lista attuale resta a video
-  /// finché i nuovi dati non sono pronti (riaperture e refresh silenziosi);
-  /// con `true` si torna allo scheletro, giusto quando il contenuto cambia
-  /// davvero (nuova città, nuovo raggio, "Riprova").
+  /// finché i nuovi dati non sono pronti.
   Future<void> _reload({
     bool showSkeleton = true,
     bool reportLoad = false,
   }) async {
     _loadSeq++;
     final mySeq = _loadSeq;
-    // Il setState serve solo se c'è davvero qualcosa da azzerare: al primo load
-    // (da initState) siamo già in questo stato e setState lì non è ammesso.
     if (showSkeleton && (_data != null || _loadError)) {
       setState(() {
         _data = null;
@@ -131,6 +161,9 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       setState(() {
         _data = d;
         _loadError = false;
+        // Le distanze dei risultati dipendono dalla posizione appena cambiata.
+        _forse = _sortByProximity(_forse, d.lat, d.lng);
+        _altri = _sortByProximity(_altri, d.lat, d.lng);
       });
       if (reportLoad) reportLoadTime('load_time_ricerca');
     } catch (e) {
@@ -140,80 +173,117 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     }
   }
 
-  @override
-  void dispose() {
-    _cityDebounce?.cancel();
-    _fbDebounce?.cancel();
-    _searchCtrl.dispose();
-    _searchFocus.dispose();
-    super.dispose();
-  }
+  // ── Barra: testo, città, GPS ─────────────────────────────────────────────
 
-  /// Aggiorna il filtro locali e, in parallelo, cerca città corrispondenti.
   void _onSearchChanged(String value) {
-    setState(() => _searchQuery = value);
-
-    _cityDebounce?.cancel();
-    final query = value.trim();
-    if (query.length < 2) {
-      setState(() {
+    _searchDebounce?.cancel();
+    _searchSeq++;
+    final String q = value.trim();
+    setState(() {
+      // Modificare il nome della città scelta lo trasforma in una ricerca;
+      // il centro resta sulla città finché non la si toglie con la X.
+      _barraMostraCitta = false;
+      _searchQuery = value;
+      if (q.length < 2) {
+        _searchLoading = false;
         _cityResults = [];
-        _cityLoading = false;
-      });
-      return;
-    }
-
-    _citySeq++;
-    final mySeq = _citySeq;
-    setState(() => _cityLoading = true);
-    _cityDebounce = Timer(const Duration(milliseconds: 300), () async {
-      try {
-        final r = await LocationService.searchCitta(query);
-        if (!mounted || mySeq != _citySeq) return;
-        setState(() {
-          _cityResults = r;
-          _cityLoading = false;
-        });
-      } catch (e) {
-        debugPrint('[NearbyClubs] searchCitta fallita: $e');
-        if (!mounted || mySeq != _citySeq) return;
-        setState(() {
-          _cityResults = [];
-          _cityLoading = false;
-        });
+        _forse = [];
+        _altri = [];
+      } else {
+        _searchLoading = true;
       }
     });
+    if (q.length < 2) return;
+    final mySeq = _searchSeq;
+    _searchDebounce = Timer(
+      const Duration(milliseconds: 300),
+      () => _cerca(q, mySeq),
+    );
   }
 
-  /// Ricentra la ricerca sulla città scelta e svuota il campo: la città
-  /// diventa il contesto (chip in alto), non un filtro testuale sui nomi.
+  Future<void> _cerca(String q, int mySeq) async {
+    try {
+      final risultati = await Future.wait([
+        LocationService.searchCitta(q),
+        ClubService.searchClubsByName(q),
+      ]);
+      final citta = (risultati[0] as List<CittaModel>)
+          .take(_maxCitta)
+          .toList(growable: false);
+      final forse = risultati[1] as List<LocaleModel>;
+      final forseIds = forse.map((c) => c.id).toSet();
+      // Stesse zone dei locali trovati per nome, più le città che
+      // corrispondono al testo ("Milano" → i locali di Milano).
+      final cityIds = <String>{
+        ...forse.map((c) => c.idCitta).whereType<String>(),
+        ...citta.map((c) => c.idCitta),
+      }.toList();
+      final stesseZone = await ClubService.getClubsInCities(cityIds);
+      final altri = [
+        for (final c in stesseZone)
+          if (!forseIds.contains(c.id)) c,
+      ];
+      if (!mounted || mySeq != _searchSeq) return;
+      setState(() {
+        _cityResults = citta;
+        _forse = _sortByProximity(forse, _data?.lat, _data?.lng);
+        _altri = _sortByProximity(altri, _data?.lat, _data?.lng);
+        _searchLoading = false;
+      });
+    } catch (e) {
+      debugPrint('[NearbyClubs] ricerca fallita: $e');
+      if (!mounted || mySeq != _searchSeq) return;
+      setState(() {
+        _cityResults = [];
+        _forse = [];
+        _altri = [];
+        _searchLoading = false;
+      });
+    }
+  }
+
+  /// "Cerca qui": la città diventa il centro della ricerca e il suo nome
+  /// resta nella barra.
   void _selectCity(CittaModel citta) {
-    // Funnel: ricerca attiva di un locale per città.
     AnalyticsService.logSearch(query: citta.nomeCitta, source: 'city');
-    _cityDebounce?.cancel();
-    _citySeq++;
-    _searchCtrl.clear();
+    _searchDebounce?.cancel();
+    _searchSeq++;
     _searchFocus.unfocus();
+    _searchCtrl.text = citta.nomeCitta;
     setState(() {
       _customCity = citta;
+      _barraMostraCitta = true;
       _searchQuery = '';
+      _searchLoading = false;
       _cityResults = [];
-      _cityLoading = false;
+      _forse = [];
+      _altri = [];
     });
     _reload();
   }
 
-  void _clearCity() {
-    setState(() => _customCity = null);
-    _reload();
+  void _onClearTap() {
+    final bool eraCitta = _barraMostraCitta;
+    _searchCtrl.clear();
+    _onSearchChanged('');
+    if (eraCitta) {
+      setState(() => _customCity = null);
+      _reload();
+    }
   }
 
   /// Accende/spegne il GPS come sorgente della ricerca. Acceso, la città
-  /// cercata a mano viene scartata: altrimenti avrebbe comunque la priorità
-  /// in `_load()` e il GPS non avrebbe alcun effetto visibile.
+  /// scelta a mano viene scartata: altrimenti avrebbe la priorità in `_load()`.
   void _toggleGps(bool enable) {
     LocationService.isGpsForced = enable;
-    if (enable) setState(() => _customCity = null);
+    AnalyticsService.logGpsForced(enabled: enable);
+    if (enable) {
+      if (_barraMostraCitta) {
+        _searchCtrl.clear();
+        _onSearchChanged('');
+      }
+      setState(() => _customCity = null);
+    }
     _reload();
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -232,7 +302,6 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
 
     double? lat;
     double? lng;
-    String? locationLabel;
     bool gpsAttempted = false;
 
     Future<void> tryGps() async {
@@ -252,7 +321,6 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
           );
           lat = pos.latitude;
           lng = pos.longitude;
-          locationLabel = 'GPS';
         } else {
           debugPrint('[NearbyClubs] GPS permesso negato: $permission');
         }
@@ -262,34 +330,28 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     }
 
     if (_customCity != null && _customCity!.lat != null) {
-      // Priorità 1: città cercata manualmente nell'app
+      // Priorità 1: città scelta con "Cerca qui".
       lat = _customCity!.lat;
       lng = _customCity!.lng;
-      locationLabel = _customCity!.nomeCitta;
     } else if (isGpsForced) {
-      // Priorità 2: GPS forzato. Se il GPS fallisce, fallback su saved.
+      // Priorità 2: GPS forzato; se fallisce, città salvata.
       await tryGps();
       if (lat == null) {
         final savedCity = await LocationService.getSavedLocation();
         if (savedCity?.lat != null) {
           lat = savedCity!.lat;
           lng = savedCity.lng;
-          locationLabel = savedCity.nomeCitta;
         }
       }
     } else {
-      // GPS disattivato: la ricerca si basa su una città.
-      // Priorità 3: città salvata manualmente nelle impostazioni
+      // Priorità 3: città salvata nelle impostazioni.
       final savedCity = await LocationService.getSavedLocation();
       if (savedCity?.lat != null) {
         lat = savedCity!.lat;
         lng = savedCity.lng;
-        locationLabel = savedCity.nomeCitta;
       }
-
-      // Priorità 4: nessuna città scelta → deduciamo la più vicina dall'ultima
-      // posizione GPS in cache. Non chiediamo una nuova posizione: col toggle
-      // spento il GPS non va interrogato.
+      // Priorità 4: città più vicina all'ultima posizione GPS in cache (col
+      // toggle spento il GPS non va interrogato).
       if (lat == null) {
         final cached = await LocationService.getCachedGpsPosition();
         if (cached != null) {
@@ -298,18 +360,13 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
           if (nearest?.lat != null) {
             lat = nearest!.lat;
             lng = nearest.lng;
-            locationLabel = nearest.nomeCitta;
           }
         }
       }
     }
 
-    // Se nessuna sorgente di posizione è disponibile, mostriamo comunque
-    // i locali più popolari come fallback con etichetta esplicita.
+    // Senza posizione si mostrano comunque i locali più popolari.
     final locationAvailable = lat != null && lng != null;
-    if (!locationAvailable) {
-      locationLabel = 'Locali più popolari';
-    }
 
     List<LocaleModel> clubs = [];
     try {
@@ -323,65 +380,16 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
       raggio: raggio,
       lat: lat,
       lng: lng,
-      locationLabel: locationLabel,
       locationAvailable: locationAvailable,
       gpsAttempted: gpsAttempted,
     );
-    _cachedData = data; // alimenta la cache per le riaperture
+    _cachedData = data;
     return data;
-  }
-
-  // ── Fallback ricerca (BUG A) ────────────────────────────────────────────────
-
-  /// Se la ricerca nella zona corrente è vuota, allarga la ricerca per nome a
-  /// TUTTE le città (una sola volta per query). Chiamata da `build`: la fetch è
-  /// dietro un debounce (Timer), quindi il `setState` avviene fuori dal build.
-  void _maybeLoadFallback(String query, _NearbyData data) {
-    if (_fbQuery == query) return; // già calcolato o in corso per questa query
-    _fbQuery = query;
-    _fbSeq++;
-    final mySeq = _fbSeq;
-    _fbLoading = true;
-    _fbStrong = [];
-    _fbRelated = [];
-    // Debounce come per la ricerca città: niente query DB a ogni tasto.
-    _fbDebounce?.cancel();
-    _fbDebounce = Timer(
-      const Duration(milliseconds: 300),
-      () => _loadFallback(query, data, mySeq),
-    );
-  }
-
-  Future<void> _loadFallback(String query, _NearbyData data, int mySeq) async {
-    try {
-      // Sezione 1: match per nome su tutte le città (ilike '%query%').
-      final strong = await ClubService.searchClubsByName(query);
-      final strongIds = strong.map((c) => c.id).toSet();
-      // Sezione 2: altri locali nella stessa zona dei match (stesse città),
-      // esclusi quelli già mostrati sopra.
-      final cityIds =
-          strong.map((c) => c.idCitta).whereType<String>().toSet().toList();
-      final sameZone = await ClubService.getClubsInCities(cityIds);
-      final related = <LocaleModel>[
-        for (final c in sameZone)
-          if (!strongIds.contains(c.id)) c,
-      ];
-      if (!mounted || mySeq != _fbSeq) return;
-      setState(() {
-        _fbStrong = _sortByProximity(strong, data.lat, data.lng);
-        _fbRelated = _sortByProximity(related, data.lat, data.lng);
-        _fbLoading = false;
-      });
-    } catch (e) {
-      debugPrint('[NearbyClubs] fallback ricerca fallito: $e');
-      if (!mounted || mySeq != _fbSeq) return;
-      setState(() => _fbLoading = false);
-    }
   }
 
   /// Ordina per vicinanza all'utente. Locale senza coordinate → in fondo;
   /// senza posizione utente → ripiega su famosità.
-  List<LocaleModel> _sortByProximity(
+  static List<LocaleModel> _sortByProximity(
       List<LocaleModel> list, double? uLat, double? uLng) {
     final l = [...list];
     if (uLat == null || uLng == null) {
@@ -399,316 +407,91 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
     return l;
   }
 
-  // ── Filtering ──────────────────────────────────────────────────────────────
+  // ── Filtri ─────────────────────────────────────────────────────────────────
 
-  /// Predicato di filtro condiviso: lo usa sia la lista sia il popup filtri
-  /// per contare i locali risultanti ("Mostra N locali") senza duplicare le
-  /// regole. Non ordina: l'ordinamento resta responsabilità del chiamante.
+  /// Predicato condiviso da lista e pannello filtri ("Mostra N risultati").
   static List<LocaleModel> _applyFilters(
     List<LocaleModel> clubs, {
-    required String searchQuery,
-    required Set<String> generi,
-    required Set<String> citta,
+    required Set<String> categorie,
     required int? prezzo,
   }) {
+    final Set<String> generi = {
+      for (final c in categorie) ...?_categorieGeneri[c],
+    };
     return clubs.where((c) {
-      // Testo
-      if (searchQuery.isNotEmpty) {
-        final q = searchQuery.toLowerCase();
-        if (!c.nome.toLowerCase().contains(q) &&
-            !(c.nomeCitta?.toLowerCase().contains(q) ?? false)) {
-          return false;
-        }
-      }
-      // Genere
       if (generi.isNotEmpty && !c.generiMusicali.any(generi.contains)) {
         return false;
       }
-      // Città
-      if (citta.isNotEmpty && !citta.contains(c.nomeCitta)) return false;
-      // Prezzo
       if (prezzo != null && c.prezzoIndicativo != prezzo) return false;
       return true;
     }).toList();
   }
 
-  List<LocaleModel>? _filteredCache;
-  String? _filteredCacheKey;
+  List<LocaleModel> _filtra(List<LocaleModel> clubs) => _applyFilters(
+        clubs,
+        categorie: _selectedCategorie,
+        prezzo: _selectedPrezzo,
+      );
 
-  List<LocaleModel> _filtered(List<LocaleModel> clubs) {
-    final key =
-        '${identityHashCode(clubs)}|$_searchQuery|${_selectedGeneri.join(',')}'
-        '|${_selectedCitta.join(',')}|$_selectedPrezzo|${_sortMode.index}';
-    if (key == _filteredCacheKey && _filteredCache != null) {
-      return _filteredCache!;
-    }
+  int get _activeFilterCount =>
+      _selectedCategorie.length + (_selectedPrezzo != null ? 1 : 0);
 
-    var list = _applyFilters(
-      clubs,
-      searchQuery: _searchQuery,
-      generi: _selectedGeneri,
-      citta: _selectedCitta,
-      prezzo: _selectedPrezzo,
-    );
-
-    if (_sortMode == _SortMode.popolarita) {
-      list.sort((a, b) => b.famosita.compareTo(a.famosita));
-    }
-
-    _filteredCache = list;
-    _filteredCacheKey = key;
-    return list;
+  /// Locali su cui agiscono i filtri in questo momento: i risultati della
+  /// ricerca se si sta cercando, altrimenti i locali vicini.
+  List<LocaleModel> _baseCorrente() {
+    if (_ricercaAttiva) return [..._forse, ..._altri];
+    return _data?.clubs ?? const [];
   }
 
-  bool get _hasActiveFilters => _activeFilterCount > 0;
-
-  /// Numero di filtri attivi, mostrato come badge sul bottone "Filtri":
-  /// ogni genere e ogni città contano uno, il prezzo conta uno in tutto.
-  int get _activeFilterCount =>
-      _selectedGeneri.length +
-      _selectedCitta.length +
-      (_selectedPrezzo != null ? 1 : 0);
-
-  /// Apre il popup dei filtri (genere, città, prezzo). I filtri si applicano
-  /// live a ogni tocco: chiudere il popup con lo swipe non perde le scelte.
-  Future<void> _showFiltersSheet(_NearbyData data) async {
-    await showModalBottomSheet<void>(
+  Future<void> _showFiltersSheet() async {
+    await showGeneralDialog<void>(
       context: context,
-      isScrollControlled: true,
-      backgroundColor: OnlistColors.black,
-      shape: const RoundedRectangleBorder(
-        borderRadius: BorderRadius.vertical(top: Radius.circular(32)),
-      ),
-      builder: (_) => _FiltersSheet(
-        clubs: data.clubs,
-        allGeneri: data.allGeneri,
-        allCitta: data.allCitta,
-        searchQuery: _searchQuery,
-        initialGeneri: _selectedGeneri,
-        initialCitta: _selectedCitta,
+      barrierDismissible: false,
+      barrierColor: Colors.transparent,
+      transitionDuration: const Duration(milliseconds: 280),
+      pageBuilder: (_, __, ___) => _FiltersSheet(
+        base: _baseCorrente(),
+        initialCategorie: _selectedCategorie,
         initialPrezzo: _selectedPrezzo,
-        onChanged: (generi, citta, prezzo) {
+        onChanged: (categorie, prezzo) {
           setState(() {
-            _selectedGeneri
+            _selectedCategorie
               ..clear()
-              ..addAll(generi);
-            _selectedCitta
-              ..clear()
-              ..addAll(citta);
+              ..addAll(categorie);
             _selectedPrezzo = prezzo;
           });
         },
       ),
+      transitionBuilder: (_, anim, __, child) {
+        final curved =
+            CurvedAnimation(parent: anim, curve: Curves.easeOutCubic);
+        return FadeTransition(
+          opacity: curved,
+          child: SlideTransition(
+            position: Tween<Offset>(
+              begin: const Offset(0, 0.25),
+              end: Offset.zero,
+            ).animate(curved),
+            child: child,
+          ),
+        );
+      },
     );
   }
 
-  // ── Radius dialog ──────────────────────────────────────────────────────────
-
-  double _zoomForRadius(int km) {
-    if (km <= 3) return 13;
-    if (km <= 8) return 11;
-    if (km <= 15) return 10;
-    return 9;
-  }
-
-  Future<void> _showRadiusDialog(
-    int currentRaggio, {
-    double? lat,
-    double? lng,
-  }) async {
-    int tempRaggio = currentRaggio;
-    final mapCtrl = (lat != null && lng != null) ? MapController() : null;
-
-    final confirmed = await showDialog<bool>(
+  Future<void> _showRadiusDialog(_NearbyData? data) async {
+    final int? scelto = await showDialog<int>(
       context: context,
-      builder: (ctx) => StatefulBuilder(
-        builder: (ctx, setS) => Dialog(
-          backgroundColor: OnlistColors.black,
-          shape:
-              RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-          // Dialog + ConstrainedBox avoids AlertDialog's IntrinsicWidth,
-          // which crashes when FlutterMap is inside (no intrinsic width impl).
-          child: ConstrainedBox(
-            constraints: const BoxConstraints(maxWidth: 360),
-            child: Padding(
-              padding: const EdgeInsets.fromLTRB(24, 24, 24, 16),
-              child: Column(
-                mainAxisSize: MainAxisSize.min,
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    'Cambia raggio',
-                    style: TextStyle(
-                        fontFamily: OnlistTextStyles.family,
-                        color: Colors.white,
-                        fontWeight: FontWeight.w700,
-                        fontSize: 18),
-                  ),
-                  const SizedBox(height: 16),
-                  // Mappa con cerchio raggio
-                  if (lat != null && lng != null) ...[
-                    ClipRRect(
-                      borderRadius: BorderRadius.circular(10),
-                      child: SizedBox(
-                        height: 160,
-                        width: double.infinity,
-                        child: FlutterMap(
-                          mapController: mapCtrl,
-                          options: MapOptions(
-                            initialCenter: LatLng(lat, lng),
-                            initialZoom: _zoomForRadius(tempRaggio),
-                            interactionOptions: const InteractionOptions(
-                              flags: InteractiveFlag.none,
-                            ),
-                          ),
-                          children: [
-                            // Basemap CARTO "dark_matter": look pulito e
-                            // minimale, coerente col tema scuro dell'app.
-                            // Niente API key; l'attribuzione sotto è richiesta
-                            // dalla licenza CARTO/OpenStreetMap.
-                            TileLayer(
-                              urlTemplate:
-                                  'https://basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-                              subdomains: const ['a', 'b', 'c', 'd'],
-                              retinaMode:
-                                  RetinaMode.isHighDensity(context),
-                              userAgentPackageName: 'com.onlist.app',
-                            ),
-                            CircleLayer(
-                              circles: [
-                                CircleMarker(
-                                  point: LatLng(lat, lng),
-                                  radius: tempRaggio * 1000.0,
-                                  useRadiusInMeter: true,
-                                  color: OnlistColors.blueElectric
-                                      .withValues(alpha: 0.18),
-                                  borderColor: OnlistColors.blueElectric
-                                      .withValues(alpha: 0.7),
-                                  borderStrokeWidth: 2,
-                                ),
-                              ],
-                            ),
-                            MarkerLayer(
-                              markers: [
-                                Marker(
-                                  point: LatLng(lat, lng),
-                                  width: 24,
-                                  height: 24,
-                                  child: const Icon(
-                                    Icons.location_on,
-                                    color: OnlistColors.blueElectric,
-                                    size: 24,
-                                  ),
-                                ),
-                              ],
-                            ),
-                          ],
-                        ),
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      '© OpenStreetMap, © CARTO',
-                      style: TextStyle(
-                        fontFamily: OnlistTextStyles.family,
-                        fontSize: 9,
-                        color: Colors.white24,
-                      ),
-                    ),
-                    const SizedBox(height: 8),
-                  ],
-                  Center(
-                    child: Text(
-                      '$tempRaggio km',
-                      style: TextStyle(
-                        fontFamily: OnlistTextStyles.family,
-                        fontSize: 22,
-                        fontWeight: FontWeight.w800,
-                        color: Colors.white,
-                      ),
-                    ),
-                  ),
-                  SliderTheme(
-                    data: SliderTheme.of(ctx).copyWith(
-                      activeTrackColor: OnlistColors.blueElectric,
-                      inactiveTrackColor: Colors.white24,
-                      thumbColor: OnlistColors.blueElectric,
-                      overlayColor:
-                          OnlistColors.blueElectric.withValues(alpha: 0.1),
-                      trackHeight: 3,
-                    ),
-                    child: Slider(
-                      min: 2,
-                      max: 50,
-                      divisions: 48,
-                      value: tempRaggio.toDouble(),
-                      onChanged: (v) {
-                        setS(() => tempRaggio = v.round());
-                        if (lat != null && lng != null) {
-                          WidgetsBinding.instance.addPostFrameCallback((_) {
-                            try {
-                              mapCtrl!.move(
-                                LatLng(lat, lng),
-                                _zoomForRadius(tempRaggio),
-                              );
-                            } catch (_) {}
-                          });
-                        }
-                      },
-                    ),
-                  ),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                    children: [
-                      Text('2 km',
-                          style: TextStyle(
-                              fontFamily: OnlistTextStyles.family,
-                              fontSize: 11,
-                              color: Colors.white38)),
-                      Text('50 km',
-                          style: TextStyle(
-                              fontFamily: OnlistTextStyles.family,
-                              fontSize: 11,
-                              color: Colors.white38)),
-                    ],
-                  ),
-                  const SizedBox(height: 8),
-                  Row(
-                    mainAxisAlignment: MainAxisAlignment.end,
-                    children: [
-                      TextButton(
-                        onPressed: () => Navigator.pop(ctx, false),
-                        child: Text('Annulla',
-                            style: TextStyle(
-                                fontFamily: OnlistTextStyles.family,
-                                color: Colors.white54)),
-                      ),
-                      const SizedBox(width: 8),
-                      ElevatedButton(
-                        onPressed: () => Navigator.pop(ctx, true),
-                        style: ElevatedButton.styleFrom(
-                          backgroundColor: OnlistColors.blueElectric,
-                          shape: RoundedRectangleBorder(
-                              borderRadius: BorderRadius.circular(7)),
-                        ),
-                        child: Text('Applica',
-                            style: TextStyle(
-                                fontFamily: OnlistTextStyles.family,
-                                color: Colors.white,
-                                fontWeight: FontWeight.w600)),
-                      ),
-                    ],
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
+      // CSS Rectangle 347: nero 86% × opacità 0.8 ≈ 69%.
+      barrierColor: const Color(0xB0000000),
+      builder: (_) => _RadiusDialog(
+        raggioIniziale: data?.raggio ?? 20,
+        lat: data?.lat,
+        lng: data?.lng,
       ),
     );
-
-    if (confirmed == true) {
-      await UserProfileManager().saveRaggioKm(tempRaggio);
+    if (scelto != null) {
+      await UserProfileManager().saveRaggioKm(scelto);
       _reload();
     }
   }
@@ -717,666 +500,311 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
 
   @override
   Widget build(BuildContext context) {
-    final isGpsForced = LocationService.isGpsForced;
-
     return Scaffold(
-      backgroundColor: OnlistColors.black,
-      // Footer flottante: il gradiente si estende dietro la capsula così sotto
-      // non resta la fascia nera dello Scaffold.
+      backgroundColor: Colors.black,
+      // Il gradiente continua dietro la footer flottante.
       extendBody: true,
       // Footer: unica e globale, montata da RootShell (non qui).
       body: DecoratedBox(
-        decoration:
-            const BoxDecoration(gradient: OnlistColors.screenBackground),
+        decoration: const BoxDecoration(gradient: _sfondo),
         child: SafeArea(
           bottom: false,
           child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // ── Navbar (dentro lo shell la monta lui, vedi TopBarSlot) ──
-            // Icona ricerca mostrata anche qui per uniformità con le altre
-            // schermate: no-op perché si è già nella schermata di ricerca.
-            TopBarSlot(onSearchTap: () {}),
-            // Subheader with back button and chips
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Row(
-                children: [
-                  GestureDetector(
-                    onTap: NavigatorService.goBack,
-                    child: const Icon(Icons.arrow_back_ios_new,
-                        color: Colors.white, size: 22),
-                  ),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: SingleChildScrollView(
-                      scrollDirection: Axis.horizontal,
-                      child: Builder(
-                        builder: (_) {
-                          final data = _data;
-                          final raggio = data?.raggio ?? 20;
-                          final locLabel = data?.locationLabel;
-                          return Row(
-                            mainAxisSize: MainAxisSize.min,
-                            children: [
-                              // Chip raggio
-                              GestureDetector(
-                                onTap: () => _showRadiusDialog(
-                                  raggio,
-                                  lat: data?.lat,
-                                  lng: data?.lng,
-                                ),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 10, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: OnlistColors.blueElectric
-                                        .withValues(alpha: 0.15),
-                                    borderRadius: BorderRadius.circular(7),
-                                    border: Border.all(
-                                      color: OnlistColors.blueElectric
-                                          .withValues(alpha: 0.5),
-                                      width: 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        '$raggio km',
-                                        style: TextStyle(
-                                          fontFamily: OnlistTextStyles.family,
-                                          fontSize: 12,
-                                          fontWeight: FontWeight.w600,
-                                          color: OnlistColors.blueElectric,
-                                        ),
-                                      ),
-                                      const SizedBox(width: 4),
-                                      const Icon(Icons.tune,
-                                          color: OnlistColors.blueElectric, size: 12),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                              // Chip sorgente posizione
-                              if (locLabel != null) ...[
-                                const SizedBox(width: 6),
-                                Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 5),
-                                  decoration: BoxDecoration(
-                                    color: OnlistColors.blueDeep,
-                                    borderRadius: BorderRadius.circular(7),
-                                    border: Border.all(
-                                        color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Text(
-                                        locLabel,
-                                        style: TextStyle(
-                                          fontFamily: OnlistTextStyles.family,
-                                          fontSize: 11,
-                                          color: Colors.white54,
-                                        ),
-                                      ),
-                                      // La città scelta a mano si toglie da qui
-                                      // e si torna alla sorgente automatica.
-                                      if (_customCity != null) ...[
-                                        const SizedBox(width: 4),
-                                        GestureDetector(
-                                          behavior: HitTestBehavior.opaque,
-                                          onTap: _clearCity,
-                                          child: const Icon(Icons.close,
-                                              color: Colors.white54, size: 12),
-                                        ),
-                                      ],
-                                    ],
-                                  ),
-                                ),
-                              ],
-                              // Toggle GPS: acceso ricentra sulla posizione
-                              // reale, spento riporta la ricerca sulla città.
-                              const SizedBox(width: 8),
-                              GestureDetector(
-                                onTap: () => _toggleGps(!isGpsForced),
-                                child: Container(
-                                  padding: const EdgeInsets.symmetric(
-                                      horizontal: 8, vertical: 4),
-                                  decoration: BoxDecoration(
-                                    color: isGpsForced
-                                        ? OnlistColors.blueElectric
-                                            .withValues(alpha: 0.18)
-                                        : OnlistColors.blueDeep,
-                                    borderRadius: BorderRadius.circular(7),
-                                    border: Border.all(
-                                      color: isGpsForced
-                                          ? OnlistColors.blueElectric
-                                          : OnlistColors.blueElectric
-                                              .withValues(alpha: 0.35),
-                                      width: isGpsForced ? 1.5 : 1,
-                                    ),
-                                  ),
-                                  child: Row(
-                                    mainAxisSize: MainAxisSize.min,
-                                    children: [
-                                      Icon(
-                                        isGpsForced
-                                            ? Icons.close
-                                            : Icons.my_location,
-                                        color: Colors.white,
-                                        size: 12,
-                                      ),
-                                      const SizedBox(width: 4),
-                                      Text(
-                                        isGpsForced ? 'Rimuovi GPS' : 'Usa GPS',
-                                        style: TextStyle(
-                                          fontFamily: OnlistTextStyles.family,
-                                          fontSize: 10,
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w600,
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
-                            ],
-                          );
-                        },
-                      ),
-                    ),
-                  ),
-                ],
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              // L'icona ricerca resta muta: si è già in Ricerca.
+              TopBarSlot(onSearchTap: () {}),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: R.sp(_margine)),
+                child: _buildSearchBar(),
               ),
-            ),
-
-            // ── Search bar unificata (locali + città) ─────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-              child: Container(
-                height: 44,
-                decoration: BoxDecoration(
-                  color: OnlistColors.blueDeep,
-                  borderRadius: BorderRadius.circular(10),
-                  border: Border.all(color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
-                ),
-                child: TextField(
-                  controller: _searchCtrl,
-                  focusNode: _searchFocus,
-                  textInputAction: TextInputAction.search,
-                  style: TextStyle(
-                      fontFamily: OnlistTextStyles.family,
-                      fontSize: 14,
-                      color: Colors.white,
-                      fontWeight: FontWeight.w500),
-                  decoration: InputDecoration(
-                    hintText: 'Cerca locale o città…',
-                    hintStyle: TextStyle(
-                        fontFamily: OnlistTextStyles.family,
-                        fontSize: 14,
-                        color: Colors.white38),
-                    prefixIcon: const Icon(Icons.search,
-                        color: Colors.white38, size: 20),
-                    suffixIcon: _searchQuery.isEmpty
-                        ? null
-                        : GestureDetector(
-                            behavior: HitTestBehavior.opaque,
-                            onTap: () {
-                              _searchCtrl.clear();
-                              _onSearchChanged('');
-                            },
-                            child: const Icon(Icons.close,
-                                color: Colors.white38, size: 18),
-                          ),
-                    border: InputBorder.none,
-                    contentPadding: const EdgeInsets.symmetric(vertical: 12),
-                  ),
-                  onChanged: _onSearchChanged,
-                  // Funnel: ricerca attiva quando l'utente conferma il testo
-                  // (azione "cerca" della tastiera), non a ogni tasto.
-                  onSubmitted: (value) {
-                    final q = value.trim();
-                    if (q.isNotEmpty) {
-                      AnalyticsService.logSearch(query: q, source: 'submit');
-                    }
-                  },
-                ),
+              // CSS: barra 111+43 = 154, chip a 163.
+              SizedBox(height: R.sp(9)),
+              Padding(
+                padding: EdgeInsets.symmetric(horizontal: R.sp(_margine)),
+                child: _buildChips(),
               ),
-            ),
-
-            // ── Suggerimenti città ────────────────────────────────────────
-            // Compaiono sotto la barra mentre si scrive: "Jesolo" propone di
-            // ricentrare la ricerca su Jesolo, mentre la lista sotto continua
-            // a filtrare i locali per nome.
-            _buildCitySuggestions(),
-
-            // ── Sort chips ─────────────────────────────────────────────────
-            Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 6),
-              child: Row(
-                children: [
-                  _SortChip(
-                    label: 'Più vicino',
-                    icon: Icons.near_me,
-                    selected: _sortMode == _SortMode.distanza,
-                    onTap: () => setState(() => _sortMode = _SortMode.distanza),
-                  ),
-                  const SizedBox(width: 8),
-                  _SortChip(
-                    label: 'Più popolare',
-                    icon: Icons.local_fire_department,
-                    selected: _sortMode == _SortMode.popolarita,
-                    onTap: () =>
-                        setState(() => _sortMode = _SortMode.popolarita),
-                  ),
-                  const Spacer(),
-                  // Bottone filtri: raccoglie genere/città/prezzo in un popup
-                  // così non occupano tre righe fisse sopra la lista.
-                  // Attivo solo a dati pronti: senza `data` non sappiamo quali
-                  // generi e città proporre.
-                  Builder(
-                    builder: (_) {
-                      final data = _data;
-                      return _FiltersButton(
-                        count: _activeFilterCount,
-                        onTap:
-                            data == null ? null : () => _showFiltersSheet(data),
-                      );
-                    },
-                  ),
-                ],
-              ),
-            ),
-
-            // ── Filtri + lista ───────────────────────────────────────────
-            // Legge da `_data`: finché ci sono dati la lista resta a video anche
-            // durante un refresh, così non lampeggia lo scheletro (vedi _reload).
-            Expanded(
-              child: Builder(
-                builder: (context) {
-                  final data = _data;
-                  if (data == null) {
-                    if (!_loadError) return const _NearbySkeleton();
-                    return Center(
-                      child: Column(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          const Text(
-                            'Errore nel caricamento',
-                            style: TextStyle(
-                                fontFamily: OnlistTextStyles.family,
-                                color: Colors.white54),
-                          ),
-                          const SizedBox(height: 12),
-                          TextButton(
-                            onPressed: () => _reload(),
-                            child: const Text(
-                              'Riprova',
-                              style: TextStyle(
-                                  fontFamily: OnlistTextStyles.family,
-                                  color: OnlistColors.blueElectric),
-                            ),
-                          ),
-                        ],
-                      ),
-                    );
-                  }
-
-                  final filtered = _filtered(data.clubs);
-
-                  return Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      // Banner non bloccante quando la posizione non è
-                      // disponibile: l'utente vede comunque i locali più
-                      // popolari ma capisce perché.
-                      if (!data.locationAvailable)
-                        Container(
-                          width: double.infinity,
-                          margin: const EdgeInsets.symmetric(
-                              horizontal: 14, vertical: 8),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 12, vertical: 10),
-                          decoration: BoxDecoration(
-                            color: OnlistColors.blueDeep,
-                            borderRadius: BorderRadius.circular(10),
-                            border: Border.all(
-                                color: OnlistColors.blueElectric.withValues(alpha: 0.35), width: 0.5),
-                          ),
-                          child: Row(
-                            children: [
-                              const Icon(Icons.location_off,
-                                  color: Colors.white54, size: 16),
-                              const SizedBox(width: 8),
-                              Expanded(
-                                child: Text(
-                                  data.gpsAttempted
-                                      ? 'Posizione non disponibile. Mostro i locali più popolari.'
-                                      : 'Imposta la tua città per vedere i locali vicini.',
-                                  style: const TextStyle(
-                                    fontFamily: OnlistTextStyles.family,
-                                    fontSize: 12,
-                                    color: Colors.white70,
-                                  ),
-                                ),
-                              ),
-                              TextButton(
-                                onPressed: () => _reload(),
-                                child: const Text(
-                                  'Riprova',
-                                  style: TextStyle(
-                                    fontFamily: OnlistTextStyles.family,
-                                    fontSize: 12,
-                                    color: OnlistColors.blueElectric,
-                                  ),
-                                ),
-                              ),
-                            ],
-                          ),
-                        ),
-                      // ── Lista locali ───────────────────────────────────
-                      if (filtered.isEmpty)
-                        Expanded(child: _buildEmptyOrFallback(data))
-                      else
-                        Expanded(
-                          child: ListView.separated(
-                            padding: EdgeInsets.fromLTRB(
-                                12, 8, 12, 8 + SharedFooter.height),
-                            itemCount: filtered.length,
-                            separatorBuilder: (_, __) => Container(
-                              height: 0.5,
-                              color: Colors.white.withValues(alpha: 0.08),
-                              margin: const EdgeInsets.symmetric(vertical: 2),
-                            ),
-                            itemBuilder: (context, i) {
-                              return StaggeredItem(
-                                index: i,
-                                child: _ClubListTile(
-                                  club: filtered[i],
-                                  userLat: data.lat,
-                                  userLng: data.lng,
-                                ),
-                              );
-                            },
-                          ),
-                        ),
-                    ],
-                  );
-                },
-              ),
-            ),
-          ],
-        ),
+              // Chip 163+21 = 184, contenuto a 198.
+              SizedBox(height: R.sp(14)),
+              Expanded(child: _buildContenuto()),
+            ],
+          ),
         ),
       ),
     );
   }
 
-  // ── Empty / fallback ricerca (BUG A) ────────────────────────────────────────
+  // ── Barra di ricerca (Rectangle 303: 367×43 r17) ──────────────────────────
+  Widget _buildSearchBar() {
+    final TextStyle testo = OnlistTextStyles.hn(
+      fontSize: R.sp(20),
+      fontWeight: FontWeight.w300,
+      color: Colors.white,
+      height: 1.0,
+    );
+    return Container(
+      height: R.sp(43),
+      decoration: BoxDecoration(
+        color: _vetro,
+        border: Border.all(color: _vetroBordo),
+        borderRadius: BorderRadius.circular(R.sp(17)),
+      ),
+      child: Row(
+        children: [
+          // Lente 24 a x 11, testo a x 42.
+          SizedBox(width: R.sp(11)),
+          Icon(Icons.search, color: Colors.white, size: R.sp(24)),
+          SizedBox(width: R.sp(7)),
+          Expanded(
+            child: TextField(
+              controller: _searchCtrl,
+              focusNode: _searchFocus,
+              textInputAction: TextInputAction.search,
+              cursorColor: Colors.white,
+              style: testo,
+              decoration: InputDecoration(
+                isCollapsed: true,
+                border: InputBorder.none,
+                hintText: 'Cerca locale o città...',
+                hintStyle: testo,
+              ),
+              onChanged: _onSearchChanged,
+              // Funnel: ricerca attiva quando l'utente conferma il testo.
+              onSubmitted: (value) {
+                final q = value.trim();
+                if (q.isNotEmpty) {
+                  AnalyticsService.logSearch(query: q, source: 'submit');
+                }
+              },
+            ),
+          ),
+          // X 24 a 11 dal bordo destro, solo se c'è qualcosa da togliere.
+          if (_searchCtrl.text.isNotEmpty)
+            GestureDetector(
+              behavior: HitTestBehavior.opaque,
+              onTap: _onClearTap,
+              child: Padding(
+                padding: EdgeInsets.symmetric(horizontal: R.sp(11)),
+                child: Icon(Icons.close, color: Colors.white, size: R.sp(24)),
+              ),
+            )
+          else
+            SizedBox(width: R.sp(11)),
+        ],
+      ),
+    );
+  }
 
-  /// Cosa mostrare quando la lista filtrata è vuota:
-  /// - senza ricerca testuale → messaggio standard (filtri / raggio);
-  /// - con ricerca testuale vuota nella zona → si allarga la ricerca a TUTTE le
-  ///   città e si mostrano le due sezioni "Forse stai cercando" / "Altri in
-  ///   linea con la tua ricerca".
-  Widget _buildEmptyOrFallback(_NearbyData data) {
-    final q = _searchQuery.trim();
-    // Il fallback a due sezioni scatta SOLO quando l'unico vincolo è il testo
-    // cercato. Con filtri genere/città/prezzo attivi resta il messaggio standard
-    // (allargare a tutte le città ignorando quei filtri sarebbe incoerente).
-    if (q.isEmpty || _hasActiveFilters) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            (_hasActiveFilters || q.isNotEmpty)
+  // ── Chip: raggio, GPS, filtri (h 21, r10.5) ───────────────────────────────
+  Widget _buildChips() {
+    final data = _data;
+    final bool gps = LocationService.isGpsForced;
+    final int filtri = _activeFilterCount;
+    return Row(
+      children: [
+        _Chip(
+          icona: Icons.directions_walk,
+          iconaSize: 10,
+          label: '${data?.raggio ?? 20} km',
+          onTap: () => _showRadiusDialog(data),
+        ),
+        SizedBox(width: R.sp(5)),
+        // Spento il chip è al 50%, come nel Figma.
+        _Chip(
+          icona: Icons.location_on,
+          iconaSize: 12,
+          label: 'Usa GPS',
+          attenuato: !gps,
+          onTap: () => _toggleGps(!gps),
+        ),
+        const Spacer(),
+        _Chip(
+          icona: Icons.list,
+          iconaSize: 20,
+          label: filtri > 0 ? 'Filtri ($filtri)' : 'Filtri',
+          onTap: _showFiltersSheet,
+        ),
+      ],
+    );
+  }
+
+  // ── Contenuto sotto i chip ────────────────────────────────────────────────
+  Widget _buildContenuto() {
+    if (_ricercaAttiva) return _buildRisultatiRicerca();
+
+    final data = _data;
+    if (data == null) {
+      if (!_loadError) return const _NearbySkeleton();
+      return _Messaggio(
+        testo: 'Errore nel caricamento',
+        azione: 'Riprova',
+        onAzione: _reload,
+      );
+    }
+
+    final lista = _filtra(data.clubs);
+    return ListView(
+      padding: EdgeInsets.fromLTRB(
+          R.sp(_margine), 0, R.sp(_margine), SharedFooter.height + R.sp(16)),
+      children: [
+        if (!data.locationAvailable) ...[
+          _BannerPosizione(
+            testo: data.gpsAttempted
+                ? 'Posizione non disponibile. Mostro i locali più popolari.'
+                : 'Imposta la tua città per vedere i locali vicini.',
+            onRiprova: _reload,
+          ),
+          SizedBox(height: R.sp(14)),
+        ],
+        if (lista.isEmpty)
+          _Messaggio(
+            testo: _activeFilterCount > 0
                 ? 'Nessun locale corrisponde ai filtri.'
                 : 'Nessun locale trovato nel raggio di ${data.raggio} km.',
-            style: TextStyle(
-                fontFamily: OnlistTextStyles.family, fontSize: 15, color: Colors.white54),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
+          )
+        else
+          ..._righe(lista, data, stagger: true),
+      ],
+    );
+  }
 
-    // Zona corrente vuota → allarga la ricerca alle altre città (una volta).
-    _maybeLoadFallback(q, data);
-
-    if (_fbLoading) return const _NearbySkeleton();
-
-    if (_fbStrong.isEmpty && _fbRelated.isEmpty) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Text(
-            'Nessun locale trovato per “$q”.',
-            style: TextStyle(
-                fontFamily: OnlistTextStyles.family, fontSize: 15, color: Colors.white54),
-            textAlign: TextAlign.center,
-          ),
-        ),
-      );
-    }
-
+  Widget _buildRisultatiRicerca() {
+    final data = _data;
+    final String q = _searchQuery.trim();
+    final forse = _filtra(_forse);
+    final altri = _filtra(_altri);
     return ListView(
-      padding: EdgeInsets.fromLTRB(12, 4, 12, 8 + SharedFooter.height),
+      padding: EdgeInsets.fromLTRB(
+          R.sp(_margine), 0, R.sp(_margine), SharedFooter.height + R.sp(16)),
       children: [
-        if (_fbStrong.isNotEmpty) ...[
-          _fallbackHeader('Forse stai cercando:'),
-          for (var i = 0; i < _fbStrong.length; i++)
-            StaggeredItem(
-              index: i,
-              child: _ClubListTile(
-                club: _fbStrong[i],
-                userLat: data.lat,
-                userLng: data.lng,
-              ),
-            ),
-        ],
-        if (_fbRelated.isNotEmpty) ...[
-          _fallbackHeader('Altri in linea con la tua ricerca:'),
-          for (final c in _fbRelated)
-            _ClubListTile(
-              club: c,
-              userLat: data.lat,
-              userLng: data.lng,
-            ),
+        _SuggerimentiCitta(
+          citta: _cityResults,
+          loading: _searchLoading,
+          onCercaQui: _selectCity,
+        ),
+        // Riquadro 198+107 = 305, titolo a 324.
+        SizedBox(height: R.sp(19)),
+        if (_searchLoading)
+          const _NearbySkeleton(inLista: true)
+        else if (forse.isEmpty && altri.isEmpty)
+          _Messaggio(
+            testo: _activeFilterCount > 0
+                ? 'Nessun locale per “$q” con questi filtri.'
+                : 'Nessun locale trovato per “$q”.',
+          )
+        else ...[
+          if (forse.isNotEmpty) ...[
+            const _TitoloSezione('Forse stai cercando :'),
+            // Titolo 324+20 = 344, prima riga a 358.
+            SizedBox(height: R.sp(14)),
+            ..._righe(forse, data, stagger: true),
+            // Riga 358+77 = 435, titolo successivo a 451.
+            SizedBox(height: R.sp(16)),
+          ],
+          if (altri.isNotEmpty) ...[
+            const _TitoloSezione('Altri locali in linea con la tua ricerca :'),
+            SizedBox(height: R.sp(15)),
+            ..._righe(altri, data),
+          ],
         ],
       ],
     );
   }
 
-  Widget _fallbackHeader(String text) => Padding(
-        padding: const EdgeInsets.fromLTRB(2, 14, 2, 6),
-        child: Text(
-          text,
-          style: TextStyle(
-            fontFamily: OnlistTextStyles.family,
-            fontSize: 15,
-            fontWeight: FontWeight.w700,
-            color: Colors.white,
-          ),
-        ),
-      );
-
-  // ── Suggerimenti città ─────────────────────────────────────────────────────
-
-  /// Pannello dei suggerimenti città sotto la barra di ricerca.
-  /// Vuoto (zero altezza) finché non c'è qualcosa da proporre, così non
-  /// sottrae spazio alla lista dei locali nel caso normale.
-  Widget _buildCitySuggestions() {
-    if (_searchQuery.trim().length < 2) return const SizedBox.shrink();
-    if (_cityLoading && _cityResults.isEmpty) {
-      return const Padding(
-        padding: EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        child: SizedBox(
-          height: 2,
-          child: LinearProgressIndicator(
-            backgroundColor: Colors.transparent,
-            color: OnlistColors.blueElectric,
-            minHeight: 2,
-          ),
-        ),
-      );
-    }
-    if (_cityResults.isEmpty) {
-      // Nessuna città/luogo reale corrisponde: lo diciamo esplicitamente invece
-      // di proporre il testo digitato come città (era il bug: "Il muretto" —
-      // un locale — veniva accettato come città).
-      return Container(
-        margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-        decoration: BoxDecoration(
-          color: OnlistColors.blueDeep,
-          borderRadius: BorderRadius.circular(10),
-          border: Border.all(
-              color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
-        ),
-        child: Row(
-          children: [
-            const Icon(Icons.location_off, color: Colors.white38, size: 16),
-            const SizedBox(width: 10),
-            Text(
-              'Nessuna città trovata',
-              style: TextStyle(
-                fontFamily: OnlistTextStyles.family,
-                fontSize: 13,
-                color: Colors.white54,
-              ),
-            ),
-          ],
-        ),
-      );
-    }
-
-    return Container(
-      margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
-      constraints: const BoxConstraints(maxHeight: 180),
-      decoration: BoxDecoration(
-        color: OnlistColors.blueDeep,
-        borderRadius: BorderRadius.circular(10),
-        border:
-            Border.all(color: OnlistColors.blueElectric.withValues(alpha: 0.35)),
-      ),
-      child: ListView.builder(
-        shrinkWrap: true,
-        padding: const EdgeInsets.symmetric(vertical: 4),
-        itemCount: _cityResults.length,
-        itemBuilder: (_, i) {
-          final c = _cityResults[i];
-          return GestureDetector(
-            behavior: HitTestBehavior.opaque,
-            onTap: () => _selectCity(c),
-            child: Padding(
-              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
-              child: Row(
-                children: [
-                  const Icon(Icons.location_city,
-                      color: OnlistColors.blueElectric, size: 16),
-                  const SizedBox(width: 10),
-                  Expanded(
-                    child: Text(
-                      c.nomeCitta,
-                      style: TextStyle(
-                        fontFamily: OnlistTextStyles.family,
-                        fontSize: 14,
-                        color: Colors.white,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ),
-                  Text(
-                    'Cerca qui',
-                    style: TextStyle(
-                      fontFamily: OnlistTextStyles.family,
-                      fontSize: 11,
-                      fontWeight: FontWeight.w600,
-                      color: OnlistColors.blueElectric,
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          );
-        },
-      ),
-    );
+  /// Righe locale separate dal filo bianco (CSS Line 19–21: una riga ogni 96,
+  /// filo a +87 dall'alto della riga).
+  List<Widget> _righe(List<LocaleModel> clubs, _NearbyData? data,
+      {bool stagger = false}) {
+    return [
+      for (var i = 0; i < clubs.length; i++) ...[
+        if (i > 0) const _Separatore(),
+        stagger
+            ? StaggeredItem(
+                index: i,
+                child: _ClubRow(
+                    club: clubs[i], userLat: data?.lat, userLng: data?.lng),
+              )
+            : _ClubRow(club: clubs[i], userLat: data?.lat, userLng: data?.lng),
+      ],
+    ];
   }
 }
 
-// ── Bottone filtri ───────────────────────────────────────────────────────────
+// ── Pezzi comuni ─────────────────────────────────────────────────────────────
 
-/// Apre il popup dei filtri. Il badge mostra quanti filtri sono attivi, così
-/// l'utente sa che la lista è filtrata anche se i controlli non sono a video.
-class _FiltersButton extends StatelessWidget {
-  final int count;
-  final VoidCallback? onTap;
+/// Blocco disegnato a dimensione design fissa e scalato sulla larghezza
+/// disponibile (proporzioni esatte del Figma, tetto 1.15× sui tablet).
+class _ScalaFissa extends StatelessWidget {
+  final double w;
+  final double h;
+  final Widget child;
 
-  const _FiltersButton({required this.count, this.onTap});
+  const _ScalaFissa({required this.w, required this.h, required this.child});
 
   @override
   Widget build(BuildContext context) {
-    final active = count > 0;
-    return Opacity(
-      opacity: onTap == null ? 0.4 : 1,
-      child: GestureDetector(
-        onTap: onTap,
-        child: AnimatedContainer(
-          duration: const Duration(milliseconds: 180),
-          padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
+    return LayoutBuilder(builder: (context, constraints) {
+      final ratio = constraints.maxWidth / w;
+      final scale = ratio < 1.15 ? ratio : 1.15;
+      return Center(
+        child: SizedBox(
+          width: w * scale,
+          height: h * scale,
+          child: FittedBox(
+            fit: BoxFit.fill,
+            child: SizedBox(width: w, height: h, child: child),
+          ),
+        ),
+      );
+    });
+  }
+}
+
+class _Chip extends StatelessWidget {
+  final IconData icona;
+  final double iconaSize;
+  final String label;
+  final bool attenuato;
+  final VoidCallback? onTap;
+
+  const _Chip({
+    required this.icona,
+    required this.iconaSize,
+    required this.label,
+    this.attenuato = false,
+    this.onTap,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: onTap,
+      child: AnimatedOpacity(
+        duration: const Duration(milliseconds: 180),
+        opacity: attenuato ? 0.5 : 1,
+        child: Container(
+          height: R.sp(21),
+          padding: EdgeInsets.fromLTRB(R.sp(6), 0, R.sp(8), 0),
           decoration: BoxDecoration(
-            color: active
-                ? OnlistColors.blueElectric.withValues(alpha: 0.18)
-                : OnlistColors.blueDeep,
-            borderRadius: BorderRadius.circular(7),
-            border: Border.all(
-              color: active
-                  ? OnlistColors.blueElectric
-                  : OnlistColors.blueElectric.withValues(alpha: 0.35),
-              width: active ? 1.5 : 0.5,
-            ),
+            color: _vetro,
+            border: Border.all(color: _vetroBordo),
+            borderRadius: BorderRadius.circular(R.sp(10.5)),
           ),
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(Icons.tune,
-                  size: 14,
-                  color: active ? OnlistColors.blueElectric : Colors.white38),
-              const SizedBox(width: 5),
+              Icon(icona, color: Colors.white, size: R.sp(iconaSize)),
+              SizedBox(width: R.sp(3)),
               Text(
-                'Filtri',
-                style: TextStyle(
-                  fontFamily: OnlistTextStyles.family,
-                  fontSize: 13,
-                  fontWeight: active ? FontWeight.w600 : FontWeight.w400,
-                  color: active ? Colors.white : Colors.white54,
+                label,
+                style: OnlistTextStyles.hn(
+                  fontSize: R.sp(11),
+                  fontWeight: FontWeight.w500,
+                  color: Colors.white,
+                  height: 1.0,
                 ),
               ),
-              if (active) ...[
-                const SizedBox(width: 6),
-                Container(
-                  width: 16,
-                  height: 16,
-                  alignment: Alignment.center,
-                  decoration: const BoxDecoration(
-                    color: OnlistColors.blueElectric,
-                    shape: BoxShape.circle,
-                  ),
-                  child: Text(
-                    '$count',
-                    style: TextStyle(
-                      fontFamily: OnlistTextStyles.family,
-                      fontSize: 10,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ],
             ],
           ),
         ),
@@ -1385,30 +813,693 @@ class _FiltersButton extends StatelessWidget {
   }
 }
 
-// ── Popup filtri ─────────────────────────────────────────────────────────────
+class _TitoloSezione extends StatelessWidget {
+  final String testo;
+  const _TitoloSezione(this.testo);
 
-/// Bottom sheet con genere musicale, città e prezzo. Le scelte si applicano
-/// live via [onChanged]: chiudere con lo swipe non le perde. Il bottone in
-/// fondo mostra quanti locali restano, per dare un'idea dell'effetto prima di
-/// tornare alla lista.
+  @override
+  Widget build(BuildContext context) {
+    return Text(
+      testo,
+      style: OnlistTextStyles.hn(
+        fontSize: R.sp(20),
+        fontWeight: FontWeight.w700,
+        color: Colors.white,
+        height: 1.0,
+        letterSpacing: -0.05 * R.sp(20),
+      ),
+    );
+  }
+}
+
+class _Separatore extends StatelessWidget {
+  const _Separatore();
+
+  @override
+  Widget build(BuildContext context) {
+    // Riga 77 + 10 = filo, poi 8 fino alla riga dopo (passo 96).
+    return Padding(
+      padding: EdgeInsets.only(top: R.sp(10), bottom: R.sp(8)),
+      child: Container(height: 1, color: const Color(0x80FFFFFF)),
+    );
+  }
+}
+
+class _Messaggio extends StatelessWidget {
+  final String testo;
+  final String? azione;
+  final VoidCallback? onAzione;
+
+  const _Messaggio({required this.testo, this.azione, this.onAzione});
+
+  @override
+  Widget build(BuildContext context) {
+    return Padding(
+      padding: EdgeInsets.symmetric(vertical: R.sp(24)),
+      child: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          Text(
+            testo,
+            textAlign: TextAlign.center,
+            style: OnlistTextStyles.hn(
+              fontSize: R.sp(15),
+              color: Colors.white70,
+            ),
+          ),
+          if (azione != null) ...[
+            SizedBox(height: R.sp(12)),
+            GestureDetector(
+              onTap: onAzione,
+              child: Text(
+                azione!,
+                style: OnlistTextStyles.hn(
+                  fontSize: R.sp(15),
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ],
+        ],
+      ),
+    );
+  }
+}
+
+/// Avviso non bloccante quando la posizione non è disponibile, nello stesso
+/// "vetro" della barra.
+class _BannerPosizione extends StatelessWidget {
+  final String testo;
+  final VoidCallback onRiprova;
+
+  const _BannerPosizione({required this.testo, required this.onRiprova});
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: EdgeInsets.fromLTRB(R.sp(14), R.sp(10), R.sp(10), R.sp(10)),
+      decoration: BoxDecoration(
+        color: _vetro,
+        border: Border.all(color: _vetroBordo),
+        borderRadius: BorderRadius.circular(R.sp(17)),
+      ),
+      child: Row(
+        children: [
+          Icon(Icons.location_off, color: Colors.white70, size: R.sp(16)),
+          SizedBox(width: R.sp(8)),
+          Expanded(
+            child: Text(
+              testo,
+              style: OnlistTextStyles.hn(
+                fontSize: R.sp(13),
+                color: Colors.white,
+              ),
+            ),
+          ),
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: onRiprova,
+            child: Padding(
+              padding: EdgeInsets.all(R.sp(4)),
+              child: Text(
+                'Riprova',
+                style: OnlistTextStyles.hn(
+                  fontSize: R.sp(13),
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+// ── Suggerimenti città (Rectangle 308: 367 × righe da 32, r17) ──────────────
+class _SuggerimentiCitta extends StatelessWidget {
+  final List<CittaModel> citta;
+  final bool loading;
+  final ValueChanged<CittaModel> onCercaQui;
+
+  const _SuggerimentiCitta({
+    required this.citta,
+    required this.loading,
+    required this.onCercaQui,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    final TextStyle stile = OnlistTextStyles.hn(
+      fontSize: R.sp(15),
+      fontWeight: FontWeight.w400,
+      color: Colors.white,
+      height: 1.0,
+    );
+    final List<Widget> righe;
+    if (citta.isEmpty) {
+      righe = [
+        SizedBox(
+          height: R.sp(32),
+          child: Row(
+            children: [
+              if (loading)
+                Expanded(
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(6)),
+                    child: const LinearProgressIndicator(
+                      minHeight: 2,
+                      backgroundColor: Colors.transparent,
+                      color: Colors.white,
+                    ),
+                  ),
+                )
+              else ...[
+                _pin(),
+                SizedBox(width: R.sp(5)),
+                Text('Nessuna città trovata', style: stile),
+              ],
+            ],
+          ),
+        ),
+      ];
+    } else {
+      righe = [
+        for (final c in citta)
+          GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: () => onCercaQui(c),
+            child: SizedBox(
+              height: R.sp(32),
+              child: Row(
+                children: [
+                  _pin(),
+                  SizedBox(width: R.sp(5)),
+                  Expanded(
+                    child: Text(
+                      c.nomeCitta,
+                      maxLines: 1,
+                      overflow: TextOverflow.ellipsis,
+                      style: stile,
+                    ),
+                  ),
+                  Text('Cerca qui', style: stile),
+                ],
+              ),
+            ),
+          ),
+      ];
+    }
+    return Container(
+      // CSS: prima riga di testo a +16, pin a x 6, "Cerca qui" a 21 dal bordo.
+      padding: EdgeInsets.fromLTRB(R.sp(6), R.sp(6), R.sp(21), R.sp(5)),
+      decoration: BoxDecoration(
+        color: _vetro,
+        border: Border.all(color: _vetroBordo),
+        borderRadius: BorderRadius.circular(R.sp(17)),
+      ),
+      child: Column(mainAxisSize: MainAxisSize.min, children: righe),
+    );
+  }
+
+  /// Pin 16 col gradiente `#00FFE1 → #2F00FF` dall'alto al basso.
+  Widget _pin() {
+    return ShaderMask(
+      blendMode: BlendMode.srcIn,
+      shaderCallback: (bounds) => const LinearGradient(
+        begin: Alignment.topCenter,
+        end: Alignment.bottomCenter,
+        colors: [Color(0xFF00FFE1), Color(0xFF2F00FF)],
+      ).createShader(bounds),
+      child: Icon(Icons.location_on, color: Colors.white, size: R.sp(16)),
+    );
+  }
+}
+
+// ── Skeleton ─────────────────────────────────────────────────────────────────
+class _NearbySkeleton extends StatelessWidget {
+  /// Dentro una lista già scrollabile: niente scroll proprio, poche righe.
+  final bool inLista;
+
+  const _NearbySkeleton({this.inLista = false});
+
+  @override
+  Widget build(BuildContext context) {
+    Widget riga() => _ScalaFissa(
+          w: _ClubRow._w,
+          h: _ClubRow._h,
+          child: const Row(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              ShimmerBox(width: 90, height: 77, radius: 6),
+              SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  SizedBox(height: 6),
+                  ShimmerBox(width: 180, height: 26, radius: 6),
+                  SizedBox(height: 12),
+                  ShimmerBox(width: 150, height: 15, radius: 6),
+                  SizedBox(height: 8),
+                  ShimmerBox(width: 100, height: 9, radius: 4),
+                ],
+              ),
+            ],
+          ),
+        );
+    final int n = inLista ? 3 : 6;
+    final righe = [
+      for (var i = 0; i < n; i++) ...[
+        if (i > 0) SizedBox(height: R.sp(19)),
+        riga(),
+      ],
+    ];
+    if (inLista) return Shimmer(child: Column(children: righe));
+    return Shimmer(
+      child: ListView(
+        physics: const NeverScrollableScrollPhysics(),
+        padding: EdgeInsets.symmetric(horizontal: R.sp(_margine)),
+        children: righe,
+      ),
+    );
+  }
+}
+
+// ── Riga locale ──────────────────────────────────────────────────────────────
+
+/// Avvolge [child] in un `Hero` solo se c'è una foto reale, così i locali
+/// senza foto non fanno volare un placeholder.
+Widget _heroWrap({
+  required String tag,
+  required bool enabled,
+  required Widget child,
+}) =>
+    enabled ? Hero(tag: tag, child: child) : child;
+
+/// Riga locale del Figma "Ricerca Club e Città", 367×77 a partire dalla foto:
+/// foto 90×77 r6; nome 32/37 bold a x 96; generi 19/500 a (98,41);
+/// indirizzo 11/500 a (100,66); pill distanza 18 alta r8 a y 56, a filo destro.
+class _ClubRow extends StatelessWidget {
+  final LocaleModel club;
+  final double? userLat;
+  final double? userLng;
+
+  const _ClubRow({
+    required this.club,
+    required this.userLat,
+    required this.userLng,
+  });
+
+  static const double _w = 367;
+  static const double _h = 77;
+
+  /// "900 m", "64 km", "1.000 km" (km interi, punto delle migliaia).
+  String? _distanza() {
+    if (userLat == null ||
+        userLng == null ||
+        club.lat == null ||
+        club.lng == null) {
+      return null;
+    }
+    final km = ClubService.distanceKm(userLat!, userLng!, club.lat!, club.lng!);
+    if (km < 1) return '${(km * 1000).round()} m';
+    final cifre = km.round().toString();
+    final buf = StringBuffer();
+    for (var i = 0; i < cifre.length; i++) {
+      if (i > 0 && (cifre.length - i) % 3 == 0) buf.write('.');
+      buf.write(cifre[i]);
+    }
+    return '$buf km';
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final String? distanza = _distanza();
+    final TextStyle medio = OnlistTextStyles.hn(
+      fontWeight: FontWeight.w500,
+      color: Colors.white,
+      height: 1.0,
+    );
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      onTap: () => NavigatorService.pushNamed(
+        AppRoutes.clubDetailScreen,
+        arguments: club,
+      ),
+      child: _ScalaFissa(
+        w: _w,
+        h: _h,
+        child: Stack(
+          children: [
+            _heroWrap(
+              tag: 'club-img-${club.id}',
+              enabled: club.fotoUrl != null,
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(6),
+                child: SizedBox(
+                  width: 90,
+                  height: 77,
+                  child: club.fotoUrl != null
+                      ? CachedNetworkImage(
+                          imageUrl: club.fotoUrl!,
+                          fit: BoxFit.cover,
+                          memCacheWidth: 270,
+                          memCacheHeight: 231,
+                          // Niente dissolvenza: la schermata si ricrea a ogni
+                          // apertura e le foto in cache sembravano ricaricarsi.
+                          fadeInDuration: Duration.zero,
+                          errorWidget: (_, __, ___) =>
+                              ImageFallback(seed: club.id),
+                        )
+                      : ImageFallback(seed: club.id),
+                ),
+              ),
+            ),
+            Positioned(
+              left: 96,
+              top: 0,
+              right: 0,
+              child: Text(
+                club.nome,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+                style: OnlistTextStyles.hn(
+                  fontSize: 32,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.white,
+                  height: 37 / 32,
+                  letterSpacing: -0.08 * 32,
+                ),
+              ),
+            ),
+            if (club.generiString.isNotEmpty)
+              Positioned(
+                left: 98,
+                top: 41,
+                right: 64,
+                child: Text(
+                  club.generiString,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: medio.copyWith(fontSize: 19),
+                ),
+              ),
+            if (club.indirizzoCompleto.isNotEmpty)
+              Positioned(
+                left: 100,
+                top: 66,
+                right: 64,
+                child: Text(
+                  club.indirizzoCompleto,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
+                  style: medio.copyWith(fontSize: 11),
+                ),
+              ),
+            if (distanza != null)
+              Positioned(
+                right: 0,
+                top: 56,
+                child: Container(
+                  height: 18,
+                  padding: const EdgeInsets.fromLTRB(5, 0, 6, 0),
+                  decoration: BoxDecoration(
+                    color: const Color(0x33D9D9D9),
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      const Icon(Icons.location_on,
+                          color: Colors.white, size: 10),
+                      const SizedBox(width: 3),
+                      Text(distanza, style: medio.copyWith(fontSize: 10)),
+                    ],
+                  ),
+                ),
+              ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ── Popup raggio (CSS "Ricerca Club_GPS") ────────────────────────────────────
+// Card 314×367 r30 (Rectangle 348), contenuti in px design dentro _ScalaFissa.
+
+class _RadiusDialog extends StatefulWidget {
+  final int raggioIniziale;
+  final double? lat;
+  final double? lng;
+
+  const _RadiusDialog({
+    required this.raggioIniziale,
+    required this.lat,
+    required this.lng,
+  });
+
+  @override
+  State<_RadiusDialog> createState() => _RadiusDialogState();
+}
+
+class _RadiusDialogState extends State<_RadiusDialog> {
+  static const double _w = 314;
+  static const double _h = 367;
+  static const int _min = 2;
+  static const int _max = 50;
+
+  late int _raggio = widget.raggioIniziale.clamp(_min, _max);
+  final MapController _mapCtrl = MapController();
+
+  bool get _haMappa => widget.lat != null && widget.lng != null;
+
+  double _zoomForRadius(int km) {
+    if (km <= 3) return 13;
+    if (km <= 8) return 11;
+    if (km <= 15) return 10;
+    return 9;
+  }
+
+  @override
+  void dispose() {
+    _mapCtrl.dispose();
+    super.dispose();
+  }
+
+  TextStyle _stile(double size, {double opacita = 1}) => OnlistTextStyles.hn(
+        fontSize: size,
+        fontWeight: FontWeight.w500,
+        color: Colors.white.withValues(alpha: opacita),
+        height: 1.0,
+        letterSpacing: 0.005 * size,
+      );
+
+  @override
+  Widget build(BuildContext context) {
+    return Dialog(
+      backgroundColor: Colors.transparent,
+      elevation: 0,
+      insetPadding: EdgeInsets.symmetric(horizontal: R.sp(42)),
+      child: _ScalaFissa(
+        w: _w,
+        h: _h,
+        child: Container(
+          decoration: BoxDecoration(
+            gradient: const LinearGradient(
+              begin: Alignment.topCenter,
+              end: Alignment.bottomCenter,
+              colors: [Color(0x590077FF), Color(0x590000FF)],
+            ),
+            borderRadius: BorderRadius.circular(30),
+          ),
+          child: Stack(
+            children: [
+              Positioned(
+                left: 26,
+                top: 22,
+                child: Text('Cambia raggio', style: _stile(20)),
+              ),
+              // Mappa 262×139 r20 a (26,61).
+              Positioned(
+                left: 26,
+                top: 61,
+                width: 262,
+                height: 139,
+                child: ClipRRect(
+                  borderRadius: BorderRadius.circular(20),
+                  child: _haMappa
+                      ? _mappa()
+                      : const ColoredBox(color: Color(0x33FFFFFF)),
+                ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: 217,
+                child: Center(child: Text('$_raggio km', style: _stile(20))),
+              ),
+              // Slider: binario 226 da x 44 a y 255 (3px), pallino 16 bianco.
+              Positioned(
+                left: 36,
+                top: 243,
+                width: 242,
+                height: 24,
+                child: SliderTheme(
+                  data: SliderTheme.of(context).copyWith(
+                    trackHeight: 3,
+                    activeTrackColor: const Color(0xFF0077FF),
+                    inactiveTrackColor: Colors.white,
+                    thumbColor: Colors.white,
+                    overlayShape: SliderComponentShape.noOverlay,
+                    thumbShape:
+                        const RoundSliderThumbShape(enabledThumbRadius: 8),
+                    trackShape: const RectangularSliderTrackShape(),
+                  ),
+                  child: Slider(
+                    min: _min.toDouble(),
+                    max: _max.toDouble(),
+                    divisions: _max - _min,
+                    value: _raggio.toDouble(),
+                    onChanged: (v) {
+                      setState(() => _raggio = v.round());
+                      if (_haMappa) {
+                        _mapCtrl.move(LatLng(widget.lat!, widget.lng!),
+                            _zoomForRadius(_raggio));
+                      }
+                    },
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 26,
+                top: 266,
+                child: Text('$_min km', style: _stile(10, opacita: 0.7)),
+              ),
+              Positioned(
+                right: 26,
+                top: 266,
+                child: Text('$_max km', style: _stile(10, opacita: 0.7)),
+              ),
+              // Annulla (testo a x 134) e Applica (79×28 r9 a (209,319)).
+              Positioned(
+                left: 120,
+                top: 319,
+                height: 28,
+                child: GestureDetector(
+                  behavior: HitTestBehavior.opaque,
+                  onTap: () => Navigator.pop(context),
+                  child: Padding(
+                    padding: const EdgeInsets.symmetric(horizontal: 14),
+                    child: Center(child: Text('Annulla', style: _stile(13))),
+                  ),
+                ),
+              ),
+              Positioned(
+                left: 209,
+                top: 319,
+                child: GestureDetector(
+                  onTap: () => Navigator.pop(context, _raggio),
+                  child: Container(
+                    width: 79,
+                    height: 28,
+                    alignment: Alignment.center,
+                    decoration: BoxDecoration(
+                      gradient: const LinearGradient(
+                        begin: Alignment.topCenter,
+                        end: Alignment.bottomCenter,
+                        colors: [Color(0x330000FF), Color(0x330077FF)],
+                      ),
+                      borderRadius: BorderRadius.circular(9),
+                    ),
+                    child: Text('Applica', style: _stile(13)),
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+  }
+
+  /// Mappa OpenStreetMap scurita (le basemap scure di CARTO ora chiedono
+  /// una API key e mostravano la scritta "API KEY" sulle tile).
+  Widget _mappa() {
+    final centro = LatLng(widget.lat!, widget.lng!);
+    return Stack(
+      children: [
+        FlutterMap(
+          mapController: _mapCtrl,
+          options: MapOptions(
+            initialCenter: centro,
+            initialZoom: _zoomForRadius(_raggio),
+            interactionOptions:
+                const InteractionOptions(flags: InteractiveFlag.none),
+          ),
+          children: [
+            TileLayer(
+              urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
+              userAgentPackageName: 'com.onlist.app',
+              tileBuilder: darkModeTileBuilder,
+            ),
+            CircleLayer(
+              circles: [
+                CircleMarker(
+                  point: centro,
+                  radius: _raggio * 1000.0,
+                  useRadiusInMeter: true,
+                  color: const Color(0x331E00FF),
+                  borderColor: const Color(0xFF1E00FF),
+                  borderStrokeWidth: 2,
+                ),
+              ],
+            ),
+            MarkerLayer(
+              markers: [
+                Marker(
+                  point: centro,
+                  width: 20,
+                  height: 20,
+                  child: const Icon(Icons.location_on,
+                      color: Color(0xFF1E00FF), size: 20),
+                ),
+              ],
+            ),
+          ],
+        ),
+        // Attribuzione richiesta dalla licenza OpenStreetMap.
+        Positioned(
+          right: 10,
+          bottom: 4,
+          child: Text(
+            '© OpenStreetMap',
+            style: OnlistTextStyles.hn(
+              fontSize: 6,
+              color: Colors.white.withValues(alpha: 0.6),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+}
+
+// ── Pannello filtri (CSS "Ricerca Club_ Sezione Filtri") ─────────────────────
+// Pannello 393×407 dal fondo, sopra il contenuto sfocato e scurito al 68%.
+// Le scelte si applicano subito tramite [onChanged].
+
 class _FiltersSheet extends StatefulWidget {
-  final List<LocaleModel> clubs;
-  final List<String> allGeneri;
-  final List<String> allCitta;
-  final String searchQuery;
-  final Set<String> initialGeneri;
-  final Set<String> initialCitta;
+  final List<LocaleModel> base;
+  final Set<String> initialCategorie;
   final int? initialPrezzo;
-  final void Function(Set<String> generi, Set<String> citta, int? prezzo)
-      onChanged;
+  final void Function(Set<String> categorie, int? prezzo) onChanged;
 
   const _FiltersSheet({
-    required this.clubs,
-    required this.allGeneri,
-    required this.allCitta,
-    required this.searchQuery,
-    required this.initialGeneri,
-    required this.initialCitta,
+    required this.base,
+    required this.initialCategorie,
     required this.initialPrezzo,
     required this.onChanged,
   });
@@ -1418,488 +1509,403 @@ class _FiltersSheet extends StatefulWidget {
 }
 
 class _FiltersSheetState extends State<_FiltersSheet> {
-  late final Set<String> _generi = {...widget.initialGeneri};
-  late final Set<String> _citta = {...widget.initialCitta};
+  static const double _w = 393;
+  static const double _h = 407;
+
+  /// Macro-categorie nell'ordine del Figma.
+  static final List<String> _nomiCategorie =
+      _categorieGeneri.keys.toList(growable: false);
+
+  late final Set<String> _scelte = {...widget.initialCategorie};
   late int? _prezzo = widget.initialPrezzo;
+
+  final ScrollController _caroselloCtrl = ScrollController();
+  int _paginaCarosello = 0;
+
+  /// Trascinamento verso il basso in corso (px reali).
+  double _trascinamento = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    _caroselloCtrl.addListener(_aggiornaPagina);
+  }
+
+  @override
+  void dispose() {
+    _caroselloCtrl.dispose();
+    super.dispose();
+  }
+
+  void _aggiornaPagina() {
+    // Un pallino per categoria: quello acceso segue lo scorrimento.
+    final pos = _caroselloCtrl.position;
+    final int n = _nomiCategorie.length;
+    if (n < 2 || pos.maxScrollExtent <= 0) return;
+    final int p = (pos.pixels / pos.maxScrollExtent * (n - 1))
+        .round()
+        .clamp(0, n - 1);
+    if (p != _paginaCarosello) setState(() => _paginaCarosello = p);
+  }
 
   void _emit() {
     setState(() {});
-    widget.onChanged(_generi, _citta, _prezzo);
+    widget.onChanged(_scelte, _prezzo);
   }
 
   int get _count => _NearbyClubsScreenState._applyFilters(
-        widget.clubs,
-        searchQuery: widget.searchQuery,
-        generi: _generi,
-        citta: _citta,
+        widget.base,
+        categorie: _scelte,
         prezzo: _prezzo,
       ).length;
 
-  bool get _hasAny => _generi.isNotEmpty || _citta.isNotEmpty || _prezzo != null;
+  bool get _haFiltri => _scelte.isNotEmpty || _prezzo != null;
+
+  TextStyle _stile(double size,
+          {FontWeight peso = FontWeight.w500,
+          double ls = -0.06,
+          Color colore = Colors.white}) =>
+      OnlistTextStyles.hn(
+        fontSize: size,
+        fontWeight: peso,
+        color: colore,
+        height: 1.0,
+        letterSpacing: ls * size,
+      );
 
   @override
   Widget build(BuildContext context) {
-    return SafeArea(
-      top: false,
-      child: ConstrainedBox(
-        constraints: BoxConstraints(
-          maxHeight: MediaQuery.of(context).size.height * 0.75,
-        ),
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            // Maniglia di trascinamento
-            Container(
-              width: 36,
-              height: 4,
-              margin: const EdgeInsets.only(top: 10, bottom: 6),
-              decoration: BoxDecoration(
-                color: Colors.white24,
-                borderRadius: BorderRadius.circular(1000),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 6, 20, 10),
-              child: Row(
-                children: [
-                  Text(
-                    'Filtri',
-                    style: TextStyle(
-                      fontFamily: OnlistTextStyles.family,
-                      fontSize: 17,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  const Spacer(),
-                  if (_hasAny)
-                    GestureDetector(
-                      behavior: HitTestBehavior.opaque,
-                      onTap: () {
-                        _generi.clear();
-                        _citta.clear();
-                        _prezzo = null;
-                        _emit();
-                      },
-                      child: Text(
-                        'Azzera',
-                        style: TextStyle(
-                          fontFamily: OnlistTextStyles.family,
-                          fontSize: 13,
-                          fontWeight: FontWeight.w600,
-                          color: OnlistColors.blueElectric,
-                        ),
-                      ),
-                    ),
-                ],
-              ),
-            ),
-            Flexible(
-              child: SingleChildScrollView(
-                padding: const EdgeInsets.fromLTRB(20, 0, 20, 12),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    _section(
-                      'Prezzo',
-                      [1, 2, 3]
-                          .map((p) => _chip(
-                                label: '€' * p,
-                                selected: _prezzo == p,
-                                // Ritocco sullo stesso prezzo = nessun filtro:
-                                // è un gruppo a scelta singola, non cumulativo.
-                                onTap: () {
-                                  _prezzo = _prezzo == p ? null : p;
-                                  _emit();
-                                },
-                              ))
-                          .toList(),
-                    ),
-                    if (widget.allGeneri.isNotEmpty)
-                      _section(
-                        'Genere musicale',
-                        widget.allGeneri
-                            .map((g) => _chip(
-                                  label: g,
-                                  icon: Icons.music_note,
-                                  selected: _generi.contains(g),
-                                  onTap: () {
-                                    if (!_generi.remove(g)) _generi.add(g);
-                                    _emit();
-                                  },
-                                ))
-                            .toList(),
-                      ),
-                    if (widget.allCitta.length > 1)
-                      _section(
-                        'Città',
-                        widget.allCitta
-                            .map((c) => _chip(
-                                  label: c,
-                                  icon: Icons.location_city,
-                                  selected: _citta.contains(c),
-                                  onTap: () {
-                                    if (!_citta.remove(c)) _citta.add(c);
-                                    _emit();
-                                  },
-                                ))
-                            .toList(),
-                      ),
-                  ],
-                ),
-              ),
-            ),
-            Padding(
-              padding: const EdgeInsets.fromLTRB(20, 4, 20, 12),
-              child: SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: OnlistColors.blueElectric,
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                  ),
-                  child: Text(
-                    _count == 1 ? 'Mostra 1 locale' : 'Mostra $_count locali',
-                    style: TextStyle(
-                      fontFamily: OnlistTextStyles.family,
-                      fontSize: 15,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  Widget _section(String title, List<Widget> chips) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
+    final double safeBottom = MediaQuery.paddingOf(context).bottom;
+    return Stack(
       children: [
-        const SizedBox(height: 10),
-        Text(
-          title,
-          style: TextStyle(
-            fontFamily: OnlistTextStyles.family,
-            fontSize: 13,
-            fontWeight: FontWeight.w600,
-            color: Colors.white54,
+        // Contenuto dietro: sfocato e scurito (Rectangle 315, nero 68%).
+        Positioned.fill(
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 12, sigmaY: 12),
+              child: const ColoredBox(color: Color(0xAD000000)),
+            ),
           ),
         ),
-        const SizedBox(height: 10),
-        Wrap(spacing: 8, runSpacing: 8, children: chips),
+        Align(
+          alignment: Alignment.bottomCenter,
+          child: Transform.translate(
+            offset: Offset(0, _trascinamento),
+            child: GestureDetector(
+              onVerticalDragUpdate: (d) => setState(() {
+                _trascinamento =
+                    (_trascinamento + d.delta.dy).clamp(0.0, double.infinity);
+              }),
+              onVerticalDragEnd: (d) {
+                final bool chiudi = _trascinamento > R.sp(100) ||
+                    (d.primaryVelocity ?? 0) > 700;
+                if (chiudi) {
+                  Navigator.pop(context);
+                } else {
+                  setState(() => _trascinamento = 0);
+                }
+              },
+              child: Material(
+                type: MaterialType.transparency,
+                child: DecoratedBox(
+                  // Rectangle 314: `linear-gradient(180deg, #0033FF, #000B41)`.
+                  decoration: const BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [Color(0xFF0033FF), Color(0xFF000B41)],
+                    ),
+                  ),
+                  child: Padding(
+                    padding: EdgeInsets.only(bottom: safeBottom),
+                    child: _ScalaFissa(w: _w, h: _h, child: _contenuto()),
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ),
       ],
     );
   }
 
-  Widget _chip({
-    required String label,
-    required bool selected,
-    required VoidCallback onTap,
-    IconData? icon,
-  }) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        decoration: BoxDecoration(
-          color: selected
-              ? OnlistColors.blueElectric.withValues(alpha: 0.18)
-              : OnlistColors.blueDeep,
-          borderRadius: BorderRadius.circular(7),
-          border: Border.all(
-            color: selected
-                ? OnlistColors.blueElectric
-                : OnlistColors.blueElectric.withValues(alpha: 0.35),
-            width: selected ? 1.5 : 0.5,
+  Widget _contenuto() {
+    final List<String> categorie = _nomiCategorie;
+    return Stack(
+      children: [
+        // Maniglia 68×7 r5 bianca al 70%.
+        Positioned(
+          left: 165,
+          top: 9,
+          child: Container(
+            width: 68,
+            height: 7,
+            decoration: BoxDecoration(
+              color: const Color(0xB3FFFFFF),
+              borderRadius: BorderRadius.circular(5),
+            ),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            if (icon != null) ...[
-              Icon(icon,
-                  size: 13,
-                  color: selected ? OnlistColors.blueElectric : Colors.white),
-              const SizedBox(width: 5),
-            ],
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: OnlistTextStyles.family,
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                color: Colors.white,
-              ),
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ── Sort chip ────────────────────────────────────────────────────────────────
-
-class _SortChip extends StatelessWidget {
-  final String label;
-  final IconData icon;
-  final bool selected;
-  final VoidCallback onTap;
-
-  const _SortChip({
-    required this.label,
-    required this.icon,
-    required this.selected,
-    required this.onTap,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: AnimatedContainer(
-        duration: const Duration(milliseconds: 180),
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 7),
-        decoration: BoxDecoration(
-          color: selected
-              ? OnlistColors.blueElectric.withValues(alpha: 0.18)
-              : OnlistColors.blueDeep,
-          borderRadius: BorderRadius.circular(7),
-          border: Border.all(
-            color: selected ? OnlistColors.blueElectric : OnlistColors.blueElectric.withValues(alpha: 0.35),
-            width: selected ? 1.5 : 0.5,
+        // "Filtri" a contorno, 379×84, opacità 50%.
+        const Positioned(
+          left: 5,
+          top: 37,
+          width: 379,
+          height: 84,
+          child: Opacity(
+            opacity: 0.5,
+            child: FittedBox(fit: BoxFit.fill, child: _FiltriContorno()),
           ),
         ),
-        child: Row(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            Icon(icon,
-                size: 14,
-                color: selected ? OnlistColors.blueElectric : Colors.white),
-            const SizedBox(width: 5),
-            Text(
-              label,
-              style: TextStyle(
-                fontFamily: OnlistTextStyles.family,
-                fontSize: 13,
-                fontWeight: selected ? FontWeight.w600 : FontWeight.w500,
-                color: Colors.white,
-              ),
-            ),
-          ],
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 142,
+          child: Center(child: Text('Stile musicale', style: _stile(29))),
         ),
-      ),
-    );
-  }
-}
-
-// ── Skeleton di caricamento ──────────────────────────────────────────────────
-// Scheletro della lista locali (thumbnail + due/tre righe) mentre i dati e la
-// posizione vengono risolti. Un solo controller via `Shimmer`.
-class _NearbySkeleton extends StatelessWidget {
-  const _NearbySkeleton();
-
-  @override
-  Widget build(BuildContext context) {
-    return Shimmer(
-      child: ListView.separated(
-        padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-        itemCount: 7,
-        separatorBuilder: (_, __) => const SizedBox(height: 8),
-        itemBuilder: (_, __) => Row(
-          children: const [
-            ShimmerBox(width: 64, height: 64, radius: 10),
-            SizedBox(width: 14),
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  ShimmerBox(width: 150, height: 16, radius: 6),
-                  SizedBox(height: 8),
-                  ShimmerBox(width: 200, height: 12, radius: 6),
-                  SizedBox(height: 6),
-                  ShimmerBox(width: 110, height: 11, radius: 6),
-                ],
-              ),
-            ),
-          ],
+        // Carosello categorie (chip 24 r14.5, testo 17 light) da x 11.
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 183,
+          height: 24,
+          child: ListView.separated(
+            controller: _caroselloCtrl,
+            scrollDirection: Axis.horizontal,
+            padding: const EdgeInsets.symmetric(horizontal: 11),
+            itemCount: categorie.length,
+            separatorBuilder: (_, __) => const SizedBox(width: 7),
+            itemBuilder: (_, i) => _chipCategoria(categorie[i]),
+          ),
         ),
-      ),
-    );
-  }
-}
-
-// ── Club list tile ───────────────────────────────────────────────────────────
-
-/// Avvolge [child] in un `Hero` solo se [enabled] (es. esiste una foto reale),
-/// così le card senza foto non "volano" uno stock placeholder verso un'icona.
-Widget _heroWrap({
-  required String tag,
-  required bool enabled,
-  required Widget child,
-}) =>
-    enabled ? Hero(tag: tag, child: child) : child;
-
-class _ClubListTile extends StatelessWidget {
-  final LocaleModel club;
-  final double? userLat;
-  final double? userLng;
-
-  const _ClubListTile({
-    required this.club,
-    required this.userLat,
-    required this.userLng,
-  });
-
-  String? _distanceLabel() {
-    if (userLat == null ||
-        userLng == null ||
-        club.lat == null ||
-        club.lng == null) return null;
-    final dist =
-        ClubService.distanceKm(userLat!, userLng!, club.lat!, club.lng!);
-    return dist < 1
-        ? '${(dist * 1000).round()} m'
-        : '${dist.toStringAsFixed(1)} km';
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    final distLabel = _distanceLabel();
-    return GestureDetector(
-      onTap: () => NavigatorService.pushNamed(
-        AppRoutes.clubDetailScreen,
-        arguments: club,
-      ),
-      child: Padding(
-        padding: const EdgeInsets.symmetric(vertical: 10),
-        child: Row(
-          children: [
-            // Club image: morph Hero verso il dettaglio (solo se c'è una foto reale)
-            _heroWrap(
-              tag: 'club-img-${club.id}',
-              enabled: club.fotoUrl != null,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: SizedBox(
-                  width: 64,
-                  height: 64,
-                  child: club.fotoUrl != null
-                      ? CachedNetworkImage(
-                          imageUrl: club.fotoUrl!,
-                          fit: BoxFit.cover,
-                          memCacheWidth: 192,
-                          memCacheHeight: 192,
-                          // Niente dissolvenza da 500ms (default): la schermata
-                          // si ricrea a ogni apertura e le foto già in cache
-                          // ri-sfumavano ogni volta, sembrando un ricaricamento.
-                          fadeInDuration: Duration.zero,
-                          errorWidget: (_, __, ___) =>
-                              ImageFallback(seed: club.id),
-                        )
-                      : ImageFallback(seed: club.id),
-                ),
-              ),
-            ),
-            const SizedBox(width: 14),
-            // Club info
-            Expanded(
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Text(
-                    club.nome,
-                    style: TextStyle(
-                      fontFamily: OnlistTextStyles.family,
-                      fontSize: 16,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                    ),
-                  ),
-                  if (club.indirizzoCompleto.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      club.indirizzoCompleto,
-                      style: TextStyle(
-                          fontFamily: OnlistTextStyles.family,
-                          fontSize: 12,
-                          color: Colors.white54),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                  if (club.generiString.isNotEmpty) ...[
-                    const SizedBox(height: 3),
-                    Text(
-                      club.generiString,
-                      style: TextStyle(
-                          fontFamily: OnlistTextStyles.family,
-                          fontSize: 11,
-                          color: OnlistColors.blueElectric),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
-                ],
-              ),
-            ),
-            // Right: distance + popularity
-            Column(
-              crossAxisAlignment: CrossAxisAlignment.end,
-              children: [
-                if (distLabel != null)
-                  Container(
-                    padding:
-                        const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
-                    decoration: BoxDecoration(
-                      color: OnlistColors.blueDeep,
-                      borderRadius: BorderRadius.circular(7),
-                      border: Border.all(
-                          color: OnlistColors.blueElectric.withValues(alpha: 0.35),
-                          width: 0.5),
-                    ),
-                    child: Text(
-                      distLabel,
-                      style: TextStyle(
-                        fontFamily: OnlistTextStyles.family,
-                        fontSize: 11,
-                        fontWeight: FontWeight.w600,
-                        color: Colors.white70,
-                      ),
-                    ),
-                  ),
-                if (club.famosita > 0) ...[
-                  const SizedBox(height: 4),
-                  Row(
-                    mainAxisSize: MainAxisSize.min,
-                    children: [
-                      const Icon(Icons.local_fire_department,
-                          size: 11, color: Color(0xFFFF6B35)),
-                      const SizedBox(width: 2),
-                      Text(
-                        '${club.famosita}',
-                        style: TextStyle(
-                          fontFamily: OnlistTextStyles.family,
-                          fontSize: 10,
-                          color: Colors.white38,
+        // "swipe" + indicatore di pagina a y 213–220.
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 213,
+          child: Row(
+            mainAxisAlignment: MainAxisAlignment.center,
+            children: [
+              Text('swipe',
+                  style: _stile(10, peso: FontWeight.w300, ls: 0)),
+              const SizedBox(width: 3),
+              Padding(
+                padding: const EdgeInsets.only(top: 3),
+                child: Row(
+                  children: [
+                    for (var i = 0; i < categorie.length; i++) ...[
+                      if (i > 0) const SizedBox(width: 3),
+                      AnimatedContainer(
+                        duration: const Duration(milliseconds: 180),
+                        width: i == _paginaCarosello ? 27 : 4,
+                        height: 4,
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          borderRadius: BorderRadius.circular(2),
                         ),
                       ),
                     ],
-                  ),
-                ],
+                  ],
+                ),
+              ),
+            ],
+          ),
+        ),
+        Positioned(
+          left: 0,
+          right: 0,
+          top: 233,
+          child: Center(child: Text('Prezzo', style: _stile(29))),
+        ),
+        // Barra prezzo 323×24 r17.5 a (35,272), bianco 20%.
+        Positioned(
+          left: 35,
+          top: 272,
+          width: 323,
+          height: 24,
+          child: DecoratedBox(
+            decoration: BoxDecoration(
+              color: const Color(0x33D9D9D9),
+              borderRadius: BorderRadius.circular(17.5),
+            ),
+            child: Row(
+              children: [
+                for (var p = 1; p <= _livelliPrezzo; p++)
+                  Expanded(child: _segmentoPrezzo(p)),
               ],
             ),
-          ],
+          ),
+        ),
+        // "Elimina filtri" (38% se non c'è niente da eliminare).
+        Positioned(
+          left: 45,
+          top: 328,
+          width: 141,
+          height: 35,
+          child: GestureDetector(
+            behavior: HitTestBehavior.opaque,
+            onTap: _haFiltri
+                ? () {
+                    _scelte.clear();
+                    _prezzo = null;
+                    _emit();
+                  }
+                : null,
+            child: Center(
+              child: Text(
+                'Elimina filtri',
+                style: _stile(20,
+                    colore: _haFiltri ? Colors.white : const Color(0x61FFFFFF)),
+              ),
+            ),
+          ),
+        ),
+        // "Mostra N risultati" 167×35 r17.5 a (188,328).
+        Positioned(
+          left: 188,
+          top: 328,
+          child: GestureDetector(
+            onTap: () => Navigator.pop(context),
+            child: Container(
+              width: 167,
+              height: 35,
+              alignment: Alignment.center,
+              padding: const EdgeInsets.symmetric(horizontal: 8),
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0x00FFFFFF), Color(0x5E0066FF)],
+                ),
+                borderRadius: BorderRadius.circular(17.5),
+              ),
+              child: FittedBox(
+                fit: BoxFit.scaleDown,
+                child: Text(
+                  _count == 1 ? 'Mostra 1 risultato' : 'Mostra $_count risultati',
+                  style: _stile(20),
+                ),
+              ),
+            ),
+          ),
+        ),
+      ],
+    );
+  }
+
+  Widget _chipCategoria(String nome) {
+    final bool scelta = _scelte.contains(nome);
+    return GestureDetector(
+      onTap: () {
+        if (!_scelte.remove(nome)) _scelte.add(nome);
+        _emit();
+      },
+      child: Stack(
+        children: [
+          // Scelta: `#FFFFFF → #004DFF` (84%) al 50%; le altre: bianco 30%
+          // → blu 30% (73%), col testo al 50%.
+          Positioned.fill(
+            child: Opacity(
+              opacity: scelta ? 0.5 : 1,
+              child: DecoratedBox(
+                decoration: BoxDecoration(
+                  gradient: scelta
+                      ? const LinearGradient(
+                          colors: [Color(0xFFFFFFFF), Color(0xFF004DFF)],
+                          stops: [0, 0.8413],
+                        )
+                      : const LinearGradient(
+                          colors: [Color(0x4DFFFFFF), Color(0x4D0900FF)],
+                          stops: [0, 0.7308],
+                        ),
+                  borderRadius: BorderRadius.circular(14.5),
+                ),
+              ),
+            ),
+          ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 9),
+            child: Center(
+              widthFactor: 1,
+              child: Opacity(
+                opacity: scelta ? 1 : 0.5,
+                child: Text(nome,
+                    style: _stile(17, peso: FontWeight.w300, ls: 0)),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _segmentoPrezzo(int livello) {
+    final bool scelto = _prezzo == livello;
+    return GestureDetector(
+      behavior: HitTestBehavior.opaque,
+      // Ritoccare lo stesso livello toglie il filtro.
+      onTap: () {
+        _prezzo = scelto ? null : livello;
+        _emit();
+      },
+      child: Center(
+        child: Container(
+          height: 24,
+          padding: const EdgeInsets.symmetric(horizontal: 18.5),
+          alignment: Alignment.center,
+          decoration: scelto
+              ? BoxDecoration(
+                  gradient: const LinearGradient(
+                    colors: [Color(0x4DFFFFFF), Color(0x4D0900FF)],
+                    stops: [0, 0.7308],
+                  ),
+                  borderRadius: BorderRadius.circular(14.5),
+                )
+              : null,
+          child: Opacity(
+            opacity: scelto ? 1 : 0.5,
+            // Il CSS usa il font "Jaro": qui il bold della famiglia dell'app.
+            child: Text(
+              '\$' * livello,
+              maxLines: 1,
+              style: _stile(17, peso: FontWeight.w700, ls: 0.1),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+}
+
+/// "Filtri" a contorno, ritagliato sui glifi per riempire il riquadro
+/// 379×84 del CSS. Misure di OnlistHN-Bold a corpo 100 con letter-spacing 10:
+/// larghezza 270.8 (di cui 10 di spaziatura finale), glifi da 6.3 a 79.3.
+class _FiltriContorno extends StatelessWidget {
+  const _FiltriContorno();
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: Align(
+        // (73−100)·(a+1)/2 = −6.3 → a = −0.533; a sinistra per tagliare la
+        // spaziatura finale.
+        alignment: const Alignment(-1, -0.533),
+        heightFactor: 0.73,
+        widthFactor: 260.8 / 270.8,
+        child: Text(
+          'Filtri',
+          maxLines: 1,
+          textScaler: TextScaler.noScaling,
+          style: TextStyle(
+            fontFamily: OnlistTextStyles.family,
+            fontSize: 100,
+            fontWeight: FontWeight.w700,
+            height: 1.0,
+            letterSpacing: 10,
+            foreground: Paint()
+              ..style = PaintingStyle.stroke
+              ..strokeWidth = 0.8
+              ..color = Colors.white,
+          ),
         ),
       ),
     );
@@ -1913,7 +1919,6 @@ class _NearbyData {
   final int raggio;
   final double? lat;
   final double? lng;
-  final String? locationLabel;
   final bool locationAvailable;
   final bool gpsAttempted;
 
@@ -1922,21 +1927,7 @@ class _NearbyData {
     required this.raggio,
     required this.lat,
     required this.lng,
-    this.locationLabel,
     this.locationAvailable = true,
     this.gpsAttempted = false,
   });
-
-  List<String> get allGeneri {
-    final s = <String>{};
-    for (final c in clubs) {
-      s.addAll(c.generiMusicali);
-    }
-    return s.toList()..sort();
-  }
-
-  List<String> get allCitta {
-    return clubs.map((c) => c.nomeCitta).whereType<String>().toSet().toList()
-      ..sort();
-  }
 }

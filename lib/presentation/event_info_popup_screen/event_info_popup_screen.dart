@@ -114,6 +114,8 @@ class _PopupCard extends StatelessWidget {
   // bordo card. Finisce sopra la pillola data: il bagliore non la tocca MAI.
   static const double _bannerBaseH = 129;
 
+  static const double _cardRadius = 25;
+
   // ── Titolo adattivo ────────────────────────────────────────────────────────
   // Il blocco titolo ha ALTEZZA FISSA = 1 riga a _titleMaxFs (45px): così il
   // contenuto sotto (indirizzo, pillola data, tutto il resto) NON si sposta mai,
@@ -188,7 +190,9 @@ class _PopupCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    final radius = BorderRadius.circular(R.sp(32));
+    // CSS NUOVO Rectangle 211/210: angoli 25 (erano 32, e con il contorno
+    // bianco sopra la curva sembrava "non perfetta").
+    final radius = BorderRadius.circular(R.sp(_cardRadius));
     // Card linear gradient (Rectangle 210): #2600FF → #1500B2 @53.85% → #000.
     // Min-height ridotto (era 611, troppo rispetto ai gap ora più stretti):
     // con line-up+parcheggio popolati il contenuto reale supera già questo
@@ -206,11 +210,8 @@ class _PopupCard extends StatelessWidget {
       return Container(
         width: double.infinity,
         constraints: BoxConstraints(minHeight: R.sp(500)),
-        // CSS NUOVO Rectangle 210: bordo 1px bianco PIENO sopra tutto.
-        foregroundDecoration: BoxDecoration(
-          border: Border.all(color: Colors.white, width: 1),
-          borderRadius: radius,
-        ),
+        // Niente contorno: né il CSS né il PNG 19 lo hanno, e il filo bianco
+        // pieno era il "troppo bianco nei bordi" del doc correzioni 16/09.
         // Clip così banner e glow non sbordano dagli angoli arrotondati.
         child: ClipRRect(
           borderRadius: radius,
@@ -222,7 +223,7 @@ class _PopupCard extends StatelessWidget {
               end: Alignment.bottomCenter,
               colors: [Color(0xFF2600FF), Color(0xFF00308B)],
             ),
-            radius: R.sp(32),
+            radius: R.sp(_cardRadius),
             glowColor: const Color(0xFF0033FF),
             glowSigma: R.sp(25), // blur CSS 50
             child: Stack(
@@ -230,8 +231,9 @@ class _PopupCard extends StatelessWidget {
                 // Banner radiale top (Rectangle 211) — overlay sopra il linear
                 // gradient e SOTTO il testo. Lo Stack disegna i figli nell'ordine
                 // dichiarato, quindi questo viene prima del contenuto.
-                // CSS NUOVO: radial(34.4% at 31.78% 68.44%, #0031D2 → #0077FF),
-                // bordo basso 1px bianco 59% che separa banner e corpo card.
+                // CSS NUOVO: radial(34.4% at 31.78% 68.44%, #0031D2 → #0077FF).
+                // Banner e corpo si staccano solo per colore, senza filo
+                // bianco (come nel PNG 19).
                 Positioned(
                   top: 0,
                   left: 0,
@@ -245,10 +247,6 @@ class _PopupCard extends StatelessWidget {
                           center: Alignment(-0.36, 0.37),
                           radius: 1.1,
                           colors: [Color(0xFF0031D2), Color(0xFF0077FF)],
-                        ),
-                        border: Border(
-                          bottom:
-                              BorderSide(color: Color(0x96FFFFFF), width: 1),
                         ),
                       ),
                     ),
@@ -275,7 +273,7 @@ class _PopupCard extends StatelessWidget {
       // ulteriore inset orizzontale di 4 sui sotto-blocchi.
       padding: EdgeInsets.fromLTRB(
         R.sp(_padPill),
-        R.sp(12), // CSS NUOVO: badge a rel y 12 dal bordo card
+        R.sp(11), // CSS NUOVO: X a rel y 11 (137−126), badge a 15
         R.sp(_padPill),
         R.sp(13), // bottom card (CTA bottom rel 618 su card 631)
       ),
@@ -284,9 +282,9 @@ class _PopupCard extends StatelessWidget {
         children: [
           // QUESTA SERA badge + close (X) — gap interno standard pill
           _topBadgeAndClose(context),
-          // Gap badge → titolo: CSS NUOVO — titolo a rel 51; la riga badge è
-          // alta 30 (X inclusa) e parte da rel 12 → 51−42 = 9.
-          SizedBox(height: R.sp(9)),
+          // Gap badge → titolo: titolo a rel 51; la riga badge è alta 30 (X
+          // inclusa) e parte da rel 11 → 51−41 = 10.
+          SizedBox(height: R.sp(10)),
           // Padding interno extra di +4px (16-12) per allineare titolo/indirizzo
           Padding(
             padding:
@@ -365,16 +363,19 @@ class _PopupCard extends StatelessWidget {
 
   Widget _topBadgeAndClose(BuildContext context) {
     final label = _serataDayLabel();
-    // Riga alta quanto la X (30): il badge (23) sta in alto come nel CSS
-    // (badge rel y 12, X rel y 8 — la X sporge un filo sopra).
+    // Riga alta quanto la X (30), che parte a rel y 11. Il badge (23) sta
+    // 4px più in basso, a rel 15 come nel CSS (doc correzioni 16/09:
+    // "abbassare" la scritta DOMANI).
     return Row(
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         // Badge QUESTA SERA: Rectangle 212, radial gradient teal→blu.
         Container(
-          // Padding interno: badge h=23, font 16 → ~3 vert / 12 horiz
-          padding:
-              EdgeInsets.symmetric(horizontal: R.sp(12), vertical: R.sp(3)),
+          margin: EdgeInsets.only(top: R.sp(4)),
+          // CSS: pill 117×23 a (37,141), testo a (46,146) alto 16 → 9 a
+          // sinistra, 5 sopra e 2 sotto. Con padding simmetrico 3/3 le
+          // maiuscole restavano alte nella pill.
+          padding: EdgeInsets.fromLTRB(R.sp(9), R.sp(5), R.sp(9), R.sp(2)),
           decoration: BoxDecoration(
             // CSS: radial-gradient(90.17% 90.17% at 93.16% 25%,
             //      rgba(0,162,154,.53) 0%, rgba(30,0,255,.53) 100%)
@@ -576,7 +577,7 @@ class _PopupCard extends StatelessWidget {
         child: Text(
           text,
           maxLines: 1,
-          // 20/w500 come da CSS — vedi nota in `_renderInfoBox`.
+          // 20/w500 come da CSS.
           style: OnlistTextStyles.hn(
             fontSize: R.sp(20),
             fontWeight: FontWeight.w500,
@@ -717,14 +718,12 @@ class _PopupCard extends StatelessWidget {
           SizedBox(height: R.sp(14)),
           Text(
             box.value,
-            // 20/w500 come da CSS. Era stato alzato a w700 quando credevo che
-            // il w500 non agganciasse la faccia Medium: la probe del task sui
-            // font ha dimostrato il contrario (500 → 218.640, identico alla
-            // faccia isolata), e il documento correzioni chiede di ridurre
-            // proprio questo grassetto. Il titoletto sopra resta leggero.
+            // Grassetto: il doc correzioni 16/09 chiede i valori in bold come
+            // nel PNG Figma, dove risultano più pesanti del Medium (w500) del
+            // CSS. Il titoletto sopra resta leggero.
             style: OnlistTextStyles.hn(
               fontSize: R.sp(20),
-              fontWeight: FontWeight.w500,
+              fontWeight: FontWeight.w700,
               color: Colors.white,
               height: 20 / 20,
               letterSpacing: -0.05 * 20,
@@ -859,7 +858,7 @@ class _PopupCard extends StatelessWidget {
         alignment: Alignment.center,
         child: Text(
           'Acquista il tuo ticket',
-          // 32/w500 come da CSS — vedi nota in `_renderInfoBox`.
+          // 32/w500 come da CSS.
           style: OnlistTextStyles.hn(
             fontSize: R.sp(32),
             fontWeight: FontWeight.w500,

@@ -8,13 +8,15 @@ import '../core/utils/responsive.dart';
 import '../theme/onlist_colors.dart';
 import '../theme/onlist_text_styles.dart';
 import 'dashed_line.dart';
+import 'fit_one_line_text.dart';
 import 'staggered_item.dart';
+import 'testo_pagamento_struttura.dart';
 import 'ticket_shape.dart';
 
 /// Card-biglietto del design NUOVO condivise da "Ordine Effettuato" e
 /// "Riepilogo ordini". Tre stati, ognuno un widget a sé:
 ///
-/// - [TicketCollapsedCard] — biglietto chiuso (350×167): solo nome del locale
+/// - [TicketCollapsedCard] — biglietto chiuso (350×140): solo nome del locale
 ///   e "Apri biglietto" con la freccia giù.
 /// - [TicketFrontCard] — biglietto aperto, FRONTE (350×614): tipo ticket,
 ///   quantità, dati personali, pagamento e il bottone "VISUALIZZA QR CODE".
@@ -83,56 +85,81 @@ class TicketCollapsedCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // CSS NUOVO "Ordine Effettuato" (16/09), Rectangle 265: 350×140 r32,
+    // SENZA tacche. Nome del locale 64 (box 63 a rel y 21) che sfuma verso
+    // il basso, e la riga sotto ATTACCATA: parte a rel 65, sopra la coda
+    // sfumata del nome. Freccia a rel 97.
     return GestureDetector(
       onTap: onTap,
       behavior: HitTestBehavior.opaque,
       child: SizedBox(
-        height: R.sp(167),
+        height: R.sp(140),
         width: double.infinity,
         child: TicketShape(
-          // CSS Ellipse 20/21: top 477 su card a 392 → 85/167 ≈ 0.51 del
-          // riquadro; centro tacca alla stessa quota della freccia.
-          notches: const [
-            TicketNotch(centerYFraction: 106.5 / 167, radiusDesign: 22),
-          ],
-          child: Padding(
-            padding: EdgeInsets.fromLTRB(R.sp(30), R.sp(28), R.sp(30), 0),
-            child: Column(
-              children: [
-                // Nome locale 64/500/-0.1em (CSS "NumberOne").
-                SizedBox(
-                  height: R.sp(63),
-                  width: double.infinity,
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      clubName,
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(64),
-                        fontWeight: FontWeight.w700,
-                        height: 63 / 64,
-                        letterSpacing: -0.1 * 64,
+          notches: const [],
+          child: Stack(
+            children: [
+              Positioned(
+                left: R.sp(23),
+                right: R.sp(23),
+                top: R.sp(21),
+                height: R.sp(63),
+                // CSS: linear-gradient(180deg, #FFF 51.28%, transparent
+                // 76.19%) sul testo, opacità 95%.
+                child: Opacity(
+                  opacity: 0.95,
+                  child: ShaderMask(
+                    blendMode: BlendMode.srcIn,
+                    shaderCallback: (bounds) => const LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      colors: [
+                        Colors.white,
+                        Colors.white,
+                        Color(0x00FFFFFF),
+                      ],
+                      stops: [0.0, 0.5128, 0.7619],
+                    ).createShader(bounds),
+                    child: Center(
+                      child: FitOneLineText(
+                        clubName,
+                        minFontSize: R.sp(36),
+                        textAlign: TextAlign.center,
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(64),
+                          fontWeight: FontWeight.w500,
+                          height: 63 / 64,
+                          letterSpacing: -0.1 * R.sp(64),
+                        ),
                       ),
                     ),
                   ),
                 ),
-                SizedBox(height: R.sp(8)),
-                Text(
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: R.sp(65),
+                child: Text(
                   label,
+                  textAlign: TextAlign.center,
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
-                    fontSize: R.sp(15),
-                    // "Grassetto leggero" richiesto nel doc correzioni: w500,
-                    // non w700 — deve restare più leggero del nome del locale.
+                    fontSize: R.sp(25),
                     fontWeight: FontWeight.w500,
-                    letterSpacing: -0.1 * 15,
+                    height: 1.0,
+                    letterSpacing: -0.1 * R.sp(25),
                   ),
                 ),
-                SizedBox(height: R.sp(9)),
-                const ArrowCircle(down: true),
-              ],
-            ),
+              ),
+              Positioned(
+                left: 0,
+                right: 0,
+                top: R.sp(97),
+                child: const Center(child: ArrowCircle(down: true)),
+              ),
+            ],
           ),
         ),
       ),
@@ -229,11 +256,11 @@ class TicketFrontCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: R.sp(18)),
+                // CSS NUOVO 16/09: "Ticket x 1" a rel 96, "Dati personali" a
+                // rel 167 (la linea a 140 la disegna lo Stack).
+                SizedBox(height: R.sp(13)),
                 _QuantityRow(quantita: quantita, descrizione: descrizione),
-                // 15 + 1 (linea) + 18: lo spazio della 1ª separazione resta, la
-                // linea ora la disegna lo Stack ancorata alla tacca.
-                SizedBox(height: R.sp(34)),
+                SizedBox(height: R.sp(38)),
                 // "Dati personali" 48/500 — era w700, il CSS dice 500 come gli
                 // altri due titoli della card.
                 Padding(
@@ -249,12 +276,11 @@ class TicketFrontCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                SizedBox(height: R.sp(11)),
-                _PersonalRow('Nome : $nome'),
+                // Righe a rel 219 e 248 (passo 29), "Pagamento" a rel 313.
                 SizedBox(height: R.sp(5)),
-                _PersonalRow('Cognome : $cognome'),
-                // 26 + 1 (linea) + 25: idem per la 2ª separazione.
-                SizedBox(height: R.sp(52)),
+                _PersonalRow('Nome - $nome'),
+                _PersonalRow('Cognome - $cognome'),
+                SizedBox(height: R.sp(36)),
                 // "Pagamento" 48/500 + testo statico + prezzo 96.
                 Padding(
                   padding: EdgeInsets.only(left: R.sp(26)),
@@ -273,26 +299,19 @@ class TicketFrontCard extends StatelessWidget {
                   height: R.sp(148),
                   child: Stack(
                     children: [
+                      // CSS NUOVO 16/09: testo a (29, +12), prezzo a +32 con
+                      // 31 di margine destro.
                       Positioned(
-                        left: R.sp(30),
-                        top: R.sp(16),
+                        left: R.sp(29),
+                        top: R.sp(12),
                         child: SizedBox(
                           width: R.sp(155),
-                          child: Text(
-                            'Il pagamento dovrà essere effettuato in struttura',
-                            style: OnlistTextStyles.hn(
-                              color: Colors.white,
-                              fontSize: R.sp(20),
-                              fontWeight: FontWeight.w400,
-                              height: 20 / 20,
-                              letterSpacing: -0.08 * 20,
-                            ),
-                          ),
+                          child: const TestoPagamentoInStruttura(),
                         ),
                       ),
                       Positioned(
-                        right: R.sp(28),
-                        top: R.sp(31),
+                        right: R.sp(31),
+                        top: R.sp(32),
                         child: Text(
                           prezzo,
                           style: OnlistTextStyles.hn(
@@ -496,50 +515,66 @@ class TicketBackCard extends StatelessWidget {
                   child: _QuantityRow(
                       quantita: quantita, descrizione: descrizione),
                 ),
-                // 15 + 1 (linea, ora nello Stack) + 9.
-                SizedBox(height: R.sp(25)),
-                // Evento: nome 48/500 su MAX 2 righe, sottotitolo 32/500,
-                // data 22/500 — centrati.
-                _BackStagger(
-                  index: 3,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-                    child: Column(
-                      children: [
-                        _TwoLineTitle(
-                          text: eventoNome,
-                          maxFontSizeDesign: 48,
-                          minFontSizeDesign: 28,
-                          lineHeight: 47 / 48,
-                        ),
-                        if (eventoSottotitolo != null &&
-                            eventoSottotitolo!.isNotEmpty) ...[
-                          SizedBox(height: R.sp(6)),
-                          Text(
-                            eventoSottotitolo!,
+                // "Ticket x 1" chiude a rel 136; il blocco evento parte a 143,
+                // subito sotto il tratteggio (142.5).
+                SizedBox(height: R.sp(7)),
+                // Evento (CSS NUOVO 16/09, Frame 427): riquadro FISSO 145 fra
+                // il tratteggio e il pannello QR, contenuto centrato. Il nome
+                // sta su UNA riga e si rimpicciolisce se è lungo: prima andava
+                // su due righe, spingeva giù tutto e finiva sopra i trattini.
+                SizedBox(
+                  height: R.sp(145),
+                  child: _BackStagger(
+                    index: 3,
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+                      child: Column(
+                        mainAxisAlignment: MainAxisAlignment.center,
+                        children: [
+                          FitOneLineText(
+                            eventoNome,
+                            minFontSize: R.sp(26),
+                            textAlign: TextAlign.center,
                             style: OnlistTextStyles.hn(
                               color: Colors.white,
-                              fontSize: R.sp(32),
+                              fontSize: R.sp(55),
                               fontWeight: FontWeight.w500,
-                              height: 32 / 32,
+                              height: 54 / 55,
+                              letterSpacing: -0.05 * R.sp(55),
+                            ),
+                          ),
+                          if (eventoSottotitolo != null &&
+                              eventoSottotitolo!.isNotEmpty) ...[
+                            SizedBox(height: R.sp(17)),
+                            FitOneLineText(
+                              eventoSottotitolo!,
+                              minFontSize: R.sp(20),
+                              textAlign: TextAlign.center,
+                              style: OnlistTextStyles.hn(
+                                color: Colors.white,
+                                fontSize: R.sp(33),
+                                fontWeight: FontWeight.w500,
+                                height: 1.0,
+                                letterSpacing: -0.05 * R.sp(33),
+                              ),
+                            ),
+                          ],
+                          SizedBox(height: R.sp(17)),
+                          Text(
+                            dataEvento,
+                            style: OnlistTextStyles.hn(
+                              color: Colors.white,
+                              fontSize: R.sp(20),
+                              fontWeight: FontWeight.w500,
+                              height: 1.0,
+                              letterSpacing: -0.05 * R.sp(20),
                             ),
                           ),
                         ],
-                        SizedBox(height: R.sp(6)),
-                        Text(
-                          dataEvento,
-                          style: OnlistTextStyles.hn(
-                            color: Colors.white,
-                            fontSize: R.sp(22),
-                            fontWeight: FontWeight.w500,
-                            height: 22 / 22,
-                          ),
-                        ),
-                      ],
+                      ),
                     ),
                   ),
                 ),
-                SizedBox(height: R.sp(14)),
                 // Pannello QR (CSS Rectangle 295: 350×345 r32, rgba(0,5,214,.2))
                 // col QR VERO su riquadro bianco 20% r16.
                 //
@@ -621,68 +656,6 @@ class TicketBackCard extends StatelessWidget {
       ),
     );
   }
-}
-
-/// Titolo che sta su **massimo 2 righe**: parte da [maxFontSizeDesign] e scende
-/// finché il testo ci entra, senza mai andare sotto [minFontSizeDesign].
-///
-/// Serve per il nome evento del retro: prima era dentro un `FittedBox`, che lo
-/// teneva sempre su UNA riga rimpicciolendolo all'infinito — un nome lungo
-/// diventava minuscolo. Qui un nome corto resta a 48 su una riga, uno lungo si
-/// riduce quel tanto che basta per starci in due.
-///
-/// La misura la fa un [TextPainter] sulla larghezza reale disponibile: pochi
-/// tentativi a step di 2px, solo al build della card (nessun costo per frame).
-class _TwoLineTitle extends StatelessWidget {
-  final String text;
-  final double maxFontSizeDesign;
-  final double minFontSizeDesign;
-  final double lineHeight;
-
-  const _TwoLineTitle({
-    required this.text,
-    required this.maxFontSizeDesign,
-    required this.minFontSizeDesign,
-    required this.lineHeight,
-  });
-
-  static const int _maxLines = 2;
-
-  @override
-  Widget build(BuildContext context) {
-    return LayoutBuilder(
-      builder: (context, constraints) {
-        final maxW = constraints.maxWidth;
-        double size = R.sp(maxFontSizeDesign);
-        final minSize = R.sp(minFontSizeDesign);
-        while (size > minSize) {
-          final painter = TextPainter(
-            text: TextSpan(text: text, style: _styleAt(size)),
-            textDirection: TextDirection.ltr,
-            maxLines: _maxLines,
-            textAlign: TextAlign.center,
-          )..layout(maxWidth: maxW);
-          if (!painter.didExceedMaxLines) break;
-          size -= 2;
-        }
-        return Text(
-          text,
-          textAlign: TextAlign.center,
-          maxLines: _maxLines,
-          // Se nemmeno al minimo ci sta, meglio troncare che sbordare.
-          overflow: TextOverflow.ellipsis,
-          style: _styleAt(size),
-        );
-      },
-    );
-  }
-
-  TextStyle _styleAt(double size) => OnlistTextStyles.hn(
-        color: Colors.white,
-        fontSize: size,
-        fontWeight: FontWeight.w500,
-        height: lineHeight,
-      );
 }
 
 /// Entrata sfalsata dei blocchi del retro: parte quando il retro viene
@@ -769,19 +742,20 @@ class _QuantityRow extends StatelessWidget {
   /// Il CSS la mette a 148 (left 169 su card a 21); nella 1.1 avevi chiesto di
   /// spostarla ancora a destra e nella 1.11 di nuovo, quindi qui sta a **160**.
   /// Con la card larga 350 e il margine destro di 20 restano 170 px per il
-  /// testo, che a corpo 24 basta per "Welcome drink".
+  /// testo; "Ticket x 1" a 33 misura 127 e chiude a 153, prima dello slot.
   static const double _descrizioneXDesign = 160;
 
   double get _rowLeft => R.sp(_leftDesign);
 
   @override
   Widget build(BuildContext context) {
+    // 33/-0.05em (CSS NUOVO 16/09, era 24).
     final style = OnlistTextStyles.hn(
       color: Colors.white,
-      fontSize: R.sp(24),
+      fontSize: R.sp(33),
       fontWeight: FontWeight.w400,
       height: 1.0,
-      letterSpacing: -0.05 * 24,
+      letterSpacing: -0.05 * R.sp(33),
     );
     return Padding(
       padding: EdgeInsets.only(left: _rowLeft, right: R.sp(20)),
@@ -796,13 +770,14 @@ class _QuantityRow extends StatelessWidget {
             width: R.sp(_descrizioneXDesign - _leftDesign),
             child: Text('Ticket x $quantita', style: style),
           ),
+          // Una descrizione lunga si rimpicciolisce (fino a 22) prima di
+          // troncarsi.
           if (descrizione != null && descrizione!.isNotEmpty)
-            Flexible(
-              child: Text(
+            Expanded(
+              child: FitOneLineText(
                 descrizione!,
-                maxLines: 1,
-                overflow: TextOverflow.ellipsis,
                 style: style,
+                minFontSize: R.sp(22),
               ),
             ),
         ],
@@ -811,7 +786,8 @@ class _QuantityRow extends StatelessWidget {
   }
 }
 
-/// Riga dati personali (16/-0.1em, CSS "Nome : Mario").
+/// Riga dati personali (CSS NUOVO 16/09 "Nome - Mario": 29/29/-0.1em a
+/// left 26; erano 16 e col ":").
 class _PersonalRow extends StatelessWidget {
   final String text;
 
@@ -820,17 +796,18 @@ class _PersonalRow extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Padding(
-      padding: EdgeInsets.only(left: R.sp(29)),
+      padding: EdgeInsets.only(left: R.sp(26), right: R.sp(20)),
       child: Align(
         alignment: Alignment.centerLeft,
-        child: Text(
+        child: FitOneLineText(
           text,
+          minFontSize: R.sp(20),
           style: OnlistTextStyles.hn(
             color: Colors.white,
-            fontSize: R.sp(16),
+            fontSize: R.sp(29),
             fontWeight: FontWeight.w400,
             height: 1.0,
-            letterSpacing: -0.1 * 16,
+            letterSpacing: -0.1 * R.sp(29),
           ),
         ),
       ),

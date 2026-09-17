@@ -7,6 +7,7 @@ import 'package:intl/intl.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
 import '../../core/services/pending_order_service.dart';
+import '../../core/services/ticket_non_visti_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../core/services/navigator_service.dart';
@@ -29,6 +30,8 @@ import '../../widgets/onlist_ticket_title.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
+import '../../widgets/fit_one_line_text.dart';
+import '../../widgets/testo_pagamento_struttura.dart';
 import '../../widgets/ticket_shape.dart';
 
 enum BookingStep { selection, ticketList, ticketDetail, tableConfig, bottles }
@@ -584,10 +587,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   }
 
   // Card a biglietto del design NUOVO ("Carrello - Ticket": Rectangle 266):
-  // 350×225 r21, gradiente/bordo/glow di TicketShape, tacca Ø51 SOLO a
-  // sinistra centrata verticalmente e arretrata di ~6.5px. La nota "Entrata
-  // valida…" non esiste più nella card lista (resta nei dati per il dettaglio):
-  // al suo posto il testo statico sul pagamento in struttura.
+  // 350×225 r21, gradiente/bordo/glow di TicketShape. Card PIENA, senza la
+  // tacca a sinistra (doc correzioni 16/09, come nel PNG Figma 11). La nota
+  // "Entrata valida…" non esiste più nella card lista (resta nei dati per il
+  // dettaglio): al suo posto il testo statico sul pagamento in struttura.
   Widget _buildTicketCard({
     required String type,
     required String price,
@@ -605,15 +608,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       width: double.infinity,
       child: TicketShape(
         cornerRadiusDesign: 21,
-        notches: const [
-          TicketNotch(
-            centerYFraction: 0.5,
-            radiusDesign: 25.5, // Ellipse 23/24/26: Ø51
-            right: false,
-            edgeOffsetDesign:
-                6.5, // centro a x −6.5 dal bordo → tacca meno profonda
-          ),
-        ],
+        notches: const [],
         child: Stack(
           children: [
             // "Ticket" + tipo sotto la "k" (CSS: Ticket 39.52 a (19,20),
@@ -698,8 +693,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 ),
               ),
             ),
-            // PRENOTA (CSS Rectangle 283: 112×48 r20, gradiente teal
-            // traslucido rgba(0,255,242,.2) → rgba(0,0,0,.2)) → dettaglio.
+            // PRENOTA (CSS Rectangle 283: 112×48 r20) → dettaglio.
             Positioned(
               right: R.sp(18),
               bottom: R.sp(21),
@@ -721,20 +715,20 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 child: Container(
                   width: R.sp(112),
                   height: R.sp(48),
+                  // Colori misurati sul PNG Figma 11 (doc correzioni 16/09):
+                  // il gradiente traslucido del CSS (teal 20% → nero 20%)
+                  // lasciava passare il blu della card, mentre nel design il
+                  // bottone è un blu più scuro e opaco, #003EB1 in alto e
+                  // #001F7C in basso, con un filo azzurro #88B9E6 di contorno.
                   decoration: BoxDecoration(
                     gradient: const LinearGradient(
                       begin: Alignment.topCenter,
                       end: Alignment.bottomCenter,
-                      colors: [Color(0x3300FFF2), Color(0x33000000)],
+                      colors: [Color(0xFF003EB1), Color(0xFF001F7C)],
                     ),
-                    // Nel PNG ufficiale il bottone ha un contorno chiaro di
-                    // 1px (misurato #5F9CF2 a sinistra, #69B3F2 a destra, cioè
-                    // un azzurro semitrasparente): nell'app non c'era nulla e
-                    // il bottone sfumava nella card. 1.5px al 55% su richiesta
-                    // di Luca di renderlo più visibile del design.
                     border: Border.all(
-                      color: const Color(0x8CFFFFFF),
-                      width: R.sp(1.5),
+                      color: const Color(0xCC88B9E6),
+                      width: R.sp(1),
                     ),
                     borderRadius: BorderRadius.circular(R.sp(20)),
                   ),
@@ -757,6 +751,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
       ),
     );
   }
+
+  /// "Ticket x 1" e descrizione accanto: 33/400/-0.05em (CSS NUOVO 16/09).
+  TextStyle get _stileRigaTicket => OnlistTextStyles.hn(
+        color: Colors.white,
+        fontSize: R.sp(33),
+        fontWeight: FontWeight.w400,
+        height: 1.0,
+        letterSpacing: -0.05 * R.sp(33),
+      );
 
   // ── Dettaglio singolo ticket (Normale/Vip), design NUOVO ────────────────────
   // Biglietto-scontrino 350×603/618 (CSS "Carrello - Ticket Normale/Vip"):
@@ -825,7 +828,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           amount: price,
         );
         BadgeService().incrementNotificationBadge();
-        // Ordine concluso: il sospeso non serve più, pallino spento.
+        // Ordine concluso: il pallino passa dal carrello ai TICKET. Il
+        // carrello resta spento per tutta la conferma anche se ha altri
+        // sospesi (si riaccende quando l'utente la lascia).
+        PendingOrderService().sospendiPerConferma();
+        await TicketNonVistiService().aggiungi(prenotazioneId);
         await PendingOrderService()
             .completa(_serataInCorso ?? eventoId);
 
@@ -836,6 +843,9 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           arguments: {'idPrenotazione': prenotazioneId},
         );
       } catch (e) {
+        // Se si era già entrati nella fase "conferma", la si chiude: la
+        // conferma non si aprirà e il carrello deve tornare a dire la verità.
+        PendingOrderService().riprendiDopoConferma();
         AnalyticsService.reportError(e, screen: 'booking');
         if (mounted) showAppErrorDialog(context, "Errore durante l'ordine: $e");
       } finally {
@@ -872,41 +882,26 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 ),
               ),
             ),
-            SizedBox(height: R.sp(18)),
-            // "Ticket x 1" + descrizione (24/-0.05em, CSS left 26 / 147).
+            // CSS NUOVO (16/09): "Ticket x 1" a rel y 92, 9px sotto il titolo.
+            SizedBox(height: R.sp(9)),
+            // "Ticket x 1" + descrizione a 33/-0.05em (erano 24: doc
+            // correzioni 16/09). "Ticket x 1" a left 26, descrizione allineata
+            // a destra fino a rel 323 (+ 2 Plus: 236+109 su card a 22).
             Padding(
-              padding: EdgeInsets.only(left: R.sp(26), right: R.sp(20)),
+              padding: EdgeInsets.only(left: R.sp(26), right: R.sp(27)),
               child: Row(
                 children: [
-                  // Slot fisso: la descrizione parte sempre a 160 dal bordo
-                  // della card, non "dopo il testo" (stessa scelta e stesso
-                  // valore di `_QuantityRow` nel biglietto — correzioni 1.11).
-                  SizedBox(
-                    width: R.sp(160 - 26),
-                    child: Text(
-                      'Ticket x 1',
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(24),
-                        fontWeight: FontWeight.w400,
-                        height: 1.0,
-                        letterSpacing: -0.05 * 24,
-                      ),
-                    ),
-                  ),
+                  Text('Ticket x 1', style: _stileRigaTicket),
                   if (riepilogo.isNotEmpty) ...[
-                    Flexible(
-                      child: Text(
+                    SizedBox(width: R.sp(12)),
+                    // Si rimpicciolisce prima di troncarsi: a 33px una
+                    // descrizione come "Ingresso + 1 drink" non ci sta.
+                    Expanded(
+                      child: FitOneLineText(
                         riepilogo,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(24),
-                          fontWeight: FontWeight.w400,
-                          height: 1.0,
-                          letterSpacing: -0.05 * 24,
-                        ),
+                        style: _stileRigaTicket,
+                        minFontSize: R.sp(22),
+                        textAlign: TextAlign.right,
                       ),
                     ),
                   ],
@@ -933,27 +928,29 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 ),
               ),
             ),
-            SizedBox(height: R.sp(8)),
-            // Benefit (24/-0.1em, CSS left 30, passo 34 → gap 10).
+            SizedBox(height: R.sp(6)),
+            // Benefit 29/-0.1em a left 26, passo 35 → 6 tra le righe (CSS
+            // NUOVO 16/09: righe a 372 e 407, Dettagli chiude a 366).
             for (var i = 0; i < benefits.length; i++) ...[
-              if (i > 0) SizedBox(height: R.sp(10)),
+              if (i > 0) SizedBox(height: R.sp(6)),
               Padding(
-                padding: EdgeInsets.only(left: R.sp(30), right: R.sp(20)),
+                padding: EdgeInsets.only(left: R.sp(26), right: R.sp(20)),
                 child: Text(
                   benefits[i],
-                  maxLines: 1,
+                  maxLines: 2,
                   overflow: TextOverflow.ellipsis,
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
-                    fontSize: R.sp(24),
+                    fontSize: R.sp(29),
                     fontWeight: FontWeight.w400,
                     height: 1.0,
-                    letterSpacing: -0.1 * 24,
+                    letterSpacing: -0.1 * R.sp(29),
                   ),
                 ),
               ),
             ],
-            SizedBox(height: R.sp(17)),
+            // Ultima riga a 436, tratteggio a 449.
+            SizedBox(height: R.sp(13)),
             Padding(
               padding: EdgeInsets.only(left: R.sp(26)),
               child: const DashedLine(widthDesign: 297),
@@ -973,8 +970,8 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 ),
               ),
             ),
-            // Zona pagamento: testo 20 a sinistra (rel 16) + prezzo 96 a
-            // destra più in basso (rel 51) — altezza fissa dal CSS (170).
+            // Zona pagamento: testo a sinistra (rel 16) + prezzo 96 a destra
+            // più in basso (rel 52) — altezza fissa dal CSS (170).
             SizedBox(
               height: R.sp(170),
               child: Stack(
@@ -983,22 +980,13 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     left: R.sp(30),
                     top: R.sp(16),
                     child: SizedBox(
-                      width: R.sp(155),
-                      child: Text(
-                        'Il pagamento dovrà essere effettuato in struttura',
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(20),
-                          fontWeight: FontWeight.w400,
-                          height: 20 / 20,
-                          letterSpacing: -0.08 * 20,
-                        ),
-                      ),
+                      width: R.sp(186),
+                      child: const TestoPagamentoInStruttura(),
                     ),
                   ),
                   Positioned(
-                    right: R.sp(28),
-                    top: R.sp(51),
+                    right: R.sp(34),
+                    top: R.sp(52),
                     child: OnlistPriceText(
                       price,
                       style: OnlistTextStyles.hn(

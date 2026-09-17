@@ -92,11 +92,12 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               onTap: onSearchTap ??
                   () => NavigatorService.pushNamed(AppRoutes.nearbyClubsScreen),
               child: Padding(
-                // Padding destro ridotto (6 → 2.5): avvicina la lente al
-                // profilo di ~3.5px, come chiesto nel doc correzioni. Il
-                // profilo resta ancorato al bordo, quindi si muove la lente.
-                padding:
-                    EdgeInsets.fromLTRB(R.sp(6), R.sp(6), R.sp(2.5), R.sp(6)),
+                // CSS home.css: tra il tratto della lente (finisce a 337) e
+                // quello del profilo (inizia a 347.5) corrono ~10px. Le SVG
+                // hanno già 2.75 + 5.67px di vuoto interno, quindi a destra
+                // della lente niente padding e a sinistra del profilo 1.5.
+                // Il profilo resta ancorato al bordo: si muove la lente.
+                padding: EdgeInsets.fromLTRB(R.sp(6), R.sp(6), 0, R.sp(6)),
                 child: Opacity(
                   opacity: _opacita(searchAttiva),
                   child: SvgPicture.asset(ImageConstant.imgNavSearch,
@@ -109,7 +110,7 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
               onTap: onProfileTap ??
                   () => NavigatorService.pushNamed(AppRoutes.profileScreen),
               child: Padding(
-                padding: const EdgeInsets.symmetric(horizontal: 6, vertical: 6),
+                padding: const EdgeInsets.fromLTRB(1.5, 6, 6, 6),
                 child: Stack(
                   clipBehavior: Clip.none,
                   children: [

@@ -8,8 +8,11 @@ import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
+import '../../core/utils/date_formatter.dart';
+import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
 import '../../widgets/back_row.dart';
+import '../../widgets/card_prenota_button.dart';
 import '../../widgets/top_bar_slot.dart';
 import '../../widgets/animated_press.dart';
 import '../../widgets/favorite_banner.dart';
@@ -261,9 +264,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                                   state.locale, state.eventoOggi),
                             ),
                           ),
-                          // CSS NUOVO: la riga generi chiude a 510 (icona 490+20,
-                          // non il testo a 509) → titolo sezione a 519.
-                          SizedBox(height: R.sp(9)),
+                          // CSS NUOVO (16/09): la riga generi chiude a 506
+                          // (icona 486+20) → titolo sezione a 514.
+                          SizedBox(height: R.sp(8)),
                           // Prossime serate. Il PRENOTA della card apre il
                           // POP-UP della serata, non la scelta ticket: prima di
                           // scegliere il biglietto l'utente deve poter leggere
@@ -418,15 +421,17 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
   // ── Subtitle (indirizzo) — tap → Google Maps ────────────────────────────────
   Widget _buildSubtitle(LocaleModel locale) {
     return Padding(
-      // CSS NUOVO: indirizzo a left 15, 5px sotto il nome (428 vs 423).
-      padding: EdgeInsets.fromLTRB(R.sp(15), R.sp(5), R.sp(13), 0),
+      // CSS NUOVO (16/09): indirizzo 22/500 a left 14, 7px sotto il nome
+      // (430 vs 423).
+      padding: EdgeInsets.fromLTRB(R.sp(14), R.sp(7), R.sp(13), 0),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
         onTap: () => _openMaps(locale.indirizzoCompleto),
         child: Text(
           locale.indirizzoCompleto,
           style: OnlistTextStyles.hn(
-            fontSize: R.sp(23),
+            fontSize: R.sp(22),
+            height: 22 / 22,
             fontWeight: FontWeight.w500,
             // Il CSS dice `opacity: 0.8`, che su nero fa #CCCCCC: e' il design
             // stesso a renderla grigia. Bianco pieno per scelta di Luca, in
@@ -448,15 +453,18 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
         ? evento!.generiMusicali.join(' - ')
         : locale.generiString;
 
-    // CSS NUOVO: clock a (15,459) → 8px sotto l'indirizzo (che chiude a 451);
-    // icona music a 490, cioè 11px sotto il fondo della riga orologio (459+20).
+    // CSS NUOVO (16/09): clock 20×20 a (15,459), 7px sotto l'indirizzo (che
+    // chiude a 452); music a (13,486), 7px sotto il fondo della riga orologio.
+    // Testi 13px bold al 60%: orario a x 41, generi a x 37.
     // Le righe sono alte quanto l'icona (20), non quanto il testo.
-    //
-    // ICONE: SVG ufficiali (`clock.svg` 19×19 e `music.svg` 17×17), renderizzati
-    // dentro il box 20×20 delle vecchie Icon Material così le misure di riga e
-    // l'offset del testo (41 = 15 + 20 + 6) restano identici al CSS.
+    final TextStyle stileInfo = OnlistTextStyles.hn(
+      fontSize: R.sp(13),
+      fontWeight: FontWeight.w700,
+      color: Colors.white.withValues(alpha: 0.6),
+      height: 15 / 13,
+    );
     return Padding(
-      padding: EdgeInsets.fromLTRB(R.sp(15), R.sp(8), R.sp(13), 0),
+      padding: EdgeInsets.fromLTRB(R.sp(15), R.sp(7), R.sp(13), 0),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
@@ -468,39 +476,29 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                 // (15 + 20 + 6 = 41).
                 _infoIcon(ImageConstant.imgClock),
                 SizedBox(width: R.sp(6)),
-                Text(
-                  orario,
-                  style: OnlistTextStyles.hn(
-                    fontSize: R.sp(18),
-                    fontWeight: FontWeight.w700,
-                    color: Colors.white.withValues(alpha: 0.6),
-                  ),
-                ),
+                Text(orario, style: stileInfo),
               ],
             ),
           if (generi.isNotEmpty) ...[
-            SizedBox(height: R.sp(11)),
-            Row(
-              children: [
-                // La nota va 2px più a sinistra dell'orologio: nel CSS sta a
-                // left 13 contro i 15 dell'orologio, e otticamente si allinea.
-                // Transform e non padding, così il testo resta a 41 come da CSS.
-                Transform.translate(
-                  offset: Offset(-R.sp(2), 0),
-                  child: _infoIcon(ImageConstant.imgMusic),
-                ),
-                SizedBox(width: R.sp(6)),
-                Expanded(
-                  child: Text(
-                    generi,
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(16), // CSS generi: 16px (orario è 18)
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white.withValues(alpha: 0.6),
+            SizedBox(height: R.sp(7)),
+            // La nota sta 2px più a sinistra dell'orologio (13 contro 15) e il
+            // suo testo parte a 37, non a 41.
+            Transform.translate(
+              offset: Offset(-R.sp(2), 0),
+              child: Row(
+                children: [
+                  _infoIcon(ImageConstant.imgMusic),
+                  SizedBox(width: R.sp(4)),
+                  Expanded(
+                    child: Text(
+                      generi,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: stileInfo,
                     ),
                   ),
-                ),
-              ],
+                ],
+              ),
             ),
           ],
         ],
@@ -532,16 +530,17 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
       crossAxisAlignment: CrossAxisAlignment.start,
       children: [
         Padding(
-          // CSS NUOVO: titolo a left 15, 10px sopra la prima card (556→566).
-          padding: EdgeInsets.fromLTRB(R.sp(15), 0, R.sp(13), R.sp(10)),
+          // CSS NUOVO (16/09): titolo 36/41 a left 14, prima card 7px sotto
+          // il riquadro del testo (555 → 562).
+          padding: EdgeInsets.fromLTRB(R.sp(14), 0, R.sp(13), R.sp(7)),
           child: Text(
             'Prossime serate',
             style: OnlistTextStyles.hn(
-              fontSize: R.sp(32),
+              fontSize: R.sp(36),
               fontWeight: FontWeight.w700,
               color: Colors.white,
-              height: 37 / 32, // CSS: 32px line-height 37, LS -0.08
-              letterSpacing: -0.08 * 32,
+              height: 41 / 36,
+              letterSpacing: -0.08 * R.sp(36),
             ),
           ),
         ),
@@ -555,511 +554,262 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
             ),
           )
         else
-          // Oggi/domani → card grande con etichetta OGGI/DOMANI (evidenziata).
-          // Le altre date → card compatta in stile "Club consigliati" (stessa
-          // grandezza delle card club) col GENERE al posto del luogo.
-          ...serate.map((s) => _isOggiODomani(s.data)
-              ? _SerataCard(serata: s, locale: locale)
-              : _SerataCompactCard(serata: s, locale: locale)),
+          // Oggi/domani → card alta con etichetta OGGI/DOMANI. Le altre date
+          // → card come quelle della Home.
+          ...serate.map((s) => _SerataCard(serata: s, locale: locale)),
       ],
     );
   }
 }
 
-/// Gradiente PRENOTA del design NUOVO (Home Disco singola, Rectangle 164):
-/// `linear-gradient(90deg, #0040A1 0%, #0084FF 100%)`.
-const LinearGradient _prenotaGradient = LinearGradient(
-  begin: Alignment.centerLeft,
-  end: Alignment.centerRight,
-  colors: [Color(0xFF0040A1), Color(0xFF0084FF)],
-);
-
-/// Vero se la serata è oggi o domani (data di calendario, mezzanotte-normalizzata).
-/// Stessa regola di `_SerataCard._dayLabel`: decide quale card usare.
-bool _isOggiODomani(DateTime data) {
+/// Etichetta della serata imminente: "OGGI", "DOMANI", altrimenti vuota.
+///
+/// Il confronto è tra giorni normalizzati a mezzanotte, non tra istanti: una
+/// serata che inizia alle 23:00 di stasera è "OGGI".
+String _etichettaGiorno(DateTime data) {
   final now = DateTime.now();
   final today = DateTime(now.year, now.month, now.day);
   final d = DateTime(data.year, data.month, data.day);
   final diff = d.difference(today).inDays;
-  return diff == 0 || diff == 1;
+  if (diff == 0) return 'OGGI';
+  if (diff == 1) return 'DOMANI';
+  return '';
 }
 
-// ── Serata card (Figma 10-aggiornato) ──────────────────────────────────────────
-// Card con gradiente blu cardSummary: locandina a sinistra, titolo + "OGGI"
-// (se evento di oggi) + data + orario + generi a destra, bottone PRENOTA.
+/// Posizioni (px design) di una variante della card serata.
+class _LayoutSerata {
+  final double h;
+  final double fotoX, fotoY, fotoW, fotoH;
+  final double testoX;
+  final double dataY, orarioY, genereY;
+  final double fontRiga;
+  final double prenotaX, prenotaY;
+
+  const _LayoutSerata({
+    required this.h,
+    required this.fotoX,
+    required this.fotoY,
+    required this.fotoW,
+    required this.fotoH,
+    required this.testoX,
+    required this.dataY,
+    required this.orarioY,
+    required this.genereY,
+    required this.fontRiga,
+    required this.prenotaX,
+    required this.prenotaY,
+  });
+}
+
+// ── Serata card (CSS "Home Disco singola" del 16/09) ─────────────────────────
+// Card 367 di larghezza, r7, stesso gradiente delle card club della Home.
+// Due varianti con valori diversi, come da CSS:
+//  - OGGI/DOMANI (Rectangle 301 alto 126): etichetta 19/500, data e orario a
+//    16px, foto 153×111;
+//  - altre date (Rectangle 301 alto 102): identica alla card della Home, data
+//    e orario a 19px, foto 153×88.
+// Nell'ultima riga il CSS mette la città: qui c'è il genere, perché si è già
+// dentro il club.
 class _SerataCard extends StatelessWidget {
   final SerataModel serata;
   final LocaleModel locale;
 
   const _SerataCard({required this.serata, required this.locale});
 
-  static const _giorniLunghi = [
-    'Lunedì',
-    'Martedì',
-    'Mercoledì',
-    'Giovedì',
-    'Venerdì',
-    'Sabato',
-    'Domenica'
-  ];
-  static const _mesiLunghi = [
-    'Gennaio',
-    'Febbraio',
-    'Marzo',
-    'Aprile',
-    'Maggio',
-    'Giugno',
-    'Luglio',
-    'Agosto',
-    'Settembre',
-    'Ottobre',
-    'Novembre',
-    'Dicembre'
-  ];
+  static const double _w = 367;
 
-  String _formatData(DateTime d) =>
-      '${_giorniLunghi[d.weekday - 1]} ${d.day} ${_mesiLunghi[d.month - 1]}';
+  // Rectangle 301 a (14,562): foto (21,570), testi a x 180, OGGI 607,
+  // data 628, orario 645, città 669, PRENOTA (305,652).
+  static const _LayoutSerata _imminente = _LayoutSerata(
+    h: 126,
+    fotoX: 7,
+    fotoY: 8,
+    fotoW: 153,
+    fotoH: 111,
+    testoX: 166,
+    dataY: 66,
+    orarioY: 83,
+    genereY: 107,
+    fontRiga: 16,
+    prenotaX: 291,
+    prenotaY: 90,
+  );
 
-  /// Etichetta giorno: solo per le serate imminenti. Per tutte le altre resta
-  /// vuota e la card mostra la sola data completa, già presente sotto.
-  ///
-  /// Nel Figma (vetrina-club.css) la slot a (106,39) contiene soltanto "OGGI":
-  /// il countdown "-N giorni" che stava qui non è mai esistito nel design.
-  ///
-  /// Il confronto è tra giorni normalizzati a mezzanotte, non tra istanti: una
-  /// serata che inizia alle 23:00 di stasera è "OGGI", non "fra 0 giorni".
-  String get _dayLabel {
-    final now = DateTime.now();
-    final today = DateTime(now.year, now.month, now.day);
-    final serataDate =
-        DateTime(serata.data.year, serata.data.month, serata.data.day);
-    final diff = serataDate.difference(today).inDays;
-    if (diff == 0) return 'OGGI';
-    if (diff == 1) return 'DOMANI';
-    return '';
-  }
+  // Rectangle 301 a (14,698): foto (20,706), testi a x 181, data 741,
+  // orario 761, città 782, PRENOTA (308,765).
+  static const _LayoutSerata _normale = _LayoutSerata(
+    h: 102,
+    fotoX: 6,
+    fotoY: 8,
+    fotoW: 153,
+    fotoH: 88,
+    testoX: 167,
+    dataY: 43,
+    orarioY: 63,
+    genereY: 84,
+    fontRiga: 19,
+    prenotaX: 294,
+    prenotaY: 67,
+  );
+
+  void _apriPopup() => NavigatorService.pushNamed(
+        AppRoutes.eventInfoPopupScreen,
+        arguments: {'serata': serata, 'club': locale},
+      );
 
   @override
   Widget build(BuildContext context) {
-    final isSoldOut = serata.statusPosti == 'Sold Out';
-    // Card grande OGGI/DOMANI: mostra ENTRAMBI i generi (es. "House - Deep House").
-    // La card compatta [_SerataCompactCard] mostra invece solo il primo.
-    final generi = serata.generiMusicali.isNotEmpty
-        ? serata.generiMusicali.join(' - ')
-        : locale.generiString;
-
-    // Card "Prossime serate" — layout Figma 10 (Frame 351, design 369×132):
-    // locandina 95×119 a sx, titolo/OGGI/data/orario/generi a dx, PRENOTA 86×38.
-    // Disegnata a dimensione fissa e scalata a larghezza, come le card della home.
-    return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
-      // Tap sulla card serata → schermata 19 (pop-up info serata).
-      child: GestureDetector(
-        behavior: HitTestBehavior.opaque,
-        onTap: () => NavigatorService.pushNamed(
-          AppRoutes.eventInfoPopupScreen,
-          arguments: {'serata': serata, 'club': locale},
-        ),
-        child: _scaleToWidth(
-          designW: 369,
-          designH: 132,
-          child: Container(
-            width: 369,
-            height: 132,
-            decoration: BoxDecoration(
-              // CSS NUOVO Frame 351: 90deg #0077FF 28.37% → #0002AE 79.33%.
-              gradient: const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [Color(0xFF0077FF), Color(0xFF0002AE)],
-                stops: [0.2837, 0.7933],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Stack(
-              children: [
-                // Pill dietro data+orario (CSS Rectangle 273: 162×34 r4 a
-                // (103,69), blu 20% × opacity .3 ≈ 6%).
-                Positioned(
-                  left: 103,
-                  top: 69,
-                  child: Container(
-                    width: 162,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: const Color(0x0F002AFF),
-                      borderRadius: BorderRadius.circular(4),
-                    ),
-                  ),
-                ),
-                // Locandina 95×119 @ (6,6)
-                Positioned(
-                  left: 6,
-                  top: 6,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: SizedBox(
-                      width: 95,
-                      height: 119,
-                      child: serata.locandinaUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: serata.locandinaUrl!,
-                              fit: BoxFit.cover,
-                              memCacheWidth: 285,
-                              errorWidget: (_, __, ___) =>
-                                  ImageFallback(seed: serata.id),
-                            )
-                          : ImageFallback(seed: serata.id),
-                    ),
-                  ),
-                ),
-                // Titolo serata @ (106,2)
-                Positioned(
-                  left: 106,
-                  top: 2,
-                  right: 8,
-                  child: Text(
-                    serata.nome,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: OnlistTextStyles.hn(
-                      fontSize: 32,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 37 / 32,
-                      letterSpacing: -0.08 * 32,
-                    ),
-                  ),
-                ),
-                // Label giorno @ (106,39): "OGGI"/"DOMANI", assente sulle altre.
-                if (_dayLabel.isNotEmpty)
-                  Positioned(
-                    left: 106,
-                    top: 39,
-                    child: Text(
-                      _dayLabel,
-                      style: OnlistTextStyles.hn(
-                        fontSize: 24,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        height: 28 / 24,
-                        letterSpacing: -0.08 * 24,
-                      ),
-                    ),
-                  ),
-                // Data @ (105,70)
-                Positioned(
-                  left: 105,
-                  top: 70,
-                  child: Text(
-                    _formatData(serata.data),
-                    style: OnlistTextStyles.hn(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w400,
-                      color: Colors.white,
-                      height: 18 / 18,
-                    ),
-                  ),
-                ),
-                // Orario @ (106,90)
-                if (serata.orarioString.isNotEmpty)
-                  Positioned(
-                    left: 106,
-                    top: 90,
-                    child: Text(
-                      serata.orarioString,
-                      style: OnlistTextStyles.hn(
-                        fontSize: 13,
-                        fontWeight: FontWeight.w400,
-                        color: Colors.white,
-                        height: 13 / 13,
-                      ),
-                    ),
-                  ),
-                // Generi @ (106,109)
-                Positioned(
-                  left: 106,
-                  top: 109,
-                  right: 100,
-                  child: Text(
-                    generi,
-                    maxLines: 1,
-                    overflow: TextOverflow.ellipsis,
-                    style: OnlistTextStyles.hn(
-                      fontSize: 13,
-                      fontWeight: FontWeight.w700,
-                      color: Colors.white,
-                      height: 13 / 13,
-                    ),
-                  ),
-                ),
-                // PRENOTA @ (273,87) — 86×38 (CSS NUOVO)
-                Positioned(
-                  left: 273,
-                  top: 87,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: isSoldOut
-                        ? null
-                        : () => NavigatorService.pushNamed(
-                              AppRoutes.eventInfoPopupScreen,
-                              arguments: {'serata': serata, 'club': locale},
-                            ),
-                    child: Container(
-                      width: 86,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        // CSS NUOVO: 90deg #0040A1 → #0084FF.
-                        gradient: isSoldOut ? null : _prenotaGradient,
-                        color: isSoldOut
-                            ? Colors.white.withValues(alpha: 0.18)
-                            : null,
-                        borderRadius: BorderRadius.circular(6.48),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            offset: const Offset(0, 4),
-                            blurRadius: 4,
-                          ),
-                        ],
-                      ),
-                      alignment: Alignment.center,
-                      child: Text(
-                        isSoldOut ? 'ESAURITO' : 'PRENOTA',
-                        style: OnlistTextStyles.hn(
-                          fontSize: 15.55,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          height: 18 / 15.55,
-                          letterSpacing: -0.1 * 15.55,
-                        ),
-                      ),
-                    ),
-                  ),
-                ),
-              ],
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-// ── Serata card compatta (serate NON oggi/domani) ─────────────────────────────
-// Stesso stile identico delle card "Club consigliati" della home (369×108,
-// immagine orizzontale a sinistra, testo a destra, bottone PRENOTA). Rispetto a
-// quella, al posto della CITTÀ mostra il GENERE musicale (siamo già dentro il
-// club, il luogo è ridondante). Le serate di oggi/domani usano invece la card
-// grande [_SerataCard] con l'etichetta OGGI/DOMANI evidenziata.
-class _SerataCompactCard extends StatelessWidget {
-  final SerataModel serata;
-  final LocaleModel locale;
-
-  const _SerataCompactCard({required this.serata, required this.locale});
-
-  static const _giorniBrevi = ['Lun', 'Mar', 'Mer', 'Gio', 'Ven', 'Sab', 'Dom'];
-  static const _mesiBrevi = [
-    'Gen',
-    'Feb',
-    'Mar',
-    'Apr',
-    'Mag',
-    'Giu',
-    'Lug',
-    'Ago',
-    'Set',
-    'Ott',
-    'Nov',
-    'Dic'
-  ];
-
-  String _dataBreve(DateTime d) =>
-      '${_giorniBrevi[d.weekday - 1]} ${d.day} ${_mesiBrevi[d.month - 1]}';
-
-  @override
-  Widget build(BuildContext context) {
-    final isSoldOut = serata.statusPosti == 'Sold Out';
-    // Card compatta: mostra SOLO il primo genere (niente "House - Deep House"
-    // troncato). La card grande OGGI/DOMANI mostra invece entrambi i generi.
-    final generiList = serata.generiMusicali.isNotEmpty
+    final bool isSoldOut = serata.statusPosti == 'Sold Out';
+    final String etichetta = _etichettaGiorno(serata.data);
+    final _LayoutSerata l = etichetta.isNotEmpty ? _imminente : _normale;
+    // Card imminente: tutti i generi ("House - Deep House"); le altre solo il
+    // primo, per non troncarlo.
+    final List<String> generiList = serata.generiMusicali.isNotEmpty
         ? serata.generiMusicali
         : locale.generiMusicali;
-    final generi = generiList.isNotEmpty ? generiList.first : '';
+    final String generi = etichetta.isNotEmpty
+        ? generiList.join(' - ')
+        : (generiList.isNotEmpty ? generiList.first : '');
+    // Le righe si fermano prima del bottone PRENOTA, che l'orario affianca.
+    final double larghezzaRiga = l.prenotaX - l.testoX - 4;
+    final TextStyle riga = OnlistTextStyles.hn(
+      fontSize: l.fontRiga,
+      fontWeight: FontWeight.w400,
+      color: Colors.white,
+      height: 1,
+    );
 
     return Padding(
-      padding: const EdgeInsets.symmetric(horizontal: 10, vertical: 6),
+      // CSS: card a left 14, 10px tra una card e l'altra (688 → 698).
+      padding: const EdgeInsets.fromLTRB(13, 0, 13, 10),
+      // Tap sulla card → pop-up info serata.
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        // Tap sulla card → pop-up info serata (come la card grande).
-        onTap: () => NavigatorService.pushNamed(
-          AppRoutes.eventInfoPopupScreen,
-          arguments: {'serata': serata, 'club': locale},
-        ),
+        onTap: _apriPopup,
         child: _scaleToWidth(
-          designW: 369,
-          designH: 108,
-          child: Container(
-            width: 369,
-            height: 108,
-            clipBehavior: Clip.antiAlias,
-            decoration: BoxDecoration(
-              // Palette NUOVO allineata alla card OGGI (stesso gradiente).
-              gradient: const LinearGradient(
-                begin: Alignment.centerLeft,
-                end: Alignment.centerRight,
-                colors: [Color(0xFF0077FF), Color(0xFF0002AE)],
-                stops: [0.2837, 0.7933],
-              ),
-              borderRadius: BorderRadius.circular(10),
-            ),
-            child: Stack(
-              children: [
-                // Immagine 165×96 @ (6,6) — orizzontale, come le card club.
-                Positioned(
-                  left: 6,
-                  top: 6,
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(10),
-                    child: SizedBox(
-                      width: 165,
-                      height: 96,
-                      child: serata.locandinaUrl != null
-                          ? CachedNetworkImage(
-                              imageUrl: serata.locandinaUrl!,
-                              fit: BoxFit.cover,
-                              memCacheWidth: 495,
-                              errorWidget: (_, __, ___) =>
-                                  ImageFallback(seed: serata.id),
-                            )
-                          : ImageFallback(seed: serata.id),
-                    ),
-                  ),
+          designW: _w,
+          designH: l.h,
+          child: ClipRRect(
+            borderRadius: BorderRadius.circular(7),
+            child: SizedBox(
+              width: _w,
+              height: l.h,
+              child: DecoratedBox(
+                decoration: const BoxDecoration(
+                  gradient: OnlistColors.homeClubCard,
                 ),
-                // Nome serata @ (176,7). Era a 189: la foto chiude a 171, quindi
-                // restava un buco di 18px mentre nel Figma (e nelle card della
-                // Home, stesso layout 369×108) il testo parte 5px dopo la foto.
-                // Le larghezze crescono di 13 per tenere fermo il bordo destro.
-                Positioned(
-                  left: 176,
-                  top: 7,
-                  child: SizedBox(
-                    width: 172,
-                    child: Text(
-                      serata.nome,
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                      style: OnlistTextStyles.hn(
-                        fontSize: 32,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.white,
-                        height: 37 / 32,
-                        letterSpacing: -0.08 * 32,
-                      ),
-                    ),
-                  ),
-                ),
-                // Data @ (189,46)
-                Positioned(
-                  left: 176,
-                  top: 46,
-                  child: Text(
-                    _dataBreve(serata.data),
-                    style: OnlistTextStyles.hn(
-                      fontSize: 12,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.white,
-                      height: 12 / 12,
-                    ),
-                  ),
-                ),
-                // Ora @ (189,64) — stesso formato della card grande.
-                if (serata.orarioString.isNotEmpty)
-                  Positioned(
-                    left: 176,
-                    top: 64,
-                    child: SizedBox(
-                      width: 80,
-                      child: Text(
-                        serata.orarioString,
-                        maxLines: 1,
-                        overflow: TextOverflow.ellipsis,
-                        style: OnlistTextStyles.hn(
-                          fontSize: 12,
-                          fontWeight: FontWeight.w400,
-                          color: Colors.white,
-                          height: 12 / 12,
+                child: Stack(
+                  children: [
+                    Positioned(
+                      left: l.fotoX,
+                      top: l.fotoY,
+                      child: ClipRRect(
+                        borderRadius: BorderRadius.circular(3),
+                        child: SizedBox(
+                          width: l.fotoW,
+                          height: l.fotoH,
+                          child: serata.locandinaUrl != null
+                              ? CachedNetworkImage(
+                                  imageUrl: serata.locandinaUrl!,
+                                  fit: BoxFit.cover,
+                                  memCacheWidth: 459,
+                                  errorWidget: (_, __, ___) =>
+                                      ImageFallback(seed: serata.id),
+                                )
+                              : ImageFallback(seed: serata.id),
                         ),
                       ),
                     ),
-                  ),
-                // Genere @ (176,88) — AL POSTO della città (come card club).
-                // 97 di larghezza: chiude a 273, appena prima del PRENOTA (274).
-                Positioned(
-                  left: 176,
-                  top: 88,
-                  child: Opacity(
-                    opacity: 0.8,
-                    child: SizedBox(
-                      width: 97,
+                    // Titolo 32/37/700 a y 6.
+                    Positioned(
+                      left: 166,
+                      top: 6,
+                      right: 8,
                       child: Text(
-                        generi,
+                        serata.nome,
                         maxLines: 1,
                         overflow: TextOverflow.ellipsis,
                         style: OnlistTextStyles.hn(
-                          fontSize: 12,
+                          fontSize: 32,
                           fontWeight: FontWeight.w700,
                           color: Colors.white,
-                          height: 12 / 12,
+                          height: 37 / 32,
+                          letterSpacing: -0.08 * 32,
                         ),
                       ),
                     ),
-                  ),
-                ),
-                // PRENOTA @ (274,62) — 86×38, stesso stile card grande/club.
-                Positioned(
-                  left: 274,
-                  top: 62,
-                  child: GestureDetector(
-                    behavior: HitTestBehavior.opaque,
-                    onTap: isSoldOut
-                        ? null
-                        : () => NavigatorService.pushNamed(
-                              AppRoutes.eventInfoPopupScreen,
-                              arguments: {'serata': serata, 'club': locale},
-                            ),
-                    child: Container(
-                      width: 86,
-                      height: 38,
-                      decoration: BoxDecoration(
-                        gradient: isSoldOut ? null : _prenotaGradient,
-                        color: isSoldOut
-                            ? Colors.white.withValues(alpha: 0.18)
-                            : null,
-                        borderRadius: BorderRadius.circular(6.48),
-                        boxShadow: [
-                          BoxShadow(
-                            color: Colors.black.withValues(alpha: 0.25),
-                            offset: const Offset(0, 4),
-                            blurRadius: 4,
+                    // "OGGI"/"DOMANI" 19/500 a y 45, solo sulle imminenti.
+                    if (etichetta.isNotEmpty)
+                      Positioned(
+                        left: l.testoX,
+                        top: 45,
+                        child: Text(
+                          etichetta,
+                          style: OnlistTextStyles.hn(
+                            fontSize: 19,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                            height: 1,
                           ),
-                        ],
+                        ),
                       ),
-                      alignment: Alignment.center,
+                    Positioned(
+                      left: l.testoX,
+                      top: l.dataY,
+                      width: larghezzaRiga,
                       child: Text(
-                        isSoldOut ? 'ESAURITO' : 'PRENOTA',
-                        style: OnlistTextStyles.hn(
-                          fontSize: 15.55,
-                          fontWeight: FontWeight.w700,
-                          color: Colors.white,
-                          height: 18 / 15.55,
-                          letterSpacing: -0.1 * 15.55,
+                        DateFormatter.formatBreve(serata.data),
+                        maxLines: 1,
+                        overflow: TextOverflow.ellipsis,
+                        style: riga,
+                      ),
+                    ),
+                    if (serata.orarioString.isNotEmpty)
+                      Positioned(
+                        left: l.testoX,
+                        top: l.orarioY,
+                        width: larghezzaRiga,
+                        child: Text(
+                          serata.orarioString,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: riga,
+                        ),
+                      ),
+                    // Genere 12/500 all'80% (slot "città" del CSS).
+                    Positioned(
+                      left: l.testoX,
+                      top: l.genereY,
+                      width: larghezzaRiga,
+                      child: Opacity(
+                        opacity: 0.8,
+                        child: Text(
+                          generi,
+                          maxLines: 1,
+                          overflow: TextOverflow.ellipsis,
+                          style: OnlistTextStyles.hn(
+                            fontSize: 12,
+                            fontWeight: FontWeight.w500,
+                            color: Colors.white,
+                            height: 1,
+                          ),
                         ),
                       ),
                     ),
-                  ),
+                    Positioned(
+                      left: l.prenotaX,
+                      top: l.prenotaY,
+                      child: Opacity(
+                        opacity: isSoldOut ? 0.5 : 1,
+                        child: CardPrenotaButton(
+                          label: isSoldOut ? 'ESAURITO' : 'PRENOTA',
+                          onTap: isSoldOut ? null : _apriPopup,
+                        ),
+                      ),
+                    ),
+                  ],
                 ),
-              ],
+              ),
             ),
           ),
         ),

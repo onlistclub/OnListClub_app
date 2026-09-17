@@ -75,6 +75,33 @@ class ClubService {
         .toList();
   }
 
+  /// Prima serata in programma di ciascun club, con una sola query.
+  ///
+  /// I club senza serate future non compaiono nella mappa. Il limite tiene
+  /// leggera la risposta: un club la cui prima serata cade oltre le prime
+  /// [limit] serate della zona resta senza data (la card mostra l'orario).
+  static Future<Map<String, SerataModel>> getProssimeSerate(
+    List<String> clubIds, {
+    int limit = 300,
+  }) async {
+    if (clubIds.isEmpty) return const {};
+    final oggi = DateTime.now().toIso8601String().substring(0, 10);
+    final response = await _client
+        .from('eventi')
+        .select()
+        .inFilter('club_id', clubIds)
+        .eq('stato', 'attivo')
+        .gte('inizio_evento', '${oggi}T00:00:00Z')
+        .order('inizio_evento', ascending: true)
+        .limit(limit);
+    final Map<String, SerataModel> prima = {};
+    for (final m in (response as List<dynamic>).whereType<Map<String, dynamic>>()) {
+      final serata = SerataModel.fromMap(m);
+      prima.putIfAbsent(serata.clubId, () => serata);
+    }
+    return prima;
+  }
+
   /// Recupera il locale più vicino alle coordinate utente.
   /// Usa la RPC PostGIS `nearby_clubs` (server-side, indice spaziale).
   /// Se lat/lng sono null o la RPC fallisce, fallback su famosità.

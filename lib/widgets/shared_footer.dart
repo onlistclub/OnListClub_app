@@ -37,11 +37,16 @@ class SharedFooter extends StatelessWidget {
   /// lasciato in sospeso e non ancora visto (vedi `PendingOrderService`).
   final bool badgeCarrello;
 
+  /// Pallino blu sull'icona TICKET: biglietto comprato e non ancora aperto
+  /// (vedi `TicketNonVistiService`).
+  final bool badgeTicket;
+
   const SharedFooter({
     Key? key,
     required this.currentIndex,
     this.onTabSelected,
     this.badgeCarrello = false,
+    this.badgeTicket = false,
   }) : super(key: key);
 
   // Dimensioni design (px Figma, frame 393×852) dal CSS ufficiale
@@ -72,6 +77,13 @@ class SharedFooter extends StatelessWidget {
   static const double _dotSize = 10;
   static const double _dotRight = -3;
   static const double _dotTop = -2;
+
+  // Pallino sull'icona TICKET (CSS "Ordine Effettuato", Ellipse 34: 8×8 a
+  // 96,788; l'icona parte a 98,793): in alto A SINISTRA, 2px fuori dal bordo
+  // e 5 sopra.
+  static const double _ticketDotSize = 8;
+  static const double _ticketDotLeft = -2;
+  static const double _ticketDotTop = -5;
 
   // Alone attorno al tratto delle icone: una copia sfocata dell'icona dietro
   // quella nitida. Vale per tutte e tre, attiva o no — l'attenuazione al 50%
@@ -142,7 +154,8 @@ class SharedFooter extends StatelessWidget {
                               R.sp(_ticketHeight),
                               ImageConstant.imgNavTicket,
                               0,
-                              AppRoutes.ordersScreen)),
+                              AppRoutes.ordersScreen,
+                              badgeTicket: badgeTicket)),
                       Expanded(
                           child: _buildNavItem(
                               R.sp(_homeWidth),
@@ -200,7 +213,7 @@ class SharedFooter extends StatelessWidget {
 
   Widget _buildNavItem(double width, double height, String iconPath, int index,
       String routeName,
-      {bool badge = false}) {
+      {bool badge = false, bool badgeTicket = false}) {
     final isSelected = currentIndex == index;
     return GestureDetector(
       onTap: () {
@@ -243,6 +256,16 @@ class SharedFooter extends StatelessWidget {
                     ImageConstant.imgNotificaPallino,
                     width: R.sp(_dotSize),
                     height: R.sp(_dotSize),
+                  ),
+                ),
+              if (badgeTicket)
+                Positioned(
+                  left: R.sp(_ticketDotLeft),
+                  top: R.sp(_ticketDotTop),
+                  child: SvgPicture.asset(
+                    ImageConstant.imgNotificaPallino,
+                    width: R.sp(_ticketDotSize),
+                    height: R.sp(_ticketDotSize),
                   ),
                 ),
             ],
