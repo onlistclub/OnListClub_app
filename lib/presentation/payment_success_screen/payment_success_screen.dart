@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 
+import '../../core/constants/image_constant.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/orders_service.dart';
 import '../../core/services/pending_order_service.dart';
@@ -326,23 +327,18 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
+          // Immagine ufficiale 341×88 (doc correzioni 18/09): ha già dentro
+          // la dissolvenza verso il basso del CSS, e nessuna lettera viene
+          // tagliata come quando la parola era testo stirato.
           Positioned(
             left: R.sp(24 - 18),
             top: 0,
             width: R.sp(341),
             height: R.sp(88),
-            child: ShaderMask(
-              blendMode: BlendMode.srcIn,
-              shaderCallback: (bounds) => const LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.white, Colors.white, Color(0x00FFFFFF)],
-                stops: [0.0, 0.6298, 1.0],
-              ).createShader(bounds),
-              child: const FittedBox(
-                fit: BoxFit.fill,
-                child: _OrdineGlifi(),
-              ),
+            child: Image.asset(
+              ImageConstant.imgOrdine,
+              fit: BoxFit.contain,
+              alignment: Alignment.topLeft,
             ),
           ),
           // Linea di base a 101 dall'alto della scatola (240−139). Con
@@ -443,7 +439,13 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     final prenotazione = t['prenotazioni'] as Map<String, dynamic>?;
     final prevendita = t['prevendite'] as Map<String, dynamic>?;
     final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
-    final descrizione = (prevendita?['descrizione'] as String?)?.trim();
+    // Riga corta del ticket ('+ 2 drink omaggio'): la stessa mostrata prima
+    // dell'acquisto. L'elenco completo (descrizione) resta il ripiego per le
+    // prevendite senza riepilogo.
+    final riepilogo = (prevendita?['riepilogo'] as String?)?.trim();
+    final descrizione = (riepilogo != null && riepilogo.isNotEmpty)
+        ? riepilogo
+        : (prevendita?['descrizione'] as String?)?.trim();
     final quantita = (t['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
 
     return FlipCard(
@@ -555,44 +557,3 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
   }
 }
 
-/// "ORDINE" ritagliato ESATTAMENTE sui glifi, così il FittedBox che lo
-/// stira nel riquadro 341×88 del CSS non conta lo spazio vuoto sopra e sotto
-/// le maiuscole.
-///
-/// Misure di OnlistHN-Bold a corpo 100 (height 1): linea di base a 78.3,
-/// maiuscole alte 73 (con l'overshoot della O) e 2 sotto la base → i glifi
-/// vanno da 5.3 a 80.3, 75 di altezza. Con letter-spacing −17 la parola è
-/// larga 290.5: il rapporto 290.5/75 coincide con 341/88, quindi lo
-/// stiramento resta uniforme (le lettere strette e fitte del Figma).
-class _OrdineGlifi extends StatelessWidget {
-  const _OrdineGlifi();
-
-  static const double _corpo = 100;
-  static const double _altezzaGlifi = 75;
-
-  /// Allinea il box di 100 dentro i 75 visibili con il bordo alto delle
-  /// maiuscole (5.3) sul bordo: (75−100)·(a+1)/2 = −5.3 → a = −0.576.
-  static const double _allineamentoY = -0.576;
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: Align(
-        alignment: const Alignment(0, _allineamentoY),
-        heightFactor: _altezzaGlifi / _corpo,
-        child: Text(
-          'ORDINE',
-          maxLines: 1,
-          textScaler: TextScaler.noScaling,
-          style: OnlistTextStyles.hn(
-            color: Colors.white,
-            fontSize: _corpo,
-            fontWeight: FontWeight.w700,
-            height: 1.0,
-            letterSpacing: -17,
-          ),
-        ),
-      ),
-    );
-  }
-}

@@ -818,14 +818,16 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           ticketHolders: null,
         );
 
-        AnalyticsService.log(
-          event: 'booking_payment_success',
-          metadata: {'type': 'ticket', 'amount': price},
+        AnalyticsService.logPaymentSuccess(
+          type: 'ticket',
+          amount: price,
+          bookingId: prenotazioneId,
         );
         AnalyticsService.logBookingComplete(
           type: 'ticket',
           eventId: eventoId.isEmpty ? null : eventoId,
           amount: price,
+          bookingId: prenotazioneId,
         );
         BadgeService().incrementNotificationBadge();
         // Ordine concluso: il pallino passa dal carrello ai TICKET. Il
@@ -865,19 +867,22 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           crossAxisAlignment: CrossAxisAlignment.start,
           children: [
             SizedBox(height: R.sp(29)),
-            // "Ticket normale" / "Ticket vip" — 55/500/-0.1em (CSS left 22).
+            // "Ticket normale" / "Ticket vip" — 55/500/-0.1em, CENTRATO tutto
+            // intero (doc correzioni 18/09).
             Padding(
               padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-              child: FittedBox(
-                fit: BoxFit.scaleDown,
-                child: Text(
-                  'Ticket ${_displayType(type).toLowerCase()}',
-                  style: OnlistTextStyles.hn(
-                    color: Colors.white,
-                    fontSize: R.sp(55),
-                    fontWeight: FontWeight.w500,
-                    height: 54 / 55,
-                    letterSpacing: -0.1 * 55,
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Ticket ${_displayType(type).toLowerCase()}',
+                    style: OnlistTextStyles.hn(
+                      color: Colors.white,
+                      fontSize: R.sp(55),
+                      fontWeight: FontWeight.w500,
+                      height: 54 / 55,
+                      letterSpacing: -0.1 * 55,
+                    ),
                   ),
                 ),
               ),
@@ -984,10 +989,13 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       child: const TestoPagamentoInStruttura(),
                     ),
                   ),
+                  // Prezzo reso come nel biglietto già emesso (doc correzioni
+                  // 18/09): testo semplice con la crenatura del design, non
+                  // lo span separato di OnlistPriceText.
                   Positioned(
                     right: R.sp(34),
                     top: R.sp(52),
-                    child: OnlistPriceText(
+                    child: Text(
                       price,
                       style: OnlistTextStyles.hn(
                         color: Colors.white,

@@ -134,7 +134,13 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
         : (idPrenotazione != null
             ? 'https://www.onlistclub.com/verify/$idPrenotazione'
             : 'onlist-ticket');
-    final descrizione = (prevendita?['descrizione'] as String?)?.trim();
+    // Riga corta del ticket ('+ 2 drink omaggio'): la stessa mostrata prima
+    // dell'acquisto. L'elenco completo (descrizione) resta il ripiego per le
+    // prevendite senza riepilogo.
+    final riepilogo = (prevendita?['riepilogo'] as String?)?.trim();
+    final descrizione = (riepilogo != null && riepilogo.isNotEmpty)
+        ? riepilogo
+        : (prevendita?['descrizione'] as String?)?.trim();
     final quantita =
         (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
 

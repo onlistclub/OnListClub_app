@@ -25,6 +25,17 @@ class FitOneLineText extends StatelessWidget {
     return LayoutBuilder(builder: (context, constraints) {
       final double maxSize = style.fontSize ?? 14;
       double size = maxSize;
+      // Con crenatura negativa (i titoli del design hanno -0.1em) Flutter
+      // sottrae lo spazio anche DOPO l'ultima lettera: il testo disegna più
+      // largo della sua scatola e chi lo contiene gli taglia l'ultima lettera.
+      // Lo spazio perso va restituito a destra; siccome il disegno sborda solo
+      // da quel lato, il padding riporta al centro anche il testo centrato.
+      double coda(double s) {
+        final ls = style.letterSpacing;
+        return (ls == null || ls >= 0) ? 0 : -ls * s / maxSize;
+      }
+
+      final double disponibile = constraints.maxWidth - coda(maxSize);
       while (size > minFontSize) {
         final painter = TextPainter(
           text: TextSpan(text: text, style: _styleAt(size, maxSize)),
@@ -32,17 +43,21 @@ class FitOneLineText extends StatelessWidget {
           textDirection: TextDirection.ltr,
           textScaler: scaler,
         )..layout();
-        final bool fits = painter.width <= constraints.maxWidth;
+        final bool fits = painter.width <= disponibile;
         painter.dispose();
         if (fits) break;
         size -= 1;
       }
-      return Text(
-        text,
-        maxLines: 1,
-        overflow: TextOverflow.ellipsis,
-        textAlign: textAlign,
-        style: _styleAt(size < minFontSize ? minFontSize : size, maxSize),
+      final double finale = size < minFontSize ? minFontSize : size;
+      return Padding(
+        padding: EdgeInsets.only(right: coda(finale)),
+        child: Text(
+          text,
+          maxLines: 1,
+          overflow: TextOverflow.ellipsis,
+          textAlign: textAlign,
+          style: _styleAt(finale, maxSize),
+        ),
       );
     });
   }

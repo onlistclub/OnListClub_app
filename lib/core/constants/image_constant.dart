@@ -60,12 +60,20 @@ class ImageConstant {
   static String imgNavProfile = '${_svgUfficiali}User_01.svg'; // 24×24
   static String imgProfileBadgeDot = '${_svgUfficiali}Ellipse 17.svg'; // 16×16
 
+  /// Parola 'ORDINE' della conferma ordine: PNG ufficiale 341×88 con la
+  /// dissolvenza verso il basso già dentro (doc correzioni 18/09).
+  static String imgOrdine = '${_svgPath}ORDINE.png';
+
+  /// Simbolo del dollaro del filtro Prezzo (Ricerca): 8×14, bianco pieno.
+  static String imgDollaroFiltro = '${_svgPath}dollar-filter.svg';
+
   // ── Cerchi e frecce ufficiali ─────────────────────────────────────────────
   /// Cerchio della X nel pop-up serata: 30×30, stroke bianco 1px.
   static String imgCirclePopup = '${_svgUfficiali}cerchio_pop_up_serata.svg';
 
-  /// X del pop-up serata: 24×24, stroke bianco 2px.
-  static String imgClose = '${_svgUfficiali}chiusura_media.svg';
+  /// X del pop-up serata: SVG ufficiale 20×20, stroke bianco 2px arrotondato
+  /// (doc correzioni 18/09; prima era chiusura_media.svg).
+  static String imgClose = '${_svgPath}x-pop-up-serata.svg';
 
   /// Cerchio delle frecce del biglietto: 28×28, stroke bianco 2px.
   static String imgCircleTicket = '${_svgUfficiali}cerchio_biglietto.svg';

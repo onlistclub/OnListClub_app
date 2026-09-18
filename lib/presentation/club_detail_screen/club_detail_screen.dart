@@ -264,9 +264,9 @@ class _ClubDetailScreenState extends State<ClubDetailScreen>
                                   state.locale, state.eventoOggi),
                             ),
                           ),
-                          // CSS NUOVO (16/09): la riga generi chiude a 506
-                          // (icona 486+20) → titolo sezione a 514.
-                          SizedBox(height: R.sp(8)),
+                          // La riga generi chiude a 506 e il CSS metterebbe il titolo a 514, ma il
+                          // doc correzioni 18/09 chiede più respiro fra i due: 18 invece di 8.
+                          SizedBox(height: R.sp(18)),
                           // Prossime serate. Il PRENOTA della card apre il
                           // POP-UP della serata, non la scelta ticket: prima di
                           // scegliere il biglietto l'utente deve poter leggere

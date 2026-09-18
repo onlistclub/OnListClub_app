@@ -680,7 +680,13 @@ class _PopupCard extends StatelessWidget {
   Widget _renderInfoBox(_InfoBox box) {
     // Box 156×79: pill etichetta a y=7 (366-359), label x=5 dal box (46-41),
     // valore a y=36 (395-359).
+    //
+    // L'altezza 79 del CSS è un MINIMO, non una misura fissa: i box si
+    // alzano se il valore va a capo (es. "16+ Documento obbligatorio"), e la
+    // riga li pareggia con l'IntrinsicHeight. Senza il minimo restavano
+    // schiacciati sul testo (doc correzioni 18/09).
     return Container(
+      constraints: BoxConstraints(minHeight: R.sp(79)),
       padding: EdgeInsets.fromLTRB(R.sp(5), R.sp(7), R.sp(5), R.sp(8)),
       decoration: BoxDecoration(
         color: const Color(0x291E00FF),
@@ -745,7 +751,9 @@ class _PopupCard extends StatelessWidget {
     return Container(
       // Figma box DJ: 320×50, x=35 (cioè 16 dal bordo card). Riempie la card
       // con _padPill=12; aggiungiamo solo un margine interno coerente.
-      // Padding verticale ~7: avatar 35 + 2×7 ≈ 49 ≈ altezza Figma 50.
+      // Padding verticale ~7: avatar 35 + 2×7 ≈ 49; i 50 del Figma sono il
+      // minimo, la riga cresce se nome e sottotitolo vanno a capo.
+      constraints: BoxConstraints(minHeight: R.sp(50)),
       padding: EdgeInsets.symmetric(horizontal: R.sp(11), vertical: R.sp(7)),
       decoration: BoxDecoration(
         color: const Color(0x291E00FF),

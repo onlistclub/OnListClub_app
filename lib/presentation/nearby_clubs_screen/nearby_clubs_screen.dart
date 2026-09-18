@@ -1,13 +1,16 @@
 import 'dart:async';
+import 'dart:math' as math;
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/foundation.dart' show kIsWeb;
 import 'package:flutter/material.dart';
 import 'package:flutter_map/flutter_map.dart';
+import 'package:flutter_svg/flutter_svg.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:latlong2/latlong.dart';
 
+import '../../core/constants/image_constant.dart';
 import '../../core/models/citta_model.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/services/analytics_service.dart';
@@ -746,7 +749,12 @@ class _ScalaFissa extends StatelessWidget {
     return LayoutBuilder(builder: (context, constraints) {
       final ratio = constraints.maxWidth / w;
       final scale = ratio < 1.15 ? ratio : 1.15;
-      return Center(
+      // Align con heightFactor 1, non Center: con altezza libera (il pannello
+      // filtri) il Center si prendeva tutto lo schermo e il pannello copriva
+      // la pagina intera.
+      return Align(
+        alignment: Alignment.topCenter,
+        heightFactor: 1,
         child: SizedBox(
           width: w * scale,
           height: h * scale,
@@ -1276,11 +1284,23 @@ class _RadiusDialogState extends State<_RadiusDialog> {
 
   bool get _haMappa => widget.lat != null && widget.lng != null;
 
-  double _zoomForRadius(int km) {
-    if (km <= 3) return 13;
-    if (km <= 8) return 11;
-    if (km <= 15) return 10;
-    return 9;
+  /// Lato corto del riquadro mappa in px design (262×139).
+  static const double _latoMappa = 139;
+
+  /// Zoom che fa entrare TUTTO il cerchio del raggio nel riquadro: alzando il
+  /// raggio la mappa si allontana, abbassandolo si avvicina (doc correzioni
+  /// 18/09). Prima erano quattro scalini fissi e il cerchio usciva.
+  ///
+  /// Alla latitudine L un pixel vale 156543.034·cos(L)/2^zoom metri.
+  double _zoomPerRaggio(int km) {
+    final double lat = widget.lat ?? 0;
+    // 90% del lato: un margine perché il bordo del cerchio non tocchi i lati.
+    final double metriPerPixel = (km * 2000) / (_latoMappa * 0.9);
+    final double z = math.log(156543.03392 *
+            math.cos(lat * math.pi / 180) /
+            metriPerPixel) /
+        math.ln2;
+    return z.clamp(1.0, 18.0);
   }
 
   @override
@@ -1367,7 +1387,7 @@ class _RadiusDialogState extends State<_RadiusDialog> {
                       setState(() => _raggio = v.round());
                       if (_haMappa) {
                         _mapCtrl.move(LatLng(widget.lat!, widget.lng!),
-                            _zoomForRadius(_raggio));
+                            _zoomPerRaggio(_raggio));
                       }
                     },
                   ),
@@ -1425,6 +1445,25 @@ class _RadiusDialogState extends State<_RadiusDialog> {
     );
   }
 
+  /// Tile OpenStreetMap rese NERE: prima si passano in scala di grigi e poi
+  /// si invertono, così le mappe chiare diventano quasi nere come nel Figma.
+  ///
+  /// Il `darkModeTileBuilder` di flutter_map inverte lasciando le tinte, e la
+  /// mappa restava verde e rosa (doc correzioni 18/09). Qui la riga è la
+  /// stessa per R, G e B — nessun colore sopravvive — e il fattore 0.85 la
+  /// scurisce ancora un po'.
+  static Widget _tileNere(BuildContext context, Widget tile, TileImage image) {
+    return ColorFiltered(
+      colorFilter: const ColorFilter.matrix(<double>[
+        -0.1807, -0.6079, -0.0614, 0, 216.75, //R
+        -0.1807, -0.6079, -0.0614, 0, 216.75, //G
+        -0.1807, -0.6079, -0.0614, 0, 216.75, //B
+        0, 0, 0, 1, 0, //A
+      ]),
+      child: tile,
+    );
+  }
+
   /// Mappa OpenStreetMap scurita (le basemap scure di CARTO ora chiedono
   /// una API key e mostravano la scritta "API KEY" sulle tile).
   Widget _mappa() {
@@ -1435,7 +1474,7 @@ class _RadiusDialogState extends State<_RadiusDialog> {
           mapController: _mapCtrl,
           options: MapOptions(
             initialCenter: centro,
-            initialZoom: _zoomForRadius(_raggio),
+            initialZoom: _zoomPerRaggio(_raggio),
             interactionOptions:
                 const InteractionOptions(flags: InteractiveFlag.none),
           ),
@@ -1443,7 +1482,7 @@ class _RadiusDialogState extends State<_RadiusDialog> {
             TileLayer(
               urlTemplate: 'https://tile.openstreetmap.org/{z}/{x}/{y}.png',
               userAgentPackageName: 'com.onlist.app',
-              tileBuilder: darkModeTileBuilder,
+              tileBuilder: _tileNere,
             ),
             CircleLayer(
               circles: [
@@ -1655,7 +1694,9 @@ class _FiltersSheetState extends State<_FiltersSheet> {
           height: 84,
           child: Opacity(
             opacity: 0.5,
-            child: FittedBox(fit: BoxFit.fill, child: _FiltriContorno()),
+            // Contain e non fill: stirata sui 379×84 del CSS la parola usciva
+            // deformata e appiccicata ai bordi (doc correzioni 18/09).
+            child: FittedBox(fit: BoxFit.contain, child: _FiltriContorno()),
           ),
         ),
         Positioned(
@@ -1863,11 +1904,20 @@ class _FiltersSheetState extends State<_FiltersSheet> {
               : null,
           child: Opacity(
             opacity: scelto ? 1 : 0.5,
-            // Il CSS usa il font "Jaro": qui il bold della famiglia dell'app.
-            child: Text(
-              '\$' * livello,
-              maxLines: 1,
-              style: _stile(17, peso: FontWeight.w700, ls: 0.1),
+            // Icona ufficiale del dollaro (doc correzioni 18/09), ripetuta
+            // quanto il livello: il testo "$$$$$" non ci stava nel segmento.
+            child: Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                for (var i = 0; i < livello; i++) ...[
+                  if (i > 0) const SizedBox(width: 2),
+                  SvgPicture.asset(
+                    ImageConstant.imgDollaroFiltro,
+                    width: 8,
+                    height: 14,
+                  ),
+                ],
+              ],
             ),
           ),
         ),

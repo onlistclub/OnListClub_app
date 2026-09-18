@@ -52,7 +52,10 @@ class OrdersService {
             'prenotazioni(id, stato, created_at, id_evento, '
             'eventi(id, nome, inizio_evento, club_id, '
             'locali(id, nome, foto_url))), '
-            'prevendite(id_prevendita, tipo, prezzo, descrizione)',
+            // 'riepilogo' è la riga corta mostrata accanto a 'Ticket x N' PRIMA
+            // dell'acquisto: senza di essa il biglietto emesso ripeteva
+            // l'elenco completo e i due non coincidevano (doc correzioni 18/09).
+            'prevendite(id_prevendita, tipo, prezzo, descrizione, riepilogo)',
           )
           .eq('id_utente', user.id);
       // NIENTE .order('id'): `prenotazioni_prevendite.id` è un uuid casuale

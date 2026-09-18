@@ -239,19 +239,22 @@ class TicketFrontCard extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 SizedBox(height: R.sp(29)),
-                // "Ticket normale" 55/500/-0.1em.
+                // "Ticket normale" 55/500/-0.1em, centrato tutto intero come
+                // nella specifica ticket (doc correzioni 18/09).
                 Padding(
                   padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-                  child: FittedBox(
-                    fit: BoxFit.scaleDown,
-                    child: Text(
-                      'Ticket ${ticketType.toLowerCase()}',
-                      style: OnlistTextStyles.hn(
-                        color: Colors.white,
-                        fontSize: R.sp(55),
-                        fontWeight: FontWeight.w500,
-                        height: 54 / 55,
-                        letterSpacing: -0.1 * 55,
+                  child: Center(
+                    child: FittedBox(
+                      fit: BoxFit.scaleDown,
+                      child: Text(
+                        'Ticket ${ticketType.toLowerCase()}',
+                        style: OnlistTextStyles.hn(
+                          color: Colors.white,
+                          fontSize: R.sp(55),
+                          fontWeight: FontWeight.w500,
+                          height: 54 / 55,
+                          letterSpacing: -0.1 * 55,
+                        ),
                       ),
                     ),
                   ),
@@ -468,7 +471,10 @@ class TicketBackCard extends StatelessWidget {
       child: TicketShape(
         // Una sola coppia di tacche (CSS Ellipse 18 @282 → centro 301 → 140
         // dal bordo card): stesse costanti del fronte.
-        notches: [_openNotch(_separator1Y)],
+        // Due separazioni come sul fronte: la seconda, subito sopra il QR, la
+        // chiede il doc correzioni 18/09 ("quel buco e quella divisione PRIMA
+        // del QR code").
+        notches: [_openNotch(_separator1Y), _openNotch(_separator2Y)],
         borderWidthDesign: 3,
         borderColor: OnlistColors.ticketCardBorderOpen,
         // I blocchi entrano SFALSATI (stagger) quando il retro compare, cioè
@@ -483,6 +489,14 @@ class TicketBackCard extends StatelessWidget {
               top: R.sp(_separator1Y),
               child: const _BackStagger(
                 index: 2,
+                child: DashedLine(widthDesign: 297),
+              ),
+            ),
+            Positioned(
+              left: R.sp(26),
+              top: R.sp(_separator2Y),
+              child: const _BackStagger(
+                index: 3,
                 child: DashedLine(widthDesign: 297),
               ),
             ),
@@ -575,8 +589,10 @@ class TicketBackCard extends StatelessWidget {
                     ),
                   ),
                 ),
-                // Pannello QR (CSS Rectangle 295: 350×345 r32, rgba(0,5,214,.2))
-                // col QR VERO su riquadro bianco 20% r16.
+                // Zona QR: il pannello blu traslucido con gli angoli
+                // arrotondati (CSS Rectangle 295) è stato tolto su richiesta
+                // (doc correzioni 18/09) — restano il QR e il bagliore interno
+                // della card, che lo disegna già TicketShape.
                 //
                 // QR PIÙ GRANDE DEL FIGMA (correzioni 1.1, punto 20, scelta di
                 // Luca). Il Figma dà un riquadro 228 che riempiva già tutta
@@ -590,12 +606,8 @@ class TicketBackCard extends StatelessWidget {
                 Expanded(
                   child: _BackStagger(
                     index: 4,
-                    child: Container(
+                    child: SizedBox(
                       width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: const Color(0x330005D6),
-                        borderRadius: BorderRadius.circular(R.sp(32)),
-                      ),
                       child: Column(
                         children: [
                           SizedBox(height: R.sp(24)),
