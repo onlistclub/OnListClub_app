@@ -1,8 +1,10 @@
 import 'package:flutter/material.dart';
 
+import '../../core/services/analytics_service.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/pending_order_service.dart';
 import '../../core/services/ticket_non_visti_service.dart';
+import '../../core/utils/analytics_route_observer.dart';
 import '../../routes/app_routes.dart';
 import '../../routes/page_transitions.dart';
 import '../../widgets/custom_top_bar.dart';
@@ -45,12 +47,24 @@ class RootShell extends StatefulWidget {
 class _RootShellState extends State<RootShell>
     with SingleTickerProviderStateMixin {
   /// Nome della route "host dei tab" nel Navigator annidato.
-  static const String _shellHomeRoute = 'shell_home';
+  static const String _shellHomeRoute = AnalyticsRouteObserver.rottaTabShell;
 
   // Indici allineati alla SharedFooter: 0 = Ticket/Ordini, 1 = Home, 2 = Carrello.
   static const int _tabHome = 1;
 
   static const int _tabCarrello = 2;
+
+  /// Nome analytics di ogni tab, per indice. Sono i `screenName` storici delle
+  /// tre schermate, così il foglio continua a riconoscerle.
+  static const List<String> _nomiTabAnalytics = ['orders_list', 'home', 'cart'];
+
+  /// Registra le schermate di dettaglio spinte sul Navigator annidato.
+  final AnalyticsRouteObserver _analyticsObserver =
+      AnalyticsRouteObserver(annidato: true);
+
+  String _nomeTabAttiva() => _nomiTabAnalytics[_tab.value];
+
+  String? _leggiRottaInCima() => _rottaInCima.value;
 
   final GlobalKey<NavigatorState> _navKey = GlobalKey<NavigatorState>();
   final ValueNotifier<int> _tab = ValueNotifier<int>(_tabHome);
@@ -120,6 +134,9 @@ class _RootShellState extends State<RootShell>
     // e le navigazioni verso le root del footer diventano cambi-tab.
     NavigatorService.shellNavigatorKey = _navKey;
     NavigatorService.switchTab = switchToTab;
+    // L'observer analytics chiede allo shell cosa si sta guardando.
+    AnalyticsService.nomeTabAttiva = _nomeTabAttiva;
+    AnalyticsService.rottaInCimaShell = _leggiRottaInCima;
     // Ordine lasciato in sospeso in una sessione precedente (anche chiusa di
     // colpo dentro la scelta ticket): al primo avvio dello shell il pallino
     // va acceso.
@@ -136,6 +153,12 @@ class _RootShellState extends State<RootShell>
     if (NavigatorService.switchTab == switchToTab) {
       NavigatorService.switchTab = null;
     }
+    if (AnalyticsService.nomeTabAttiva == _nomeTabAttiva) {
+      AnalyticsService.nomeTabAttiva = null;
+    }
+    if (AnalyticsService.rottaInCimaShell == _leggiRottaInCima) {
+      AnalyticsService.rottaInCimaShell = null;
+    }
     _tabAnim.dispose();
     _tab.dispose();
     _routeHighlight.dispose();
@@ -150,9 +173,23 @@ class _RootShellState extends State<RootShell>
     // perché nell'IndexedStack quella resta montata e non riparte mai.
     if (index == _tabCarrello) PendingOrderService().segnaVisti();
     // Chiude eventuali dettagli aperti e torna alla radice della tab scelta.
-    _navKey.currentState?.popUntil((r) => r.isFirst);
+    // Senza tracciare: l'utente non rivede i dettagli intermedi, salta
+    // direttamente alla tab.
+    final NavigatorState? nav = _navKey.currentState;
+    final bool cheranoDettagli = nav?.canPop() ?? false;
+    AnalyticsService.senzaTracciareNavigazione(
+      () => nav?.popUntil((r) => r.isFirst),
+    );
     final bool changed = index != _tab.value;
     _tab.value = index;
+    // Analytics: nuova tab, oppure ritorno alla stessa tab chiudendo i
+    // dettagli. Un tap sulla tab già attiva senza dettagli non è navigazione.
+    if (changed || cheranoDettagli) {
+      AnalyticsService.mostraSchermata(
+        _nomiTabAnalytics[index],
+        ritorno: !changed,
+      );
+    }
     // Anima l'ingresso della nuova tab solo se è cambiata davvero.
     if (changed) _tabAnim.forward(from: 0.0);
   }
@@ -248,7 +285,9 @@ class _RootShellState extends State<RootShell>
               Expanded(
                 child: Navigator(
                   key: _navKey,
-                  observers: [_routeObserver],
+                  // Prima l'highlight: aggiorna `_rottaInCima`, che l'observer
+                  // analytics legge.
+                  observers: [_routeObserver, _analyticsObserver],
                   onGenerateInitialRoutes: (navigator, initialRoute) =>
                       <Route<dynamic>>[
                     _shellHome(const RouteSettings(name: _shellHomeRoute)),

@@ -1,8 +1,14 @@
 import 'package:flutter/material.dart';
 import '../services/analytics_service.dart';
 
-/// Mixin da aggiungere agli State degli Screen per tracciare automaticamente
-/// l'apertura della pagina e il tempo di permanenza.
+/// Mixin da aggiungere agli State degli Screen per misurare il tempo di
+/// caricamento dei dati.
+///
+/// Apertura schermata (`screen_<nome>`) e tempo di permanenza (`page_exit`)
+/// NON passano più da qui: li registra `AnalyticsRouteObserver` guardando il
+/// Navigator (e `RootShell` per i cambi tab). Farlo in `initState`/`dispose`
+/// dava numeri sbagliati: le tab dello shell sono montate tutte all'avvio e
+/// una schermata coperta da un dettaglio resta montata.
 ///
 /// Uso:
 /// ```dart
@@ -18,26 +24,14 @@ mixin ScreenAnalytics<T extends StatefulWidget> on State<T> {
   // un rebuild non deve falsare la metrica del primo caricamento).
   bool _loadTimeReported = false;
 
-  /// Nome identificativo della schermata (es. 'home', 'club_detail', 'cart')
+  /// Nome identificativo della schermata (es. 'home', 'club_detail', 'cart').
+  /// Allegato agli eventi `load_time_*`.
   String get screenName;
 
   @override
   void initState() {
     super.initState();
     _pageOpenedAt = DateTime.now();
-
-    // Tiene traccia della schermata attiva: serve agli handler d'errore globali
-    // (main.dart) per popolare il campo `screen` degli errori non catturati.
-    AnalyticsService.currentScreen = screenName;
-
-    // Apertura schermata. La dashboard ("Schermate più aperte") conta gli eventi
-    // con event_name LIKE 'screen_*' e mostra il nome togliendo il prefisso,
-    // quindi l'evento DEVE chiamarsi `screen_<nome>` (es. screen_home).
-    // Il nome resta anche nel metadata (`screen`/`page_name`) per comodità.
-    AnalyticsService.log(
-      event: 'screen_$screenName',
-      metadata: {'screen': screenName, 'page_name': screenName},
-    );
   }
 
   /// Registra il tempo di caricamento della schermata (da apertura a dati
@@ -51,23 +45,7 @@ mixin ScreenAnalytics<T extends StatefulWidget> on State<T> {
     final ms = DateTime.now().difference(_pageOpenedAt).inMilliseconds;
     AnalyticsService.log(
       event: loadEvent,
-      metadata: {'duration_ms': ms},
+      metadata: {'duration_ms': ms, 'screen': screenName},
     );
-  }
-
-  @override
-  void dispose() {
-    final duration = DateTime.now().difference(_pageOpenedAt).inSeconds;
-    
-    // Log uscita pagina con durata (per "Tempo medio (s)" per schermata).
-    AnalyticsService.log(
-      event: 'page_exit',
-      metadata: {
-        'screen': screenName,
-        'page_name': screenName,
-        'duration_seconds': duration,
-      },
-    );
-    super.dispose();
   }
 }

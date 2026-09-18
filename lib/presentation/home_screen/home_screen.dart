@@ -7,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../core/services/club_service.dart';
 import '../../core/models/locale_model.dart';
 import '../../core/models/serata_model.dart';
+import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../core/utils/date_formatter.dart';
 import '../../theme/onlist_colors.dart';
@@ -109,7 +110,18 @@ class _HomeScreenState extends State<HomeScreen>
   /// - tap sulla card hero "Il tuo club preferito"
   /// - tap su "RISERVA IL TUO POSTO ORA"
   /// - tap su una card della lista "Club consigliati"
-  void _navigateToClubDetail(BuildContext context, LocaleModel club) {
+  ///
+  /// [elemento] dice quale di questi è stato toccato (evento `home_tap`).
+  void _navigateToClubDetail(
+    BuildContext context,
+    LocaleModel club, {
+    required String elemento,
+  }) {
+    AnalyticsService.logHomeTap(
+      elemento: elemento,
+      clubId: club.id,
+      clubName: club.nome,
+    );
     NavigatorService.pushNamed(
       AppRoutes.clubDetailScreen,
       arguments: club,
@@ -315,7 +327,7 @@ class _HomeScreenState extends State<HomeScreen>
       padding: const EdgeInsets.symmetric(horizontal: 10),
       child: GestureDetector(
         behavior: HitTestBehavior.opaque,
-        onTap: () => _navigateToClubDetail(context, club),
+        onTap: () => _navigateToClubDetail(context, club, elemento: 'hero'),
         child: hero,
       ),
     );
@@ -387,7 +399,8 @@ class _HomeScreenState extends State<HomeScreen>
       // CSS: CTA top 431, indirizzo chiude a 420 → 11.
       padding: EdgeInsets.fromLTRB(R.sp(12.5), R.sp(11), R.sp(12.5), 0),
       child: AnimatedPress(
-        onPressed: () => _navigateToClubDetail(context, club),
+        onPressed: () =>
+            _navigateToClubDetail(context, club, elemento: 'riserva_posto'),
         child: SizedBox(
           width: double.infinity,
           height: R.sp(49),
@@ -478,7 +491,8 @@ class _HomeScreenState extends State<HomeScreen>
     );
 
     return AnimatedPress(
-      onPressed: () => _navigateToClubDetail(context, club),
+      onPressed: () =>
+          _navigateToClubDetail(context, club, elemento: 'consigliati_card'),
       child: ClipRRect(
         borderRadius: BorderRadius.circular(7),
         child: SizedBox(
@@ -586,7 +600,8 @@ class _HomeScreenState extends State<HomeScreen>
                   left: 294,
                   top: 67,
                   child: CardPrenotaButton(
-                    onTap: () => _navigateToClubDetail(context, club),
+                    onTap: () => _navigateToClubDetail(context, club,
+                        elemento: 'consigliati_prenota'),
                   ),
                 ),
               ],

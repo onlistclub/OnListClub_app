@@ -2,6 +2,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/app_export.dart';
 import '../../../core/models/locale_model.dart';
 import '../../../core/models/serata_model.dart';
+import '../../../core/services/analytics_service.dart';
 import '../../../core/services/club_service.dart';
 
 part 'club_detail_event.dart';
@@ -62,6 +63,11 @@ class ClubDetailBloc extends Bloc<ClubDetailEvent, ClubDetailState> {
     try {
       if (wasPreferito) {
         await ClubService.removePreferito(userId, state.locale.id);
+        AnalyticsService.logFavorite(
+          aggiunto: false,
+          clubId: state.locale.id,
+          clubName: state.locale.nome,
+        );
         emit(state.copyWith(
           isPreferito: false,
           showFavoriteBadge: false,
@@ -69,6 +75,11 @@ class ClubDetailBloc extends Bloc<ClubDetailEvent, ClubDetailState> {
         ));
       } else {
         await ClubService.addPreferito(userId, state.locale.id);
+        AnalyticsService.logFavorite(
+          aggiunto: true,
+          clubId: state.locale.id,
+          clubName: state.locale.nome,
+        );
         emit(state.copyWith(
           isPreferito: true,
           showFavoriteBadge: true,

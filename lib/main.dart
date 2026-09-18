@@ -22,10 +22,16 @@ import 'core/app_export.dart';
 import 'core/services/analytics_service.dart';
 import 'core/services/auth_service.dart';
 import 'core/services/location_service.dart';
+import 'core/utils/analytics_route_observer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 
 var globalMessengerKey = GlobalKey<ScaffoldMessengerState>();
+
+/// Registra le schermate del Navigator radice (splash, login, shell…).
+/// Istanza unica: `MyApp.build` può girare più volte e un observer non può
+/// essere agganciato a due Navigator.
+final AnalyticsRouteObserver _analyticsObserver = AnalyticsRouteObserver();
 
 /// Status bar chiara: icone/orario/batteria/segnale BIANCHI su sfondo scuro
 /// (tutta l'app è dark). statusBarColor trasparente così traspare il gradiente.
@@ -158,6 +164,10 @@ Future<void> main() async {
   // sola volta e allegata a ogni evento analytics.
   await AnalyticsService.initDeviceInfo();
 
+  // Sessione analytics: session_start ora, session_end a ogni passaggio in
+  // background, nuova sessione dopo 30 minuti fuori dall'app.
+  AnalyticsService.avviaSessione();
+
   // Handler d'errore globali → TAB "Errori" del foglio di monitoraggio.
   // Catturano gli errori non gestiti (framework + async) senza cambiarne il
   // comportamento: presentano l'errore come prima e in più lo registrano.
@@ -231,6 +241,7 @@ class MyApp extends StatelessWidget {
           },
           // 🚨 END CRITICAL SECTION
           navigatorKey: NavigatorService.navigatorKey,
+          navigatorObservers: [_analyticsObserver],
           debugShowCheckedModeBanner: false,
           localizationsDelegates: [
             GlobalMaterialLocalizations.delegate,

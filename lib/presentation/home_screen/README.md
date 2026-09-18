@@ -60,7 +60,7 @@ La UI parte con un'animazione staggered (durata ~1.4s):
 
 **Animazioni:** la schermata usa un singolo `AnimationController` (`_staggerCtrl`, durata 1400 ms) e definisce 7 coppie di `Animation<double>` + `Animation<Offset>` per far entrare in sequenza ogni sezione (app bar, hero, titolo, sottotitolo, sezione club, card, bottom nav).
 
-**Analytics:** lo State implementa il mixin `ScreenAnalytics` con `screenName = 'home'`, che logga automaticamente l'apertura e il tempo di permanenza sulla schermata (`AnalyticsService`).
+**Analytics:** apertura e tempo di permanenza (`screen_home` / `page_exit`) li registra `RootShell` al cambio tab, non la schermata: la Home è montata insieme alle altre tab. Lo State usa il mixin `ScreenAnalytics` (`screenName = 'home'`) solo per `load_time_home`. Ogni tap che apre un club registra `home_tap` con l'elemento toccato (`hero`, `riserva_posto`, `consigliati_card`, `consigliati_prenota`).
 
 **Notifiche:** in `initState` viene chiamata `NotificationService.checkNewEventsForFavorites()` — fire-and-forget, non blocca il caricamento della UI.
 

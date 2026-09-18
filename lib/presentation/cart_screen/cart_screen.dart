@@ -145,18 +145,20 @@ class _CartScreenState extends State<CartScreen>
         ticketHolders: null,
       );
 
-      AnalyticsService.log(
-        event: 'booking_payment_success',
-        metadata: {
-          'type': args?['type'] ?? 'table',
-          'amount': args?['price'] ?? '150€',
-        },
+      // Niente importo di ripiego: il flusso tavolo non passa `price`, e il
+      // vecchio '150€' fisso registrava un incasso inventato per ogni tavolo.
+      // Il totale vero è in prenotazioni.prezzo_totale (prenotazione_id).
+      AnalyticsService.logPaymentSuccess(
+        type: args?['type'] ?? 'table',
+        amount: args?['price'],
+        bookingId: prenotazioneId,
       );
       // Funnel: prenotazione completata (evento richiesto dal foglio).
       AnalyticsService.logBookingComplete(
         type: args?['type'] ?? 'table',
         eventId: args?['id_evento'] as String?,
         amount: args?['price'],
+        bookingId: prenotazioneId,
       );
 
       CartService().clear();
