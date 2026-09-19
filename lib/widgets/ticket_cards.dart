@@ -61,6 +61,18 @@ TicketNotch _openNotch(double y) => TicketNotch(
       edgeOffsetDesign: _notchEdgeOffset,
     );
 
+/// Quante offerte ha il ticket: una per voce della descrizione del DB (righe
+/// separate da a capo o punto e virgola). È il numero che finisce in
+/// "+ N Plus" accanto alla quantità.
+int contaPlus(String? descrizione) {
+  if (descrizione == null) return 0;
+  return descrizione
+      .split(RegExp(r'[\n;]'))
+      .map((s) => s.trim())
+      .where((s) => s.isNotEmpty)
+      .length;
+}
+
 // ── Stato A: biglietto chiuso ────────────────────────────────────────────────
 class TicketCollapsedCard extends StatelessWidget {
   final String clubName;
@@ -171,7 +183,9 @@ class TicketCollapsedCard extends StatelessWidget {
 class TicketFrontCard extends StatelessWidget {
   final String ticketType;
   final int quantita;
-  final String? descrizione;
+  /// Numero di offerte del ticket: la riga accanto alla quantità mostra
+  /// "+ N Plus" come nel Figma.
+  final int plus;
   final String nome;
   final String cognome;
   final String prezzo;
@@ -201,7 +215,7 @@ class TicketFrontCard extends StatelessWidget {
     Key? key,
     required this.ticketType,
     required this.quantita,
-    required this.descrizione,
+    required this.plus,
     required this.nome,
     required this.cognome,
     required this.prezzo,
@@ -262,7 +276,7 @@ class TicketFrontCard extends StatelessWidget {
                 // CSS NUOVO 16/09: "Ticket x 1" a rel 96, "Dati personali" a
                 // rel 167 (la linea a 140 la disegna lo Stack).
                 SizedBox(height: R.sp(13)),
-                _QuantityRow(quantita: quantita, descrizione: descrizione),
+                _QuantityRow(quantita: quantita, plus: plus),
                 SizedBox(height: R.sp(38)),
                 // "Dati personali" 48/500 — era w700, il CSS dice 500 come gli
                 // altri due titoli della card.
@@ -440,7 +454,9 @@ class TicketFrontCard extends StatelessWidget {
 class TicketBackCard extends StatelessWidget {
   final String clubName;
   final int quantita;
-  final String? descrizione;
+  /// Numero di offerte del ticket: la riga accanto alla quantità mostra
+  /// "+ N Plus" come nel Figma.
+  final int plus;
   final String eventoNome;
   final String? eventoSottotitolo;
   final String dataEvento;
@@ -455,7 +471,7 @@ class TicketBackCard extends StatelessWidget {
     Key? key,
     required this.clubName,
     required this.quantita,
-    required this.descrizione,
+    required this.plus,
     required this.eventoNome,
     required this.eventoSottotitolo,
     required this.dataEvento,
@@ -527,7 +543,7 @@ class TicketBackCard extends StatelessWidget {
                 _BackStagger(
                   index: 1,
                   child: _QuantityRow(
-                      quantita: quantita, descrizione: descrizione),
+                      quantita: quantita, plus: plus),
                 ),
                 // "Ticket x 1" chiude a rel 136; il blocco evento parte a 143,
                 // subito sotto il tratteggio (142.5).
@@ -738,23 +754,26 @@ class TicketPillButton extends StatelessWidget {
   }
 }
 
-/// Riga "Ticket x N" + descrizione (24/-0.05em), comune a fronte e retro.
+/// Riga "Ticket x N" + "+ N Plus", comune a fronte e retro.
+///
+/// Accanto alla quantità il design mette il NUMERO delle offerte, non il loro
+/// elenco (doc correzioni 19/09: "rendi la scritta uguale come + 3 Plus nel
+/// Figma"). L'elenco per esteso vive sotto "Dettagli".
 class _QuantityRow extends StatelessWidget {
   final int quantita;
-  final String? descrizione;
+  final int plus;
 
-  const _QuantityRow({required this.quantita, required this.descrizione});
+  const _QuantityRow({required this.quantita, required this.plus});
 
   /// Margine sinistro della riga, in px design dal bordo della card.
   static const double _leftDesign = 26;
 
-  /// Quota a cui parte la descrizione ("Welcome drink", "+ 2 drink"…), sempre
-  /// in px design dal bordo della card.
+  /// Quota a cui parte la seconda colonna, sempre in px design dal bordo
+  /// della card.
   ///
   /// Il CSS la mette a 148 (left 169 su card a 21); nella 1.1 avevi chiesto di
   /// spostarla ancora a destra e nella 1.11 di nuovo, quindi qui sta a **160**.
-  /// Con la card larga 350 e il margine destro di 20 restano 170 px per il
-  /// testo; "Ticket x 1" a 33 misura 127 e chiude a 153, prima dello slot.
+  /// "Ticket x 1" a 33 misura 127 e chiude a 153, prima dello slot.
   static const double _descrizioneXDesign = 160;
 
   double get _rowLeft => R.sp(_leftDesign);
@@ -773,21 +792,16 @@ class _QuantityRow extends StatelessWidget {
       padding: EdgeInsets.only(left: _rowLeft, right: R.sp(20)),
       child: Row(
         children: [
-          // Slot a larghezza FISSA per "Ticket x N": così la descrizione parte
-          // sempre alla stessa quota. Prima era "testo + 36 di spazio", quindi
-          // la sua posizione dipendeva da quanto misurava "Ticket x N" e
-          // ballava da un biglietto all'altro (correzioni 1.11: "metti più a
-          // destra l'info Welcome Drink").
+          // Slot a larghezza FISSA per "Ticket x N": così la colonna di destra
+          // parte sempre alla stessa quota, qualunque sia la quantità.
           SizedBox(
             width: R.sp(_descrizioneXDesign - _leftDesign),
             child: Text('Ticket x $quantita', style: style),
           ),
-          // Una descrizione lunga si rimpicciolisce (fino a 22) prima di
-          // troncarsi.
-          if (descrizione != null && descrizione!.isNotEmpty)
+          if (plus > 0)
             Expanded(
               child: FitOneLineText(
-                descrizione!,
+                '+ $plus Plus',
                 style: style,
                 minFontSize: R.sp(22),
               ),
@@ -835,8 +849,8 @@ class _PersonalRow extends StatelessWidget {
 /// cambio vale sia per aprire sia per chiudere il biglietto, in tutte le
 /// schermate che usano queste card.
 ///
-/// Le due frecce hanno viewBox diverse (15 e 22) ma stesso ingombro ottico:
-/// entrambe vengono disegnate dentro il riquadro da 16, come prima.
+/// Nel CSS la freccia è 22 dentro il cerchio da 28 (era disegnata a 14 e
+/// sembrava minuscola: doc correzioni 19/09).
 class ArrowCircle extends StatelessWidget {
   final bool down;
 
@@ -857,8 +871,8 @@ class ArrowCircle extends StatelessWidget {
           ),
           SvgPicture.asset(
             down ? ImageConstant.imgArrowDown : ImageConstant.imgArrowUp,
-            width: R.sp(14),
-            height: R.sp(14),
+            width: R.sp(22),
+            height: R.sp(22),
           ),
         ],
       ),
