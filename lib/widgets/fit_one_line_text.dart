@@ -30,9 +30,13 @@ class FitOneLineText extends StatelessWidget {
       // largo della sua scatola e chi lo contiene gli taglia l'ultima lettera.
       // Lo spazio perso va restituito a destra; siccome il disegno sborda solo
       // da quel lato, il padding riporta al centro anche il testo centrato.
+      // Oltre alla crenatura si lascia un filo per la parte di glifo che
+      // sborda a destra (la "b" di "Goa Club", la "n" di "Peter Pan"): senza,
+      // l'ultima lettera restava tagliata di un pelo.
       double coda(double s) {
         final ls = style.letterSpacing;
-        return (ls == null || ls >= 0) ? 0 : -ls * s / maxSize;
+        final double crenatura = (ls == null || ls >= 0) ? 0 : -ls * s / maxSize;
+        return crenatura + s * 0.04;
       }
 
       final double disponibile = constraints.maxWidth - coda(maxSize);

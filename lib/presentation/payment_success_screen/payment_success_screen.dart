@@ -1,6 +1,5 @@
 import 'package:flutter/material.dart';
 
-import '../../core/constants/image_constant.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/orders_service.dart';
 import '../../core/services/pending_order_service.dart';
@@ -77,6 +76,25 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
   late final AnimationController _bobCtrl;
   late final Animation<double> _bob;
 
+  // Col biglietto APERTO "torna alla home" non sta fisso sopra la footer (si
+  // sovrapporrebbe alla card, alta 614): sta in coda allo scroll e compare con
+  // una dissolvenza quando si arriva in fondo (doc correzioni 19/09).
+  final ScrollController _scrollCtrl = ScrollController();
+  bool _tornaHomeInFondo = false;
+
+  /// Quanto manca al fondo perché "torna alla home" si mostri.
+  static const double _sogliaFondo = 24;
+
+  void _aggiornaTornaHome() {
+    if (!_scrollCtrl.hasClients) return;
+    final pos = _scrollCtrl.position;
+    final bool inFondo =
+        pos.pixels >= pos.maxScrollExtent - _sogliaFondo;
+    if (inFondo != _tornaHomeInFondo) {
+      setState(() => _tornaHomeInFondo = inFondo);
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -103,6 +121,8 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     _bob = Tween<double>(begin: -_bobAmplitude, end: _bobAmplitude)
         .animate(CurvedAnimation(parent: _bobCtrl, curve: Curves.easeInOut));
 
+    _scrollCtrl.addListener(_aggiornaTornaHome);
+
     // Il caricamento parte da didChangeDependencies: prima serve leggere
     // l'id della prenotazione dagli arguments della route.
   }
@@ -124,6 +144,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     // Lasciata la conferma: se restano ordini in sospeso il pallino del
     // carrello si riaccende.
     PendingOrderService().riprendiDopoConferma();
+    _scrollCtrl.dispose();
     _openCtrl.dispose();
     _bobCtrl.dispose();
     super.dispose();
@@ -221,6 +242,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
               const TopBarSlot(),
               Expanded(
                 child: SingleChildScrollView(
+                  controller: _scrollCtrl,
                   // Margini 18 invece dei 21 del CSS: scostamento VOLUTO da
                   // Luca per allargare il biglietto di ~6px (stesso valore di
                   // prevendita_detail_screen — sono la stessa card).
@@ -288,7 +310,12 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                         ),
                       if (!tornaHomeFisso) ...[
                         SizedBox(height: R.sp(18)),
-                        Center(child: _buildTornaAllaHome()),
+                        AnimatedOpacity(
+                          opacity: _tornaHomeInFondo ? 1 : 0,
+                          duration: const Duration(milliseconds: 220),
+                          curve: Curves.easeOut,
+                          child: Center(child: _buildTornaAllaHome()),
+                        ),
                         SizedBox(height: R.sp(8)),
                       ],
                     ],
@@ -327,18 +354,29 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // Immagine ufficiale 341×88 (doc correzioni 18/09): ha già dentro
-          // la dissolvenza verso il basso del CSS, e nessuna lettera viene
-          // tagliata come quando la parola era testo stirato.
+          // "ORDINE" scritto col font, non col PNG: l'immagine ufficiale è a
+          // 341×88 punti e sui telefoni veniva ingrandita 3 volte, quindi
+          // sfocata (doc correzioni 19/09). Il testo resta nitido a qualsiasi
+          // risoluzione; la parola mantiene le sue proporzioni, perciò riempie
+          // i 341 di larghezza del CSS ed è un po' più bassa degli 88.
           Positioned(
             left: R.sp(24 - 18),
             top: 0,
             width: R.sp(341),
             height: R.sp(88),
-            child: Image.asset(
-              ImageConstant.imgOrdine,
-              fit: BoxFit.contain,
-              alignment: Alignment.topLeft,
+            child: ShaderMask(
+              blendMode: BlendMode.srcIn,
+              shaderCallback: (bounds) => const LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.white, Colors.white, Color(0x00FFFFFF)],
+                stops: [0.0, 0.6298, 1.0],
+              ).createShader(bounds),
+              child: const FittedBox(
+                fit: BoxFit.contain,
+                alignment: Alignment.topLeft,
+                child: _OrdineGlifi(),
+              ),
             ),
           ),
           // Linea di base a 101 dall'alto della scatola (240−139). Con
@@ -416,6 +454,9 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
               });
               // Fa partire fade + slide del contenuto del biglietto aperto.
               _openCtrl.forward(from: 0);
+              // La card cambia altezza: ricontrolla se siamo già in fondo.
+              WidgetsBinding.instance
+                  .addPostFrameCallback((_) => _aggiornaTornaHome());
             },
           ),
         ),
@@ -439,13 +480,11 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     final prenotazione = t['prenotazioni'] as Map<String, dynamic>?;
     final prevendita = t['prevendite'] as Map<String, dynamic>?;
     final evento = prenotazione?['eventi'] as Map<String, dynamic>?;
-    // Riga corta del ticket ('+ 2 drink omaggio'): la stessa mostrata prima
-    // dell'acquisto. L'elenco completo (descrizione) resta il ripiego per le
-    // prevendite senza riepilogo.
-    final riepilogo = (prevendita?['riepilogo'] as String?)?.trim();
-    final descrizione = (riepilogo != null && riepilogo.isNotEmpty)
-        ? riepilogo
-        : (prevendita?['descrizione'] as String?)?.trim();
+    // Accanto alla quantità va il NUMERO delle offerte ("+ 3 Plus"), contato
+    // sulle voci della descrizione del DB; l'elenco per esteso resta sotto
+    // "Dettagli" prima dell'acquisto (doc correzioni 19/09).
+    final plus = contaPlus((prevendita?['descrizione'] as String?) ??
+        (prevendita?['riepilogo'] as String?));
     final quantita = (t['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
 
     return FlipCard(
@@ -456,7 +495,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
       back: TicketBackCard(
         clubName: _clubName(t),
         quantita: quantita,
-        descrizione: descrizione,
+        plus: plus,
         eventoNome: (evento?['nome'] ?? '').toString(),
         eventoSottotitolo: null,
         dataEvento: _formatData(evento?['data']),
@@ -466,7 +505,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
       front: TicketFrontCard(
         ticketType: (prevendita?['tipo'] ?? 'normale').toString(),
         quantita: quantita,
-        descrizione: descrizione,
+        plus: plus,
         nome: (t['nome'] ?? '—').toString(),
         cognome: (t['cognome'] ?? '—').toString(),
         prezzo: _formatPrezzo(prevendita?['prezzo']),
@@ -557,3 +596,47 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
   }
 }
 
+
+/// "ORDINE" ritagliato ESATTAMENTE sui glifi, così il riquadro che lo contiene
+/// non conta lo spazio vuoto sopra e sotto le maiuscole e la parola parte dal
+/// bordo alto come nel CSS.
+///
+/// Misure di OnlistHN-Bold a corpo 100 (height 1): linea di base a 78.3,
+/// maiuscole alte 73 (con l'overshoot della O) e 2 sotto la base → i glifi
+/// occupano da 5.3 a 80.3, cioè 75 di altezza.
+///
+/// La crenatura resta quella del design (−0.02em): stringerla fino a far
+/// entrare la parola negli 88 px di altezza del CSS faceva sovrapporre la "I"
+/// alle lettere vicine, e "ORDINE" si leggeva "ORDNE".
+class _OrdineGlifi extends StatelessWidget {
+  const _OrdineGlifi();
+
+  static const double _corpo = 100;
+  static const double _altezzaGlifi = 75;
+
+  /// Allinea il box di 100 dentro i 75 visibili con il bordo alto delle
+  /// maiuscole (5.3) sul bordo: (75−100)·(a+1)/2 = −5.3 → a = −0.576.
+  static const double _allineamentoY = -0.576;
+
+  @override
+  Widget build(BuildContext context) {
+    return ClipRect(
+      child: Align(
+        alignment: const Alignment(0, _allineamentoY),
+        heightFactor: _altezzaGlifi / _corpo,
+        child: Text(
+          'ORDINE',
+          maxLines: 1,
+          textScaler: TextScaler.noScaling,
+          style: OnlistTextStyles.hn(
+            color: Colors.white,
+            fontSize: _corpo,
+            fontWeight: FontWeight.w700,
+            height: 1.0,
+            letterSpacing: -0.02 * _corpo,
+          ),
+        ),
+      ),
+    );
+  }
+}

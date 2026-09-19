@@ -134,13 +134,11 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
         : (idPrenotazione != null
             ? 'https://www.onlistclub.com/verify/$idPrenotazione'
             : 'onlist-ticket');
-    // Riga corta del ticket ('+ 2 drink omaggio'): la stessa mostrata prima
-    // dell'acquisto. L'elenco completo (descrizione) resta il ripiego per le
-    // prevendite senza riepilogo.
-    final riepilogo = (prevendita?['riepilogo'] as String?)?.trim();
-    final descrizione = (riepilogo != null && riepilogo.isNotEmpty)
-        ? riepilogo
-        : (prevendita?['descrizione'] as String?)?.trim();
+    // Accanto alla quantità va il NUMERO delle offerte ("+ 3 Plus"), contato
+    // sulle voci della descrizione del DB; l'elenco per esteso resta sotto
+    // "Dettagli" prima dell'acquisto (doc correzioni 19/09).
+    final plus = contaPlus((prevendita?['descrizione'] as String?) ??
+        (prevendita?['riepilogo'] as String?));
     final quantita =
         (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
 
@@ -172,7 +170,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                     back: TicketBackCard(
                       clubName: localeNome,
                       quantita: quantita,
-                      descrizione: descrizione,
+                      plus: plus,
                       eventoNome: (evento?['nome'] ?? '').toString(),
                       eventoSottotitolo: null,
                       dataEvento: _formatData(evento?['data']),
@@ -182,7 +180,7 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                     front: TicketFrontCard(
                       ticketType: (prevendita?['tipo'] ?? 'normale').toString(),
                       quantita: quantita,
-                      descrizione: descrizione,
+                      plus: plus,
                       nome: (item['nome'] ?? '—').toString(),
                       cognome: (item['cognome'] ?? '—').toString(),
                       prezzo: _formatPrezzo(prevendita?['prezzo']),

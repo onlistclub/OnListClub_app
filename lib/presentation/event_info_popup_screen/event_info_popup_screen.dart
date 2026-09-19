@@ -430,10 +430,12 @@ class _PopupCard extends StatelessWidget {
                   width: R.sp(30),
                   height: R.sp(30),
                 ),
+                // X ufficiale a misura piena (20×20 come nel CSS), non
+                // rimpicciolita a 16.
                 SvgPicture.asset(
                   ImageConstant.imgClose,
-                  width: R.sp(16),
-                  height: R.sp(16),
+                  width: R.sp(20),
+                  height: R.sp(20),
                 ),
               ],
             ),

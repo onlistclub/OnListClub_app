@@ -39,19 +39,19 @@ class OnlistPriceText extends StatelessWidget {
   /// ancora più vicini, "attaccati come nel Figma". Resta molto meno della
   /// crenatura del design (-0.08em), che tirerebbe il simbolo SOPRA
   /// l'ultima cifra.
-  static const double _gapEm = -0.03;
+  static const double _gapEm = -0.05;
 
   /// Quanto è più piccolo il simbolo di valuta rispetto alle cifre, quando
   /// [smallSymbol] è attivo.
   ///
-  /// Misurato sul PNG ufficiale (`Carrello - Ticket.png`, prezzo a 96px): le
-  /// cifre sono alte 69 px design e il "€" 47, cioè il **68%**, con lo stesso
-  /// bordo inferiore — nell'app usciva invece alto 71, più GRANDE delle cifre e
-  /// pure più in alto.
+  /// Sul PNG ufficiale (`Carrello - Ticket.png`, prezzo a 96px) le cifre sono
+  /// alte 69 px design e il "€" 47, cioè il 68%. Il doc correzioni 19/09
+  /// chiede la valuta più grande e più vicina al numero: 80%, appoggiata alla
+  /// stessa linea di base delle cifre.
   ///
   /// Basta rimpicciolire lo span: dentro una riga di testo gli span condividono
   /// la linea di base, quindi il simbolo scende da solo senza offset manuali.
-  static const double _symbolScale = 0.68;
+  static const double _symbolScale = 0.8;
 
   /// Numero (cifre, punto, virgola) seguito dal simbolo di valuta finale.
   static final RegExp _priceRe = RegExp(r'^([\d.,]+)(\D)$');

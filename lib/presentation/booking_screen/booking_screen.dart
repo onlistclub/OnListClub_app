@@ -772,11 +772,9 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     // Safe-format: se il prezzo arriva come "12.0€" o "12.0" lo normalizziamo
     // a "12€" (per coerenza col Figma, che non mostra mai il decimale .0).
     final String price = _normalizePriceString(t['price']?.toString() ?? '—');
-    // Riga corta accanto a "Ticket x 1" (es. "+ 2 drink").
-    final String riepilogo = t['riepilogo']?.toString() ?? '';
     // Benefit "Dettagli": una riga per capoverso della descrizione DB —
-    // nessun benefit inventato che non stia a database. E' l'elenco COMPLETO,
-    // diverso dal riepilogo qui sopra (correzioni 1.1, punto 12).
+    // nessun benefit inventato che non stia a database. Il loro NUMERO è
+    // anche il "+ N Plus" accanto alla quantità.
     final benefits = (t['dettagli']?.toString() ?? '')
         .split(RegExp(r'[\n;]'))
         .map((s) => s.trim())
@@ -889,21 +887,21 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             ),
             // CSS NUOVO (16/09): "Ticket x 1" a rel y 92, 9px sotto il titolo.
             SizedBox(height: R.sp(9)),
-            // "Ticket x 1" + descrizione a 33/-0.05em (erano 24: doc
-            // correzioni 16/09). "Ticket x 1" a left 26, descrizione allineata
-            // a destra fino a rel 323 (+ 2 Plus: 236+109 su card a 22).
+            // "Ticket x 1" + "+ N Plus" a 33/-0.05em, allineato a destra fino
+            // a rel 323 (nel CSS "+ 2 Plus": 236+109 su card a 22).
+            //
+            // Accanto alla quantità va il NUMERO delle offerte, non il loro
+            // elenco: quello sta sotto "Dettagli" (doc correzioni 19/09).
             Padding(
               padding: EdgeInsets.only(left: R.sp(26), right: R.sp(27)),
               child: Row(
                 children: [
                   Text('Ticket x 1', style: _stileRigaTicket),
-                  if (riepilogo.isNotEmpty) ...[
+                  if (benefits.isNotEmpty) ...[
                     SizedBox(width: R.sp(12)),
-                    // Si rimpicciolisce prima di troncarsi: a 33px una
-                    // descrizione come "Ingresso + 1 drink" non ci sta.
                     Expanded(
                       child: FitOneLineText(
-                        riepilogo,
+                        '+ ${benefits.length} Plus',
                         style: _stileRigaTicket,
                         minFontSize: R.sp(22),
                         textAlign: TextAlign.right,

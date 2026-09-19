@@ -63,6 +63,10 @@ const Map<String, Set<String>> _categorieGeneri = {
 /// Livelli del filtro prezzo ($ … $$$$$), uguali a `locali.prezzo_indicativo`.
 const int _livelliPrezzo = 5;
 
+/// Larghezze dei cinque scomparti della barra prezzo, ricavate dai centri dei
+/// simboli nel CSS (21.5, 82, 141, 206, 286 su 323 di barra).
+const List<int> _pesiPrezzo = [52, 60, 62, 72, 77];
+
 class NearbyClubsScreen extends StatefulWidget {
   const NearbyClubsScreen({Key? key}) : super(key: key);
 
@@ -1694,9 +1698,11 @@ class _FiltersSheetState extends State<_FiltersSheet> {
           height: 84,
           child: Opacity(
             opacity: 0.5,
-            // Contain e non fill: stirata sui 379×84 del CSS la parola usciva
-            // deformata e appiccicata ai bordi (doc correzioni 18/09).
-            child: FittedBox(fit: BoxFit.contain, child: _FiltriContorno()),
+            // Riempie i 379×84 del CSS: nel Figma le lettere sono larghe e
+            // arrivano ai due bordi. Tenendo le proporzioni del nostro font
+            // (più stretto) la parola restava piccola e persa in mezzo al
+            // pannello (doc correzioni 19/09).
+            child: FittedBox(fit: BoxFit.fill, child: _FiltriContorno()),
           ),
         ),
         Positioned(
@@ -1768,12 +1774,21 @@ class _FiltersSheetState extends State<_FiltersSheet> {
           child: DecoratedBox(
             decoration: BoxDecoration(
               color: const Color(0x33D9D9D9),
+              border: Border.all(color: const Color(0x2EFFFFFF)),
               borderRadius: BorderRadius.circular(17.5),
             ),
             child: Row(
               children: [
+                // Scomparti NON uguali: nel CSS i centri dei simboli stanno a
+                // 21.5, 82, 141, 206 e 286 dal bordo della barra, cioè i
+                // gruppi più lunghi occupano più spazio. Con cinque parti
+                // uguali "$$$$" e "$$$$$" finivano fuori asse (doc correzioni
+                // 19/09).
                 for (var p = 1; p <= _livelliPrezzo; p++)
-                  Expanded(child: _segmentoPrezzo(p)),
+                  Expanded(
+                    flex: _pesiPrezzo[p - 1],
+                    child: _segmentoPrezzo(p),
+                  ),
               ],
             ),
           ),
@@ -1817,6 +1832,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                 gradient: const LinearGradient(
                   colors: [Color(0x00FFFFFF), Color(0x5E0066FF)],
                 ),
+                border: Border.all(color: const Color(0x59FFFFFF)),
                 borderRadius: BorderRadius.circular(17.5),
               ),
               child: FittedBox(
@@ -1858,6 +1874,9 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                           colors: [Color(0x4DFFFFFF), Color(0x4D0900FF)],
                           stops: [0, 0.7308],
                         ),
+                  // Filo chiaro attorno alle chip, come nel Figma (doc
+                  // correzioni 19/09: "i bordi presenti nel Figma").
+                  border: Border.all(color: const Color(0x59FFFFFF)),
                   borderRadius: BorderRadius.circular(14.5),
                 ),
               ),
@@ -1899,6 +1918,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                     colors: [Color(0x4DFFFFFF), Color(0x4D0900FF)],
                     stops: [0, 0.7308],
                   ),
+                  border: Border.all(color: const Color(0x59FFFFFF)),
                   borderRadius: BorderRadius.circular(14.5),
                 )
               : null,
