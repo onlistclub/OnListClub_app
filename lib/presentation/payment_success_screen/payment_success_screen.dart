@@ -271,7 +271,7 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                                 children: [
                                   SizedBox(height: R.sp(21)),
                                   _buildHeader(),
-                                  SizedBox(height: R.sp(26)),
+                                  SizedBox(height: R.sp(24)),
                                 ],
                               )
                             : SizedBox(height: R.sp(12)),
@@ -339,31 +339,49 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
     );
   }
 
-  // ── Intestazione "ORDINE effettuato" + spunta (CSS NUOVO 16/09) ──────────
-  // Coordinate CSS assolute, riportate a una scatola che parte a y 139 e a
-  // x 18 (margine dello scroll):
-  //  - ORDINE: riquadro 341×88 a (24,139), bianco che sfuma dal 62.98%;
-  //  - effettuato: 39px bold, box 169 a x 112, linea di base a ~240 (PNG);
-  //  - spunta: cerchio 23 #0009FF a (269,204).
-  static const double _headerH = 110;
+  // ── Intestazione "ORDINE effettuato" + spunta ────────────────────────────
+  // Nel CSS il blocco è: ORDINE 341×88 a (24,139), "effettuato" 39 con la
+  // linea di base a ~240, spunta Ø23 a (269,204) appoggiata sull'ultima
+  // lettera.
+  //
+  // Col nostro font "ORDINE" alla larghezza del CSS (341) viene alto 67 e non
+  // 88: le lettere sono più strette di quelle del Figma. Per non rompere il
+  // gruppo, tutto ciò che sta sotto — corpo di "effettuato", spunta, quote
+  // verticali — è riscalato dello stesso fattore, così la parola piccola
+  // resta appoggiata alla grande come nel disegno.
+  static const double _ordineW = 341;
+  static const double _ordineH = 67;
+
+  /// Quanto il nostro "ORDINE" è più basso di quello del Figma.
+  static const double _k = _ordineH / 88;
+
+  /// Corpo di "effettuato": 42 darebbe i 169 del CSS, riscalato con il resto.
+  static const double _effettuatoFs = 42 * _k;
+
+  static const double _headerH = 105 * _k;
 
   Widget _buildHeader() {
+    // Linea di base di "effettuato": 101 sotto il bordo alto di ORDINE nel
+    // CSS. Con height 1 la base cade al 78.3% del corpo (ascent 71.4 su 91.2
+    // di OnlistHN).
+    final double baseEffettuato = 101 * _k;
+    final double topEffettuato = baseEffettuato - _effettuatoFs * 0.783;
+    // Larghezza reale di "effettuato" (3.988 em con crenatura -0.07em): la
+    // spunta si appoggia 12 px design prima della sua fine, come nel CSS.
+    final double largEffettuato = _effettuatoFs * 3.988;
+    final double spunta = 23 * _k;
+
     return SizedBox(
       height: R.sp(_headerH),
       width: double.infinity,
       child: Stack(
         clipBehavior: Clip.none,
         children: [
-          // "ORDINE" scritto col font, non col PNG: l'immagine ufficiale è a
-          // 341×88 punti e sui telefoni veniva ingrandita 3 volte, quindi
-          // sfocata (doc correzioni 19/09). Il testo resta nitido a qualsiasi
-          // risoluzione; la parola mantiene le sue proporzioni, perciò riempie
-          // i 341 di larghezza del CSS ed è un po' più bassa degli 88.
           Positioned(
             left: R.sp(24 - 18),
             top: 0,
-            width: R.sp(341),
-            height: R.sp(88),
+            width: R.sp(_ordineW),
+            height: R.sp(_ordineH),
             child: ShaderMask(
               blendMode: BlendMode.srcIn,
               shaderCallback: (bounds) => const LinearGradient(
@@ -372,45 +390,38 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                 colors: [Colors.white, Colors.white, Color(0x00FFFFFF)],
                 stops: [0.0, 0.6298, 1.0],
               ).createShader(bounds),
-              child: const FittedBox(
-                fit: BoxFit.contain,
-                alignment: Alignment.topLeft,
-                child: _OrdineGlifi(),
-              ),
+              // fill su un riquadro che ha già le proporzioni dei glifi:
+              // riempie i 341 senza deformare le lettere.
+              child: const FittedBox(fit: BoxFit.fill, child: _OrdineGlifi()),
             ),
           ),
-          // Linea di base a 101 dall'alto della scatola (240−139). Con
-          // height 1 la base cade al 78.3% del corpo (ascent 71.4 su 91.2 di
-          // OnlistHN): 42 × 0.783 = 32.9 → top 68.
           Positioned(
-            left: R.sp(112 - 18),
-            top: R.sp(68),
+            left: R.sp((112 - 24) * _k + (24 - 18)),
+            top: R.sp(topEffettuato),
             child: Text(
               'effettuato',
               style: OnlistTextStyles.hn(
                 color: Colors.white,
-                // 42 e non 39: il CSS usa un display font più largo, con
-                // OnlistHN bold a 42 la parola torna larga 169 come nel box.
-                fontSize: R.sp(42),
+                fontSize: R.sp(_effettuatoFs),
                 fontWeight: FontWeight.w700,
                 height: 1.0,
-                letterSpacing: -0.07 * R.sp(42),
+                letterSpacing: -0.07 * R.sp(_effettuatoFs),
               ),
             ),
           ),
           Positioned(
-            left: R.sp(269 - 18),
-            top: R.sp(204 - 139),
+            left: R.sp((112 - 24) * _k + (24 - 18) + largEffettuato - 12 * _k),
+            top: R.sp(65 * _k),
             child: Container(
-              width: R.sp(23),
-              height: R.sp(23),
+              width: R.sp(spunta),
+              height: R.sp(spunta),
               decoration: const BoxDecoration(
                 color: Color(0xFF0009FF),
                 shape: BoxShape.circle,
               ),
               alignment: Alignment.center,
               child: Icon(Icons.check_rounded,
-                  color: Colors.white, size: R.sp(17)),
+                  color: Colors.white, size: R.sp(spunta * 0.74)),
             ),
           ),
         ],

@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 
 /// Testo su UNA riga che si rimpicciolisce per starci, senza scendere sotto
-/// [minFontSize]; oltre quel limite si tronca con i puntini.
+/// [minFontSize]; solo se nemmeno a quel corpo ci sta si tronca coi puntini.
 ///
 /// A differenza di `FittedBox`, un testo lunghissimo non diventa illeggibile.
 /// Le dimensioni del [style] e [minFontSize] sono px reali (già scalati).
@@ -39,17 +39,22 @@ class FitOneLineText extends StatelessWidget {
         return crenatura + s * 0.04;
       }
 
+      // Il ciclo si ferma appena il testo entra: `entra` dice se ci è
+      // riuscito. Solo in caso contrario si tronca coi puntini — altrimenti
+      // Flutter li disegnava anche per uno sforamento di mezzo pixel, ed è
+      // quel trattino che si vedeva in coda ai nomi dei locali.
       final double disponibile = constraints.maxWidth - coda(maxSize);
-      while (size > minFontSize) {
+      bool entra = false;
+      while (size >= minFontSize) {
         final painter = TextPainter(
           text: TextSpan(text: text, style: _styleAt(size, maxSize)),
           maxLines: 1,
           textDirection: TextDirection.ltr,
           textScaler: scaler,
         )..layout();
-        final bool fits = painter.width <= disponibile;
+        entra = painter.width <= disponibile;
         painter.dispose();
-        if (fits) break;
+        if (entra || size <= minFontSize) break;
         size -= 1;
       }
       final double finale = size < minFontSize ? minFontSize : size;
@@ -58,7 +63,8 @@ class FitOneLineText extends StatelessWidget {
         child: Text(
           text,
           maxLines: 1,
-          overflow: TextOverflow.ellipsis,
+          softWrap: false,
+          overflow: entra ? TextOverflow.visible : TextOverflow.ellipsis,
           textAlign: textAlign,
           style: _styleAt(finale, maxSize),
         ),

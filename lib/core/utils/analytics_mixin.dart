@@ -18,7 +18,9 @@ import '../services/analytics_service.dart';
 /// }
 /// ```
 mixin ScreenAnalytics<T extends StatefulWidget> on State<T> {
-  late final DateTime _pageOpenedAt;
+  /// Millisecondi del cronometro all'apertura (non l'ora del telefono: vedi
+  /// [AnalyticsService.orologioMs]).
+  late final int _apertaAMs;
 
   // Evita di registrare il tempo di caricamento più di una volta (un refresh o
   // un rebuild non deve falsare la metrica del primo caricamento).
@@ -31,7 +33,7 @@ mixin ScreenAnalytics<T extends StatefulWidget> on State<T> {
   @override
   void initState() {
     super.initState();
-    _pageOpenedAt = DateTime.now();
+    _apertaAMs = AnalyticsService.orologioMs();
   }
 
   /// Registra il tempo di caricamento della schermata (da apertura a dati
@@ -42,7 +44,7 @@ mixin ScreenAnalytics<T extends StatefulWidget> on State<T> {
   void reportLoadTime(String loadEvent) {
     if (_loadTimeReported || !mounted) return;
     _loadTimeReported = true;
-    final ms = DateTime.now().difference(_pageOpenedAt).inMilliseconds;
+    final ms = AnalyticsService.orologioMs() - _apertaAMs;
     AnalyticsService.log(
       event: loadEvent,
       metadata: {'duration_ms': ms, 'screen': screenName},

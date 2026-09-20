@@ -322,6 +322,7 @@ class BookingService {
         profilo: profilo,
         eventoId: finalEventoId,
         ticketId: ticketId,
+        reservationId: reservationId,
       );
     }
 
@@ -405,6 +406,7 @@ class BookingService {
     required Map<String, dynamic>? profilo,
     required String eventoId,
     required String ticketId,
+    required String reservationId,
   }) async {
     try {
       // Recupera nome utente: profilo > user_metadata > fallback email.
@@ -464,6 +466,7 @@ class BookingService {
         dataEvento: dataEvento,
         dataEventoDt: dataEventoDt,
         tipoTicket: tipoTicket,
+        reservationId: reservationId,
       );
       debugPrint('[BookingService] email conferma prevendita inviata a $email');
 

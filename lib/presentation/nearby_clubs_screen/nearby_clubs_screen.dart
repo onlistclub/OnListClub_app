@@ -806,7 +806,14 @@ class _Chip extends StatelessWidget {
           child: Row(
             mainAxisSize: MainAxisSize.min,
             children: [
-              Icon(icona, color: Colors.white, size: R.sp(iconaSize)),
+              // L'icona va centrata sulle MAIUSCOLE, non sul riquadro del
+              // testo: con height 1 la linea di base cade al 78.3% e le
+              // maiuscole sono alte il 73%, quindi il loro centro sta 8.2
+              // centesimi di corpo più in alto del centro del riquadro.
+              Transform.translate(
+                offset: Offset(0, -R.sp(11) * 0.082),
+                child: Icon(icona, color: Colors.white, size: R.sp(iconaSize)),
+              ),
               SizedBox(width: R.sp(3)),
               Text(
                 label,
@@ -1244,8 +1251,12 @@ class _ClubRow extends StatelessWidget {
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      const Icon(Icons.location_on,
-                          color: Colors.white, size: 10),
+                      // Centrata sulle maiuscole come nei chip.
+                      Transform.translate(
+                        offset: const Offset(0, -10 * 0.082),
+                        child: const Icon(Icons.location_on,
+                            color: Colors.white, size: 10),
+                      ),
                       const SizedBox(width: 3),
                       Text(distanza, style: medio.copyWith(fontSize: 10)),
                     ],
@@ -1690,19 +1701,19 @@ class _FiltersSheetState extends State<_FiltersSheet> {
             ),
           ),
         ),
-        // "Filtri" a contorno, 379×84, opacità 50%.
-        const Positioned(
+        // "Filtri" a contorno: SVG ufficiale 381×86 (già bianco al 50%), al
+        // posto della parola scritta col font dell'app, che non ha le
+        // lettere larghe del Figma.
+        Positioned(
           left: 5,
           top: 37,
-          width: 379,
-          height: 84,
-          child: Opacity(
-            opacity: 0.5,
-            // Riempie i 379×84 del CSS: nel Figma le lettere sono larghe e
-            // arrivano ai due bordi. Tenendo le proporzioni del nostro font
-            // (più stretto) la parola restava piccola e persa in mezzo al
-            // pannello (doc correzioni 19/09).
-            child: FittedBox(fit: BoxFit.fill, child: _FiltriContorno()),
+          width: 381,
+          height: 86,
+          child: SvgPicture.asset(
+            ImageConstant.imgScrittaFiltri,
+            width: 381,
+            height: 86,
+            fit: BoxFit.fill,
           ),
         ),
         Positioned(
@@ -1939,42 +1950,6 @@ class _FiltersSheetState extends State<_FiltersSheet> {
                 ],
               ],
             ),
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// "Filtri" a contorno, ritagliato sui glifi per riempire il riquadro
-/// 379×84 del CSS. Misure di OnlistHN-Bold a corpo 100 con letter-spacing 10:
-/// larghezza 270.8 (di cui 10 di spaziatura finale), glifi da 6.3 a 79.3.
-class _FiltriContorno extends StatelessWidget {
-  const _FiltriContorno();
-
-  @override
-  Widget build(BuildContext context) {
-    return ClipRect(
-      child: Align(
-        // (73−100)·(a+1)/2 = −6.3 → a = −0.533; a sinistra per tagliare la
-        // spaziatura finale.
-        alignment: const Alignment(-1, -0.533),
-        heightFactor: 0.73,
-        widthFactor: 260.8 / 270.8,
-        child: Text(
-          'Filtri',
-          maxLines: 1,
-          textScaler: TextScaler.noScaling,
-          style: TextStyle(
-            fontFamily: OnlistTextStyles.family,
-            fontSize: 100,
-            fontWeight: FontWeight.w700,
-            height: 1.0,
-            letterSpacing: 10,
-            foreground: Paint()
-              ..style = PaintingStyle.stroke
-              ..strokeWidth = 0.8
-              ..color = Colors.white,
           ),
         ),
       ),

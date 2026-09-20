@@ -1,0 +1,100 @@
+-- =============================================================================
+-- Migration 010 — Email automatica su scan_logs (via Database Webhook)
+-- =============================================================================
+--
+-- SCOPO
+--   Quando lo staff scannerizza un QR e il risultato è VALID o ALREADY_USED,
+--   l'utente riceve automaticamente un'email di notifica tramite la Edge
+--   Function `on-scan-log`.
+--
+-- APPROCCIO: Database Webhooks (Supabase Dashboard)
+--   Supabase supporta i "Database Webhooks" direttamente dalla dashboard:
+--   un INSERT su `public.scan_logs` chiama la Edge Function `on-scan-log`
+--   via HTTPS senza bisogno di abilitare `pg_net` manualmente.
+--
+-- COME CONFIGURARE (una tantum, dalla Supabase Dashboard):
+--   1. Vai su: Database → Webhooks → Create a new hook
+--   2. Nome suggerito  : email_on_scan_log
+--   3. Table           : public.scan_logs
+--   4. Events          : INSERT
+--   5. Webhook type    : Supabase Edge Functions
+--   6. Edge Function   : on-scan-log
+--   7. HTTP Headers    : (nessuno aggiuntivo necessario, Supabase inietta il JWT service_role)
+--   8. Salva e attiva.
+--
+-- ALTERNATIVA: pg_net (se disponibile sul progetto)
+--   Se l'estensione pg_net è abilitata, è possibile chiamare la function
+--   direttamente da un trigger PL/pgSQL.
+--   Esempio di trigger con pg_net:
+--
+--   CREATE OR REPLACE FUNCTION public.handle_scan_log_email()
+--   RETURNS trigger
+--   LANGUAGE plpgsql
+--   SECURITY DEFINER
+--   SET search_path TO 'public', 'pg_temp'
+--   AS $$
+--   DECLARE
+--     v_project_url text := current_setting('app.supabase_url', true);
+--     v_service_key text := current_setting('app.service_role_key', true);
+--   BEGIN
+--     -- Solo per i risultati che generano un'email.
+--     IF NEW.status_result IN ('VALID', 'ALREADY_USED') THEN
+--       PERFORM net.http_post(
+--         url     := v_project_url || '/functions/v1/on-scan-log',
+--         headers := jsonb_build_object(
+--           'Content-Type',  'application/json',
+--           'Authorization', 'Bearer ' || v_service_key
+--         ),
+--         body    := jsonb_build_object(
+--           'type',   'INSERT',
+--           'table',  'scan_logs',
+--           'record', row_to_json(NEW)::jsonb
+--         )
+--       );
+--     END IF;
+--     RETURN NEW;
+--   END;
+--   $$;
+--
+--   DROP TRIGGER IF EXISTS trg_scan_log_email ON public.scan_logs;
+--   CREATE TRIGGER trg_scan_log_email
+--     AFTER INSERT ON public.scan_logs
+--     FOR EACH ROW EXECUTE FUNCTION public.handle_scan_log_email();
+--
+--   NOTA: le variabili `app.supabase_url` e `app.service_role_key` devono
+--   essere configurate come impostazioni di sessione oppure hardcodate (sconsigliato).
+--   La soluzione consigliata è il Database Webhook dalla dashboard.
+--
+-- DEPLOY DELLA EDGE FUNCTION
+--   Dalla CLI, dopo aver linkato il progetto:
+--
+--     supabase functions deploy on-scan-log
+--
+--   Assicurarsi che i seguenti secret siano già impostati:
+--     BREVO_API_KEY          (già richiesto da send-email)
+--     BREVO_SENDER_EMAIL     (già richiesto da send-email)
+--     BREVO_SENDER_NAME      (già richiesto da send-email)
+--
+--   La function legge anche SUPABASE_URL e SUPABASE_SERVICE_ROLE_KEY che
+--   Supabase inietta automaticamente in tutte le Edge Functions.
+--
+-- TEST RAPIDO
+--   1. Inserisci manualmente una riga in scan_logs con status_result='VALID'
+--      e un ticket_id valido:
+--
+--      INSERT INTO public.scan_logs (qr_code, status_result, ticket_id, club_id, scanned_by_user_id)
+--      VALUES (
+--        '<uuid-prenotazione-prevendita>',
+--        'VALID',
+--        '<uuid-prenotazione-prevendita>',
+--        '<uuid-club>',
+--        auth.uid()
+--      );
+--
+--   2. Verifica che l'email arrivi alla casella dell'utente intestatario del biglietto.
+--   3. Ripeti con status_result='ALREADY_USED' per verificare la mail di avviso.
+--
+-- =============================================================================
+-- Nessuna DDL necessaria: tutto si configura dalla Supabase Dashboard.
+-- Questo file è documentazione operativa per il team.
+-- =============================================================================

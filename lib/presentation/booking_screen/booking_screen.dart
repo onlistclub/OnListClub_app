@@ -896,18 +896,21 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               padding: EdgeInsets.only(left: R.sp(26), right: R.sp(27)),
               child: Row(
                 children: [
-                  Text('Ticket x 1', style: _stileRigaTicket),
-                  if (benefits.isNotEmpty) ...[
-                    SizedBox(width: R.sp(12)),
+                  // Slot fisso per "Ticket x 1": il "+ N Plus" parte sempre
+                  // dalla stessa quota, subito accanto e allineato a SINISTRA
+                  // come nel biglietto (doc correzioni "last").
+                  SizedBox(
+                    width: R.sp(160 - 26),
+                    child: Text('Ticket x 1', style: _stileRigaTicket),
+                  ),
+                  if (benefits.isNotEmpty)
                     Expanded(
                       child: FitOneLineText(
                         '+ ${benefits.length} Plus',
                         style: _stileRigaTicket,
                         minFontSize: R.sp(22),
-                        textAlign: TextAlign.right,
                       ),
                     ),
-                  ],
                 ],
               ),
             ),

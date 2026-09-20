@@ -1,8 +1,10 @@
+import 'dart:async';
 import 'dart:math';
 
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/foundation.dart';
+import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
@@ -29,6 +31,19 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///     eventi vicini possono finire in ordine inverso. Il percorso si ordina
 ///     per (`session_id`, `seq`), non per `created_at`.
 ///   - `client_ts`  → ora del telefono (UTC) nel momento dell'evento.
+///
+/// ── Tempi, tutti in millisecondi ──────────────────────────────────────────
+/// La catena di un cambio schermata, misurata con un cronometro di sistema
+/// (mai con l'ora del telefono, che può saltare):
+///   1. `screen_*` → `attesa_ms`      : dal tocco dell'utente alla comparsa
+///                                      della schermata (`attesa_da` dice da
+///                                      quale evento si contava).
+///   2. `page_exit` → `primo_frame_ms`: quanto ci ha messo quella schermata a
+///                                      disegnare il primo frame.
+///   3. `load_time_*` → `duration_ms` : da schermata aperta a dati pronti.
+///   4. `page_exit` → `duration_ms`   : quanto è rimasta aperta (resta anche
+///                                      `duration_seconds`, per continuità con
+///                                      i dati già raccolti).
 ///
 /// ── Schermate ─────────────────────────────────────────────────────────────
 /// Le aperture (`screen_<nome>`) e le uscite (`page_exit`) non le registrano
@@ -59,9 +74,34 @@ class AnalyticsService {
   /// catturati dagli handler globali (che non hanno contesto sulla schermata).
   static String? currentScreen;
 
-  /// Orologio sostituibile nei test (sessioni scadute, durate).
+  /// Orologio sostituibile nei test. Serve per l'ora assoluta degli eventi
+  /// (`client_ts`) e per decidere se una pausa in background è stata lunga
+  /// abbastanza da aprire una sessione nuova.
   @visibleForTesting
   static DateTime Function() orologio = DateTime.now;
+
+  /// Cronometro di sistema: avanza sempre in avanti, indipendente dall'ora del
+  /// telefono.
+  static final Stopwatch _cronometro = Stopwatch()..start();
+
+  /// Lettura del cronometro di sistema (valore predefinito di [orologioMs]).
+  static int orologioMsDiSistema() => _cronometro.elapsedMilliseconds;
+
+  /// Millisecondi trascorsi, da usare per ogni durata. Sostituibile nei test.
+  ///
+  /// Le DURATE non si misurano con [orologio]: l'ora del telefono può saltare
+  /// (sincronizzazione con la rete, cambio di fuso, utente che la cambia a
+  /// mano) e una schermata risulterebbe aperta per ore, o per un tempo
+  /// negativo. Il cronometro no.
+  static int Function() orologioMs = orologioMsDiSistema;
+
+  /// Pianifica [alPrimoFrame] alla fine del prossimo frame disegnato.
+  /// Sostituibile nei test; se non c'è un binding di Flutter (test puri) la
+  /// misura viene semplicemente saltata.
+  @visibleForTesting
+  static void Function(VoidCallback alPrimoFrame)? pianificaPrimoFrame =
+      (alPrimoFrame) =>
+          SchedulerBinding.instance.addPostFrameCallback((_) => alPrimoFrame());
 
   /// Nei test riceve ogni evento al posto di Supabase.
   @visibleForTesting
@@ -125,10 +165,14 @@ class AnalyticsService {
   static int _seq = 0;
   static int _schermateSessione = 0;
 
-  /// Tempo in primo piano accumulato nella sessione (le pause brevi in
-  /// background non contano).
-  static Duration _attivaAccumulata = Duration.zero;
-  static DateTime? _inPrimoPianoDa = orologio();
+  /// Tempo in primo piano accumulato nella sessione, in millisecondi (le pause
+  /// in background non contano).
+  static int _attivaMs = 0;
+  static int? _inPrimoPianoDaMs = orologioMs();
+
+  /// Istante in cui l'app è passata in background: qui serve l'ora vera, non il
+  /// cronometro, perché su iOS e Android il processo può essere congelato e il
+  /// cronometro smettere di avanzare proprio mentre l'app è via.
   static DateTime? _inBackgroundDa;
   static AppLifecycleListener? _lifecycle;
 
@@ -155,16 +199,18 @@ class AnalyticsService {
   /// l'ULTIMO `session_end`.
   @visibleForTesting
   static void suAppNascosta() {
-    final adesso = orologio();
     if (_inBackgroundDa != null) return;
-    _inBackgroundDa = adesso;
+    _inBackgroundDa = orologio();
     final ultima = _schermataVisibile;
     _chiudiSchermata(motivo: 'app_in_background');
-    final da = _inPrimoPianoDa;
-    if (da != null) _attivaAccumulata += adesso.difference(da);
-    _inPrimoPianoDa = null;
+    final da = _inPrimoPianoDaMs;
+    if (da != null) _attivaMs += orologioMs() - da;
+    _inPrimoPianoDaMs = null;
     log(event: 'session_end', metadata: {
-      'duration_seconds': _attivaAccumulata.inSeconds,
+      'duration_ms': _attivaMs,
+      // Il campo storico resta: troncato ai secondi come prima, così le medie
+      // già raccolte non cambiano significato a metà serie.
+      'duration_seconds': _attivaMs ~/ 1000,
       'schermate': _schermateSessione,
       if (ultima != null) 'page_name': ultima,
     });
@@ -180,13 +226,13 @@ class AnalyticsService {
     final da = _inBackgroundDa;
     if (da == null) return;
     _inBackgroundDa = null;
-    _inPrimoPianoDa = adesso;
+    _inPrimoPianoDaMs = orologioMs();
     final nome = _daRiaprire;
     _daRiaprire = null;
     if (adesso.difference(da) >= pausaNuovaSessione) {
       _sessionId = _nuovoId();
       _schermateSessione = 0;
-      _attivaAccumulata = Duration.zero;
+      _attivaMs = 0;
       log(event: 'session_start', metadata: {'motivo': 'ritorno_dopo_pausa'});
       if (nome != null) mostraSchermata(nome);
     } else if (nome != null) {
@@ -208,9 +254,32 @@ class AnalyticsService {
   // ── Schermate ─────────────────────────────────────────────────────────────
 
   static String? _schermataVisibile;
-  static DateTime? _schermataDa;
+  static int? _schermataDaMs;
   static String? _daRiaprire;
   static int _sospensioni = 0;
+
+  /// Quanto ha impiegato la schermata visibile a disegnare il suo primo frame.
+  /// Viene allegato al `page_exit` di quella schermata: quando si apre non si
+  /// conosce ancora, e misurarlo non deve costare un evento in più.
+  static int? _primoFrameMs;
+
+  /// Ultima azione dell'utente (tap, ricerca, aggiunta al carrello…) e quando è
+  /// avvenuta: servono a misurare l'attesa fra il tocco e la schermata che
+  /// compare. Oltre [_attesaMassima] si considera che la schermata non sia
+  /// figlia di quell'azione.
+  static String? _ultimaAzione;
+  static int? _ultimaAzioneMs;
+  static const int _attesaMassima = 30000;
+
+  /// Eventi che NON sono un'azione dell'utente: schermate, misure e diagnostica.
+  static bool _eAzione(String event) =>
+      !event.startsWith('screen_') &&
+      !event.startsWith('load_time_') &&
+      !event.startsWith('session_') &&
+      event != 'page_exit' &&
+      event != 'app_open' &&
+      event != 'error' &&
+      event != 'http_error';
 
   /// Registrati da `RootShell` mentre è montato: dicono quale tab è attiva e
   /// quale rotta sta in cima al suo Navigator annidato. Servono a
@@ -236,10 +305,22 @@ class AnalyticsService {
     if (nome == _schermataVisibile) return;
     final precedente = _schermataVisibile;
     _chiudiSchermata();
+
+    // Attesa fra il tocco e la schermata che compare: è il tempo in cui
+    // l'utente guarda ancora la pagina vecchia dopo aver toccato qualcosa.
+    final adessoMs = orologioMs();
+    final azioneMs = _ultimaAzioneMs;
+    final azione = _ultimaAzione;
+    final attesa = azioneMs == null ? null : adessoMs - azioneMs;
+    _ultimaAzioneMs = null;
+    _ultimaAzione = null;
+
     _schermataVisibile = nome;
-    _schermataDa = orologio();
+    _schermataDaMs = adessoMs;
+    _primoFrameMs = null;
     currentScreen = nome;
     _schermateSessione++;
+    _misuraPrimoFrame(nome, adessoMs);
     log(
       event: 'screen_$nome',
       metadata: {
@@ -247,23 +328,47 @@ class AnalyticsService {
         'page_name': nome,
         if (precedente != null) 'referrer_page': precedente,
         if (ritorno) 'ritorno': true,
+        if (attesa != null && attesa >= 0 && attesa <= _attesaMassima) ...{
+          'attesa_ms': attesa,
+          if (azione != null) 'attesa_da': azione,
+        },
       },
     );
   }
 
+  /// Misura quanto passa dall'apertura della schermata alla fine del primo
+  /// frame disegnato: è il tempo in cui l'app "si blocca" costruendo la pagina.
+  static void _misuraPrimoFrame(String nome, int daMs) {
+    try {
+      pianificaPrimoFrame?.call(() {
+        if (_schermataVisibile != nome) return;
+        _primoFrameMs = orologioMs() - daMs;
+      });
+    } catch (_) {
+      // Nessun binding di Flutter (test puri): la misura si salta e basta.
+    }
+  }
+
   static void _chiudiSchermata({String? motivo}) {
     final nome = _schermataVisibile;
-    final da = _schermataDa;
+    final da = _schermataDaMs;
+    final primoFrame = _primoFrameMs;
     _schermataVisibile = null;
-    _schermataDa = null;
+    _schermataDaMs = null;
+    _primoFrameMs = null;
     if (nome == null || da == null) return;
-    // "Tempo medio (s)" per schermata del foglio.
+    final durata = orologioMs() - da;
     log(
       event: 'page_exit',
       metadata: {
         'screen': nome,
         'page_name': nome,
-        'duration_seconds': orologio().difference(da).inSeconds,
+        'duration_ms': durata,
+        // Campo storico: troncato ai secondi, come faceva prima.
+        'duration_seconds': durata ~/ 1000,
+        // Tempo del primo frame della schermata che si sta chiudendo: si
+        // conosce solo adesso, e allegarlo qui non costa un evento in più.
+        if (primoFrame != null) 'primo_frame_ms': primoFrame,
         if (motivo != null) 'motivo': motivo,
       },
     );
@@ -286,16 +391,23 @@ class AnalyticsService {
     _sessionId = _nuovoId();
     _seq = 0;
     _schermateSessione = 0;
-    _attivaAccumulata = Duration.zero;
-    _inPrimoPianoDa = orologio();
+    _attivaMs = 0;
+    _inPrimoPianoDaMs = orologioMs();
     _inBackgroundDa = null;
     _schermataVisibile = null;
-    _schermataDa = null;
+    _schermataDaMs = null;
+    _primoFrameMs = null;
+    _ultimaAzione = null;
+    _ultimaAzioneMs = null;
     _daRiaprire = null;
     _sospensioni = 0;
     currentScreen = null;
     nomeTabAttiva = null;
     rottaInCimaShell = null;
+    _timerInvio?.cancel();
+    _timerInvio = null;
+    _invioInCorso = false;
+    _coda.clear();
   }
 
   // ── API pubblica ──────────────────────────────────────────────────────────
@@ -322,6 +434,13 @@ class AnalyticsService {
       'client_ts': orologio().toUtc().toIso8601String(),
     };
 
+    // Segna l'ultimo gesto dell'utente: la prossima schermata dirà quanto ha
+    // dovuto aspettarlo (vedi `attesa_ms` in [mostraSchermata]).
+    if (_eAzione(event)) {
+      _ultimaAzione = event;
+      _ultimaAzioneMs = orologioMs();
+    }
+
     final registro = registroPerTest;
     if (registro != null) {
       registro(event, meta);
@@ -329,36 +448,129 @@ class AnalyticsService {
     }
 
     try {
-      final user = _client.auth.currentUser;
-
-      // Piattaforma: usa il valore risolto da initDeviceInfo ("iOS"/"Android",
-      // come atteso dal foglio). Fallback runtime se init non è ancora passata.
-      String platform = _platformOverride ?? 'unknown';
-      if (_platformOverride == null && !kIsWeb) {
-        try {
-          platform = defaultTargetPlatform.name; // 'android' | 'ios' | ...
-        } catch (_) {}
-      } else if (_platformOverride == null && kIsWeb) {
-        platform = 'web';
-      }
-
       // Allega modello e versione OS a ogni evento (TAB Dispositivi del foglio).
       if (_deviceModel != null) meta['device_model'] = _deviceModel;
       if (_osVersion != null) meta['os_version'] = _osVersion;
 
-      await _client.from('analytics_events').insert({
-        'user_id':     user?.id,
-        'event_name':  event,
-        'metadata':    meta,
-        'platform':    platform,
+      // user_id, piattaforma e versione si leggono ADESSO, non al momento
+      // dell'invio: fra i due istanti l'utente può aver fatto login, e un
+      // evento nato da anonimo risulterebbe suo.
+      _accoda({
+        'user_id': _utenteCorrente(),
+        'event_name': event,
+        'metadata': meta,
+        'platform': _piattaforma(),
         'app_version': _appVersion,
-        'is_debug':    kDebugMode,
-      });
+        'is_debug': kDebugMode,
+      }, urgente: _eUrgente(event));
 
       debugPrint('[Analytics] 📊 "$event" — ${metadata ?? {}}');
     } catch (e) {
       // Mai bloccare l'app per un log fallito
       debugPrint('[Analytics] ⚠️ Log fallito ("$event"): $e');
+    }
+  }
+
+  /// Id dell'utente loggato, `null` se non c'è o se Supabase non è disponibile
+  /// (succede nei test, dove il client non viene mai inizializzato).
+  static String? _utenteCorrente() {
+    try {
+      return _client.auth.currentUser?.id;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  static String _piattaforma() {
+    // Usa il valore risolto da initDeviceInfo ("iOS"/"Android", come atteso dal
+    // foglio). Fallback runtime se init non è ancora passata.
+    if (_platformOverride != null) return _platformOverride!;
+    if (kIsWeb) return 'web';
+    try {
+      return defaultTargetPlatform.name; // 'android' | 'ios' | ...
+    } catch (_) {
+      return 'unknown';
+    }
+  }
+
+  // ── Invio ─────────────────────────────────────────────────────────────────
+  //
+  // Gli eventi non partono più uno per uno: ognuno era una richiesta HTTPS a sé
+  // e in una navigazione veloce se ne accavallavano cinque o sei, ognuna con il
+  // suo handshake. Ora si accumulano per un attimo e partono insieme in un solo
+  // insert. Gli eventi che non possono aspettare (errori, fine sessione,
+  // prenotazioni) partono subito.
+
+  /// Quanto si aspetta per raggruppare gli eventi non urgenti.
+  static const Duration ritardoInvio = Duration(milliseconds: 300);
+
+  /// Righe per insert: oltre questa soglia si spezza in più richieste.
+  static const int _maxRighePerInvio = 50;
+
+  /// Tetto della coda: se la rete non va, si tengono gli eventi più recenti
+  /// invece di gonfiare la memoria all'infinito.
+  static const int _maxRigheCoda = 300;
+
+  static const Set<String> _eventiUrgenti = {
+    'app_open',
+    'session_start',
+    'session_end',
+    'booking_complete',
+    'booking_payment_success',
+    'error',
+    'http_error',
+  };
+
+  static bool _eUrgente(String event) => _eventiUrgenti.contains(event);
+
+  static final List<Map<String, dynamic>> _coda = [];
+  static Timer? _timerInvio;
+  static bool _invioInCorso = false;
+
+  /// Invio delle righe, sostituibile nei test.
+  @visibleForTesting
+  static Future<void> Function(List<Map<String, dynamic>> righe)? invioPerTest;
+
+  static void _accoda(Map<String, dynamic> riga, {required bool urgente}) {
+    _coda.add(riga);
+    if (_coda.length > _maxRigheCoda) _coda.removeRange(0, _coda.length - _maxRigheCoda);
+    if (urgente) {
+      _timerInvio?.cancel();
+      _timerInvio = null;
+      unawaited(svuotaCoda());
+      return;
+    }
+    _timerInvio ??= Timer(ritardoInvio, () {
+      _timerInvio = null;
+      unawaited(svuotaCoda());
+    });
+  }
+
+  /// Manda quello che c'è in coda. Se l'invio fallisce le righe restano e
+  /// ripartono col prossimo evento: un log perso non è un dramma, perderli
+  /// tutti perché la rete è mancata per un secondo sì.
+  @visibleForTesting
+  static Future<void> svuotaCoda() async {
+    if (_invioInCorso) return;
+    _invioInCorso = true;
+    try {
+      while (_coda.isNotEmpty) {
+        final righe = _coda.take(_maxRighePerInvio).toList(growable: false);
+        try {
+          final invio = invioPerTest;
+          if (invio != null) {
+            await invio(righe);
+          } else {
+            await _client.from('analytics_events').insert(righe);
+          }
+        } catch (e) {
+          debugPrint('[Analytics] ⚠️ Invio fallito (${righe.length} eventi): $e');
+          return;
+        }
+        _coda.removeRange(0, righe.length);
+      }
+    } finally {
+      _invioInCorso = false;
     }
   }
 

@@ -611,14 +611,10 @@ class TicketBackCard extends StatelessWidget {
                 // della card, che lo disegna già TicketShape.
                 //
                 // QR PIÙ GRANDE DEL FIGMA (correzioni 1.1, punto 20, scelta di
-                // Luca). Il Figma dà un riquadro 228 che riempiva già tutta
-                // l'altezza utile del pannello:
-                //   345 (pannello) − 38 (sopra) − 27 (in mezzo) − 33 (pill)
-                //                 − 20 (respiro sotto) = 227 disponibili
-                // Per crescere bisognava recuperare spazio dagli spazi vuoti:
-                // 38→24 e 27→18 liberano 23 px, che vanno al riquadro (228→250).
-                // Il respiro in fondo resta invariato: 24+250+18+33 = 325 su 345.
-                // Moduli del QR: 195.5 → 216 px design (+10%).
+                // Luca): il Figma dà un riquadro 228, qui è 232.
+                // Dalla seconda separazione (288) al fondo della card (614)
+                // restano 326: 24 sopra + 232 di QR + 18 + 33 di pill + 19 di
+                // respiro sotto, quest'ultimo chiesto dal doc "last".
                 Expanded(
                   child: _BackStagger(
                     index: 4,
@@ -628,8 +624,8 @@ class TicketBackCard extends StatelessWidget {
                         children: [
                           SizedBox(height: R.sp(24)),
                           Container(
-                            width: R.sp(250),
-                            height: R.sp(250),
+                            width: R.sp(232),
+                            height: R.sp(232),
                             decoration: BoxDecoration(
                               // BIANCO PIENO con moduli NERI: la polarità
                               // standard del QR, la stessa del totem recensioni
@@ -672,6 +668,10 @@ class TicketBackCard extends StatelessWidget {
                           ),
                           SizedBox(height: R.sp(18)),
                           TicketPillButton(label: 'NASCONDI', onTap: onHide),
+                          // Respiro sotto la pill, come nel Figma (pill a 563
+                          // + 32 su una card di 614): senza, su certi telefoni
+                          // finiva appiccicata al bordo del biglietto.
+                          SizedBox(height: R.sp(19)),
                         ],
                       ),
                     ),
@@ -869,10 +869,17 @@ class ArrowCircle extends StatelessWidget {
             width: R.sp(28),
             height: R.sp(28),
           ),
-          SvgPicture.asset(
-            down ? ImageConstant.imgArrowDown : ImageConstant.imgArrowUp,
-            width: R.sp(22),
-            height: R.sp(22),
+          // Una sola freccia per i due versi: la giù è la stessa ruotata di
+          // mezzo giro. La vecchia `freccia_giu.svg` ha il riquadro 15×15
+          // riempito fino ai bordi, quindi alla stessa misura sembrava molto
+          // più grande della su (doc correzioni "last").
+          RotatedBox(
+            quarterTurns: down ? 2 : 0,
+            child: SvgPicture.asset(
+              ImageConstant.imgArrowUp,
+              width: R.sp(22),
+              height: R.sp(22),
+            ),
           ),
         ],
       ),

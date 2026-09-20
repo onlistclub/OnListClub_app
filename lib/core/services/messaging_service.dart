@@ -112,7 +112,7 @@ class MessagingService {
     return sendEmail(
       to: to,
       toName: nome,
-      subject: 'Benvenuto su OnListClub, $nomeDisplay! 🎶',
+      subject: 'Benvenuto su OnListClub, $nomeDisplay!',
       htmlContent: html,
     );
   }
@@ -127,6 +127,7 @@ class MessagingService {
     required String dataEvento,
     DateTime? dataEventoDt,
     String? tipoTicket,
+    String? reservationId,
   }) {
     final nomeDisplay = nome.isNotEmpty ? nome : 'amico';
     final html = _buildOrderConfirmationHtml(
@@ -136,6 +137,7 @@ class MessagingService {
       dataEvento: dataEvento,
       dataEventoDt: dataEventoDt,
       tipoTicket: tipoTicket,
+      reservationId: reservationId,
     );
     return sendEmail(
       to: to,
@@ -165,7 +167,7 @@ class MessagingService {
     return sendEmail(
       to: to,
       toName: nome,
-      subject: '✅ Ingresso confermato — $localeNome',
+      subject: 'Ingresso confermato — $localeNome',
       htmlContent: html,
     );
   }
@@ -189,7 +191,7 @@ class MessagingService {
     return sendEmail(
       to: to,
       toName: nome,
-      subject: '⚠️ Biglietto già utilizzato — $localeNome',
+      subject: 'Biglietto già utilizzato — $localeNome',
       htmlContent: html,
     );
   }
@@ -230,14 +232,14 @@ class MessagingService {
       .text-heading { color: #12131c !important; }
       .text-body { color: #525b70 !important; }
       .footer-link { color: #1b3fd6 !important; }
-      .logo-plate { background-color: #8f95aa !important; border-color: #747a90 !important; }
+      .logo-plate { background-color: #000000 !important; border-color: transparent !important; }
       @media (prefers-color-scheme: dark) {
         body, .bg-outer { background-color: #05050f !important; }
         .card { background-color: #0d0f24 !important; border-color: #24304d !important; }
         .text-heading { color: #f4f6fb !important; }
         .text-body { color: #a9b3c6 !important; }
         .footer-link { color: #8fb4ff !important; }
-        .logo-plate { background-color: transparent !important; border-color: transparent !important; }
+        .logo-plate { background-color: #000000 !important; border-color: transparent !important; }
       }
     </style>
   </head>
@@ -250,7 +252,7 @@ class MessagingService {
             <td align="center" style="padding-bottom:28px;">
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                 <tr>
-                  <td align="center" class="logo-plate" bgcolor="#8f95aa" style="background-color:#8f95aa;border:1px solid #747a90;border-radius:20px;padding:20px 32px;">
+                  <td align="center" class="logo-plate" bgcolor="#000000" style="background-color:#000000;border:none;border-radius:20px;padding:20px 32px;">
                     <img src="https://www.onlistclub.com/email-logo.png" alt="OnListClub" width="140" style="display:block;width:140px;height:auto;border:0;margin:0 auto;" />
                   </td>
                 </tr>
@@ -306,7 +308,7 @@ class MessagingService {
     final card =
         _badge('Benvenuto') +
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
-        'Sei dentro, $nome! 🎶</h1>'
+        'Sei dentro, $nome!</h1>'
         '<p class="text-body" style="margin:0 0 20px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
         'Il tuo account OnListClub è attivo. Da adesso puoi prenotare tavoli, acquistare prevendite e ordinare drink nei migliori club della tua città — tutto dall\'app, senza code all\'ingresso.</p>'
         '<p class="text-body" style="margin:0 0 8px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
@@ -323,17 +325,17 @@ class MessagingService {
   /// serata: stasera/stanotte, domani sera, oppure il giorno della settimana
   /// (da 2 giorni di distanza in su, "2" incluso).
   static String _salutoPrevendita(DateTime? dataEventoDt) {
-    if (dataEventoDt == null) return 'Ci vediamo stanotte! 🎉';
+    if (dataEventoDt == null) return 'Ci vediamo stanotte!';
     final ora = DateTime.now();
     final oggi = DateTime(ora.year, ora.month, ora.day);
     final giornoEvento =
         DateTime(dataEventoDt.year, dataEventoDt.month, dataEventoDt.day);
     final giorni = giornoEvento.difference(oggi).inDays;
-    if (giorni <= 0) return 'Ci vediamo stanotte! 🎉';
-    if (giorni == 1) return 'Ci vediamo domani sera! 🎉';
+    if (giorni <= 0) return 'Ci vediamo stanotte!';
+    if (giorni == 1) return 'Ci vediamo domani sera!';
     final giornoSettimana =
         DateFormat('EEEE', 'it_IT').format(dataEventoDt);
-    return 'Ci vediamo $giornoSettimana! 🎉';
+    return 'Ci vediamo $giornoSettimana!';
   }
 
   // ── Order Confirmation ─────────────────────────────────────────────────────
@@ -344,6 +346,7 @@ class MessagingService {
     required String dataEvento,
     DateTime? dataEventoDt,
     String? tipoTicket,
+    String? reservationId,
   }) {
     final rows = [
       _infoRow('Locale', _escHtml(localeNome)),
@@ -352,6 +355,9 @@ class MessagingService {
       if (tipoTicket != null && tipoTicket.isNotEmpty)
         _infoRow('Tipo biglietto', _escHtml(tipoTicket)),
     ];
+    final orderLink = (reservationId != null && reservationId.isNotEmpty)
+        ? 'onlistclub://orders?id=$reservationId'
+        : 'onlistclub://orders';
     final card =
         _badge('Prevendita confermata') +
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
@@ -359,7 +365,7 @@ class MessagingService {
         '<p class="text-body" style="margin:0 0 24px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
         'Ciao <strong style="color:#12131c;">$nome</strong>, la tua prevendita è confermata. Ecco il riepilogo:</p>'
         + _infoBox(rows)
-        + _ctaButton('Vedi il tuo biglietto nell\'app →', 'onlistclub://orders')
+        + _ctaButton('Vedi il tuo biglietto nell\'app →', orderLink)
         + '<p class="text-body" style="margin:16px 0 0;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#525b70;">'
         'Mostra il QR code all\'ingresso. Aprilo dalla sezione <strong>Ordini</strong> nell\'app OnListClub.</p>';
     return _htmlShell(
@@ -384,7 +390,7 @@ class MessagingService {
     final card =
         _badge('Ingresso confermato', bgLight: 'rgba(22,163,74,0.08)', borderLight: 'rgba(22,163,74,0.28)', textLight: '#15803d') +
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
-        'Sei entrato! Divertiti 🎟️</h1>'
+        'Sei entrato! Divertiti</h1>'
         '<p class="text-body" style="margin:0 0 24px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
         'Ciao <strong style="color:#12131c;">$nome</strong>, il tuo biglietto è stato scannerizzato con successo all\'ingresso.</p>'
         + _infoBox(rows, bg: '#f0fdf4', border: 'rgba(22,163,74,0.25)');
@@ -410,7 +416,7 @@ class MessagingService {
     final card =
         _badge('Biglietto già usato', bgLight: 'rgba(234,88,12,0.08)', borderLight: 'rgba(234,88,12,0.28)', textLight: '#c2410c') +
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
-        'Scansione non accettata ⚠️</h1>'
+        'Scansione non accettata</h1>'
         '<p class="text-body" style="margin:0 0 24px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
         'Ciao <strong style="color:#12131c;">$nome</strong>, il tuo biglietto è stato rifiutato all\'ingresso perché è già stato utilizzato in precedenza.</p>'
         + _infoBox(rows, bg: '#fff7ed', border: 'rgba(234,88,12,0.22)')
@@ -432,3 +438,4 @@ class MessagingService {
       .replaceAll('>', '&gt;')
       .replaceAll('"', '&quot;');
 }
+

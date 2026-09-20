@@ -67,6 +67,11 @@ class VerificationScreen extends StatelessWidget {
             child: Padding(
               padding: const EdgeInsets.symmetric(horizontal: 32),
               child: Column(
+                // Ogni riga occupa tutta la larghezza e centra il proprio
+                // contenuto: così il blocco non dipende più dalla larghezza
+                // naturale dei testi e resta al centro dello schermo (doc
+                // correzioni "last": il contenuto tirava a sinistra).
+                crossAxisAlignment: CrossAxisAlignment.stretch,
                 children: [
                   const Spacer(flex: 5),
                   // Titolo
@@ -105,23 +110,28 @@ class VerificationScreen extends StatelessWidget {
                   const Spacer(flex: 2),
                   // Bottone Accedi
                   state.isLoading
-                      ? const CircularProgressIndicator(color: OnlistColors.white)
-                      : SizedBox(
-                          width: 150,
-                          height: 40,
-                          child: ElevatedButton(
-                            onPressed: () => context
-                                .read<verificationBloc>()
-                                .add(CheckVerificationEvent()),
-                            style: ElevatedButton.styleFrom(
-                              backgroundColor: OnlistColors.white,
-                              foregroundColor: OnlistColors.black,
-                              elevation: 0,
-                              padding: EdgeInsets.zero,
-                              shape: RoundedRectangleBorder(
-                                  borderRadius: BorderRadius.circular(10)),
+                      ? const Center(
+                          child: CircularProgressIndicator(
+                              color: OnlistColors.white))
+                      : Center(
+                          child: SizedBox(
+                            width: 150,
+                            height: 40,
+                            child: ElevatedButton(
+                              onPressed: () => context
+                                  .read<verificationBloc>()
+                                  .add(CheckVerificationEvent()),
+                              style: ElevatedButton.styleFrom(
+                                backgroundColor: OnlistColors.white,
+                                foregroundColor: OnlistColors.black,
+                                elevation: 0,
+                                padding: EdgeInsets.zero,
+                                shape: RoundedRectangleBorder(
+                                    borderRadius: BorderRadius.circular(10)),
+                              ),
+                              child: Text('Ho confermato',
+                                  style: OnlistTextStyles.button16Bold),
                             ),
-                            child: Text('Ho confermato', style: OnlistTextStyles.button16Bold),
                           ),
                         ),
                   const Spacer(flex: 1),

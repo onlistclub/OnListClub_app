@@ -55,9 +55,39 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
         _prevendite = prevendite;
         _isLoading = false;
       });
+      _checkDeepLinkTarget(prevendite);
     } catch (e) {
       setState(() => _isLoading = false);
       debugPrint('[OrdersScreen] Errore: $e');
+    }
+  }
+
+  void _checkDeepLinkTarget(List<Map<String, dynamic>> prevendite) {
+    final args = ModalRoute.of(context)?.settings.arguments;
+    String? targetId;
+    if (args is String) {
+      targetId = args;
+    } else if (args is Map<String, dynamic>) {
+      targetId = args['id']?.toString() ?? args['reservationId']?.toString();
+    }
+    if (targetId != null && targetId.isNotEmpty) {
+      final match = prevendite.firstWhere(
+        (item) {
+          final prenId = (item['prenotazioni'] as Map<String, dynamic>?)?['id']?.toString();
+          final idPren = item['id_prenotazione']?.toString();
+          final itemId = item['id']?.toString();
+          return prenId == targetId || idPren == targetId || itemId == targetId;
+        },
+        orElse: () => {},
+      );
+      if (match.isNotEmpty) {
+        WidgetsBinding.instance.addPostFrameCallback((_) {
+          NavigatorService.pushNamed(
+            AppRoutes.prevenditaDetailScreen,
+            arguments: match,
+          );
+        });
+      }
     }
   }
 

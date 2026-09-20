@@ -60,9 +60,9 @@ class ImageConstant {
   static String imgNavProfile = '${_svgUfficiali}User_01.svg'; // 24×24
   static String imgProfileBadgeDot = '${_svgUfficiali}Ellipse 17.svg'; // 16×16
 
-  /// Parola 'ORDINE' della conferma ordine: PNG ufficiale 341×88 con la
-  /// dissolvenza verso il basso già dentro (doc correzioni 18/09).
-  static String imgOrdine = '${_svgPath}ORDINE.png';
+  /// Scritta "Filtri" del pannello filtri (Ricerca): contorno 381×86,
+  /// bianco al 50% già dentro l'SVG.
+  static String imgScrittaFiltri = '${_svgPath}scritta-filtri.svg';
 
   /// Simbolo del dollaro del filtro Prezzo (Ricerca): 8×14, bianco pieno.
   static String imgDollaroFiltro = '${_svgPath}dollar-filter.svg';
@@ -78,11 +78,9 @@ class ImageConstant {
   /// Cerchio delle frecce del biglietto: 28×28, stroke bianco 2px.
   static String imgCircleTicket = '${_svgUfficiali}cerchio_biglietto.svg';
 
-  /// Freccia giù (apri biglietto / espandi sezione ordini): 15×15, piena.
-  static String imgArrowDown = '${_svgUfficiali}freccia_giu.svg';
-
-  /// Freccia su (chiudi biglietto): 22×22, piena.
-  static String imgArrowUp = '${_svgUfficiali}freccia_su.svg';
+  /// Freccia del biglietto: 22×22, piena. Vale per entrambi i versi — la
+  /// giù è questa ruotata (vedi ArrowCircle).
+  static String imgArrowUp = '${_svgPath}arro-up-ticket.svg';
 
   /// Freccia indietro ("Torna indietro"): 24×24, piena. Usata da [BackRow],
   /// che è l'unico punto in cui va referenziata.

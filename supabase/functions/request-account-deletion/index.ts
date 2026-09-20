@@ -45,8 +45,8 @@ async function sha256Hex(input: string): Promise<string> {
 // in chiaro un riquadro grigio tenue (il logo bianco altrimenti sparirebbe sullo
 // sfondo chiaro), in scuro trasparente (il logo sta già bene sul suo sfondo nativo).
 const LOGO_URL = "https://www.onlistclub.com/email-logo.png"; // logo ufficiale (bianco)
-const LOGO_PLATE_BG_LIGHT = "#8f95aa"; // riquadro grigio tenue, solo in modalità chiara
-const LOGO_PLATE_BORDER_LIGHT = "#747a90";
+const LOGO_PLATE_BG_LIGHT = "#000000"; // banner nero fisso
+const LOGO_PLATE_BORDER_LIGHT = "transparent";
 
 const LIGHT = {
   bgOuter: "#eef1f8",
@@ -104,7 +104,7 @@ function emailHtml(nome: string, link: string): string {
       .text-muted { color: ${LIGHT.muted} !important; }
       .badge { background-color: ${LIGHT.badgeBg} !important; border-color: ${LIGHT.badgeBorder} !important; color: ${LIGHT.badgeText} !important; }
       .footer-link { color: ${LIGHT.link} !important; }
-      .logo-plate { background-color: ${LOGO_PLATE_BG_LIGHT} !important; border-color: ${LOGO_PLATE_BORDER_LIGHT} !important; }
+      .logo-plate { background-color: ${LOGO_PLATE_BG_LIGHT} !important; border-color: transparent !important; }
 
       @media (prefers-color-scheme: dark) {
         body, .bg-outer { background-color: ${DARK.bgOuter} !important; }
@@ -114,7 +114,7 @@ function emailHtml(nome: string, link: string): string {
         .text-muted { color: ${DARK.muted} !important; }
         .badge { background-color: ${DARK.badgeBg} !important; border-color: ${DARK.badgeBorder} !important; color: ${DARK.badgeText} !important; }
         .footer-link { color: ${DARK.link} !important; }
-        .logo-plate { background-color: transparent !important; border-color: transparent !important; }
+        .logo-plate { background-color: ${LOGO_PLATE_BG_LIGHT} !important; border-color: transparent !important; }
       }
     </style>
   </head>
@@ -127,7 +127,7 @@ function emailHtml(nome: string, link: string): string {
               <td align="center" style="padding-bottom:28px;">
                 <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                   <tr>
-                    <td align="center" class="logo-plate" bgcolor="${LOGO_PLATE_BG_LIGHT}" style="background-color:${LOGO_PLATE_BG_LIGHT};border:1px solid ${LOGO_PLATE_BORDER_LIGHT};border-radius:20px;padding:20px 32px;">
+                    <td align="center" class="logo-plate" bgcolor="${LOGO_PLATE_BG_LIGHT}" style="background-color:${LOGO_PLATE_BG_LIGHT};border:none;border-radius:20px;padding:20px 32px;">
                       <img src="${LOGO_URL}" alt="OnListClub" width="150" style="display:block;width:150px;height:auto;border:0;margin:0 auto;" />
                     </td>
                   </tr>
