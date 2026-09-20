@@ -61,16 +61,37 @@ TicketNotch _openNotch(double y) => TicketNotch(
       edgeOffsetDesign: _notchEdgeOffset,
     );
 
-/// Quante offerte ha il ticket: una per voce della descrizione del DB (righe
-/// separate da a capo o punto e virgola). È il numero che finisce in
-/// "+ N Plus" accanto alla quantità.
-int contaPlus(String? descrizione) {
-  if (descrizione == null) return 0;
-  return descrizione
-      .split(RegExp(r'[\n;]'))
-      .map((s) => s.trim())
+/// Le offerte "+" scritte nella descrizione della prevendita.
+///
+/// Il formato buono del DB è una voce per riga introdotta da "+":
+/// `"+ 2 drink omaggio\n+ Salta fila OnListClub PASS"`. Le righe più vecchie
+/// mettono tutto su una riga sola e davanti al primo "+" ci scrivono il tipo
+/// di ticket — `"Ingresso ridotto donna + drink"` —: quella parte NON è
+/// un'offerta, quindi non va né elencata sotto "Dettagli" né contata nel
+/// "+ N Plus" (doc correzioni 20/09).
+///
+/// Se nella descrizione non c'è nessun "+" non ci sono offerte: si mostra il
+/// testo così com'è e il "+ N Plus" sparisce.
+List<String> offertePlus(String? descrizione) {
+  final String testo = descrizione?.trim() ?? '';
+  if (testo.isEmpty) return const <String>[];
+  final Iterable<String> voci = testo.contains('+')
+      // `skip(1)`: quello che sta PRIMA del primo "+" è il tipo di ticket.
+      ? testo.split('+').skip(1)
+      : testo.split(RegExp(r'[\n;]'));
+  return voci
+      .map((s) => s.replaceAll(RegExp(r'[\n;]+'), ' ').trim())
       .where((s) => s.isNotEmpty)
-      .length;
+      .toList();
+}
+
+/// Quante offerte ha il ticket: il numero che finisce in "+ N Plus" accanto
+/// alla quantità. Si conta da sola dai "+" della descrizione, così non serve
+/// tenere aggiornata una seconda colonna a mano.
+int contaPlus(String? descrizione) {
+  final String testo = descrizione?.trim() ?? '';
+  if (!testo.contains('+')) return 0;
+  return offertePlus(testo).length;
 }
 
 // ── Stato A: biglietto chiuso ────────────────────────────────────────────────
@@ -754,29 +775,27 @@ class TicketPillButton extends StatelessWidget {
   }
 }
 
-/// Riga "Ticket x N" + "+ N Plus", comune a fronte e retro.
+/// Riga "Ticket x N" a sinistra e "+ N Plus" a DESTRA, comune a fronte e
+/// retro.
 ///
 /// Accanto alla quantità il design mette il NUMERO delle offerte, non il loro
 /// elenco (doc correzioni 19/09: "rendi la scritta uguale come + 3 Plus nel
 /// Figma"). L'elenco per esteso vive sotto "Dettagli".
+///
+/// Le due scritte stanno ai bordi opposti della card: "Ticket x N" al margine
+/// sinistro, "+ N Plus" a quello destro (doc correzioni 20/09: "spostare
+/// tutto a destra '+ .. Plus', come 'Ticket x 1' che si trova tutto a
+/// sinistra"). Prima la seconda partiva da una quota fissa a 160 e restava
+/// quindi a metà riga.
 class _QuantityRow extends StatelessWidget {
   final int quantita;
   final int plus;
 
   const _QuantityRow({required this.quantita, required this.plus});
 
-  /// Margine sinistro della riga, in px design dal bordo della card.
-  static const double _leftDesign = 26;
-
-  /// Quota a cui parte la seconda colonna, sempre in px design dal bordo
-  /// della card.
-  ///
-  /// Il CSS la mette a 148 (left 169 su card a 21); nella 1.1 avevi chiesto di
-  /// spostarla ancora a destra e nella 1.11 di nuovo, quindi qui sta a **160**.
-  /// "Ticket x 1" a 33 misura 127 e chiude a 153, prima dello slot.
-  static const double _descrizioneXDesign = 160;
-
-  double get _rowLeft => R.sp(_leftDesign);
+  /// Margine della riga in px design dal bordo della card: uguale a sinistra
+  /// e a destra, così le due scritte sono simmetriche.
+  static const double _marginDesign = 26;
 
   @override
   Widget build(BuildContext context) {
@@ -789,21 +808,24 @@ class _QuantityRow extends StatelessWidget {
       letterSpacing: -0.05 * R.sp(33),
     );
     return Padding(
-      padding: EdgeInsets.only(left: _rowLeft, right: R.sp(20)),
+      padding: EdgeInsets.symmetric(horizontal: R.sp(_marginDesign)),
       child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          // Slot a larghezza FISSA per "Ticket x N": così la colonna di destra
-          // parte sempre alla stessa quota, qualunque sia la quantità.
-          SizedBox(
-            width: R.sp(_descrizioneXDesign - _leftDesign),
-            child: Text('Ticket x $quantita', style: style),
+          Flexible(
+            child: FitOneLineText(
+              'Ticket x $quantita',
+              style: style,
+              minFontSize: R.sp(22),
+            ),
           ),
           if (plus > 0)
-            Expanded(
+            Flexible(
               child: FitOneLineText(
                 '+ $plus Plus',
                 style: style,
                 minFontSize: R.sp(22),
+                textAlign: TextAlign.right,
               ),
             ),
         ],
@@ -842,15 +864,13 @@ class _PersonalRow extends StatelessWidget {
 }
 
 /// Cerchio 28 con freccia, tutto da SVG ufficiali: `cerchio_biglietto.svg`
-/// (28×28, stroke 2px) con dentro `freccia_giu.svg` o `freccia_su.svg`.
+/// (28×28, stroke 2px) con dentro `arro-up-ticket.svg` o
+/// `arrow-down-ticket.svg`.
 ///
 /// Prima erano un `Container` col bordo e le icone Material
 /// (`Icons.arrow_downward`/`arrow_upward`). Essendo un widget condiviso, il
 /// cambio vale sia per aprire sia per chiudere il biglietto, in tutte le
-/// schermate che usano queste card.
-///
-/// Nel CSS la freccia è 22 dentro il cerchio da 28 (era disegnata a 14 e
-/// sembrava minuscola: doc correzioni 19/09).
+/// schermate che usano queste card — compreso il riepilogo ordini.
 class ArrowCircle extends StatelessWidget {
   final bool down;
 
@@ -869,17 +889,16 @@ class ArrowCircle extends StatelessWidget {
             width: R.sp(28),
             height: R.sp(28),
           ),
-          // Una sola freccia per i due versi: la giù è la stessa ruotata di
-          // mezzo giro. La vecchia `freccia_giu.svg` ha il riquadro 15×15
-          // riempito fino ai bordi, quindi alla stessa misura sembrava molto
-          // più grande della su (doc correzioni "last").
-          RotatedBox(
-            quarterTurns: down ? 2 : 0,
-            child: SvgPicture.asset(
-              ImageConstant.imgArrowUp,
-              width: R.sp(22),
-              height: R.sp(22),
-            ),
+          // Le due frecce ufficiali hanno riquadri diversi ma lo STESSO
+          // glifo: `arro-up-ticket` lo disegna da 3.67 a 18.33 dentro un box
+          // 22, `arrow-down-ticket` lo disegna da 0 a 14.67 dentro un box 15.
+          // Disegnandole alla misura del loro riquadro (22 e 15) il glifo
+          // viene identico — 14.67 — e le due frecce sembrano uguali, che era
+          // il difetto segnalato quando la giù era disegnata anche lei a 22.
+          SvgPicture.asset(
+            down ? ImageConstant.imgArrowDown : ImageConstant.imgArrowUp,
+            width: R.sp(down ? 15 : 22),
+            height: R.sp(down ? 15 : 22),
           ),
         ],
       ),

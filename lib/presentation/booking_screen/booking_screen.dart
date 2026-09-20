@@ -27,6 +27,7 @@ import '../../widgets/glow_card.dart';
 import '../../widgets/image_fallback.dart';
 import '../../widgets/onlist_price_text.dart';
 import '../../widgets/onlist_ticket_title.dart';
+import '../../widgets/ticket_cards.dart' show offertePlus;
 import '../../widgets/animated_press.dart';
 import '../../widgets/top_bar_slot.dart';
 import '../../widgets/shared_footer.dart';
@@ -772,14 +773,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
     // Safe-format: se il prezzo arriva come "12.0€" o "12.0" lo normalizziamo
     // a "12€" (per coerenza col Figma, che non mostra mai il decimale .0).
     final String price = _normalizePriceString(t['price']?.toString() ?? '—');
-    // Benefit "Dettagli": una riga per capoverso della descrizione DB —
-    // nessun benefit inventato che non stia a database. Il loro NUMERO è
-    // anche il "+ N Plus" accanto alla quantità.
-    final benefits = (t['dettagli']?.toString() ?? '')
-        .split(RegExp(r'[\n;]'))
-        .map((s) => s.trim())
-        .where((s) => s.isNotEmpty)
-        .toList();
+    // Benefit "Dettagli": le offerte "+" della descrizione DB — nessun
+    // benefit inventato che non stia a database, e senza il pezzo iniziale
+    // che ripete il tipo di ticket ("Ingresso ridotto donna + drink" mostra
+    // solo "drink"). Il loro NUMERO è anche il "+ N Plus" della quantità.
+    final benefits = offertePlus(t['dettagli']?.toString());
 
     // "PRENOTA ORA" crea DIRETTAMENTE l'ordine e porta alla conferma.
     //
@@ -887,28 +885,31 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             ),
             // CSS NUOVO (16/09): "Ticket x 1" a rel y 92, 9px sotto il titolo.
             SizedBox(height: R.sp(9)),
-            // "Ticket x 1" + "+ N Plus" a 33/-0.05em, allineato a destra fino
-            // a rel 323 (nel CSS "+ 2 Plus": 236+109 su card a 22).
+            // "Ticket x 1" a sinistra e "+ N Plus" al bordo DESTRO della
+            // card, come nel biglietto (doc correzioni 20/09). Prima la
+            // seconda scritta partiva da una quota fissa e restava a metà.
             //
             // Accanto alla quantità va il NUMERO delle offerte, non il loro
             // elenco: quello sta sotto "Dettagli" (doc correzioni 19/09).
             Padding(
-              padding: EdgeInsets.only(left: R.sp(26), right: R.sp(27)),
+              padding: EdgeInsets.symmetric(horizontal: R.sp(26)),
               child: Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
                 children: [
-                  // Slot fisso per "Ticket x 1": il "+ N Plus" parte sempre
-                  // dalla stessa quota, subito accanto e allineato a SINISTRA
-                  // come nel biglietto (doc correzioni "last").
-                  SizedBox(
-                    width: R.sp(160 - 26),
-                    child: Text('Ticket x 1', style: _stileRigaTicket),
+                  Flexible(
+                    child: FitOneLineText(
+                      'Ticket x 1',
+                      style: _stileRigaTicket,
+                      minFontSize: R.sp(22),
+                    ),
                   ),
                   if (benefits.isNotEmpty)
-                    Expanded(
+                    Flexible(
                       child: FitOneLineText(
                         '+ ${benefits.length} Plus',
                         style: _stileRigaTicket,
                         minFontSize: R.sp(22),
+                        textAlign: TextAlign.right,
                       ),
                     ),
                 ],

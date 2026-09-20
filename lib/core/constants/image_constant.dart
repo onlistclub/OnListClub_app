@@ -60,8 +60,15 @@ class ImageConstant {
   static String imgNavProfile = '${_svgUfficiali}User_01.svg'; // 24×24
   static String imgProfileBadgeDot = '${_svgUfficiali}Ellipse 17.svg'; // 16×16
 
+  /// Scritta "ORDINE" della conferma ordine: SVG ufficiale 341×88, con
+  /// dentro la sfumatura bianco→trasparente dal 62.98% del CSS.
+  static String imgScrittaOrdine = '${_svgPath}ORDINE.svg';
+
   /// Scritta "Filtri" del pannello filtri (Ricerca): contorno 381×86,
-  /// bianco al 50% già dentro l'SVG.
+  /// stroke bianco 1px al 50% — come nel Figma. Gli attributi dello stroke
+  /// sono scritti per esteso nell'SVG: l'export di Figma li lasciava
+  /// impliciti (nessuno stroke-width, opacità sul gruppo) e la parola non si
+  /// vedeva sul telefono (doc correzioni 20/09).
   static String imgScrittaFiltri = '${_svgPath}scritta-filtri.svg';
 
   /// Simbolo del dollaro del filtro Prezzo (Ricerca): 8×14, bianco pieno.
@@ -78,9 +85,12 @@ class ImageConstant {
   /// Cerchio delle frecce del biglietto: 28×28, stroke bianco 2px.
   static String imgCircleTicket = '${_svgUfficiali}cerchio_biglietto.svg';
 
-  /// Freccia del biglietto: 22×22, piena. Vale per entrambi i versi — la
-  /// giù è questa ruotata (vedi ArrowCircle).
+  /// Frecce ufficiali del biglietto, una per verso: la su ha il riquadro
+  /// 22×22 col glifo da 3.67 a 18.33, la giù il riquadro 15×15 col glifo che
+  /// arriva ai bordi. Vanno quindi disegnate alla misura del loro riquadro
+  /// (vedi ArrowCircle), non tutte e due a 22.
   static String imgArrowUp = '${_svgPath}arro-up-ticket.svg';
+  static String imgArrowDown = '${_svgPath}arrow-down-ticket.svg';
 
   /// Freccia indietro ("Torna indietro"): 24×24, piena. Usata da [BackRow],
   /// che è l'unico punto in cui va referenziata.
