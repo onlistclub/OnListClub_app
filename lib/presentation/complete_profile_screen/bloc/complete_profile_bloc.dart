@@ -5,6 +5,7 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/complete_profile_model.dart';
 import '../../../core/services/register_service.dart';
+import '../../../core/services/messaging_service.dart';
 
 part 'complete_profile_event.dart';
 part 'complete_profile_state.dart';
@@ -129,6 +130,28 @@ class CompleteProfileBloc
         telefono: model.phone,
         countryIso: iso,
       );
+
+      // Welcome email fire-and-forget: qui è il punto della PRIMA creazione
+      // profilo per gli utenti che completano dopo un OAuth (Google/Apple,
+      // domani anche Apple in produzione). Per gli utenti email+password la
+      // welcome parte invece da UserProfileManager.ensureProfileExists dopo
+      // la verifica dell'email. In entrambi i casi arriva una sola volta,
+      // perché ensureProfileExists non re-crea il profilo se già esiste.
+      try {
+        final email = user.email ?? '';
+        if (email.isNotEmpty) {
+          final displayNome = [
+            model.firstName,
+            model.lastName,
+          ].where((s) => s.isNotEmpty).join(' ');
+          MessagingService.sendWelcomeEmail(
+            to: email,
+            nome: displayNome,
+          );
+        }
+      } catch (_) {
+        // Non blocca il completamento profilo.
+      }
 
       emit(state.copyWith(isLoading: false, isSuccess: true));
     } catch (e) {

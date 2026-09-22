@@ -135,10 +135,9 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
             ? 'https://www.onlistclub.com/verify/$idPrenotazione'
             : 'onlist-ticket');
     // Accanto alla quantità va il NUMERO delle offerte ("+ 3 Plus"), contato
-    // sulle voci della descrizione del DB; l'elenco per esteso resta sotto
-    // "Dettagli" prima dell'acquisto (doc correzioni 19/09).
-    final plus = contaPlus((prevendita?['descrizione'] as String?) ??
-        (prevendita?['riepilogo'] as String?));
+    // sui "+" della descrizione del DB — la stessa sorgente della lista che si
+    // vede prima dell'acquisto, così i due conti non divergono mai.
+    final plus = contaPlus(prevendita?['descrizione'] as String?);
     final quantita =
         (item['quantita'] ?? prenotazione?['quantita'] ?? 1) as int;
 

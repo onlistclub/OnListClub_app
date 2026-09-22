@@ -1,8 +1,12 @@
 import 'dart:io' show Platform;
 
 import 'package:flutter/cupertino.dart';
+import 'package:flutter/gestures.dart';
 import 'package:flutter/material.dart';
+import 'package:url_launcher/url_launcher.dart';
+
 import '../../core/app_export.dart';
+import '../../core/legal/legal_versions.dart';
 import '../../core/services/location_service.dart';
 import '../../core/utils/age_calculator.dart';
 import '../../core/services/analytics_service.dart';
@@ -222,12 +226,23 @@ class _SignUpScreenState extends State<SignUpScreen> with ScreenAnalytics {
                               nationalNumber: nn));
                         },
                       ),
-                      const SizedBox(height: 48),
+                      const SizedBox(height: 36),
+                      // Spunta obbligatoria: Privacy Policy + Termini. Il
+                      // bottone "Registrati" resta disabilitato finché non è
+                      // spuntata (guardia duplicata anche in SignUpBloc).
+                      _LegalConsentCheckbox(
+                        checked: state.legalConsent,
+                        onChanged: (v) => context
+                            .read<SignUpBloc>()
+                            .add(LegalConsentChangedEvent(accepted: v)),
+                      ),
+                      const SizedBox(height: 32),
                       Center(
                         child: state.isLoading
                             ? const CircularProgressIndicator(color: OnlistColors.white)
                             : _WhiteButton(
                                 label: 'Registrati',
+                                enabled: state.legalConsent,
                                 onTap: () {
                                   AnalyticsService.log(event: 'registration_attempt');
                                   context
@@ -502,10 +517,15 @@ class _UnderlinePasswordFieldState extends State<_UnderlinePasswordField> {
 }
 
 class _WhiteButton extends StatelessWidget {
-  const _WhiteButton({required this.label, required this.onTap});
+  const _WhiteButton({
+    required this.label,
+    required this.onTap,
+    this.enabled = true,
+  });
 
   final String label;
   final VoidCallback onTap;
+  final bool enabled;
 
   @override
   Widget build(BuildContext context) {
@@ -513,10 +533,15 @@ class _WhiteButton extends StatelessWidget {
       width: 150,
       height: 40,
       child: ElevatedButton(
-        onPressed: onTap,
+        onPressed: enabled ? onTap : null,
         style: ElevatedButton.styleFrom(
           backgroundColor: OnlistColors.white,
           foregroundColor: OnlistColors.black,
+          // Grigio "disabilitato" del design system: il bottone resta bianco
+          // ma leggermente attenuato, così l'utente capisce che serve
+          // spuntare il consenso prima di poter procedere.
+          disabledBackgroundColor: OnlistColors.white.withValues(alpha: 0.4),
+          disabledForegroundColor: OnlistColors.black.withValues(alpha: 0.6),
           elevation: 0,
           padding: EdgeInsets.zero,
           shape: RoundedRectangleBorder(
@@ -524,6 +549,99 @@ class _WhiteButton extends StatelessWidget {
         ),
         child: Text(label, style: OnlistTextStyles.button16Bold),
       ),
+    );
+  }
+}
+
+/// Spunta obbligatoria alla registrazione: consenso a Privacy Policy e Termini.
+///
+/// Il click sui link "Privacy Policy" e "Termini" apre le pagine
+/// corrispondenti sul sito (URL in [kPrivacyUrl] / [kTermsUrl]) nel browser
+/// esterno, così l'utente può leggerle senza uscire dallo stack di navigazione.
+class _LegalConsentCheckbox extends StatelessWidget {
+  const _LegalConsentCheckbox({
+    required this.checked,
+    required this.onChanged,
+  });
+
+  final bool checked;
+  final ValueChanged<bool> onChanged;
+
+  Future<void> _openLegal(String url) async {
+    final uri = Uri.parse(url);
+    // externalApplication: apre il browser di sistema, non un webview interno.
+    // Se il sito non è raggiungibile (offline) fallisce silenziosamente:
+    // l'utente non è bloccato dalla registrazione.
+    await launchUrl(uri, mode: LaunchMode.externalApplication);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Row(
+      crossAxisAlignment: CrossAxisAlignment.start,
+      children: [
+        // Checkbox custom con bordo bianco, per rimanere coerente col design
+        // scuro/underline della schermata. Tap sul quadrato o sull'etichetta.
+        GestureDetector(
+          onTap: () => onChanged(!checked),
+          behavior: HitTestBehavior.opaque,
+          child: Container(
+            width: 22,
+            height: 22,
+            margin: const EdgeInsets.only(top: 2, right: 12),
+            decoration: BoxDecoration(
+              color: checked ? OnlistColors.white : Colors.transparent,
+              border: Border.all(color: OnlistColors.white, width: 1.6),
+              borderRadius: BorderRadius.circular(4),
+            ),
+            alignment: Alignment.center,
+            child: checked
+                ? const Icon(Icons.check, size: 16, color: OnlistColors.black)
+                : null,
+          ),
+        ),
+        Expanded(
+          child: GestureDetector(
+            onTap: () => onChanged(!checked),
+            behavior: HitTestBehavior.opaque,
+            child: Text.rich(
+              TextSpan(
+                style: const TextStyle(
+                  fontFamily: 'OnlistHN',
+                  fontSize: 13,
+                  height: 1.4,
+                  color: Colors.white,
+                ),
+                children: [
+                  const TextSpan(text: 'Ho letto e accetto la '),
+                  TextSpan(
+                    text: 'Privacy Policy',
+                    style: const TextStyle(
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => _openLegal(kPrivacyUrl),
+                  ),
+                  const TextSpan(text: ' e i '),
+                  TextSpan(
+                    text: 'Termini e condizioni',
+                    style: const TextStyle(
+                      decoration: TextDecoration.underline,
+                      fontWeight: FontWeight.w600,
+                    ),
+                    recognizer: TapGestureRecognizer()
+                      ..onTap = () => _openLegal(kTermsUrl),
+                  ),
+                  const TextSpan(
+                      text:
+                          ' di OnListClub. Confermo di avere almeno 14 anni.'),
+                ],
+              ),
+            ),
+          ),
+        ),
+      ],
     );
   }
 }

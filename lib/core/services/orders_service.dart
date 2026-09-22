@@ -52,10 +52,11 @@ class OrdersService {
             'prenotazioni(id, stato, created_at, id_evento, '
             'eventi(id, nome, inizio_evento, club_id, '
             'locali(id, nome, foto_url))), '
-            // 'riepilogo' è la riga corta mostrata accanto a 'Ticket x N' PRIMA
-            // dell'acquisto: senza di essa il biglietto emesso ripeteva
-            // l'elenco completo e i due non coincidevano (doc correzioni 18/09).
-            'prevendite(id_prevendita, tipo, prezzo, descrizione, riepilogo)',
+            // 'descrizione' è l'unica sorgente delle aggiunte, prima e dopo
+            // l'acquisto: da lì escono sia l'elenco sotto 'Dettagli' sia il
+            // numero del '+ N Plus' (doc correzioni 21/09). La colonna
+            // 'riepilogo', scritta a mano, non viene più letta.
+            'prevendite(id_prevendita, tipo, prezzo, descrizione)',
           )
           .eq('id_utente', user.id);
       // NIENTE .order('id'): `prenotazioni_prevendite.id` è un uuid casuale

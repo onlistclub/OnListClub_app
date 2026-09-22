@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../../core/constants/image_constant.dart';
 import '../../core/services/auth_service.dart';
+import '../../core/services/legal_consent_service.dart';
 import '../../core/services/navigator_service.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
@@ -55,21 +56,40 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
             AppRoutes.authenticationScreen);
         return;
       }
-      if (AuthService.instance.isLoggedIn) {
-        // Sessione valida (token non scaduto): entra diretto.
-        NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
-        return;
+      if (!AuthService.instance.isLoggedIn) {
+        // Sessione presente ma access token scaduto (gli access token Supabase
+        // durano ~1h): NON fare logout — si tenta il refresh col refresh token.
+        // Se riesce, l'utente resta loggato e non deve rifare il login; se
+        // fallisce (refresh token revocato/utente eliminato) si ripiega sul login.
+        await AuthService.instance.refreshSession();
       }
-      // Sessione presente ma access token scaduto (gli access token Supabase
-      // durano ~1h): NON fare logout — si tenta il refresh col refresh token.
-      // Se riesce, l'utente resta loggato e non deve rifare il login; se
-      // fallisce (refresh token revocato/utente eliminato) si ripiega sul login.
-      await AuthService.instance.refreshSession();
-      NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
+      await _routeAfterLogin();
     } catch (e) {
       debugPrint('[Splash] Session check error: $e');
       NavigatorService.pushNamedAndRemoveUntil(AppRoutes.authenticationScreen);
     }
+  }
+
+  /// Decide dove portare l'utente autenticato: home oppure, se serve, la
+  /// schermata di ri-accettazione delle policy. Il controllo su
+  /// `user_consents` viene fatto QUI (non nella home) perché serve una sola
+  /// volta a sessione, e vogliamo tenere la home libera da guardie.
+  Future<void> _routeAfterLogin() async {
+    final userId = AuthService.instance.currentSession?.user.id;
+    if (userId == null) {
+      NavigatorService.pushNamedAndRemoveUntil(AppRoutes.authenticationScreen);
+      return;
+    }
+    final status = await LegalConsentService.checkReacceptance(userId);
+    if (!mounted) return;
+    if (status.needsReacceptance) {
+      NavigatorService.pushNamedAndRemoveUntil(
+        AppRoutes.legalReacceptScreen,
+        arguments: {'status': status},
+      );
+      return;
+    }
+    NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
   }
 
   /// Lato del logo in logical px. DEVE combaciare con la dimensione a cui

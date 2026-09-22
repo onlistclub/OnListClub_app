@@ -76,6 +76,14 @@ class DobChangedEvent extends SignUpEvent {
 
 class SubmitSignUpEvent extends SignUpEvent {}
 
+/// Toggle della spunta "Accetto Privacy e Termini" nella registrazione.
+class LegalConsentChangedEvent extends SignUpEvent {
+  final bool accepted;
+  const LegalConsentChangedEvent({required this.accepted});
+  @override
+  List<Object?> get props => [accepted];
+}
+
 class PhoneChangedEvent extends SignUpEvent {
   final String phone;
   final String? countryIso;

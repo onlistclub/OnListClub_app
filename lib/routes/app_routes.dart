@@ -27,6 +27,7 @@ import '../presentation/payment_success_screen/payment_success_screen.dart';
 import '../presentation/prevendita_detail_screen/prevendita_detail_screen.dart';
 import '../presentation/tavolo_detail_screen/tavolo_detail_screen.dart';
 import '../presentation/event_info_popup_screen/event_info_popup_screen.dart';
+import '../presentation/legal_reaccept_screen/legal_reaccept_screen.dart';
 
 class AppRoutes {
   static const String splashScreen             = '/splash_screen';
@@ -61,6 +62,12 @@ class AppRoutes {
   /// Pop-up info serata (Figma `off/19`). Riceve {serata, club} come args.
   static const String eventInfoPopupScreen     = '/event_info_popup_screen';
 
+  /// Ri-accettazione bloccante di privacy/termini all'apertura dell'app
+  /// quando è stata pubblicata una nuova versione dei documenti legali. Vive
+  /// tra splash e home: l'utente non può bypassarla né tornare indietro.
+  /// Riceve `{status: LegalReacceptanceStatus}` come argomento.
+  static const String legalReacceptScreen      = '/legal_reaccept_screen';
+
   static const String initialRoute = splashScreen;
 
   /// Rotte che usano la transizione `fade` (ingressi atmosferici / pari livello):
@@ -75,6 +82,7 @@ class AppRoutes {
     clubDetailScreen,
     verificationFailureScreen,
     paymentSuccessScreen,
+    legalReacceptScreen,
   };
 
   /// Rotte che entrano come un POP-UP: piccole e trasparenti, si aprono con un
@@ -104,6 +112,9 @@ class AppRoutes {
     locationPermissionScreen,
     homeScreen,
     paymentSuccessScreen,
+    // La ri-accettazione delle policy è bloccante: nessuno swipe back, nessun
+    // pop indietro. L'unico modo per uscirne è "Accetto" o "Non accetto → esci".
+    legalReacceptScreen,
   };
 
   /// Rotte di DETTAGLIO che vivono dentro lo shell persistente ([RootShell]):
@@ -171,5 +182,6 @@ class AppRoutes {
         prevenditaDetailScreen:     PrevenditaDetailScreen.builder,
         tavoloDetailScreen:         TavoloDetailScreen.builder,
         eventInfoPopupScreen:       EventInfoPopupScreen.builder,
+        legalReacceptScreen:        LegalReacceptScreen.builder,
       };
 }

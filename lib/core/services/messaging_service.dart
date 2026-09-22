@@ -142,7 +142,7 @@ class MessagingService {
     return sendEmail(
       to: to,
       toName: nome,
-      subject: 'Prevendita confermata — $localeNome',
+      subject: 'Prevendita confermata: $localeNome',
       htmlContent: html,
     );
   }
@@ -167,7 +167,7 @@ class MessagingService {
     return sendEmail(
       to: to,
       toName: nome,
-      subject: 'Ingresso confermato — $localeNome',
+      subject: 'Ingresso confermato: $localeNome',
       htmlContent: html,
     );
   }
@@ -191,7 +191,7 @@ class MessagingService {
     return sendEmail(
       to: to,
       toName: nome,
-      subject: 'Biglietto già utilizzato — $localeNome',
+      subject: 'Biglietto già utilizzato: $localeNome',
       htmlContent: html,
     );
   }
@@ -252,8 +252,8 @@ class MessagingService {
             <td align="center" style="padding-bottom:28px;">
               <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
                 <tr>
-                  <td align="center" class="logo-plate" bgcolor="#000000" style="background-color:#000000;border:none;border-radius:20px;padding:20px 32px;">
-                    <img src="https://www.onlistclub.com/email-logo.png" alt="OnListClub" width="140" style="display:block;width:140px;height:auto;border:0;margin:0 auto;" />
+                  <td align="center" class="logo-plate" bgcolor="#000000" style="background-color:#000000;border:none;border-radius:20px;padding:22px 44px;">
+                    <div style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:32px;font-weight:800;color:#ffffff;letter-spacing:-0.5px;line-height:1;">OnList</div>
                   </td>
                 </tr>
               </table>
@@ -267,7 +267,7 @@ class MessagingService {
           <tr>
             <td align="center" style="padding-top:28px;">
               <p class="text-body" style="margin:0 0 6px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#525b70;">
-                OnListClub — Prenota tavoli, prevendite e drink nei migliori locali.
+                OnListClub. Prenota tavoli, prevendite e drink nei migliori locali.
               </p>
               <p class="text-body" style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#525b70;">
                 Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="color:#1b3fd6;text-decoration:none;">info@onlistclub.com</a>
@@ -308,15 +308,15 @@ class MessagingService {
     final card =
         _badge('Benvenuto') +
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
-        'Sei dentro, $nome!</h1>'
+        'Sei dentro, ${_escHtml(nome)}.</h1>'
         '<p class="text-body" style="margin:0 0 20px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
-        'Il tuo account OnListClub è attivo. Da adesso puoi prenotare tavoli, acquistare prevendite e ordinare drink nei migliori club della tua città — tutto dall\'app, senza code all\'ingresso.</p>'
+        'Il tuo account OnListClub è attivo. Puoi prenotare tavoli, acquistare prevendite e ordinare drink nei migliori club della tua città, direttamente dall\'app.</p>'
         '<p class="text-body" style="margin:0 0 8px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
-        'Apri l\'app, scegli il tuo locale preferito e inizia a vivere la notte.</p>'
-        + _ctaButton('Apri OnListClub →', 'onlistclub://home');
+        'Apri l\'app e scegli il tuo locale.</p>'
+        + _ctaButton('Apri OnListClub', 'onlistclub://home');
     return _htmlShell(
-      preheader: 'Benvenuto su OnListClub! Il tuo account è attivo. Apri l\'app e inizia a prenotare.',
-      title: 'Benvenuto su OnListClub!',
+      preheader: 'Il tuo account OnListClub è attivo. Apri l\'app e inizia a prenotare.',
+      title: 'Benvenuto su OnListClub',
       cardContent: card,
     );
   }
@@ -363,14 +363,14 @@ class MessagingService {
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
         '${_salutoPrevendita(dataEventoDt)}</h1>'
         '<p class="text-body" style="margin:0 0 24px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
-        'Ciao <strong style="color:#12131c;">$nome</strong>, la tua prevendita è confermata. Ecco il riepilogo:</p>'
+        '<strong style="color:#12131c;">$nome</strong>, la tua prevendita è confermata. Ecco il riepilogo:</p>'
         + _infoBox(rows)
-        + _ctaButton('Vedi il tuo biglietto nell\'app →', orderLink)
+        + _ctaButton('Vedi il tuo biglietto nell\'app', orderLink)
         + '<p class="text-body" style="margin:16px 0 0;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.6;color:#525b70;">'
         'Mostra il QR code all\'ingresso. Aprilo dalla sezione <strong>Ordini</strong> nell\'app OnListClub.</p>';
     return _htmlShell(
       preheader: 'La tua prevendita per $eventoNome è confermata. Apri l\'app per vedere il QR di ingresso.',
-      title: 'Prevendita confermata — OnListClub',
+      title: 'Prevendita confermata',
       cardContent: card,
     );
   }
@@ -390,13 +390,13 @@ class MessagingService {
     final card =
         _badge('Ingresso confermato', bgLight: 'rgba(22,163,74,0.08)', borderLight: 'rgba(22,163,74,0.28)', textLight: '#15803d') +
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
-        'Sei entrato! Divertiti</h1>'
+        'Sei entrato.</h1>'
         '<p class="text-body" style="margin:0 0 24px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
-        'Ciao <strong style="color:#12131c;">$nome</strong>, il tuo biglietto è stato scannerizzato con successo all\'ingresso.</p>'
+        '<strong style="color:#12131c;">$nome</strong>, il tuo biglietto è stato scannerizzato all\'ingresso.</p>'
         + _infoBox(rows, bg: '#f0fdf4', border: 'rgba(22,163,74,0.25)');
     return _htmlShell(
-      preheader: 'Il tuo biglietto per $eventoNome è stato scannerizzato: ingresso confermato! Divertiti.',
-      title: 'Ingresso confermato — OnListClub',
+      preheader: 'Il tuo biglietto per $eventoNome è stato scannerizzato. Ingresso confermato.',
+      title: 'Ingresso confermato',
       cardContent: card,
     );
   }
@@ -416,17 +416,17 @@ class MessagingService {
     final card =
         _badge('Biglietto già usato', bgLight: 'rgba(234,88,12,0.08)', borderLight: 'rgba(234,88,12,0.28)', textLight: '#c2410c') +
         '<h1 class="text-heading" style="margin:0 0 14px;font-family:\'Space Grotesk\',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">'
-        'Scansione non accettata</h1>'
+        'Scansione non accettata.</h1>'
         '<p class="text-body" style="margin:0 0 24px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">'
-        'Ciao <strong style="color:#12131c;">$nome</strong>, il tuo biglietto è stato rifiutato all\'ingresso perché è già stato utilizzato in precedenza.</p>'
+        '<strong style="color:#12131c;">$nome</strong>, il tuo biglietto è stato rifiutato all\'ingresso perché è già stato utilizzato.</p>'
         + _infoBox(rows, bg: '#fff7ed', border: 'rgba(234,88,12,0.22)')
         + '<p class="text-body" style="margin:0 0 8px;font-family:\'Inter\',Helvetica,Arial,sans-serif;font-size:14px;line-height:1.6;color:#525b70;">'
         '<strong style="color:#12131c;">Non sei stato tu?</strong><br />'
         'Se non riconosci questo accesso, il tuo QR potrebbe essere stato condiviso. Contattaci subito.</p>'
-        + _ctaButton('Vedi i tuoi ordini nell\'app →', 'onlistclub://orders');
+        + _ctaButton('Vedi i tuoi ordini nell\'app', 'onlistclub://orders');
     return _htmlShell(
-      preheader: 'Attenzione: il tuo biglietto per $eventoNome è già stato utilizzato in precedenza.',
-      title: 'Biglietto già utilizzato — OnListClub',
+      preheader: 'Il tuo biglietto per $eventoNome è già stato utilizzato.',
+      title: 'Biglietto già utilizzato',
       cardContent: card,
     );
   }

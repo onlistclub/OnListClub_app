@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -5,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/sign_up_model.dart';
 import '../../../core/services/register_service.dart';
 import '../../../core/services/analytics_service.dart';
+import '../../../core/services/legal_consent_service.dart';
 import 'package:intl/intl.dart';
 
 part 'sign_up_event.dart';
@@ -24,6 +27,8 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
       'Questa email è già registrata. Accedi invece di registrarti.';
   static const String phoneTakenMessage =
       'Questo numero di telefono è già registrato.';
+  static const String consentRequiredMessage =
+      'Per registrarti devi accettare Privacy Policy e Termini.';
 
   SignUpBloc(SignUpState initialState) : super(initialState) {
     on<SignUpInitialEvent>(_onInitialize);
@@ -35,7 +40,15 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
     on<ConfirmPasswordChangedEvent>(_onConfirmPasswordChanged);
     on<DobChangedEvent>(_onDobChanged);
     on<PhoneChangedEvent>(_onPhoneChanged);
+    on<LegalConsentChangedEvent>(_onLegalConsentChanged);
     on<SubmitSignUpEvent>(_onSubmitSignUp);
+  }
+
+  _onLegalConsentChanged(
+    LegalConsentChangedEvent event,
+    Emitter<SignUpState> emit,
+  ) {
+    emit(state.copyWith(legalConsent: event.accepted));
   }
 
   _onInitialize(
@@ -170,6 +183,14 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
     if (state.formKey?.currentState?.validate() != true) {
       return;
     }
+    // Il consenso a Privacy + Termini è OBBLIGATORIO: senza la spunta non
+    // creiamo l'account. Il controllo è duplicato lato UI (il bottone è
+    // disabilitato se `legalConsent` è false) ma resta qui come rete di
+    // sicurezza contro modifiche future della UI.
+    if (state.legalConsent != true) {
+      emit(state.copyWith(errorMessage: consentRequiredMessage));
+      return;
+    }
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
     try {
@@ -207,6 +228,14 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
             telefono: model.phone,
             countryIso: model.phoneCountryIso,
           );
+          // Consenso registrato SOLO dopo che il profilo è stato scritto:
+          // se la RPC fallisce, non salviamo un consenso su un utente senza
+          // profilo (l'insert è comunque fire-and-forget e non blocca).
+          unawaited(LegalConsentService.recordConsent(
+            userId: user.id,
+            source: 'app_signup',
+            extraMetadata: const {'flow': 'oauth'},
+          ));
           emit(state.copyWith(isLoading: false, isSuccess: true));
         } on PostgrestException catch (e) {
           AnalyticsService.reportError(e, screen: 'sign_up');
@@ -292,6 +321,11 @@ class SignUpBloc extends Bloc<SignUpEvent, SignUpState> {
         // sopra) e vengono scritti DOPO la conferma email da
         // `UserProfileManager.ensureProfileExists()`, chiamato dal verificationBloc
         // al primo login con sessione valida.
+        //
+        // Stesso motivo per cui la riga in `user_consents` non parte QUI: RLS
+        // richiede `auth.uid() = user_id` per l'INSERT, e senza sessione
+        // fallirebbe. Il consenso viene registrato dal `verificationBloc` al
+        // primo login autenticato, insieme alla creazione del profilo.
         emit(state.copyWith(isLoading: false, isSuccess: true));
         // La navigazione alla schermata di verifica è gestita da isSuccess.
       } else {

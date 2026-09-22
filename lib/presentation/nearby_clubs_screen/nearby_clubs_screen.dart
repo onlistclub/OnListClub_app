@@ -1343,10 +1343,21 @@ class _RadiusDialogState extends State<_RadiusDialog> {
         h: _h,
         child: Container(
           decoration: BoxDecoration(
+            // Il CSS disegna la card con un blu al 35% (Rectangle 348) sopra
+            // la pagina già oscurata dal velo nero al 69% (Rectangle 347).
+            // Riprodurre i due strati separatamente lascia passare il nero
+            // della pagina e la card sembra smaterializzata ("sfumatura del
+            // GPS troppo trasparente", doc correzioni 21/09).
+            //
+            // Qui il risultato dei due strati è già composto in un gradiente
+            // PIENO, campionato sul PNG ufficiale (GPS.png, colonna dentro il
+            // bordo sinistro della card): in alto #002A64, in basso #000080.
+            // Stessi identici pixel del Figma, ma la card è un oggetto
+            // opaco e non un vetro.
             gradient: const LinearGradient(
               begin: Alignment.topCenter,
               end: Alignment.bottomCenter,
-              colors: [Color(0x590077FF), Color(0x590000FF)],
+              colors: [Color(0xFF002A64), Color(0xFF000080)],
             ),
             borderRadius: BorderRadius.circular(30),
           ),

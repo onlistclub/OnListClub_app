@@ -4,6 +4,7 @@ import 'package:equatable/equatable.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import 'package:flutter/foundation.dart';
 import '../../../core/services/user_profile_manager.dart';
+import '../../../core/services/legal_consent_service.dart';
 
 part 'verification_event.dart';
 part 'verification_state.dart';
@@ -91,6 +92,17 @@ class verificationBloc extends Bloc<verificationEvent, verificationState> {
         } catch (e) {
           debugPrint('[verificationBloc] ensureProfileExists error: $e');
         }
+        // Consenso registrato ORA: al signup email l'utente non aveva ancora
+        // una sessione (RLS bloccava l'insert). Ora ce l'ha, e la spunta era
+        // stata accettata nel form di registrazione (guardia in SignUpBloc).
+        final userId = response.user?.id;
+        if (userId != null) {
+          unawaited(LegalConsentService.recordConsent(
+            userId: userId,
+            source: 'app_signup',
+            extraMetadata: const {'flow': 'email_polling'},
+          ));
+        }
         emit(state.copyWith(isVerified: true));
       }
     } on AuthException catch (e) {
@@ -168,6 +180,14 @@ class verificationBloc extends Bloc<verificationEvent, verificationState> {
         debugPrint('[verificationBloc] Verification successful. User logged in.');
 
         await UserProfileManager().ensureProfileExists();
+        // Stesso motivo del branch polling: la spunta era stata accettata nel
+        // form di registrazione, ma solo adesso l'utente ha una sessione e
+        // può passare il check RLS su `user_consents`.
+        unawaited(LegalConsentService.recordConsent(
+          userId: response.user!.id,
+          source: 'app_signup',
+          extraMetadata: const {'flow': 'email_manual_check'},
+        ));
 
         emit(state.copyWith(isLoading: false, isVerified: true));
       } else {

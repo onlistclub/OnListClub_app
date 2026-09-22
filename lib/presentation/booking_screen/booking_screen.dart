@@ -554,15 +554,15 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                   itemCount: _prevendite.length,
                   itemBuilder: (context, index) {
                     final p = _prevendite[index];
-                    // Due campi DISTINTI (correzioni 1.1, punto 12):
-                    //   descrizione → elenco completo, va sotto "Dettagli"
-                    //   riepilogo   → riga corta ("+ 2 drink"), in alto a destra
-                    // Finche' la migration 2026-08-03_prevendite_riepilogo non
-                    // e' applicata la colonna non esiste: si ricade sul vecchio
-                    // campo, cioe' esattamente il comportamento di prima.
+                    // UNA sola sorgente per le aggiunte: `descrizione`.
+                    // La riga in alto a destra della card e l'elenco sotto
+                    // "Dettagli" nascono dalla stessa `offertePlus`, quindi
+                    // non possono più raccontare due cose diverse (doc
+                    // correzioni 21/09: "devono coincidere le aggiunte nella
+                    // scelta del ticket e nei dettagli del ticket stesso").
+                    // La vecchia colonna `riepilogo`, scritta a mano e libera
+                    // di divergere, non viene più letta.
                     final String dettagli = p['descrizione']?.toString() ?? '';
-                    final String riepilogo =
-                        p['riepilogo']?.toString().trim() ?? '';
                     return Padding(
                       padding: EdgeInsets.only(bottom: R.sp(18)),
                       child: _buildTicketCard(
@@ -570,7 +570,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                         price: p['prezzo'] != null
                             ? "${_formatPrice(p['prezzo'])}€"
                             : "—",
-                        riepilogo: riepilogo.isNotEmpty ? riepilogo : dettagli,
+                        aggiunte: offertePlus(dettagli),
                         dettagli: dettagli,
                         // Nota di entrata composta dal limite d'ingresso della serata
                         // (fallback al vecchio campo prevendite.validita).
@@ -595,10 +595,10 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
   Widget _buildTicketCard({
     required String type,
     required String price,
-    // Riga corta col conteggio delle aggiunte ("+ 2 drink"): e' quella che si
-    // vede qui in alto a destra. L'elenco completo viaggia in [dettagli] e
-    // compare solo nel dettaglio, sotto "Dettagli".
-    required String riepilogo,
+    // Le aggiunte del ticket, una per voce e col "+" davanti: sono le STESSE
+    // che il dettaglio elenca sotto "Dettagli" (entrambe da `offertePlus`).
+    // Qui si vedono in alto a destra, in piccolo.
+    required List<String> aggiunte,
     required String dettagli,
     required String validity,
     String? ticketId,
@@ -654,17 +654,18 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                 ),
               ),
             ),
-            // Riepilogo aggiunte dal DB (es. "+ 2 drink"), 16 right-aligned.
-            if (riepilogo.isNotEmpty)
+            // Aggiunte del ticket, 16 allineate a destra: la stessa lista del
+            // dettaglio, col "+" davanti a ogni voce.
+            if (aggiunte.isNotEmpty)
               Positioned(
                 right: R.sp(18),
                 top: R.sp(112),
                 child: SizedBox(
                   width: R.sp(160),
                   child: Text(
-                    riepilogo,
+                    aggiunte.join('\n'),
                     textAlign: TextAlign.right,
-                    maxLines: 2,
+                    maxLines: 3,
                     overflow: TextOverflow.ellipsis,
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
@@ -704,7 +705,6 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     _selectedTicket = {
                       'type': type,
                       'price': price,
-                      'riepilogo': riepilogo,
                       'dettagli': dettagli,
                       'validity': validity,
                       'ticketId': ticketId,

@@ -61,27 +61,34 @@ TicketNotch _openNotch(double y) => TicketNotch(
       edgeOffsetDesign: _notchEdgeOffset,
     );
 
-/// Le offerte "+" scritte nella descrizione della prevendita.
+/// Le offerte "+" scritte nella descrizione della prevendita, **già pronte da
+/// mostrare**: ogni voce si porta dietro il suo "+" (doc correzioni 21/09,
+/// "aggiungere ai dettagli quel +").
 ///
 /// Il formato buono del DB è una voce per riga introdotta da "+":
 /// `"+ 2 drink omaggio\n+ Salta fila OnListClub PASS"`. Le righe più vecchie
 /// mettono tutto su una riga sola e davanti al primo "+" ci scrivono il tipo
 /// di ticket — `"Ingresso ridotto donna + drink"` —: quella parte NON è
 /// un'offerta, quindi non va né elencata sotto "Dettagli" né contata nel
-/// "+ N Plus" (doc correzioni 20/09).
+/// "+ N Plus".
 ///
 /// Se nella descrizione non c'è nessun "+" non ci sono offerte: si mostra il
-/// testo così com'è e il "+ N Plus" sparisce.
+/// testo così com'è (senza aggiungergli un "+" che non gli spetta, sarebbe
+/// "+ Ingresso uomo") e il "+ N Plus" sparisce.
+///
+/// È l'UNICA sorgente delle aggiunte: la usano sia la card della scelta
+/// ticket sia il dettaglio, così le due liste non possono più divergere.
 List<String> offertePlus(String? descrizione) {
   final String testo = descrizione?.trim() ?? '';
   if (testo.isEmpty) return const <String>[];
-  final Iterable<String> voci = testo.contains('+')
-      // `skip(1)`: quello che sta PRIMA del primo "+" è il tipo di ticket.
-      ? testo.split('+').skip(1)
-      : testo.split(RegExp(r'[\n;]'));
+  final bool conPlus = testo.contains('+');
+  // `skip(1)`: quello che sta PRIMA del primo "+" è il tipo di ticket.
+  final Iterable<String> voci =
+      conPlus ? testo.split('+').skip(1) : testo.split(RegExp(r'[\n;]'));
   return voci
       .map((s) => s.replaceAll(RegExp(r'[\n;]+'), ' ').trim())
       .where((s) => s.isNotEmpty)
+      .map((s) => conPlus ? '+ $s' : s)
       .toList();
 }
 
