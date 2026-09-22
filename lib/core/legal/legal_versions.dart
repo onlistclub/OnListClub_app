@@ -24,7 +24,7 @@ library;
 
 /// Versione corrente della Privacy Policy. Incrementare quando cambia il
 /// testo sul sito, così l'app forza la ri-accettazione.
-const String kPrivacyVersion = '2.0';
+const String kPrivacyVersion = '2.1';
 
 /// Versione corrente dei Termini e condizioni. Incrementare quando cambia
 /// il testo sul sito, così l'app forza la ri-accettazione.
@@ -32,7 +32,7 @@ const String kTermsVersion = '2.0';
 
 /// Data leggibile del testo attualmente pubblicato, mostrata sotto ai link
 /// nella schermata di registrazione e nella schermata di ri-accettazione.
-const String kPrivacyUpdatedAt = '21 settembre 2026';
+const String kPrivacyUpdatedAt = '22 settembre 2026';
 const String kTermsUpdatedAt = '21 settembre 2026';
 
 /// URL pubblici delle pagine legali sul sito. L'app non ospita i testi:

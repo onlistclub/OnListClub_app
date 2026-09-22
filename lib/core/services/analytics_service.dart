@@ -6,6 +6,7 @@ import 'package:package_info_plus/package_info_plus.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/scheduler.dart' show SchedulerBinding;
 import 'package:flutter/widgets.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 /// Servizio di analytics leggero per la fase di MVP di OnList.
@@ -69,6 +70,25 @@ class AnalyticsService {
   static String? _osVersion;
   static String? _platformOverride;
 
+  // ── Opt-out utente (Impostazioni → Privacy) ───────────────────────────────
+  //
+  // GDPR / art. 21: l'utente può opporsi al trattamento fondato sul legittimo
+  // interesse (che è la base giuridica delle nostre analytics interne). Se
+  // spegne lo switch in Impostazioni, [log] scarta silenziosamente ogni
+  // evento successivo: niente insert su Supabase, niente coda locale, niente
+  // debug leak. La preferenza è persistita in SharedPreferences (chiave
+  // [_kOptOutKey]) e ricaricata all'avvio da [initOptOutFromPrefs].
+  //
+  // Nota: eventi già in coda al momento dello spegnimento vengono comunque
+  // scartati grazie al filtro in [svuotaCoda]. Non svuotiamo la coda al toggle
+  // (potrebbe partire un evento a metà) — la lasciamo drenare a vuoto.
+  static const String _kOptOutKey = 'analytics_opt_out';
+  static bool _optedOut = false;
+
+  /// Se true, [log] non registra nulla. Sola lettura all'esterno: per cambiarlo
+  /// dall'UI usare [setOptedOut] così la scelta viene anche persistita.
+  static bool get isOptedOut => _optedOut;
+
   /// Nome della schermata attualmente visibile, aggiornato da [mostraSchermata]
   /// a ogni cambio. Usato per popolare il campo `screen` degli errori
   /// catturati dagli handler globali (che non hanno contesto sulla schermata).
@@ -107,6 +127,47 @@ class AnalyticsService {
   @visibleForTesting
   static void Function(String event, Map<String, dynamic> metadata)?
       registroPerTest;
+
+  /// Ricarica la preferenza di opt-out dell'utente da SharedPreferences.
+  /// Va chiamata in `main()` prima di `runApp` (ordine indifferente rispetto
+  /// a [initDeviceInfo] e [avviaSessione]). Fire-and-forget: se il read
+  /// fallisce (raro), l'opt-out resta al default `false` — cioè analytics
+  /// attive — che è il comportamento coerente con il "legittimo interesse"
+  /// dichiarato in privacy policy.
+  static Future<void> initOptOutFromPrefs() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      _optedOut = prefs.getBool(_kOptOutKey) ?? false;
+      if (_optedOut) {
+        debugPrint('[Analytics] opt-out attivo (utente ha spento le analytics).');
+      }
+    } catch (e) {
+      debugPrint('[Analytics] initOptOutFromPrefs fallito: $e');
+    }
+  }
+
+  /// Aggiorna la preferenza di opt-out e la persiste. Chiamata dalla schermata
+  /// Impostazioni → Privacy (profile_screen.dart). Registra un evento di
+  /// diagnostica PRIMA di applicare l'opt-out, così sappiamo quanti utenti
+  /// scelgono di spegnere.
+  static Future<void> setOptedOut(bool value) async {
+    // Se stiamo per spegnere: logghiamo l'evento adesso, prima che _optedOut
+    // diventi true e log() inizi a scartare. Se stiamo per accendere, logghiamo
+    // dopo l'assegnazione così l'evento è coerente col nuovo stato.
+    if (value && !_optedOut) {
+      await log(event: 'analytics_opt_out', metadata: const {'value': true});
+    }
+    _optedOut = value;
+    if (!value) {
+      await log(event: 'analytics_opt_in', metadata: const {'value': false});
+    }
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      await prefs.setBool(_kOptOutKey, value);
+    } catch (e) {
+      debugPrint('[Analytics] setOptedOut persist fallito: $e');
+    }
+  }
 
   /// Legge modello dispositivo, versione OS e piattaforma una sola volta.
   /// Va chiamata in `main()` dopo l'init di Supabase e prima di `runApp`.
@@ -425,6 +486,14 @@ class AnalyticsService {
     required String event,
     Map<String, dynamic>? metadata,
   }) async {
+    // Opt-out utente (Impostazioni → Privacy): se attivo, scartiamo l'evento
+    // qui, PRIMA di incrementare _seq o toccare la coda — così l'opt-out è
+    // completo, non lascia neanche buchi nella sequenza. Unica eccezione:
+    // l'evento 'analytics_opt_out' stesso, generato da [setOptedOut] appena
+    // prima di alzare la bandiera: lo lasciamo passare perché dà valore
+    // diagnostico (sappiamo quanti utenti spengono) ed è generato solo lì.
+    if (_optedOut && event != 'analytics_opt_out') return;
+
     // Fuori dal try: vanno assegnati nell'ordine in cui gli eventi nascono,
     // prima di qualsiasi await.
     final meta = <String, dynamic>{

@@ -365,6 +365,21 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     }
   }
 
+  /// Apre il bottom sheet con lo switch di opt-out sulle analytics interne
+  /// (art. 21 GDPR). La modale è modale: fino a chiusura non si può
+  /// interagire col resto della schermata.
+  Future<void> _openPrivacySheet() async {
+    await showModalBottomSheet<void>(
+      context: context,
+      backgroundColor: const Color(0xFF0B0B0F),
+      isScrollControlled: true,
+      shape: const RoundedRectangleBorder(
+        borderRadius: BorderRadius.vertical(top: Radius.circular(20)),
+      ),
+      builder: (ctx) => const _PrivacySheet(),
+    );
+  }
+
   Future<void> _confirmLogout() async {
     final confirm = await showDialog<bool>(
       context: context,
@@ -1008,6 +1023,16 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         subtitle: 'Aggiorna la tua password',
         onTap: _changePassword,
       ),
+      // Privacy e opt-out analytics: art. 21 GDPR — l'utente può disattivare
+      // la raccolta di analytics interne in qualsiasi momento. Vedi
+      // [AnalyticsService.setOptedOut] e la sezione "Se usi l'app mobile"
+      // della privacy policy sul sito.
+      _buildActionTile(
+        icon: Icons.privacy_tip_outlined,
+        label: 'Privacy e dati',
+        subtitle: 'Gestisci la raccolta di analytics',
+        onTap: _openPrivacySheet,
+      ),
       _buildActionTile(
         icon: Icons.logout,
         label: 'Disconnetti',
@@ -1259,6 +1284,197 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
             ],
           ),
         ),
+      ),
+    );
+  }
+}
+
+/// Bottom sheet Impostazioni → Privacy e dati.
+///
+/// Contiene lo switch per abilitare/disabilitare la raccolta di analytics
+/// interne (schermate viste, tap, tempi, funnel). Lo switch riflette e
+/// aggiorna [AnalyticsService.isOptedOut]. Il default è ON (raccolta attiva
+/// sotto legittimo interesse ex art. 6.1.f GDPR); lo spegnimento è
+/// l'esercizio del diritto di opposizione (art. 21 GDPR).
+class _PrivacySheet extends StatefulWidget {
+  const _PrivacySheet();
+
+  @override
+  State<_PrivacySheet> createState() => _PrivacySheetState();
+}
+
+class _PrivacySheetState extends State<_PrivacySheet> {
+  late bool _analyticsEnabled;
+  bool _isSaving = false;
+
+  @override
+  void initState() {
+    super.initState();
+    // Snapshot iniziale della preferenza già caricata all'avvio dell'app.
+    _analyticsEnabled = !AnalyticsService.isOptedOut;
+  }
+
+  Future<void> _toggle(bool value) async {
+    if (_isSaving) return;
+    setState(() {
+      _analyticsEnabled = value;
+      _isSaving = true;
+    });
+    // setOptedOut è async ma non ritorna errori all'esterno: se la
+    // persistenza fallisce restiamo comunque coerenti in-memory e l'utente
+    // vede lo switch nella posizione scelta. Riprovare al prossimo cambio.
+    await AnalyticsService.setOptedOut(!value);
+    if (mounted) setState(() => _isSaving = false);
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return SafeArea(
+      top: false,
+      child: Padding(
+        padding: const EdgeInsets.fromLTRB(24, 12, 24, 24),
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            // Handle indicator, standard dei bottom sheet iOS/Material 3.
+            Center(
+              child: Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: OnlistColors.white.withValues(alpha: 0.25),
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+            ),
+            const SizedBox(height: 20),
+            Text(
+              'Privacy e dati',
+              style: OnlistTextStyles.hn(
+                fontSize: 22,
+                fontWeight: FontWeight.w600,
+                color: OnlistColors.white,
+              ),
+            ),
+            const SizedBox(height: 16),
+            _AnalyticsRow(
+              enabled: _analyticsEnabled,
+              onChanged: _toggle,
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'Registriamo, sui nostri server, come usi l\'app: quali schermate '
+              'apri, quali locali guardi, quanto ci metti a completare una '
+              'prenotazione, gli errori tecnici. Ci servono per capire cosa '
+              'funziona e cosa no e rendere l\'app più veloce e affidabile.',
+              style: OnlistTextStyles.hn(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: OnlistColors.white.withValues(alpha: 0.65),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Non usiamo strumenti di terze parti (né Google Analytics, né '
+              'Meta Pixel, né simili). Nessun dato lascia i nostri server per '
+              'finalità pubblicitarie.',
+              style: OnlistTextStyles.hn(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: OnlistColors.white.withValues(alpha: 0.65),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 10),
+            Text(
+              'Spegnendo questa opzione: l\'app smette immediatamente di '
+              'registrare eventi d\'uso. Le prenotazioni, l\'account e i tuoi '
+              'ticket continuano a funzionare normalmente.',
+              style: OnlistTextStyles.hn(
+                fontSize: 13,
+                fontWeight: FontWeight.w400,
+                color: OnlistColors.white.withValues(alpha: 0.65),
+                height: 1.5,
+              ),
+            ),
+            const SizedBox(height: 24),
+            Center(
+              child: TextButton(
+                onPressed: _isSaving ? null : () => Navigator.of(context).pop(),
+                child: Text(
+                  'Chiudi',
+                  style: OnlistTextStyles.hn(
+                    color: OnlistColors.white,
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                  ),
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+class _AnalyticsRow extends StatelessWidget {
+  const _AnalyticsRow({required this.enabled, required this.onChanged});
+
+  final bool enabled;
+  final ValueChanged<bool> onChanged;
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.symmetric(horizontal: 14, vertical: 12),
+      decoration: BoxDecoration(
+        color: OnlistColors.white.withValues(alpha: 0.06),
+        borderRadius: BorderRadius.circular(10),
+        border: Border.all(
+          color: OnlistColors.white.withValues(alpha: 0.10),
+        ),
+      ),
+      child: Row(
+        children: [
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  'Analytics d\'uso',
+                  style: OnlistTextStyles.hn(
+                    fontSize: 15,
+                    fontWeight: FontWeight.w500,
+                    color: OnlistColors.white,
+                  ),
+                ),
+                const SizedBox(height: 2),
+                Text(
+                  enabled
+                      ? 'Attivo — stiamo registrando come usi l\'app.'
+                      : 'Spento — non registriamo eventi d\'uso.',
+                  style: OnlistTextStyles.hn(
+                    fontSize: 12,
+                    fontWeight: FontWeight.w400,
+                    color: OnlistColors.white.withValues(alpha: 0.55),
+                  ),
+                ),
+              ],
+            ),
+          ),
+          Switch(
+            value: enabled,
+            onChanged: onChanged,
+            activeThumbColor: OnlistColors.white,
+            activeTrackColor: const Color(0xFF1E00FF),
+            inactiveThumbColor: OnlistColors.white,
+            inactiveTrackColor: OnlistColors.white.withValues(alpha: 0.15),
+          ),
+        ],
       ),
     );
   }

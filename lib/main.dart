@@ -164,6 +164,12 @@ Future<void> main() async {
   // sola volta e allegata a ogni evento analytics.
   await AnalyticsService.initDeviceInfo();
 
+  // Preferenza opt-out utente (Impostazioni → Privacy). Va caricata PRIMA di
+  // avviaSessione così `session_start` rispetta subito la scelta: se l'utente
+  // aveva spento le analytics la volta scorsa, non ricomincia a loggare al
+  // riavvio.
+  await AnalyticsService.initOptOutFromPrefs();
+
   // Sessione analytics: session_start ora, session_end a ogni passaggio in
   // background, nuova sessione dopo 30 minuti fuori dall'app.
   AnalyticsService.avviaSessione();
