@@ -1,97 +1,156 @@
 <!DOCTYPE html>
-<html lang="it">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="supported-color-schemes" content="light dark" />
-    <title>Benvenuto su OnListClub!</title>
-    <style>
-      body, .bg-outer { background-color: #eef1f8; }
-      .card { background-color: #ffffff; border-color: #e1e5f0 !important; }
-      .text-heading { color: #12131c !important; }
-      .text-body { color: #525b70 !important; }
-      .badge { background-color: rgba(19,62,255,0.08) !important; border-color: rgba(19,62,255,0.28) !important; color: #1b3fd6 !important; }
-      .footer-link { color: #1b3fd6 !important; }
-      .logo-plate { background-color: #8f95aa !important; border-color: #747a90 !important; }
+<html lang="it" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Benvenuto su OnListClub</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    html, body { margin:0 !important; padding:0 !important; width:100% !important; min-width:100% !important; height:100% !important; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    body { background-color:transparent !important; color:inherit; }
+    table, td { mso-table-lspace:0pt !important; mso-table-rspace:0pt !important; }
+    img { border:0; height:auto; line-height:100%; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+    a { text-decoration:none; }
 
-      @media (prefers-color-scheme: dark) {
-        body, .bg-outer { background-color: #05050f !important; }
-        .card { background-color: #0d0f24 !important; border-color: #24304d !important; }
-        .text-heading { color: #f4f6fb !important; }
-        .text-body { color: #a9b3c6 !important; }
-        .badge { background-color: rgba(19,62,255,0.16) !important; border-color: rgba(19,62,255,0.35) !important; color: #8fb4ff !important; }
-        .footer-link { color: #8fb4ff !important; }
-        .logo-plate { background-color: transparent !important; border-color: transparent !important; }
+    .email-container {
+      box-sizing:border-box !important;
+      width:100% !important;
+      max-width:560px !important;
+      background-color:transparent !important;
+      border:2px solid #A78BFA !important;
+      border-radius:22px !important;
+      padding:36px 32px !important;
+      box-shadow:0 0 0 1px rgba(139,92,246,.10),0 0 22px rgba(139,92,246,.18),0 18px 42px rgba(47,34,77,.08) !important;
+    }
+
+    .logo-light, .logo-dark { display:block !important; width:200px !important; max-width:78% !important; height:auto !important; margin:0 auto !important; }
+    .logo-dark { display:none !important; }
+
+    .text-title, .text-body, .text-bold-name, .footer-text { color:inherit !important; }
+    .footer-divider { border-top-color:rgba(127,111,150,.35) !important; }
+    .footer-link { color:#7C3AED !important; }
+
+    .cta-cell {
+      background:#7C3AED !important;
+      background-image:linear-gradient(135deg,#7C3AED 0%,#6366F1 52%,#4F46E5 100%) !important;
+      border-radius:999px !important;
+      box-shadow:0 8px 22px rgba(124,58,237,.22) !important;
+    }
+    .cta-link { display:block !important; min-height:48px !important; box-sizing:border-box !important; padding:14px 20px !important; color:#FFFFFF !important; }
+
+    @media only screen and (max-width:600px) {
+      .outer-wrapper-cell { padding:20px 10px 36px 10px !important; }
+      .email-container { max-width:100% !important; padding:26px 20px !important; border-radius:18px !important; }
+      .logo-light, .logo-dark { width:170px !important; max-width:72% !important; }
+      .header-logo-cell { padding-bottom:24px !important; }
+      .text-title { font-size:24px !important; }
+    }
+
+    [data-ogsc] .logo-light { display:none !important; }
+    [data-ogsc] .logo-dark { display:block !important; }
+
+    @media (prefers-color-scheme: dark) {
+      .logo-light { display:none !important; }
+      .logo-dark { display:block !important; }
+      .email-container {
+        border-color:#A78BFA !important;
+        box-shadow:0 0 0 1px rgba(167,139,250,.12),0 0 24px rgba(139,92,246,.22),0 18px 44px rgba(0,0,0,.16) !important;
       }
-    </style>
-  </head>
-  <body class="bg-outer" style="margin:0;padding:0;background-color:#eef1f8;">
-    <!-- Preheader nascosto (anteprima inbox) -->
-    <span style="display:none;max-height:0;overflow:hidden;opacity:0;">
-      Benvenuto su OnListClub! Prenota tavoli, prevendite e drink nei migliori locali. L'app è pronta per te.
-    </span>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="bg-outer" bgcolor="#eef1f8" style="background-color:#eef1f8;padding:36px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-            <tr>
-              <td align="center" style="padding-bottom:28px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
-                  <tr>
-                    <td align="center" class="logo-plate" bgcolor="#8f95aa" style="background-color:#8f95aa;border:1px solid #747a90;border-radius:20px;padding:20px 32px;">
-                      <img src="https://www.onlistclub.com/email-logo.png" alt="OnListClub" width="140" style="display:block;width:140px;height:auto;border:0;margin:0 auto;" />
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td class="card" bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #e1e5f0;border-radius:24px;padding:36px 32px;">
-                <!-- Badge -->
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
-                  <tr>
-                    <td class="badge" bgcolor="rgba(19,62,255,0.08)" style="border-radius:999px;background-color:rgba(19,62,255,0.08);border:1px solid rgba(19,62,255,0.28);padding:6px 14px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#1b3fd6;">
-                      Benvenuto
-                    </td>
-                  </tr>
-                </table>
-                <!-- Heading -->
-                <h1 class="text-heading" style="margin:0 0 14px;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">
-                  Sei dentro, {{NOME}}! 🎶
-                </h1>
-                <!-- Body -->
-                <p class="text-body" style="margin:0 0 20px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">
-                  Il tuo account OnListClub è attivo. Da adesso puoi prenotare tavoli, acquistare prevendite e ordinare drink nei migliori club della tua città — tutto dall'app, senza code all'ingresso.
-                </p>
-                <p class="text-body" style="margin:0 0 28px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">
-                  Apri l'app, scegli il tuo locale preferito e inizia a vivere la notte.
-                </p>
-                <!-- CTA apri app -->
-                <table role="presentation" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td bgcolor="#0098ff" style="border-radius:999px;background-color:#0098ff;background-image:linear-gradient(135deg, #133eff, #0098ff);">
-                      <a href="onlistclub://home" style="display:inline-block;padding:13px 32px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">
-                        Apri OnListClub →
-                      </a>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td align="center" style="padding-top:28px;">
-                <p class="text-body" style="margin:0 0 6px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#525b70;">
-                  OnListClub — Prenota tavoli, prevendite e drink nei migliori locali.
-                </p>
-                <p class="text-body" style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#525b70;">
-                  Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="color:#1b3fd6;text-decoration:none;">info@onlistclub.com</a>
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
+    }
+  </style>
+</head>
+<body style="background:transparent; margin:0; padding:0; width:100%; min-width:100%; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+  <span style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+    Il tuo account OnListClub è attivo. Apri l'app e inizia a prenotare.
+  </span>
+
+  <table class="outer-wrapper" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; min-width:100%; height:100%; table-layout:fixed;">
+    <tr>
+      <td align="center" valign="top" class="outer-wrapper-cell" style="padding:28px 16px 48px 16px;">
+
+        <!--[if mso]><table align="center" width="560" style="width:560px;"><tr><td><![endif]-->
+
+        <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box; width:100%; max-width:560px; background-color:transparent; border:2px solid #A78BFA; border-radius:22px; padding:36px 32px; box-shadow:0 0 0 1px rgba(139,92,246,.12),0 0 22px rgba(139,92,246,.26),0 18px 42px rgba(47,34,77,.12);">
+
+          <tr>
+            <td class="header-logo-cell" align="center" style="padding-bottom:28px;">
+              <img class="logo-light" src="https://www.onlistclub.com/email-logo-onlist-light.png" alt="OnListClub" width="200" style="display:block; width:200px; max-width:78%; height:auto; border:0; margin:0 auto;">
+              <img class="logo-dark"  src="https://www.onlistclub.com/email-logo-onlist-dark.png"  alt="OnListClub" width="200" style="display:none;  width:200px; max-width:78%; height:auto; border:0; margin:0 auto;">
+            </td>
+          </tr>
+
+          <tr>
+            <td align="left" style="padding-bottom:18px;">
+              <table cellpadding="0" cellspacing="0" border="0"><tr>
+                <td style="border:1.5px solid rgba(124,58,237,0.35); border-radius:9999px; padding:6px 14px;">
+                  <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#7C3AED;">Benvenuto</span>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="left" style="padding-bottom:14px;">
+              <h1 class="text-title" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:26px; line-height:1.25; font-weight:700;">
+                Sei dentro, {{NOME}}.
+              </h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="left" style="padding-bottom:16px;">
+              <p class="text-body" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6;">
+                Il tuo account OnListClub è attivo. Puoi prenotare tavoli, acquistare prevendite e ordinare drink nei migliori club della tua città, direttamente dall'app.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="left" style="padding-bottom:28px;">
+              <p class="text-body" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6;">
+                Apri l'app e scegli il tuo locale.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding-bottom:28px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                <td align="center" class="cta-cell" style="background:#7C3AED; background-color:#7C3AED; background-image:linear-gradient(135deg,#7C3AED 0%,#6366F1 52%,#4F46E5 100%); border-radius:999px; box-shadow:0 8px 22px rgba(124,58,237,.28);">
+                  <a href="onlistclub://home" class="cta-link" style="display:block; min-height:48px; box-sizing:border-box; padding:14px 20px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; font-weight:600; text-decoration:none; color:#FFFFFF; text-align:center;" target="_blank">Apri OnListClub</a>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="footer-divider" style="border-top:1.5px solid #E8E3EF; padding-top:22px;" align="center">
+              <p class="footer-text" style="margin:0 0 6px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; text-align:center;">
+                OnListClub. Prenota tavoli, prevendite e drink nei migliori locali.
+              </p>
+              <p class="footer-text" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; text-align:center;">
+                Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="text-decoration:none; color:#7C3AED;" target="_blank">info@onlistclub.com</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+
+        <!--[if mso]></td></tr></table><![endif]-->
+
+      </td>
+    </tr>
+  </table>
+</body>
 </html>

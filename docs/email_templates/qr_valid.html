@@ -1,113 +1,143 @@
 <!DOCTYPE html>
-<html lang="it">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="supported-color-schemes" content="light dark" />
-    <title>Ingresso confermato — OnListClub</title>
-    <style>
-      body, .bg-outer { background-color: #eef1f8; }
-      .card { background-color: #ffffff; border-color: #e1e5f0 !important; }
-      .text-heading { color: #12131c !important; }
-      .text-body { color: #525b70 !important; }
-      .badge { background-color: rgba(22,163,74,0.08) !important; border-color: rgba(22,163,74,0.28) !important; color: #15803d !important; }
-      .info-box { background-color: #f0fdf4 !important; border-color: rgba(22,163,74,0.25) !important; }
-      .footer-link { color: #1b3fd6 !important; }
-      .logo-plate { background-color: #8f95aa !important; border-color: #747a90 !important; }
+<html lang="it" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>Ingresso confermato</title>
+  <!--[if mso]>
+  <noscript>
+    <xml>
+      <o:OfficeDocumentSettings>
+        <o:PixelsPerInch>96</o:PixelsPerInch>
+      </o:OfficeDocumentSettings>
+    </xml>
+  </noscript>
+  <![endif]-->
+  <style>
+    html, body { margin:0 !important; padding:0 !important; width:100% !important; min-width:100% !important; height:100% !important; -webkit-text-size-adjust:100%; -ms-text-size-adjust:100%; }
+    body { background-color:transparent !important; color:inherit; }
+    table, td { mso-table-lspace:0pt !important; mso-table-rspace:0pt !important; }
+    img { border:0; height:auto; line-height:100%; outline:none; text-decoration:none; -ms-interpolation-mode:bicubic; }
+    a { text-decoration:none; }
 
-      @media (prefers-color-scheme: dark) {
-        body, .bg-outer { background-color: #05050f !important; }
-        .card { background-color: #0d0f24 !important; border-color: #24304d !important; }
-        .text-heading { color: #f4f6fb !important; }
-        .text-body { color: #a9b3c6 !important; }
-        .badge { background-color: rgba(22,163,74,0.14) !important; border-color: rgba(22,163,74,0.35) !important; color: #4ade80 !important; }
-        .info-box { background-color: #071a0e !important; border-color: rgba(22,163,74,0.2) !important; }
-        .footer-link { color: #8fb4ff !important; }
-        .logo-plate { background-color: transparent !important; border-color: transparent !important; }
-      }
-    </style>
-  </head>
-  <body class="bg-outer" style="margin:0;padding:0;background-color:#eef1f8;">
-    <!-- Preheader nascosto (anteprima inbox) -->
-    <span style="display:none;max-height:0;overflow:hidden;opacity:0;">
-      Il tuo biglietto per {{EVENTO_NOME}} è stato scannerizzato: ingresso confermato! Divertiti.
-    </span>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="bg-outer" bgcolor="#eef1f8" style="background-color:#eef1f8;padding:36px 16px;">
-      <tr>
-        <td align="center">
-          <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
-            <tr>
-              <td align="center" style="padding-bottom:28px;">
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
-                  <tr>
-                    <td align="center" class="logo-plate" bgcolor="#8f95aa" style="background-color:#8f95aa;border:1px solid #747a90;border-radius:20px;padding:20px 32px;">
-                      <img src="https://www.onlistclub.com/email-logo.png" alt="OnListClub" width="140" style="display:block;width:140px;height:auto;border:0;margin:0 auto;" />
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td class="card" bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #e1e5f0;border-radius:24px;padding:36px 32px;">
-                <!-- Badge verde -->
-                <table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px;">
-                  <tr>
-                    <td class="badge" bgcolor="rgba(22,163,74,0.08)" style="border-radius:999px;background-color:rgba(22,163,74,0.08);border:1px solid rgba(22,163,74,0.28);padding:6px 14px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:#15803d;">
-                      Ingresso confermato
-                    </td>
-                  </tr>
-                </table>
-                <!-- Heading -->
-                <h1 class="text-heading" style="margin:0 0 14px;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">
-                  Sei entrato! Divertiti 🎟️
-                </h1>
-                <!-- Body -->
-                <p class="text-body" style="margin:0 0 24px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.6;color:#525b70;">
-                  Ciao <strong class="text-heading" style="color:#12131c;">{{NOME}}</strong>, il tuo biglietto è stato scannerizzato con successo all'ingresso.
-                </p>
-                <!-- Info box verde -->
-                <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                  <tr>
-                    <td class="info-box" bgcolor="#f0fdf4" style="background-color:#f0fdf4;border:1px solid rgba(22,163,74,0.25);border-radius:14px;padding:18px 20px;">
-                      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">
-                        <tr>
-                          <td style="padding-bottom:10px;">
-                            <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8b93a7;">Locale</p>
-                            <p class="text-heading" style="margin:4px 0 0;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#12131c;">{{LOCALE_NOME}}</p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td style="padding-bottom:10px;">
-                            <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8b93a7;">Serata</p>
-                            <p class="text-heading" style="margin:4px 0 0;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#12131c;">{{EVENTO_NOME}}</p>
-                          </td>
-                        </tr>
-                        <tr>
-                          <td>
-                            <p style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8b93a7;">Check-in</p>
-                            <p class="text-heading" style="margin:4px 0 0;font-family:'Space Grotesk',Helvetica,Arial,sans-serif;font-size:16px;font-weight:600;color:#12131c;">{{CHECKIN_TIME}}</p>
-                          </td>
-                        </tr>
-                      </table>
-                    </td>
-                  </tr>
-                </table>
-              </td>
-            </tr>
-            <tr>
-              <td align="center" style="padding-top:28px;">
-                <p class="text-body" style="margin:0 0 6px;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#525b70;">
-                  OnListClub — Prenota tavoli, prevendite e drink nei migliori locali.
-                </p>
-                <p class="text-body" style="margin:0;font-family:'Inter',Helvetica,Arial,sans-serif;font-size:12px;color:#525b70;">
-                  Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="color:#1b3fd6;text-decoration:none;">info@onlistclub.com</a>
-                </p>
-              </td>
-            </tr>
-          </table>
-        </td>
-      </tr>
-    </table>
-  </body>
+    .email-container { box-sizing:border-box !important; width:100% !important; max-width:560px !important; background-color:transparent !important; border:2px solid #86EFAC !important; border-radius:22px !important; padding:36px 32px !important; box-shadow:0 0 0 1px rgba(22,163,74,.10),0 0 22px rgba(22,163,74,.18),0 18px 42px rgba(6,78,59,.08) !important; }
+    .logo-light, .logo-dark { display:block !important; width:200px !important; max-width:78% !important; height:auto !important; margin:0 auto !important; }
+    .logo-dark { display:none !important; }
+    .text-title, .text-body, .text-bold-name, .details-value, .details-label, .footer-text { color:inherit !important; }
+    .details-box { background-color:transparent !important; border:1.5px solid #86EFAC !important; border-radius:16px !important; }
+    .detail-cell:first-child { padding-right:16px !important; }
+    .detail-cell:nth-child(2) { padding-left:16px !important; }
+    .footer-divider { border-top-color:rgba(127,111,150,.35) !important; }
+    .footer-link { color:#7C3AED !important; }
+
+    @media only screen and (max-width:600px) {
+      .outer-wrapper-cell { padding:20px 10px 36px 10px !important; }
+      .email-container { max-width:100% !important; padding:26px 20px !important; border-radius:18px !important; }
+      .logo-light, .logo-dark { width:170px !important; max-width:72% !important; }
+      .header-logo-cell { padding-bottom:24px !important; }
+      .text-title { font-size:24px !important; }
+      .detail-cell { display:block !important; width:100% !important; padding-left:0 !important; padding-right:0 !important; padding-bottom:14px !important; }
+    }
+
+    [data-ogsc] .logo-light { display:none !important; }
+    [data-ogsc] .logo-dark { display:block !important; }
+
+    @media (prefers-color-scheme: dark) {
+      .logo-light { display:none !important; }
+      .logo-dark { display:block !important; }
+      .email-container { border-color:#86EFAC !important; box-shadow:0 0 0 1px rgba(134,239,172,.14),0 0 24px rgba(22,163,74,.20),0 18px 44px rgba(0,0,0,.16) !important; }
+      .details-box { border-color:#86EFAC !important; }
+    }
+  </style>
+</head>
+<body style="background:transparent; margin:0; padding:0; width:100%; min-width:100%; font-family:'Helvetica Neue', Helvetica, Arial, sans-serif;">
+  <span style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">
+    Il tuo biglietto per {{EVENTO_NOME}} è stato scannerizzato. Ingresso confermato.
+  </span>
+
+  <table class="outer-wrapper" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%; min-width:100%; height:100%; table-layout:fixed;">
+    <tr>
+      <td align="center" valign="top" class="outer-wrapper-cell" style="padding:28px 16px 48px 16px;">
+        <!--[if mso]><table align="center" width="560" style="width:560px;"><tr><td><![endif]-->
+        <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box; width:100%; max-width:560px; background-color:transparent; border:2px solid #86EFAC; border-radius:22px; padding:36px 32px; box-shadow:0 0 0 1px rgba(22,163,74,.12),0 0 22px rgba(22,163,74,.26),0 18px 42px rgba(6,78,59,.12);">
+
+          <tr>
+            <td class="header-logo-cell" align="center" style="padding-bottom:28px;">
+              <img class="logo-light" src="https://www.onlistclub.com/email-logo-onlist-light.png" alt="OnListClub" width="200" style="display:block; width:200px; max-width:78%; height:auto; border:0; margin:0 auto;">
+              <img class="logo-dark"  src="https://www.onlistclub.com/email-logo-onlist-dark.png"  alt="OnListClub" width="200" style="display:none;  width:200px; max-width:78%; height:auto; border:0; margin:0 auto;">
+            </td>
+          </tr>
+
+          <tr>
+            <td align="left" style="padding-bottom:18px;">
+              <table cellpadding="0" cellspacing="0" border="0"><tr>
+                <td style="border:1.5px solid rgba(22,163,74,0.40); border-radius:9999px; padding:6px 14px;">
+                  <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:700; letter-spacing:0.08em; text-transform:uppercase; color:#15803D;">
+                    <img src="https://www.onlistclub.com/email-icon-check.png" alt="" width="14" height="14" style="display:inline-block; vertical-align:-2px; width:14px; height:14px; border:0; margin-right:6px;">Ingresso confermato
+                  </span>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="left" style="padding-bottom:14px;">
+              <h1 class="text-title" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:26px; line-height:1.25; font-weight:700;">
+                Sei entrato.
+              </h1>
+            </td>
+          </tr>
+
+          <tr>
+            <td align="left" style="padding-bottom:24px;">
+              <p class="text-body" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:15px; line-height:1.6;">
+                <strong class="text-bold-name" style="font-weight:700;">{{NOME}}</strong>, il tuo biglietto è stato scannerizzato all'ingresso.
+              </p>
+            </td>
+          </tr>
+
+          <tr>
+            <td style="padding-bottom:28px;">
+              <table class="details-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:transparent; border:1.5px solid #86EFAC; border-radius:16px; padding:20px 20px;">
+                <tr>
+                  <td class="detail-cell" width="50%" style="padding-bottom:18px; vertical-align:top;">
+                    <p class="details-label" style="margin:0 0 4px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:400; text-transform:uppercase; letter-spacing:0.08em;">Locale</p>
+                    <p class="details-value" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700;">{{LOCALE_NOME}}</p>
+                  </td>
+                  <td class="detail-cell" width="50%" style="padding-bottom:18px; vertical-align:top;">
+                    <p class="details-label" style="margin:0 0 4px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:400; text-transform:uppercase; letter-spacing:0.08em;">Serata</p>
+                    <p class="details-value" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700;">{{EVENTO_NOME}}</p>
+                  </td>
+                </tr>
+                <tr>
+                  <td class="detail-cell" width="50%" style="vertical-align:top;">
+                    <p class="details-label" style="margin:0 0 4px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:11px; font-weight:400; text-transform:uppercase; letter-spacing:0.08em;">Check-in</p>
+                    <p class="details-value" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:16px; font-weight:700;">{{CHECKIN_TIME}}</p>
+                  </td>
+                  <td class="detail-cell" width="50%"></td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+
+          <tr>
+            <td class="footer-divider" style="border-top:1.5px solid #E8E3EF; padding-top:22px;" align="center">
+              <p class="footer-text" style="margin:0 0 6px; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; text-align:center;">
+                OnListClub. Prenota tavoli, prevendite e drink nei migliori locali.
+              </p>
+              <p class="footer-text" style="margin:0; font-family:'Helvetica Neue',Helvetica,Arial,sans-serif; font-size:12px; text-align:center;">
+                Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="text-decoration:none; color:#7C3AED;" target="_blank">info@onlistclub.com</a>
+              </p>
+            </td>
+          </tr>
+
+        </table>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+  </table>
+</body>
 </html>

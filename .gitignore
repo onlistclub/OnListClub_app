@@ -63,3 +63,9 @@ supabase/.temp/
 supabase/.branches/
 supabase/.env
 supabase/.env.local
+
+# Sorgente di lavoro pesante del designer per le email (base64 inline ~200KB).
+# Resta in locale come reference visiva, ma non lo committiamo mai: gli asset
+# estratti (public/email-logo-onlist-*.png ecc.) e i template compatti sono
+# ciò che va in produzione.
+docs/email_templates/template_email-ZUCC.html
