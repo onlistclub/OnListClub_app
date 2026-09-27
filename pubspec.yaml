@@ -34,6 +34,10 @@ dependencies:
   # Foto profilo (schermata Account): selezione immagine da galleria/fotocamera,
   # poi upload su Supabase Storage (bucket `avatars`).
   image_picker: ^1.1.2
+  # Deep link handler: cattura onlistclub://home e onlistclub://orders?id=<uuid>
+  # ricevuti dalle email transazionali. Lo schema custom è già dichiarato in
+  # Info.plist (iOS) e AndroidManifest.xml (Android). Vedi DeepLinkService.
+  app_links: ^6.4.0
 dev_dependencies:
   flutter_test:    # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE
     sdk: flutter   # 🚨 CRITICAL: Required for Flutter project testing - DO NOT REMOVE

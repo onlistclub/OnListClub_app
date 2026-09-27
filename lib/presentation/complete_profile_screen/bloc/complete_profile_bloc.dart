@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:equatable/equatable.dart';
 import 'package:flutter_bloc/flutter_bloc.dart';
@@ -131,26 +133,43 @@ class CompleteProfileBloc
         countryIso: iso,
       );
 
-      // Welcome email fire-and-forget: qui è il punto della PRIMA creazione
-      // profilo per gli utenti che completano dopo un OAuth (Google/Apple,
-      // domani anche Apple in produzione). Per gli utenti email+password la
-      // welcome parte invece da UserProfileManager.ensureProfileExists dopo
-      // la verifica dell'email. In entrambi i casi arriva una sola volta,
-      // perché ensureProfileExists non re-crea il profilo se già esiste.
-      try {
-        final email = user.email ?? '';
-        if (email.isNotEmpty) {
-          final displayNome = [
-            model.firstName,
-            model.lastName,
-          ].where((s) => s.isNotEmpty).join(' ');
+      // Welcome email: qui è il punto della PRIMA creazione profilo per gli
+      // utenti che completano dopo un OAuth (Google/Apple, domani anche Apple
+      // in produzione). Per gli utenti email+password la welcome parte invece
+      // da UserProfileManager.ensureProfileExists dopo la verifica dell'email.
+      // In entrambi i casi arriva una sola volta, perché ensureProfileExists
+      // non re-crea il profilo se già esiste.
+      //
+      // Fire-and-forget: uso `unawaited` così l'UI non aspetta Brevo per far
+      // vedere il successo. Ma nel Future stampo comunque l'esito, così un
+      // audit ai log (filtro `[CompleteProfile][welcome]`) permette di
+      // verificare che l'invio è partito e che Brevo l'ha accettato.
+      final email = user.email ?? '';
+      if (email.isNotEmpty) {
+        final displayNome = [
+          model.firstName,
+          model.lastName,
+        ].where((s) => s.isNotEmpty).join(' ');
+        unawaited(
           MessagingService.sendWelcomeEmail(
             to: email,
             nome: displayNome,
-          );
-        }
-      } catch (_) {
-        // Non blocca il completamento profilo.
+          ).then((ok) {
+            debugPrint(
+              '[CompleteProfile][welcome] destinatario=$email nome="$displayNome" '
+              'esito=${ok ? 'OK' : 'FAIL'}',
+            );
+          }).catchError((Object e, StackTrace st) {
+            debugPrint(
+              '[CompleteProfile][welcome] destinatario=$email nome="$displayNome" '
+              'errore=$e',
+            );
+          }),
+        );
+      } else {
+        debugPrint(
+          '[CompleteProfile][welcome] SKIP: user.email vuoto (user.id=${user.id})',
+        );
       }
 
       emit(state.copyWith(isLoading: false, isSuccess: true));

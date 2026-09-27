@@ -11,6 +11,8 @@
 ///     flutter build appbundle --dart-define-from-file=env.json
 library;
 
+import 'dart:async';
+
 import 'package:flutter/foundation.dart'
     show kIsWeb, defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
@@ -21,6 +23,7 @@ import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/app_export.dart';
 import 'core/services/analytics_service.dart';
 import 'core/services/auth_service.dart';
+import 'core/services/deep_link_service.dart';
 import 'core/services/location_service.dart';
 import 'core/utils/analytics_route_observer.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -151,6 +154,12 @@ Future<void> main() async {
   // Listener globale auth: reagisce a logout/scadenza in tempo reale ovunque.
   await AuthService.instance.init();
 
+  // Deep link `onlistclub://` per le email transazionali (conferma prevendita
+  // con link diretto all'ordine, welcome, QR). Deve stare DOPO Supabase.init
+  // perché il service ascolta anche gli eventi di sign-in per rilanciare i
+  // link ricevuti prima del login.
+  unawaited(DeepLinkService.init());
+
   // Ripristina i flag persistenti che vengono letti sincronicamente
   // a runtime (es. LocationService.isGpsForced).
   await LocationService.loadGpsForcedFromPrefs();
@@ -173,6 +182,13 @@ Future<void> main() async {
   // Sessione analytics: session_start ora, session_end a ogni passaggio in
   // background, nuova sessione dopo 30 minuti fuori dall'app.
   AnalyticsService.avviaSessione();
+
+  // Il permesso GPS è decaduto da solo dall'ultimo avvio? È la firma del
+  // "Consenti una volta sola" di iOS, che al momento della richiesta è
+  // indistinguibile da un consenso normale. Va DOPO avviaSessione, così
+  // l'evento nasce dentro la sessione. Non bloccante: è solo un confronto
+  // fra due valori in SharedPreferences.
+  unawaited(LocationService.verificaPermessoDecaduto());
 
   // Handler d'errore globali → TAB "Errori" del foglio di monitoraggio.
   // Catturano gli errori non gestiti (framework + async) senza cambiarne il
