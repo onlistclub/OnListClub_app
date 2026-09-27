@@ -284,6 +284,7 @@ class MessagingService {
     img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}
     a{text-decoration:none;}
     .email-container{box-sizing:border-box!important;width:100%!important;max-width:560px!important;background-color:transparent!important;border:2px solid $cardBorder!important;border-radius:22px!important;padding:36px 32px!important;box-shadow:0 0 0 1px $cardGlow,0 0 22px $cardGlow,0 18px 42px $cardShadow!important;}
+    .logo-plate{background-color:#000000!important;border-radius:20px!important;}
     .logo-mark{display:block!important;width:200px!important;max-width:78%!important;height:auto!important;margin:0 auto!important;}
     .text-title,.text-body,.text-bold-name,.details-value,.details-label,.note-bold,.note-text,.footer-text{color:inherit!important;}
     .details-box{background-color:transparent!important;border:1.5px solid $detailsBorder!important;border-radius:16px!important;}
@@ -316,7 +317,7 @@ class MessagingService {
         <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box;width:100%;max-width:560px;background-color:transparent;border:2px solid $cardBorder;border-radius:22px;padding:36px 32px;box-shadow:0 0 0 1px $cardGlow,0 0 22px $cardGlow,0 18px 42px $cardShadow;">
           <tr>
             <td class="header-logo-cell" align="center" style="padding-bottom:28px;">
-              <img class="logo-mark" src="$_logoUrl" alt="OnListClub" width="200" style="display:block;width:200px;max-width:78%;height:auto;border:0;margin:0 auto;">
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td class="logo-plate" align="center" bgcolor="#000000" style="background-color:#000000;border-radius:20px;padding:22px 44px;"><img class="logo-mark" src="$_logoUrl" alt="OnListClub" width="200" style="display:block;width:200px;max-width:78%;height:auto;border:0;margin:0 auto;"></td></tr></table>
             </td>
           </tr>
           $cardContent
