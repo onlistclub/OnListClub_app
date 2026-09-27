@@ -259,24 +259,38 @@ class _PaymentSuccessScreenState extends State<PaymentSuccessScreen>
                     children: [
                       // Il titolo a cascata resta solo coi biglietti chiusi
                       // (quando se ne apre uno, la card prende la schermata).
-                      // AnimatedSize così anche il suo sparire è graduale e non
-                      // strappa in su tutto il contenuto sotto.
-                      AnimatedSize(
-                        duration: _expandDuration,
-                        curve: _expandCurve,
-                        alignment: Alignment.topCenter,
-                        // CSS: top bar chiude a ~118, ORDINE a 139,
-                        // "Visualizza ticket" a 275.
-                        child: _openedIndex == null
-                            ? Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                children: [
-                                  SizedBox(height: R.sp(21)),
-                                  _buildHeader(),
-                                  SizedBox(height: R.sp(26)),
-                                ],
-                              )
-                            : SizedBox(height: R.sp(12)),
+                      //
+                      // Richiudendo il biglietto la scritta SCENDE DALL'ALTO
+                      // (punto 5.3 del documento "Specifiche Modifiche App").
+                      // Prima l'AnimatedSize cresceva anche in larghezza, da
+                      // zero: la scritta si apriva a ventaglio dal fianco
+                      // sinistro, ed è il "compare di lato" segnalato. Ora la
+                      // larghezza è fissa e il riquadro è ancorato in BASSO,
+                      // quindi crescendo scopre il testo dall'alto verso il
+                      // basso; il ClipRect tiene dentro quello che non è
+                      // ancora entrato.
+                      ClipRect(
+                        child: AnimatedSize(
+                          duration: _expandDuration,
+                          curve: _expandCurve,
+                          alignment: Alignment.bottomCenter,
+                          // CSS: top bar chiude a ~118, ORDINE a 139,
+                          // "Visualizza ticket" a 275.
+                          child: SizedBox(
+                            width: double.infinity,
+                            child: _openedIndex == null
+                                ? Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      SizedBox(height: R.sp(21)),
+                                      _buildHeader(),
+                                      SizedBox(height: R.sp(26)),
+                                    ],
+                                  )
+                                : SizedBox(height: R.sp(12)),
+                          ),
+                        ),
                       ),
                       // "Visualizza ticket" 36/400/-0.07em.
                       Text(

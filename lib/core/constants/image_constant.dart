@@ -27,9 +27,10 @@ class ImageConstant {
 
   // Logo
   static String imgLogoOnlist = '${_basePath}logo_onlist.png';
-  // Wordmark "OnList" ritagliato (senza il padding trasparente del quadrato
-  // 4096², che rimpiccioliva il logo nella top bar). Aspect ≈ 2.625:1.
-  static String imgLogoOnlistWordmark = '${_basePath}logo_onlist_wordmark.png';
+  // Logo intero bianco, asset ufficiale del brand ("WHITE INTERO", variante
+  // "Senza Margini"): scritta + pallina con l'alone, ritagliato sui bordi
+  // effettivi del disegno. Lo disegna [OnlistWordmark].
+  static String imgLogoOnlistIntero = '${_basePath}logo_onlist_intero_white.png';
 
   // Event Detail Screen
   static String imgHome = '${_basePath}img_home.svg';

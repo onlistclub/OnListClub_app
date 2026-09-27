@@ -169,7 +169,7 @@ class _FavoriteBannerState extends State<FavoriteBanner>
     return Align(
       alignment: Alignment.centerLeft,
       child: Container(
-        padding: EdgeInsets.fromLTRB(R.sp(13), R.sp(7), R.sp(15), R.sp(7)),
+        padding: EdgeInsets.fromLTRB(R.sp(16), R.sp(7), R.sp(16), R.sp(7)),
         decoration: BoxDecoration(
           // Gradiente brand ufficiale (#1E00FF accento → #1900D8 brand) al
           // posto del blu piatto: gli dà volume senza uscire dalla palette.
@@ -190,54 +190,58 @@ class _FavoriteBannerState extends State<FavoriteBanner>
             ),
           ],
         ),
-        child: ClipRRect(
-          borderRadius: raggio,
-          child: Stack(
-            children: [
-              Row(
-                mainAxisSize: MainAxisSize.min,
-                children: [
-                  // Segnalibro ufficiale, ridotto all'altezza del testo.
-                  //
-                  // Larghezza dichiarata insieme all'altezza, nel rapporto
-                  // nativo 19:23: dandogli solo l'altezza dentro una Row la
-                  // larghezza resta senza vincolo e il disegno viene tagliato
-                  // (correzioni 1.11). Il riquadro è 1px più grande del
-                  // disegno perché nel file lo stroke arriva esattamente sul
-                  // bordo del viewBox, e la punta in basso si perdeva.
-                  SizedBox(
-                    width: R.sp(12.4 + 1),
-                    height: R.sp(15 + 1),
-                    child: SvgPicture.asset(
-                      ImageConstant.imgBookmark,
-                      width: R.sp(12.4),
-                      height: R.sp(15),
-                      fit: BoxFit.contain,
-                    ),
+        child: Stack(
+          children: [
+            Row(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                // Segnalibro ufficiale, ridotto all'altezza del testo.
+                //
+                // Larghezza dichiarata insieme all'altezza, nel rapporto
+                // nativo 19:23: dandogli solo l'altezza dentro una Row la
+                // larghezza resta senza vincolo e il disegno viene tagliato
+                // (correzioni 1.11). Il riquadro è 1px più grande del
+                // disegno perché nel file lo stroke arriva esattamente sul
+                // bordo del viewBox, e la punta in basso si perdeva.
+                SizedBox(
+                  width: R.sp(12.4 + 1),
+                  height: R.sp(15 + 1),
+                  child: SvgPicture.asset(
+                    ImageConstant.imgBookmark,
+                    width: R.sp(12.4),
+                    height: R.sp(15),
+                    fit: BoxFit.contain,
                   ),
-                  SizedBox(width: R.sp(6)),
-                  Text(
-                    widget.text,
-                    style: OnlistTextStyles.hn(
-                      fontSize: R.sp(13),
-                      // Il bundle non ha una faccia 600: il 600 cadeva sul 700.
-                      fontWeight: FontWeight.w700,
-                      color: OnlistColors.white,
-                    ),
+                ),
+                SizedBox(width: R.sp(6)),
+                Text(
+                  widget.text,
+                  style: OnlistTextStyles.hn(
+                    fontSize: R.sp(13),
+                    // Il bundle non ha una faccia 600: il 600 cadeva sul 700.
+                    fontWeight: FontWeight.w700,
+                    color: OnlistColors.white,
                   ),
-                ],
-              ),
-              if (widget.style == FavoriteBannerStyle.shine)
-                Positioned.fill(
-                  child: IgnorePointer(
+                ),
+              ],
+            ),
+            if (widget.style == FavoriteBannerStyle.shine)
+              Positioned.fill(
+                child: IgnorePointer(
+                  // Il clip vive qui e solo qui: la banda deve stare dentro
+                  // la pill, il segnalibro no (prima il raggio 100 sul
+                  // contenuto intero gli mangiava il fianco sinistro —
+                  // punto 6.1 del documento "Specifiche Modifiche App").
+                  child: ClipRRect(
+                    borderRadius: raggio,
                     child: AnimatedBuilder(
                       animation: _sweep,
                       builder: (_, __) => _bandaDiLuce(_sweep.value),
                     ),
                   ),
                 ),
-            ],
-          ),
+              ),
+          ],
         ),
       ),
     );

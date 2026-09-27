@@ -67,6 +67,18 @@ class EventInfoPopupScreen extends StatelessWidget {
                 // IntrinsicHeight qui — non è supportato come discendente
                 // di uno scroll/LayoutBuilder e causa un crash di layout.
                 child: CustomScrollView(
+                  // Niente scroll quando non serve (punto 4.1 del documento
+                  // "Specifiche Modifiche App"): con la fisica di default su
+                  // iOS la pagina si trascina e rimbalza anche se il
+                  // contenuto ci sta tutto, ed è quello "scroll non
+                  // desiderato". ClampingScrollPhysics non si muove di un
+                  // pixel finché non c'è davvero qualcosa oltre il bordo.
+                  //
+                  // NON si usa NeverScrollableScrollPhysics: con una line-up
+                  // lunga o su schermi piccoli il contenuto sfora davvero, e
+                  // bloccando lo scroll a prescindere il CTA in fondo
+                  // diventerebbe irraggiungibile.
+                  physics: const ClampingScrollPhysics(),
                   slivers: [
                     SliverPadding(
                       // Margine card: 19px a sinistra/destra (Figma 393−354)/2.

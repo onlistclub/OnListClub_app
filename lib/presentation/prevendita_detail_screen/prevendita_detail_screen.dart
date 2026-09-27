@@ -8,6 +8,7 @@ import '../../widgets/top_bar_slot.dart';
 import '../../widgets/flip_card.dart';
 import '../../widgets/shared_footer.dart';
 import '../../widgets/ticket_cards.dart';
+import '../../core/services/qr_offline_service.dart';
 
 /// Dettaglio di una singola prevendita acquistata — biglietto aperto.
 ///
@@ -37,6 +38,16 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
 
   /// True quando si mostra il RETRO del biglietto (QR).
   bool _showQr = false;
+
+  /// Mostra o nasconde il QR. Mostrandolo mentre l'app sta lavorando sui
+  /// biglietti salvati sul telefono, mette in coda il fatto: e' il dato di
+  /// copertura di rete del locale, e parte da solo appena si torna online.
+  void _mostraQr(bool mostra, String? idBiglietto) {
+    setState(() => _showQr = mostra);
+    if (mostra && OrdersService.senzaRete.value) {
+      QrOfflineService().segna(idBiglietto);
+    }
+  }
 
   bool _segnatoVisto = false;
 
@@ -165,7 +176,8 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                   // si gira col tap ovunque sulla card, oltre che dai bottoni.
                   child: FlipCard(
                     showBack: _showQr,
-                    onTap: () => setState(() => _showQr = !_showQr),
+                    onTap: () =>
+                        _mostraQr(!_showQr, idPrenotazionePrevendita),
                     back: TicketBackCard(
                       clubName: localeNome,
                       quantita: quantita,
@@ -174,7 +186,8 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                       eventoSottotitolo: null,
                       dataEvento: _formatData(evento?['data']),
                       qrData: qrData,
-                      onHide: () => setState(() => _showQr = false),
+                      onHide: () =>
+                          _mostraQr(false, idPrenotazionePrevendita),
                     ),
                     front: TicketFrontCard(
                       ticketType: (prevendita?['tipo'] ?? 'normale').toString(),
@@ -183,7 +196,8 @@ class _PrevenditaDetailScreenState extends State<PrevenditaDetailScreen> {
                       nome: (item['nome'] ?? '—').toString(),
                       cognome: (item['cognome'] ?? '—').toString(),
                       prezzo: _formatPrezzo(prevendita?['prezzo']),
-                      onShowQr: () => setState(() => _showQr = true),
+                      onShowQr: () =>
+                          _mostraQr(true, idPrenotazionePrevendita),
                       onCollapse: () => NavigatorService.goBack(),
                       onAnnulla: (isAnnullata || isEntrato)
                           ? null

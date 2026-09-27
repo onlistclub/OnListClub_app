@@ -2,61 +2,70 @@ import 'package:flutter/material.dart';
 
 import '../core/constants/image_constant.dart';
 
-/// Scritta "OnList" (wordmark ufficiale), ritagliata dal suo asset.
+/// Logo "OnList" intero (scritta + pallina con l'alone), versione bianca.
 ///
-/// `logo_onlist_wordmark.png` NON è ritagliato: è un canvas QUADRATO in cui la
-/// scritta occupa solo una fascia centrale, circondata da molto spazio
-/// trasparente. Disegnarlo con un semplice `Image.asset(height: h)` fa quindi
-/// una scritta alta `h × 0.2535` — un quarto di quello che ci si aspetta —
-/// persa dentro un riquadro quasi vuoto.
+/// Usa l'asset ufficiale `WHITE INTERO.png` della cartella brand, già
+/// ritagliato sui bordi effettivi della grafica (variante "Senza Margini"):
+/// niente più canvas quadrato con metà disegno trasparente attorno.
 ///
-/// Qui il ritaglio è fatto a runtime con OverflowBox + Transform (nessuna
-/// modifica al file su disco): il box finale è esattamente la scritta.
+/// **Perché non c'è nessun ritaglio.** Prima il logo veniva ricavato da un
+/// asset quadrato con un `ClipRect` sul riquadro delle sole lettere piene: e
+/// quel riquadro tagliava l'alone viola della pallina, che sfora sopra la
+/// cap-height (punto 1.2 del documento "Specifiche Modifiche App"). Qui il
+/// disegno esce liberamente dal riquadro di layout, che resta grande quanto
+/// la scritta: il logo occupa lo stesso spazio di prima e l'alone si vede
+/// tutto.
 ///
-/// Le percentuali sono il bounding box dei pixel PIENI delle lettere, con un
-/// po' di headroom in alto per non tagliare il glow viola del puntino della
-/// "i", che sfora sopra la cap-height.
-///
-/// Era codice privato di `CustomTopBar`: estratto qui quando è servito anche
-/// alla card "Tu e OnList", dove il logo era appunto finito minuscolo.
+/// [height] è l'altezza delle LETTERE — quello che l'occhio misura — non del
+/// riquadro dell'immagine: l'alone non fa testo nell'allineamento.
 class OnlistWordmark extends StatelessWidget {
   const OnlistWordmark({super.key, required this.height});
 
-  /// Altezza REALE della scritta (non del canvas): è ciò che si vede.
+  /// Altezza della scritta, alone escluso.
   final double height;
 
-  static const double _cropLeft = 0.1237;
-  static const double _cropTop = 0.3950;
-  static const double _cropWidth = 0.7520;
-  static const double _cropHeight = 0.2535;
+  // Misure prese sui pixel di `WHITE INTERO.png` (1500×635):
+  //  - lettere piene: x 0…1498, y 180…633 → 1499×454;
+  //  - disegno completo (alone incluso): y 30…634.
+  // L'alone sfora quindi solo SOPRA le lettere, per 150px su 454.
+  static const double _assetW = 1500;
+  static const double _assetH = 635;
+  static const double _lettereW = 1499;
+  static const double _lettereH = 454;
+  static const double _lettereTop = 180;
 
-  /// Proporzioni della sola scritta: ~2.97:1.
-  static double get aspect => _cropWidth / _cropHeight;
+  /// Quante volte l'immagine intera è più alta delle sole lettere.
+  static const double _scala = _assetH / _lettereH; // 1.3987
+
+  /// Quanto l'immagine sfora sopra il riquadro, in multipli di [height].
+  static const double _sforoSopra = (_lettereTop / _assetH) * _scala; // 0.3964
+
+  /// Proporzioni della sola scritta: ~3.30:1.
+  static double get aspect => _lettereW / _lettereH;
 
   @override
   Widget build(BuildContext context) {
-    final double boxW = height * aspect;
-    // Lato del render quadrato: la frazione _cropHeight del lato deve
-    // corrispondere all'altezza voluta.
-    final double side = height / _cropHeight;
-    return ClipRect(
-      child: SizedBox(
-        width: boxW,
-        height: height,
-        child: OverflowBox(
-          alignment: Alignment.topLeft,
-          minWidth: side,
-          maxWidth: side,
-          minHeight: side,
-          maxHeight: side,
-          child: Transform.translate(
-            offset: Offset(-_cropLeft * side, -_cropTop * side),
-            child: Image.asset(
-              ImageConstant.imgLogoOnlistWordmark,
-              width: side,
-              height: side,
-              fit: BoxFit.fill,
-            ),
+    final double imgH = height * _scala;
+    final double imgW = imgH * (_assetW / _assetH);
+    return SizedBox(
+      // Il posto occupato nel layout è quello della scritta, come prima.
+      width: height * aspect,
+      height: height,
+      child: OverflowBox(
+        // Niente clip: l'immagine è più alta del riquadro e la parte in
+        // eccesso — l'alone — viene disegnata fuori, sopra.
+        alignment: Alignment.topLeft,
+        minWidth: imgW,
+        maxWidth: imgW,
+        minHeight: imgH,
+        maxHeight: imgH,
+        child: Transform.translate(
+          offset: Offset(0, -_sforoSopra * height),
+          child: Image.asset(
+            ImageConstant.imgLogoOnlistIntero,
+            width: imgW,
+            height: imgH,
+            fit: BoxFit.fill,
           ),
         ),
       ),

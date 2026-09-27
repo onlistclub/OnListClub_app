@@ -49,13 +49,16 @@ class CustomTopBar extends StatelessWidget implements PreferredSizeWidget {
   }
 
   /// Altezza della scritta "OnList": dimensione fissa (non scalata su R.w),
-  /// coerente con le icone search/profile (32px) — misurato su
+  /// coerente con le icone search/profile — misurato su
   /// `docs/figma_screen/off/nav-bar.png`: logo 37px vs icone 34px, quindi
   /// stessa taglia, non 30% dello schermo (che lo rendeva enorme/sfocato).
   ///
-  /// Il ritaglio del wordmark sta ora in [OnlistWordmark], condiviso con la
-  /// card "Tu e OnList" dell'Account.
-  static const double _logoHeight = 34;
+  /// 29.5 e non piu' 34: [OnlistWordmark] ora misura le LETTERE, mentre prima
+  /// il numero era l'altezza del riquadro ritagliato, che conteneva anche un
+  /// po' di alone. La scritta a schermo resta identica a prima (34 × 0.22 /
+  /// 0.2535 = 29.5); quello che cambia e' che l'alone della pallina non viene
+  /// piu' tagliato.
+  static const double _logoHeight = 29.5;
 
   /// Padding verticale della barra (sopra+sotto).
   static const double _vPad = 10;

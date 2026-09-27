@@ -9,9 +9,9 @@ import '../theme/onlist_colors.dart';
 import '../theme/onlist_text_styles.dart';
 import 'dashed_line.dart';
 import 'fit_one_line_text.dart';
-import 'staggered_item.dart';
 import 'testo_pagamento_struttura.dart';
 import 'ticket_shape.dart';
+import 'testo_centrato.dart';
 
 /// Card-biglietto del design NUOVO condivise da "Ordine Effettuato" e
 /// "Riepilogo ordini". Tre stati, ognuno un widget a sé:
@@ -181,9 +181,8 @@ class TicketCollapsedCard extends StatelessWidget {
                 left: 0,
                 right: 0,
                 top: R.sp(65),
-                child: Text(
+                child: TestoCentrato(
                   label,
-                  textAlign: TextAlign.center,
                   style: OnlistTextStyles.hn(
                     color: Colors.white,
                     fontSize: R.sp(25),
@@ -211,6 +210,7 @@ class TicketCollapsedCard extends StatelessWidget {
 class TicketFrontCard extends StatelessWidget {
   final String ticketType;
   final int quantita;
+
   /// Numero di offerte del ticket: la riga accanto alla quantità mostra
   /// "+ N Plus" come nel Figma.
   final int plus;
@@ -288,7 +288,7 @@ class TicketFrontCard extends StatelessWidget {
                   child: Center(
                     child: FittedBox(
                       fit: BoxFit.scaleDown,
-                      child: Text(
+                      child: TestoCentrato(
                         'Ticket ${ticketType.toLowerCase()}',
                         style: OnlistTextStyles.hn(
                           color: Colors.white,
@@ -482,6 +482,7 @@ class TicketFrontCard extends StatelessWidget {
 class TicketBackCard extends StatelessWidget {
   final String clubName;
   final int quantita;
+
   /// Numero di offerte del ticket: la riga accanto alla quantità mostra
   /// "+ N Plus" come nel Figma.
   final int plus;
@@ -521,9 +522,11 @@ class TicketBackCard extends StatelessWidget {
         notches: [_openNotch(_separator1Y), _openNotch(_separator2Y)],
         borderWidthDesign: 3,
         borderColor: OnlistColors.ticketCardBorderOpen,
-        // I blocchi entrano SFALSATI (stagger) quando il retro compare, cioè
-        // a metà rotazione: slide orizzontale + fade, ritardo crescente —
-        // stesso effetto della flip card di riferimento.
+        // Il retro e' FERMO: niente ingresso sfalsato dei blocchi.
+        // Girando il biglietto i contenuti entravano uno dopo l'altro in
+        // slide + fade, e siccome il retro si rivede ogni volta che lo si
+        // apre, l'animazione si ripeteva a ogni sguardo al QR. Ora la
+        // facciata sta dove deve stare (richiesta 25/09).
         child: Stack(
           children: [
             // Linea tratteggiata ANCORATA alla quota della tacca, non più in
@@ -531,48 +534,35 @@ class TicketBackCard extends StatelessWidget {
             Positioned(
               left: R.sp(26),
               top: R.sp(_separator1Y),
-              child: const _BackStagger(
-                index: 2,
-                child: DashedLine(widthDesign: 297),
-              ),
+              child: const DashedLine(widthDesign: 297),
             ),
             Positioned(
               left: R.sp(26),
               top: R.sp(_separator2Y),
-              child: const _BackStagger(
-                index: 3,
-                child: DashedLine(widthDesign: 297),
-              ),
+              child: const DashedLine(widthDesign: 297),
             ),
             Column(
               children: [
                 SizedBox(height: R.sp(29)),
                 // Nome locale 55/500 centrato (era w700: il CSS dice 500).
-                _BackStagger(
-                  index: 0,
-                  child: Padding(
-                    padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-                    child: FittedBox(
-                      fit: BoxFit.scaleDown,
-                      child: Text(
-                        clubName,
-                        style: OnlistTextStyles.hn(
-                          color: Colors.white,
-                          fontSize: R.sp(55),
-                          fontWeight: FontWeight.w500,
-                          height: 54 / 55,
-                          letterSpacing: -0.1 * 55,
-                        ),
+                Padding(
+                  padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+                  child: FittedBox(
+                    fit: BoxFit.scaleDown,
+                    child: Text(
+                      clubName,
+                      style: OnlistTextStyles.hn(
+                        color: Colors.white,
+                        fontSize: R.sp(55),
+                        fontWeight: FontWeight.w500,
+                        height: 54 / 55,
+                        letterSpacing: -0.1 * 55,
                       ),
                     ),
                   ),
                 ),
                 SizedBox(height: R.sp(20)),
-                _BackStagger(
-                  index: 1,
-                  child: _QuantityRow(
-                      quantita: quantita, plus: plus),
-                ),
+                _QuantityRow(quantita: quantita, plus: plus),
                 // "Ticket x 1" chiude a rel 136; il blocco evento parte a 143,
                 // subito sotto il tratteggio (142.5).
                 SizedBox(height: R.sp(7)),
@@ -582,54 +572,51 @@ class TicketBackCard extends StatelessWidget {
                 // su due righe, spingeva giù tutto e finiva sopra i trattini.
                 SizedBox(
                   height: R.sp(145),
-                  child: _BackStagger(
-                    index: 3,
-                    child: Padding(
-                      padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
+                  child: Padding(
+                    padding: EdgeInsets.symmetric(horizontal: R.sp(22)),
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        FitOneLineText(
+                          eventoNome,
+                          minFontSize: R.sp(26),
+                          textAlign: TextAlign.center,
+                          style: OnlistTextStyles.hn(
+                            color: Colors.white,
+                            fontSize: R.sp(55),
+                            fontWeight: FontWeight.w500,
+                            height: 54 / 55,
+                            letterSpacing: -0.05 * R.sp(55),
+                          ),
+                        ),
+                        if (eventoSottotitolo != null &&
+                            eventoSottotitolo!.isNotEmpty) ...[
+                          SizedBox(height: R.sp(17)),
                           FitOneLineText(
-                            eventoNome,
-                            minFontSize: R.sp(26),
+                            eventoSottotitolo!,
+                            minFontSize: R.sp(20),
                             textAlign: TextAlign.center,
                             style: OnlistTextStyles.hn(
                               color: Colors.white,
-                              fontSize: R.sp(55),
-                              fontWeight: FontWeight.w500,
-                              height: 54 / 55,
-                              letterSpacing: -0.05 * R.sp(55),
-                            ),
-                          ),
-                          if (eventoSottotitolo != null &&
-                              eventoSottotitolo!.isNotEmpty) ...[
-                            SizedBox(height: R.sp(17)),
-                            FitOneLineText(
-                              eventoSottotitolo!,
-                              minFontSize: R.sp(20),
-                              textAlign: TextAlign.center,
-                              style: OnlistTextStyles.hn(
-                                color: Colors.white,
-                                fontSize: R.sp(33),
-                                fontWeight: FontWeight.w500,
-                                height: 1.0,
-                                letterSpacing: -0.05 * R.sp(33),
-                              ),
-                            ),
-                          ],
-                          SizedBox(height: R.sp(17)),
-                          Text(
-                            dataEvento,
-                            style: OnlistTextStyles.hn(
-                              color: Colors.white,
-                              fontSize: R.sp(20),
+                              fontSize: R.sp(33),
                               fontWeight: FontWeight.w500,
                               height: 1.0,
-                              letterSpacing: -0.05 * R.sp(20),
+                              letterSpacing: -0.05 * R.sp(33),
                             ),
                           ),
                         ],
-                      ),
+                        SizedBox(height: R.sp(17)),
+                        Text(
+                          dataEvento,
+                          style: OnlistTextStyles.hn(
+                            color: Colors.white,
+                            fontSize: R.sp(20),
+                            fontWeight: FontWeight.w500,
+                            height: 1.0,
+                            letterSpacing: -0.05 * R.sp(20),
+                          ),
+                        ),
+                      ],
                     ),
                   ),
                 ),
@@ -644,64 +631,61 @@ class TicketBackCard extends StatelessWidget {
                 // restano 326: 24 sopra + 232 di QR + 18 + 33 di pill + 19 di
                 // respiro sotto, quest'ultimo chiesto dal doc "last".
                 Expanded(
-                  child: _BackStagger(
-                    index: 4,
-                    child: SizedBox(
-                      width: double.infinity,
-                      child: Column(
-                        children: [
-                          SizedBox(height: R.sp(24)),
-                          Container(
-                            width: R.sp(232),
-                            height: R.sp(232),
-                            decoration: BoxDecoration(
-                              // BIANCO PIENO con moduli NERI: la polarità
-                              // standard del QR, la stessa del totem recensioni
-                              // che lo scanner legge senza problemi.
-                              //
-                              // Prima era il contrario (moduli bianchi su fondo
-                              // scuro): un QR "invertito". Lo standard dà per
-                              // scontato scuro-su-chiaro, e parecchi lettori non
-                              // provano nemmeno il caso opposto — per loro non
-                              // c'è nessun codice da leggere. È il motivo per
-                              // cui il QR dell'app non si scansionava mentre
-                              // quello stampato sì.
-                              color: Colors.white,
-                              borderRadius: BorderRadius.circular(R.sp(16)),
+                  child: SizedBox(
+                    width: double.infinity,
+                    child: Column(
+                      children: [
+                        SizedBox(height: R.sp(24)),
+                        Container(
+                          width: R.sp(232),
+                          height: R.sp(232),
+                          decoration: BoxDecoration(
+                            // BIANCO PIENO con moduli NERI: la polarità
+                            // standard del QR, la stessa del totem recensioni
+                            // che lo scanner legge senza problemi.
+                            //
+                            // Prima era il contrario (moduli bianchi su fondo
+                            // scuro): un QR "invertito". Lo standard dà per
+                            // scontato scuro-su-chiaro, e parecchi lettori non
+                            // provano nemmeno il caso opposto — per loro non
+                            // c'è nessun codice da leggere. È il motivo per
+                            // cui il QR dell'app non si scansionava mentre
+                            // quello stampato sì.
+                            color: Colors.white,
+                            borderRadius: BorderRadius.circular(R.sp(16)),
+                          ),
+                          // Cornice bianca attorno al QR. Non si stringe oltre:
+                          // dentro, QrImageView tiene la sua "quiet zone" di
+                          // 10 px (il margine che i lettori usano per
+                          // agganciare il codice) — toglierla renderebbe il QR
+                          // più grande ma più difficile da scansionare.
+                          padding: EdgeInsets.all(R.sp(7)),
+                          // QR reale (scansionabile dallo staff), non decorativo.
+                          child: QrImageView(
+                            data: qrData,
+                            version: QrVersions.auto,
+                            // Anche la quiet zone dev'essere bianca: se
+                            // restasse trasparente il margine prenderebbe il
+                            // blu del pannello e il lettore non troverebbe il
+                            // bordo del codice.
+                            backgroundColor: Colors.white,
+                            eyeStyle: const QrEyeStyle(
+                              eyeShape: QrEyeShape.square,
+                              color: Colors.black,
                             ),
-                            // Cornice bianca attorno al QR. Non si stringe oltre:
-                            // dentro, QrImageView tiene la sua "quiet zone" di
-                            // 10 px (il margine che i lettori usano per
-                            // agganciare il codice) — toglierla renderebbe il QR
-                            // più grande ma più difficile da scansionare.
-                            padding: EdgeInsets.all(R.sp(7)),
-                            // QR reale (scansionabile dallo staff), non decorativo.
-                            child: QrImageView(
-                              data: qrData,
-                              version: QrVersions.auto,
-                              // Anche la quiet zone dev'essere bianca: se
-                              // restasse trasparente il margine prenderebbe il
-                              // blu del pannello e il lettore non troverebbe il
-                              // bordo del codice.
-                              backgroundColor: Colors.white,
-                              eyeStyle: const QrEyeStyle(
-                                eyeShape: QrEyeShape.square,
-                                color: Colors.black,
-                              ),
-                              dataModuleStyle: const QrDataModuleStyle(
-                                dataModuleShape: QrDataModuleShape.square,
-                                color: Colors.black,
-                              ),
+                            dataModuleStyle: const QrDataModuleStyle(
+                              dataModuleShape: QrDataModuleShape.square,
+                              color: Colors.black,
                             ),
                           ),
-                          SizedBox(height: R.sp(18)),
-                          TicketPillButton(label: 'NASCONDI', onTap: onHide),
-                          // Respiro sotto la pill, come nel Figma (pill a 563
-                          // + 32 su una card di 614): senza, su certi telefoni
-                          // finiva appiccicata al bordo del biglietto.
-                          SizedBox(height: R.sp(19)),
-                        ],
-                      ),
+                        ),
+                        SizedBox(height: R.sp(18)),
+                        TicketPillButton(label: 'NASCONDI', onTap: onHide),
+                        // Respiro sotto la pill, come nel Figma (pill a 563
+                        // + 32 su una card di 614): senza, su certi telefoni
+                        // finiva appiccicata al bordo del biglietto.
+                        SizedBox(height: R.sp(19)),
+                      ],
                     ),
                   ),
                 ),
@@ -710,31 +694,6 @@ class TicketBackCard extends StatelessWidget {
           ],
         ),
       ),
-    );
-  }
-}
-
-/// Entrata sfalsata dei blocchi del retro: parte quando il retro viene
-/// montato (metà rotazione), con slide orizzontale + fade e ritardo crescente
-/// per indice — l'equivalente del `transitionDelay: index*100 + 200ms` della
-/// flip card di riferimento.
-class _BackStagger extends StatelessWidget {
-  final int index;
-  final Widget child;
-
-  const _BackStagger({required this.index, required this.child});
-
-  @override
-  Widget build(BuildContext context) {
-    return StaggeredItem(
-      index: index,
-      beginOffset: const Offset(-0.06, 0),
-      step: const Duration(milliseconds: 90),
-      // Il retro compare a metà rotazione: si aspetta che la card sia quasi
-      // frontale prima di far entrare i contenuti.
-      initialDelay: const Duration(milliseconds: 180),
-      duration: const Duration(milliseconds: 300),
-      child: child,
     );
   }
 }

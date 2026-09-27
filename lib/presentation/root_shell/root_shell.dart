@@ -52,7 +52,19 @@ class _RootShellState extends State<RootShell>
   // Indici allineati alla SharedFooter: 0 = Ticket/Ordini, 1 = Home, 2 = Carrello.
   static const int _tabHome = 1;
 
+  static const int _tabTicket = 0;
+
   static const int _tabCarrello = 2;
+
+  /// Scroll del riepilogo ticket, per riportarlo in cima quando si ritocca
+  /// la sua icona nella footer (richiesta 25/09).
+  ///
+  /// Sta qui e non nella schermata perche' il tap arriva alla footer, che e'
+  /// dello shell: e' lo shell a sapere che si e' toccata la tab gia' attiva.
+  /// Lo prende la `ListView` di OrdersScreen senza modifiche, perche' una
+  /// ScrollView verticale senza controller si attacca da sola al
+  /// [PrimaryScrollController] che trova sopra di se'.
+  final ScrollController _scrollTicket = ScrollController();
 
   /// Nome analytics di ogni tab, per indice. Sono i `screenName` storici delle
   /// tre schermate, così il foglio continua a riconoscerle.
@@ -122,7 +134,10 @@ class _RootShellState extends State<RootShell>
   // preservato tra i cambi tab). Non montano una footer propria: quella valida
   // è la [SharedFooter] globale dello shell.
   late final List<Widget> _tabs = [
-    OrdersScreen.builder(context),
+    PrimaryScrollController(
+      controller: _scrollTicket,
+      child: OrdersScreen.builder(context),
+    ),
     HomeScreen.builder(context),
     CartScreen.builder(context),
   ];
@@ -161,6 +176,7 @@ class _RootShellState extends State<RootShell>
     }
     _tabAnim.dispose();
     _tab.dispose();
+    _scrollTicket.dispose();
     _routeHighlight.dispose();
     _rottaInCima.dispose();
     super.dispose();
@@ -192,6 +208,24 @@ class _RootShellState extends State<RootShell>
     }
     // Anima l'ingresso della nuova tab solo se è cambiata davvero.
     if (changed) _tabAnim.forward(from: 0.0);
+    // Ritocco sulla tab GIA' attiva, senza dettagli aperti da chiudere:
+    // l'unica cosa sensata da fare e' riportare la lista in cima.
+    if (!changed && !cheranoDettagli) _tornaInCima(index);
+  }
+
+  /// Riporta in cima la lista della tab, se ne ha una che sa scorrere.
+  ///
+  /// Per ora vale per il riepilogo ticket, l'unico tab con una lista sola:
+  /// Home e Carrello hanno piu' scrollabili verticali, e un solo
+  /// controller li muoverebbe tutti insieme.
+  void _tornaInCima(int index) {
+    if (index != _tabTicket) return;
+    if (!_scrollTicket.hasClients) return;
+    _scrollTicket.animateTo(
+      0,
+      duration: const Duration(milliseconds: 320),
+      curve: Curves.easeOutCubic,
+    );
   }
 
   /// Host dei 3 tab, in ascolto di [_tab]: cambiare tab ricostruisce solo

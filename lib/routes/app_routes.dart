@@ -85,6 +85,16 @@ class AppRoutes {
     legalReacceptScreen,
   };
 
+  /// Rotte che scorrono in VERTICALE: entrano scendendo dall'alto e se ne
+  /// vanno verso l'alto. Il biglietto aperto dalla sezione Ticket si chiude
+  /// con una freccia che punta in su, e il movimento della schermata deve
+  /// andare nello stesso verso (punto 5.4 del documento "Specifiche
+  /// Modifiche App"): con lo shared-axis orizzontale la freccia diceva una
+  /// cosa e la pagina ne faceva un'altra.
+  static const Set<String> _slideUpRoutes = {
+    prevenditaDetailScreen,
+  };
+
   /// Rotte che entrano come un POP-UP: piccole e trasparenti, si aprono con un
   /// rimbalzo. È una rotta a tutti gli effetti, ma deve dare la sensazione di
   /// un pannello che scatta in primo piano sopra il dettaglio del club.
@@ -147,6 +157,8 @@ class AppRoutes {
       transition = AppTransition.popup;
     } else if (_fadeRoutes.contains(settings.name)) {
       transition = AppTransition.fade;
+    } else if (_slideUpRoutes.contains(settings.name)) {
+      transition = AppTransition.slideUp;
     } else {
       transition = AppTransition.sharedAxis;
     }

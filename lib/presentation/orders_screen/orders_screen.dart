@@ -125,6 +125,7 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
               // design ufficiale (riepilogo-ordini.css: arrow top 112 sotto la
               // barra logo, sezione "Oggi" a top 171).
               BackRow(onTap: _onBackTap),
+              _avvisoSenzaRete(),
               // MVP: nessuna tab. Mostriamo solo le prevendite (Tavoli nascosti).
               Expanded(
                 child: _isLoading
@@ -136,6 +137,40 @@ class _OrdersScreenState extends State<OrdersScreen> with ScreenAnalytics {
         ),
       ),
       // La footer è quella globale dello shell (non montata qui).
+    );
+  }
+
+  /// Riga di avviso quando i biglietti arrivano dal telefono e non dal DB.
+  ///
+  /// Il biglietto funziona lo stesso — il QR e' disegnato in locale — ma
+  /// l'elenco potrebbe non essere aggiornato, e va detto invece di far
+  /// credere che sia appena arrivato dal server.
+  Widget _avvisoSenzaRete() {
+    return ValueListenableBuilder<bool>(
+      valueListenable: OrdersService.senzaRete,
+      builder: (context, senzaRete, _) {
+        if (!senzaRete) return const SizedBox.shrink();
+        return Padding(
+          padding: EdgeInsets.fromLTRB(R.sp(21), 0, R.sp(21), R.sp(8)),
+          child: Row(
+            children: [
+              Icon(Icons.cloud_off_rounded,
+                  color: Colors.white54, size: R.sp(14)),
+              SizedBox(width: R.sp(7)),
+              Expanded(
+                child: Text(
+                  'Senza connessione: biglietti salvati sul telefono',
+                  style: OnlistTextStyles.hn(
+                    color: Colors.white54,
+                    fontSize: R.sp(13),
+                    fontWeight: FontWeight.w400,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        );
+      },
     );
   }
 

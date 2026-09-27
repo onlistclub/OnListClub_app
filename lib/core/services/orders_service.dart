@@ -1,7 +1,11 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:flutter/foundation.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
+
+import 'prevendite_cache_service.dart';
+import 'qr_offline_service.dart';
 
 /// Storico ordini dell'utente: prevendite + prenotazioni tavolo.
 ///
@@ -21,6 +25,14 @@ class OrdersService {
   static final ValueNotifier<int> revisione = ValueNotifier<int>(0);
 
   static void segnalaNuovoOrdine() => revisione.value++;
+
+  /// True quando i biglietti a schermo arrivano dal telefono e non dal DB.
+  ///
+  /// Non e' una spia della connessione di sistema: dice che l'ultima query
+  /// dei biglietti e' fallita davvero. Un wifi agganciato che non porta da
+  /// nessuna parte risulterebbe "connesso" a un'API di connettivita', e nei
+  /// locali e' proprio quello il caso da riconoscere.
+  static final ValueNotifier<bool> senzaRete = ValueNotifier<bool>(false);
 
   // ─────────────────────────────────────────────────────────────────────────────
   // PREVENDITE
@@ -66,7 +78,7 @@ class OrdersService {
       // La tabella non ha un `created_at` proprio: si ordina qui sotto su
       // quello della prenotazione madre.
 
-      return items
+      final List<Map<String, dynamic>> risultato = items
           .map((item) {
             final pren = item['prenotazioni'] as Map<String, dynamic>?;
             if (pren == null) {
@@ -96,9 +108,21 @@ class OrdersService {
           if (db == null) return -1;
           return db.compareTo(da);
         });
+
+      // Query riuscita: c'e' rete. Si aggiorna la copia sul telefono e si
+      // spedisce quello che era rimasto in coda dalle serate senza campo.
+      senzaRete.value = false;
+      await PrevenditeCacheService().salva(risultato);
+      unawaited(QrOfflineService().invia());
+      return risultato;
     } catch (e) {
       debugPrint('[OrdersService] getPrevenditeOrdini errore: $e');
-      return [];
+      // Senza rete i biglietti restano quelli salvati: il QR e' una
+      // stringa fissa disegnata in locale, quindi all'ingresso funziona
+      // lo stesso. Chi scansiona ha la sua connessione.
+      final cache = await PrevenditeCacheService().leggi();
+      senzaRete.value = cache.isNotEmpty;
+      return cache;
     }
   }
 
@@ -224,6 +248,63 @@ class OrdersService {
       return row?['telefono'] as String?;
     } catch (e) {
       debugPrint('[OrdersService] getUserTelefono errore: $e');
+      return null;
+    }
+  }
+
+  /// Cambia il numero primario dell'utente.
+  ///
+  /// Il numero non sta su `utenti` ma su `utenti_numeri_telefono`, che il
+  /// client non scrive direttamente: si passa dalla RPC
+  /// `update_user_telefono` (SECURITY DEFINER), gemella di quella usata in
+  /// registrazione. Vuole il numero gia' in E.164, come lo produce
+  /// `OnlistPhoneField`.
+  ///
+  /// Serve la migration `2026-09-24_update_user_telefono.sql`.
+  static Future<void> updateTelefono({
+    required String e164,
+    String? countryIso,
+  }) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw StateError('Utente non autenticato');
+    final numero = e164.replaceAll(' ', '');
+    if (numero.length < 7) throw ArgumentError('Telefono non valido');
+    await _client.rpc('update_user_telefono', params: {
+      'p_telefono': numero,
+      'p_country_iso': countryIso,
+    });
+  }
+
+  /// Avvia il cambio dell'indirizzo email dell'account.
+  ///
+  /// Supabase manda un link di conferma al NUOVO indirizzo: finche' non
+  /// viene aperto, l'email dell'account resta quella vecchia. Per questo
+  /// qui NON si tocca `utenti.email`: la si riallinea dopo, quando
+  /// l'utente ha confermato (vedi [allineaEmailDaAuth]).
+  static Future<void> richiediCambioEmail(String nuovaEmail) async {
+    final user = _client.auth.currentUser;
+    if (user == null) throw StateError('Utente non autenticato');
+    final email = nuovaEmail.trim();
+    if (email.isEmpty) throw ArgumentError('Email non valida');
+    await _client.auth.updateUser(UserAttributes(email: email));
+  }
+
+  /// Riallinea `utenti.email` a quella dell'account, se sono diverse.
+  ///
+  /// E' il seguito di [richiediCambioEmail]: il cambio diventa effettivo
+  /// quando l'utente apre il link di conferma, e da quel momento
+  /// `auth.currentUser.email` e la colonna non coincidono piu'. Si chiama
+  /// al caricamento del profilo, costa una update solo quando serve.
+  static Future<String?> allineaEmailDaAuth(String? emailInTabella) async {
+    final user = _client.auth.currentUser;
+    final emailAuth = user?.email;
+    if (user == null || emailAuth == null || emailAuth.isEmpty) return null;
+    if (emailAuth == emailInTabella) return null;
+    try {
+      await _client.from('utenti').update({'email': emailAuth}).eq('id', user.id);
+      return emailAuth;
+    } catch (e) {
+      debugPrint('[OrdersService] allineaEmailDaAuth errore: $e');
       return null;
     }
   }

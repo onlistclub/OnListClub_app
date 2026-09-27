@@ -21,6 +21,9 @@ import '../../routes/app_routes.dart';
 import 'navigator_service.dart';
 import 'pending_order_service.dart';
 import 'ticket_non_visti_service.dart';
+import 'orders_service.dart';
+import 'prevendite_cache_service.dart';
+import 'qr_offline_service.dart';
 
 class AuthService {
   AuthService._();
@@ -82,6 +85,11 @@ class AuthService {
     // filtra la RLS).
     PendingOrderService().reset();
     TicketNonVistiService().reset();
+    // I biglietti salvati per l'uso senza rete sono di QUESTA persona:
+    // nome, cognome e QR non restano sul telefono per il prossimo che entra.
+    await PrevenditeCacheService().svuotaTutto();
+    await QrOfflineService().svuotaTutto();
+    OrdersService.senzaRete.value = false;
     try {
       await Supabase.instance.client.auth.signOut();
     } catch (e) {

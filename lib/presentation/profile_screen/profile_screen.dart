@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:io';
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -8,6 +9,8 @@ import 'package:intl/intl.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_export.dart';
+import '../../widgets/phone_field/onlist_phone_field.dart';
+import '../../widgets/phone_field/phone_country.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/account_deletion_service.dart';
 import '../../core/services/auth_service.dart';
@@ -56,6 +59,40 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   String? _fotoUrl;
   bool _isUploadingFoto = false;
 
+  /// True mentre il badge "cambia foto" è a schermo.
+  ///
+  /// A riposo la foto profilo si vede pulita: l'icona della fotocamera
+  /// compare solo dopo un tap sull'immagine (punto 2.2 del documento
+  /// "Specifiche Modifiche App"), e sparisce da sola dopo qualche secondo se
+  /// non si fa niente.
+  bool _mostraCambioFoto = false;
+  Timer? _timerCambioFoto;
+
+  /// Quanto resta visibile il badge prima di richiudersi da solo.
+  static const Duration _durataCambioFoto = Duration(seconds: 4);
+
+  /// Tap sulla foto: la prima volta mostra il badge, la seconda apre la
+  /// galleria. Senza foto non c'è niente da svelare e si va dritti alla
+  /// scelta dell'immagine.
+  void _tapFotoProfilo() {
+    if (_isUploadingFoto) return;
+    if (!_hasFoto || _mostraCambioFoto) {
+      _nascondiCambioFoto();
+      _pickFotoProfilo();
+      return;
+    }
+    setState(() => _mostraCambioFoto = true);
+    _timerCambioFoto?.cancel();
+    _timerCambioFoto = Timer(_durataCambioFoto, () {
+      if (mounted) setState(() => _mostraCambioFoto = false);
+    });
+  }
+
+  void _nascondiCambioFoto() {
+    _timerCambioFoto?.cancel();
+    if (_mostraCambioFoto) setState(() => _mostraCambioFoto = false);
+  }
+
   // Cache in memoria condivisa tra le aperture: riaprendo il Profilo si mostrano
   // subito gli ultimi dati (niente spinner), mentre un refresh silenzioso in
   // background li aggiorna. Aggiornata anche al salvataggio del profilo.
@@ -102,6 +139,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     _cognomeCtrl.dispose();
     _dataNascitaCtrl.dispose();
     _emailCtrl.dispose();
+    _timerCambioFoto?.cancel();
     super.dispose();
   }
 
@@ -124,6 +162,15 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
 
       final profile = results[0] as Map<String, dynamic>?;
       final preferiti = results[1] as List<Map<String, dynamic>>;
+      // Cambio email confermato altrove (l'utente apre il link dalla sua
+      // casella): da quel momento l'account ha la nuova email mentre la
+      // colonna ha ancora la vecchia. Qui si riallineano, costa una update
+      // solo quando sono davvero diverse.
+      final emailAllineata =
+          await OrdersService.allineaEmailDaAuth(profile?['email'] as String?);
+      if (emailAllineata != null && profile != null) {
+        profile['email'] = emailAllineata;
+      }
       _telefono = results[2] as String?;
       _numeroSerate = results[3] as int;
       _fotoUrl = profile?['foto_url'] as String?;
@@ -636,40 +683,46 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                     // l'email finiva troncata con i puntini (punto 22 del doc
                     // correzioni). Il telefono è anche spaziato per gruppi, così
                     // il prefisso si stacca dal numero e si legge meglio.
-                    Padding(
-                      padding: EdgeInsets.symmetric(horizontal: R.sp(19)),
-                      child: Row(
-                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                        children: [
-                          Flexible(
-                            child: Text(
-                              _telefonoFormattato,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              style: OnlistTextStyles.hn(
-                                fontSize: R.sp(16),
-                                fontWeight: FontWeight.w500,
-                                color: OnlistColors.white,
-                                height: 16 / 16,
+                    // Tap sulla riga: si modificano numero ed email
+                    // (punto 2.1 del documento "Specifiche Modifiche App").
+                    GestureDetector(
+                      onTap: _showEditContattiDialog,
+                      behavior: HitTestBehavior.opaque,
+                      child: Padding(
+                        padding: EdgeInsets.symmetric(horizontal: R.sp(19)),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                          children: [
+                            Flexible(
+                              child: Text(
+                                _telefonoFormattato,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                style: OnlistTextStyles.hn(
+                                  fontSize: R.sp(16),
+                                  fontWeight: FontWeight.w500,
+                                  color: OnlistColors.white,
+                                  height: 16 / 16,
+                                ),
                               ),
                             ),
-                          ),
-                          SizedBox(width: R.sp(12)),
-                          Flexible(
-                            child: Text(
-                              _emailCtrl.text,
-                              maxLines: 1,
-                              overflow: TextOverflow.ellipsis,
-                              textAlign: TextAlign.right,
-                              style: OnlistTextStyles.hn(
-                                fontSize: R.sp(16),
-                                fontWeight: FontWeight.w500,
-                                color: OnlistColors.white,
-                                height: 16 / 16,
+                            SizedBox(width: R.sp(12)),
+                            Flexible(
+                              child: Text(
+                                _emailCtrl.text,
+                                maxLines: 1,
+                                overflow: TextOverflow.ellipsis,
+                                textAlign: TextAlign.right,
+                                style: OnlistTextStyles.hn(
+                                  fontSize: R.sp(16),
+                                  fontWeight: FontWeight.w500,
+                                  color: OnlistColors.white,
+                                  height: 16 / 16,
+                                ),
                               ),
                             ),
-                          ),
-                        ],
+                          ],
+                        ),
                       ),
                     ),
                     SizedBox(height: R.sp(20)),
@@ -733,7 +786,7 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
 
   Widget _buildFotoProfilo() {
     return GestureDetector(
-      onTap: _isUploadingFoto ? null : _pickFotoProfilo,
+      onTap: _tapFotoProfilo,
       behavior: HitTestBehavior.opaque,
       child: Container(
         width: R.sp(114),
@@ -767,27 +820,32 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                     color: OnlistColors.white, size: R.sp(44)),
               )
             else
-              // CON foto: niente più velo nero all'80%, che la spegneva del
-              // tutto. Al posto dell'icona grande al centro c'è un badge
-              // piccolo in basso a destra, così la foto si vede pulita e resta
-              // chiaro che è modificabile. Sotto il badge una sfumatura molto
-              // leggera, solo per staccarlo da foto chiare.
+              // CON foto il badge NON c'è a riposo: la foto si vede pulita.
+              // Compare in dissolvenza al primo tap sull'immagine e sparisce
+              // da solo, oppure al tap successivo che apre la galleria
+              // (punto 2.2 del documento "Specifiche Modifiche App").
               Positioned.fill(
-                child: Align(
-                  alignment: Alignment.bottomRight,
-                  child: Container(
-                    margin: EdgeInsets.all(R.sp(6)),
-                    padding: EdgeInsets.all(R.sp(5)),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withValues(alpha: 0.45),
-                      shape: BoxShape.circle,
-                      border: Border.all(
-                        color: OnlistColors.white.withValues(alpha: 0.5),
-                        width: 1,
+                child: IgnorePointer(
+                  child: AnimatedOpacity(
+                    opacity: _mostraCambioFoto ? 1 : 0,
+                    duration: const Duration(milliseconds: 180),
+                    child: Align(
+                      alignment: Alignment.bottomRight,
+                      child: Container(
+                        margin: EdgeInsets.all(R.sp(6)),
+                        padding: EdgeInsets.all(R.sp(5)),
+                        decoration: BoxDecoration(
+                          color: Colors.black.withValues(alpha: 0.45),
+                          shape: BoxShape.circle,
+                          border: Border.all(
+                            color: OnlistColors.white.withValues(alpha: 0.5),
+                            width: 1,
+                          ),
+                        ),
+                        child: Icon(Icons.photo_camera_outlined,
+                            color: OnlistColors.white, size: R.sp(16)),
                       ),
                     ),
-                    child: Icon(Icons.photo_camera_outlined,
-                        color: OnlistColors.white, size: R.sp(16)),
                   ),
                 ),
               ),
@@ -812,6 +870,11 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   Widget _buildTuEOnlistCard() => FedeltaCard(numeroSerate: _numeroSerate);
 
   // Pill "Club salvati" (CSS Rectangle 295: 182×33 r13, bianco 20%).
+  //
+  // La scritta è centrata nella pill, il segnalibro appoggiato a destra: con
+  // testo e icona dentro una Row centrata veniva centrato il GRUPPO, quindi
+  // la scritta risultava spostata a sinistra (punto 7.3 del documento
+  // "Specifiche Modifiche App").
   Widget _buildClubSalvatiPill() {
     return Center(
       child: Container(
@@ -821,26 +884,33 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           color: const Color(0x33D9D9D9),
           borderRadius: BorderRadius.circular(R.sp(13)),
         ),
-        alignment: Alignment.center,
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
+        child: Stack(
           children: [
-            Text(
-              'Club salvati',
-              style: OnlistTextStyles.hn(
-                fontSize: R.sp(28),
-                fontWeight: FontWeight.w400,
-                color: OnlistColors.white,
-                height: 28 / 28,
-                letterSpacing: -0.06 * 28,
+            Center(
+              child: Text(
+                'Club salvati',
+                style: OnlistTextStyles.hn(
+                  fontSize: R.sp(28),
+                  fontWeight: FontWeight.w400,
+                  color: OnlistColors.white,
+                  height: 28 / 28,
+                  letterSpacing: -0.06 * 28,
+                ),
               ),
             ),
-            SizedBox(width: R.sp(8)),
             // Segnalibro ufficiale (CSS: stroke bianco 2px, riquadro 16.1×21).
             // Disegnato a 25 di altezza, non ai 23 del Figma: e' l'ingrandimento
             // gia' approvato al punto 24 ("mettere piu' grande il tasto dei
             // preferiti"), stessa resa dell'icona Material che sostituisce.
-            SvgPicture.asset(ImageConstant.imgBookmark, height: R.sp(25)),
+            Positioned(
+              right: R.sp(12),
+              top: 0,
+              bottom: 0,
+              child: Center(
+                child: SvgPicture.asset(ImageConstant.imgBookmark,
+                    height: R.sp(25)),
+              ),
+            ),
           ],
         ),
       ),
@@ -920,6 +990,170 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
       ),
     );
   }
+
+  /// Paese e cifre nazionali ricavati da un numero in E.164.
+  ///
+  /// Si cerca il prefisso internazionale PIU' LUNGO che combacia: '+39' e
+  /// '+391' esistono entrambi come inizio di prefisso, e prendendo il primo
+  /// che capita si sbaglierebbe paese.
+  (String, String) _scomponiTelefono(String? e164) {
+    final raw = (e164 ?? '').replaceAll(' ', '');
+    if (!raw.startsWith('+')) return ('IT', raw);
+    PhoneCountry? scelto;
+    for (final c in PhoneCountry.all()) {
+      if (!raw.startsWith(c.dial)) continue;
+      if (scelto == null || c.dial.length > scelto.dial.length) scelto = c;
+    }
+    if (scelto == null) return ('IT', raw.substring(1));
+    return (scelto.iso, raw.substring(scelto.dial.length));
+  }
+
+  /// Modifica di telefono ed email (punto 2.1 del documento "Specifiche
+  /// Modifiche App").
+  ///
+  /// Sono due cose diverse e vanno spiegate come tali: il numero cambia
+  /// subito, l'email diventa effettiva solo quando l'utente apre il link di
+  /// conferma che Supabase manda al NUOVO indirizzo.
+  Future<void> _showEditContattiDialog() async {
+    final scomposto = _scomponiTelefono(_telefono);
+    final String isoIniziale = scomposto.$1;
+    final numeroCtrl = TextEditingController(text: scomposto.$2);
+    final nuovaEmailCtrl = TextEditingController(text: _emailCtrl.text);
+    String iso = isoIniziale;
+    String e164 = _telefono ?? '';
+    var inCorso = false;
+
+    await showDialog<void>(
+      context: context,
+      builder: (ctx) => StatefulBuilder(
+        builder: (ctx, setLocal) => AlertDialog(
+          backgroundColor: const Color(0xFF1A1A1A),
+          shape:
+              RoundedRectangleBorder(borderRadius: BorderRadius.circular(14)),
+          title: Text('Telefono ed email',
+              style: OnlistTextStyles.hn(
+                  color: OnlistColors.white, fontWeight: FontWeight.w700)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                OnlistPhoneField(
+                  controller: numeroCtrl,
+                  initialIso: isoIniziale,
+                  onChanged: (nuovoIso, _, __, nuovoE164) {
+                    iso = nuovoIso;
+                    e164 = nuovoE164;
+                  },
+                ),
+                const SizedBox(height: 14),
+                _dialogField('Email', nuovaEmailCtrl),
+                Text(
+                  'Cambiando email ti mandiamo un link di conferma al nuovo '
+                  'indirizzo: fino ad allora si entra con quello di adesso.',
+                  style:
+                      OnlistTextStyles.hn(color: Colors.white54, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(
+              onPressed: inCorso ? null : () => Navigator.pop(ctx),
+              child: const Text('Annulla',
+                  style: TextStyle(color: Colors.white70)),
+            ),
+            TextButton(
+              onPressed: inCorso
+                  ? null
+                  : () async {
+                      setLocal(() => inCorso = true);
+                      final ok = await _salvaContatti(
+                        e164: e164,
+                        iso: iso,
+                        nuovaEmail: nuovaEmailCtrl.text,
+                      );
+                      if (!ctx.mounted) return;
+                      if (ok) {
+                        Navigator.pop(ctx);
+                      } else {
+                        setLocal(() => inCorso = false);
+                      }
+                    },
+              child: Text(inCorso ? 'Salvo...' : 'Salva',
+                  style: OnlistTextStyles.hn(
+                      color: OnlistColors.blueElectric,
+                      fontWeight: FontWeight.w700)),
+            ),
+          ],
+        ),
+      ),
+    );
+    numeroCtrl.dispose();
+    nuovaEmailCtrl.dispose();
+  }
+
+  /// Scrive i contatti cambiati. Torna false se qualcosa e' andato storto,
+  /// cosi' il dialog resta aperto e l'utente non perde quello che ha scritto.
+  Future<bool> _salvaContatti({
+    required String e164,
+    required String iso,
+    required String nuovaEmail,
+  }) async {
+    final String numero = e164.replaceAll(' ', '');
+    final String email = nuovaEmail.trim();
+    final bool cambiaTelefono =
+        numero.length >= 7 && numero != (_telefono ?? '').replaceAll(' ', '');
+    final bool cambiaEmail = email.isNotEmpty && email != _emailCtrl.text;
+
+    if (!cambiaTelefono && !cambiaEmail) return true;
+    if (cambiaEmail && !_emailValida(email)) {
+      if (mounted) showAppErrorDialog(context, 'Email non valida.');
+      return false;
+    }
+
+    try {
+      if (cambiaTelefono) {
+        await OrdersService.updateTelefono(e164: numero, countryIso: iso);
+        _telefono = numero;
+        _cachedTelefono = numero;
+      }
+      if (cambiaEmail) await OrdersService.richiediCambioEmail(email);
+    } catch (e) {
+      if (mounted) showAppErrorDialog(context, 'Errore: $e');
+      return false;
+    }
+
+    if (!mounted) return true;
+    setState(() {});
+    final String messaggio = cambiaEmail
+        ? (cambiaTelefono
+            ? 'Numero aggiornato. Per l\'email apri il link che ti abbiamo mandato.'
+            : 'Ti abbiamo mandato un link di conferma al nuovo indirizzo.')
+        : 'Numero aggiornato!';
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Row(
+          children: [
+            const Icon(Icons.check_circle, color: OnlistColors.white, size: 20),
+            const SizedBox(width: 10),
+            Expanded(
+              child: Text(messaggio,
+                  style: OnlistTextStyles.hn(color: OnlistColors.white)),
+            ),
+          ],
+        ),
+        backgroundColor: OnlistColors.blueElectric,
+        behavior: SnackBarBehavior.floating,
+        shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+      ),
+    );
+    return true;
+  }
+
+  static final RegExp _regexEmail = RegExp(r'^[^@\s]+@[^@\s]+\.[^@\s]+$');
+
+  bool _emailValida(String email) => _regexEmail.hasMatch(email);
 
   Widget _dialogField(String label, TextEditingController controller,
       {bool readOnly = false, VoidCallback? onTap}) {

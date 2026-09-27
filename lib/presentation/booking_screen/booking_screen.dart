@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'dart:ui' show ImageFilter;
 
 import 'package:cached_network_image/cached_network_image.dart';
@@ -34,6 +35,7 @@ import '../../widgets/shared_footer.dart';
 import '../../widgets/fit_one_line_text.dart';
 import '../../widgets/testo_pagamento_struttura.dart';
 import '../../widgets/ticket_shape.dart';
+import '../../widgets/testo_centrato.dart';
 
 enum BookingStep { selection, ticketList, ticketDetail, tableConfig, bottles }
 
@@ -52,6 +54,40 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
 
   // La schermata parte direttamente dalla lista prevendite (la selezione Tavolo/Prevendita è temporaneamente nascosta).
   BookingStep _currentStep = BookingStep.ticketList;
+
+  /// Quanto dura il passaggio da un passo all'altro.
+  static const Duration _durataPasso = Duration(milliseconds: 400);
+
+  /// Chiave del passo mostrato ADESSO: serve al transitionBuilder per capire
+  /// quale dei due figli sta entrando e quale sta uscendo.
+  ValueKey<String> get _chiavePasso => switch (_currentStep) {
+        BookingStep.selection => const ValueKey('selection'),
+        BookingStep.ticketList => const ValueKey('tickets'),
+        BookingStep.ticketDetail => const ValueKey('ticketDetail'),
+        BookingStep.tableConfig => const ValueKey('tableConfig'),
+        BookingStep.bottles => const ValueKey('bottles'),
+      };
+
+  /// True mentre una schermata sta scorrendo sull'altra.
+  ///
+  /// Durante il passaggio lo scroll resta fermo: trascinare mentre le due
+  /// pagine si muovono faceva scorrere quella sotto e rendeva la
+  /// sovrapposizione ancora più confusa (punto 5.1 del documento).
+  bool _inTransizione = false;
+  Timer? _timerTransizione;
+
+  /// Cambia passo bloccando lo scroll per tutta la durata dell'animazione.
+  void _vaiA(BookingStep passo) {
+    if (passo == _currentStep) return;
+    _timerTransizione?.cancel();
+    setState(() {
+      _currentStep = passo;
+      _inTransizione = true;
+    });
+    _timerTransizione = Timer(_durataPasso, () {
+      if (mounted) setState(() => _inTransizione = false);
+    });
+  }
 
   // Dati letti SEMPRE dal DB (Supabase). Nessun sample/placeholder: se il DB
   // non restituisce nulla la UI mostra l'empty state, non dati finti.
@@ -91,6 +127,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
 
   @override
   void dispose() {
+    _timerTransizione?.cancel();
     // Uscito dalla scelta ticket senza concludere: da adesso il sospeso è una
     // notifica e il pallino sulla footer si accende. Se invece ha premuto
     // "PRENOTA ORA", `completa` ha già cancellato tutto e qui non resta nulla.
@@ -233,22 +270,39 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     ? const AppLoadingIndicator()
                     : _wrapAgeGate(
                         serata,
-                        AnimatedSwitcher(
-                          duration: const Duration(milliseconds: 400),
-                          transitionBuilder:
-                              (Widget child, Animation<double> animation) {
-                            return FadeTransition(
-                              opacity: animation,
-                              child: SlideTransition(
-                                position: Tween<Offset>(
-                                  begin: const Offset(0.1, 0),
-                                  end: Offset.zero,
-                                ).animate(animation),
-                                child: child,
-                              ),
-                            );
-                          },
-                          child: _buildBody(locale, serata),
+                        // Durante il passaggio niente gesti: trascinare
+                        // mentre le due pagine scorrono faceva muovere anche
+                        // la lista sotto (punto 5.1 del documento).
+                        AbsorbPointer(
+                          absorbing: _inTransizione,
+                          child: AnimatedSwitcher(
+                            duration: _durataPasso,
+                            // Le due schermate scorrono nello STESSO verso.
+                            //
+                            // Con un solo tween l'AnimatedSwitcher manda a
+                            // ritroso l'animazione di quella che esce: la
+                            // vecchia tornava verso destra mentre la nuova
+                            // arrivava da destra, e si incrociavano a metà
+                            // strada (punto 5.1 del documento "Specifiche
+                            // Modifiche App"). Qui chi entra arriva da destra e
+                            // chi esce se ne va a sinistra: il movimento si
+                            // legge come un'unica pagina che scorre.
+                            transitionBuilder:
+                                (Widget child, Animation<double> animation) {
+                              final bool entra = child.key == _chiavePasso;
+                              return FadeTransition(
+                                opacity: animation,
+                                child: SlideTransition(
+                                  position: Tween<Offset>(
+                                    begin: Offset(entra ? 0.1 : -0.1, 0),
+                                    end: Offset.zero,
+                                  ).animate(animation),
+                                  child: child,
+                                ),
+                              );
+                            },
+                            child: _buildBody(locale, serata),
+                          ),
                         ),
                       ),
               ),
@@ -385,9 +439,9 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
             _currentStep == BookingStep.tableConfig) {
           NavigatorService.goBack();
         } else if (_currentStep == BookingStep.ticketDetail) {
-          setState(() => _currentStep = BookingStep.ticketList);
+          _vaiA(BookingStep.ticketList);
         } else if (_currentStep == BookingStep.bottles) {
-          setState(() => _currentStep = BookingStep.tableConfig);
+          _vaiA(BookingStep.tableConfig);
         }
       },
     );
@@ -420,13 +474,13 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           _buildSelectionButton("Tavolo", () {
             AnalyticsService.log(
                 event: 'booking_funnel_start', metadata: {'type': 'table'});
-            setState(() => _currentStep = BookingStep.tableConfig);
+            _vaiA(BookingStep.tableConfig);
           }),
           const SizedBox(height: 15),
           _buildSelectionButton("Prevendita", () {
             AnalyticsService.log(
                 event: 'booking_funnel_start', metadata: {'type': 'ticket'});
-            setState(() => _currentStep = BookingStep.ticketList);
+            _vaiA(BookingStep.ticketList);
           }),
         ],
       ),
@@ -445,7 +499,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
           borderRadius: BorderRadius.circular(10),
         ),
         alignment: Alignment.center,
-        child: Text(
+        child: TestoCentrato(
           text,
           style: OnlistTextStyles.hn(
             color: Colors.white,
@@ -711,6 +765,11 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       'serataId': serataId,
                     };
                     _currentStep = BookingStep.ticketDetail;
+                    _inTransizione = true;
+                  });
+                  _timerTransizione?.cancel();
+                  _timerTransizione = Timer(_durataPasso, () {
+                    if (mounted) setState(() => _inTransizione = false);
                   });
                 },
                 child: Container(
@@ -734,7 +793,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                     borderRadius: BorderRadius.circular(R.sp(20)),
                   ),
                   alignment: Alignment.center,
-                  child: Text(
+                  child: TestoCentrato(
                     "PRENOTA",
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
@@ -831,8 +890,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
         // sospesi (si riaccende quando l'utente la lascia).
         PendingOrderService().sospendiPerConferma();
         await TicketNonVistiService().aggiungi(prenotazioneId);
-        await PendingOrderService()
-            .completa(_serataInCorso ?? eventoId);
+        await PendingOrderService().completa(_serataInCorso ?? eventoId);
 
         if (!mounted) return;
         // L'id viaggia con la route: la conferma mostra QUESTO ordine.
@@ -870,7 +928,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
               child: Center(
                 child: FittedBox(
                   fit: BoxFit.scaleDown,
-                  child: Text(
+                  child: TestoCentrato(
                     'Ticket ${_displayType(type).toLowerCase()}',
                     style: OnlistTextStyles.hn(
                       color: Colors.white,
@@ -1267,7 +1325,7 @@ class _BookingScreenState extends State<BookingScreen> with ScreenAnalytics {
                       );
                     }
                   : () {
-                      setState(() => _currentStep = BookingStep.bottles);
+                      _vaiA(BookingStep.bottles);
                     },
               child: Container(
                 width: double.infinity,

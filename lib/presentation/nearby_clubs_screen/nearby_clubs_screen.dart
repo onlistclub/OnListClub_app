@@ -1584,6 +1584,10 @@ class _FiltersSheetState extends State<_FiltersSheet> {
   late final Set<String> _scelte = {...widget.initialCategorie};
   late int? _prezzo = widget.initialPrezzo;
 
+  /// Ultima fascia accesa: quando si toglie il filtro la pillola sfuma sul
+  /// posto invece di saltare via.
+  late int _ultimaPillola = widget.initialPrezzo ?? 1;
+
   final ScrollController _caroselloCtrl = ScrollController();
   int _paginaCarosello = 0;
 
@@ -1799,18 +1803,27 @@ class _FiltersSheetState extends State<_FiltersSheet> {
               border: Border.all(color: const Color(0x2EFFFFFF)),
               borderRadius: BorderRadius.circular(17.5),
             ),
-            child: Row(
+            child: Stack(
               children: [
-                // Scomparti NON uguali: nel CSS i centri dei simboli stanno a
-                // 21.5, 82, 141, 206 e 286 dal bordo della barra, cioè i
-                // gruppi più lunghi occupano più spazio. Con cinque parti
-                // uguali "$$$$" e "$$$$$" finivano fuori asse (doc correzioni
-                // 19/09).
-                for (var p = 1; p <= _livelliPrezzo; p++)
-                  Expanded(
-                    flex: _pesiPrezzo[p - 1],
-                    child: _segmentoPrezzo(p),
-                  ),
+                // UNA sola pillola di vetro, che scivola da una fascia
+                // all'altra invece di spegnersi qui e riaccendersi là
+                // (punto 3.1 del documento "Specifiche Modifiche App").
+                // Sta sotto ai simboli, che restano sempre al loro posto.
+                IgnorePointer(child: _pillolaPrezzo()),
+                Row(
+                  children: [
+                    // Scomparti NON uguali: nel CSS i centri dei simboli
+                    // stanno a 21.5, 82, 141, 206 e 286 dal bordo della
+                    // barra, cioè i gruppi più lunghi occupano più spazio.
+                    // Con cinque parti uguali "$$$$" e "$$$$$" finivano
+                    // fuori asse (doc correzioni 19/09).
+                    for (var p = 1; p <= _livelliPrezzo; p++)
+                      Expanded(
+                        flex: _pesiPrezzo[p - 1],
+                        child: _segmentoPrezzo(p),
+                      ),
+                  ],
+                ),
               ],
             ),
           ),
@@ -1920,6 +1933,57 @@ class _FiltersSheetState extends State<_FiltersSheet> {
     );
   }
 
+  // ── Pillola di vetro del prezzo ──────────────────────────────────────────
+  // Geometria identica a com'era disegnata dentro il segmento: larghezza
+  // 37 di padding più i simboli (8 l'uno, 2 di spazio), centrata nel suo
+  // scomparto. I pesi sommano esattamente 323, la larghezza della barra,
+  // quindi il peso di uno scomparto è anche la sua larghezza in px.
+  static double _larghezzaPillola(int livello) => 35 + 10.0 * livello;
+
+  static double _sinistraPillola(int livello) {
+    var sinistra = 0.0;
+    for (var i = 0; i < livello - 1; i++) {
+      sinistra += _pesiPrezzo[i];
+    }
+    return sinistra +
+        (_pesiPrezzo[livello - 1] - _larghezzaPillola(livello)) / 2;
+  }
+
+  Widget _pillolaPrezzo() {
+    final int livello = _prezzo ?? _ultimaPillola;
+    return AnimatedPositioned(
+      duration: const Duration(milliseconds: 260),
+      curve: Curves.easeOutCubic,
+      left: _sinistraPillola(livello),
+      top: 0,
+      width: _larghezzaPillola(livello),
+      height: 24,
+      child: AnimatedOpacity(
+        opacity: _prezzo == null ? 0 : 1,
+        duration: const Duration(milliseconds: 180),
+        child: ClipRRect(
+          borderRadius: BorderRadius.circular(14.5),
+          child: BackdropFilter(
+            // È questo a fare il "vetro": sfoca la barra sotto, e il
+            // gradiente traslucido sopra ci mette il colore. Ne esiste UNO
+            // solo a schermo, grande 85×24 al massimo.
+            filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+            child: DecoratedBox(
+              decoration: BoxDecoration(
+                gradient: const LinearGradient(
+                  colors: [Color(0x4DFFFFFF), Color(0x4D0900FF)],
+                  stops: [0, 0.7308],
+                ),
+                border: Border.all(color: const Color(0x59FFFFFF)),
+                borderRadius: BorderRadius.circular(14.5),
+              ),
+            ),
+          ),
+        ),
+      ),
+    );
+  }
+
   Widget _segmentoPrezzo(int livello) {
     final bool scelto = _prezzo == livello;
     return GestureDetector(
@@ -1927,40 +1991,27 @@ class _FiltersSheetState extends State<_FiltersSheet> {
       // Ritoccare lo stesso livello toglie il filtro.
       onTap: () {
         _prezzo = scelto ? null : livello;
+        if (_prezzo != null) _ultimaPillola = livello;
         _emit();
       },
       child: Center(
-        child: Container(
-          height: 24,
-          padding: const EdgeInsets.symmetric(horizontal: 18.5),
-          alignment: Alignment.center,
-          decoration: scelto
-              ? BoxDecoration(
-                  gradient: const LinearGradient(
-                    colors: [Color(0x4DFFFFFF), Color(0x4D0900FF)],
-                    stops: [0, 0.7308],
-                  ),
-                  border: Border.all(color: const Color(0x59FFFFFF)),
-                  borderRadius: BorderRadius.circular(14.5),
-                )
-              : null,
-          child: Opacity(
-            opacity: scelto ? 1 : 0.5,
-            // Icona ufficiale del dollaro (doc correzioni 18/09), ripetuta
-            // quanto il livello: il testo "$$$$$" non ci stava nel segmento.
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                for (var i = 0; i < livello; i++) ...[
-                  if (i > 0) const SizedBox(width: 2),
-                  SvgPicture.asset(
-                    ImageConstant.imgDollaroFiltro,
-                    width: 8,
-                    height: 14,
-                  ),
-                ],
+        child: AnimatedOpacity(
+          opacity: scelto ? 1 : 0.5,
+          duration: const Duration(milliseconds: 180),
+          // Icona ufficiale del dollaro (doc correzioni 18/09), ripetuta
+          // quanto il livello: il testo "$$$$$" non ci stava nel segmento.
+          child: Row(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              for (var i = 0; i < livello; i++) ...[
+                if (i > 0) const SizedBox(width: 2),
+                SvgPicture.asset(
+                  ImageConstant.imgDollaroFiltro,
+                  width: 8,
+                  height: 14,
+                ),
               ],
-            ),
+            ],
           ),
         ),
       ),

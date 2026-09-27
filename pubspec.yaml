@@ -84,12 +84,17 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  # Sorgente icona GIÀ appiattita su nero (opaca, senza alpha): flutter_launcher_icons
-  # sbagliava il compositing del glow viola semi-trasparente su nero producendo un
-  # artefatto verde. Pre-appiattendo con Pillow il tool non deve comporre l'alpha.
-  # File fuori da assets/ così non viene incluso nel bundle a runtime (serve solo al build).
-  image_path: "launcher/logo_onlist_icon.png"
+  # Sorgenti generate dal monogramma ufficiale
+  # (design_source/Asset_ONLISTCLUB/Senza Margini/COLOR Monogram.png), centrate sul
+  # SEGNO e GIA' appiattite su nero (opache, senza alpha): flutter_launcher_icons
+  # sbaglia il compositing dell'alone viola semi-trasparente su nero e produce
+  # un artefatto verde. Pre-appiattendole il tool non deve comporre l'alpha.
+  # I file stanno fuori da assets/ cosi' non finiscono nel bundle a runtime:
+  # servono solo al build delle icone.
+  image_path: "launcher/icon_monogram.png"
   remove_alpha_ios: true
   background_color_ios: "#000000"
+  # Adaptive Android: la maschera di sistema mostra solo il 66% centrale della
+  # tela, quindi il foreground ha il segno piu' piccolo (46% contro 62%).
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "launcher/logo_onlist_icon.png"
+  adaptive_icon_foreground: "launcher/icon_monogram_adaptive.png"

@@ -73,8 +73,16 @@ class _FedeltaCardState extends State<FedeltaCard>
   /// palla da discoteca che gira, non come un caricamento.
   static const Duration _spinPeriod = Duration(seconds: 12);
 
-  /// Conteggio del numero all'apertura: parte da 0 e sale al valore vero.
+  /// Conteggio del numero: parte da 0 e sale al valore vero.
   static const Duration _countDuration = Duration(milliseconds: 800);
+
+  /// Ultimo numero gia' salito a schermo in questa sessione.
+  ///
+  /// La salita da 0 e' un benvenuto, non un caricamento: ha senso la prima
+  /// volta che si vede il numero e quando cambia davvero (una serata in
+  /// piu'). Rifarla a ogni apertura dell'Account dava l'impressione che il
+  /// dato si stesse ricaricando ogni volta (richiesta 25/09).
+  static int? _ultimoContato;
 
   late final AnimationController _spinCtrl;
   late final AnimationController _countCtrl;
@@ -86,11 +94,15 @@ class _FedeltaCardState extends State<FedeltaCard>
     _spinCtrl = AnimationController(vsync: this, duration: _spinPeriod);
     _countCtrl = AnimationController(vsync: this, duration: _countDuration);
     _buildCountTween();
-    if (widget.animate) {
-      _spinCtrl.repeat();
-      if (widget.numeroSerate > 0) _countCtrl.forward();
+    if (widget.animate) _spinCtrl.repeat();
+    if (widget.animate &&
+        widget.numeroSerate > 0 &&
+        _ultimoContato != widget.numeroSerate) {
+      _countCtrl.forward();
+      _ultimoContato = widget.numeroSerate;
     } else {
       _countCtrl.value = 1;
+      if (widget.numeroSerate > 0) _ultimoContato = widget.numeroSerate;
     }
   }
 
@@ -104,13 +116,17 @@ class _FedeltaCardState extends State<FedeltaCard>
   void didUpdateWidget(FedeltaCard old) {
     super.didUpdateWidget(old);
     // Il conteggio arriva dopo il primo build (fetch async): quando cambia,
-    // rifà la salita dal valore mostrato finora.
+    // rifa' la salita, ma solo se quel numero non e' gia' stato mostrato.
     if (old.numeroSerate != widget.numeroSerate) {
       _buildCountTween();
-      if (widget.animate && widget.numeroSerate > 0) {
+      if (widget.animate &&
+          widget.numeroSerate > 0 &&
+          _ultimoContato != widget.numeroSerate) {
         _countCtrl.forward(from: 0);
+        _ultimoContato = widget.numeroSerate;
       } else {
         _countCtrl.value = 1;
+        if (widget.numeroSerate > 0) _ultimoContato = widget.numeroSerate;
       }
     }
   }
@@ -200,7 +216,7 @@ class _FedeltaCardState extends State<FedeltaCard>
               // alta un quarto del previsto (~8px su 32), persa nel canvas
               // trasparente. Vedi [OnlistWordmark].
               // 24 contro i 21 del Figma: "aumentare di tanto" (punto 23).
-              OnlistWordmark(height: R.sp(24)),
+              OnlistWordmark(height: R.sp(20.8)),
             ],
           ),
           SizedBox(height: R.sp(9)),

@@ -60,6 +60,12 @@ enum AppTransition {
   /// rimbalzo, come una finestra che scatta in primo piano. Per il pop-up
   /// info serata, che è una rotta ma deve sembrare un pannello sovrapposto.
   popup,
+
+  /// Slide verticale: la schermata scende dall'alto entrando e risale
+  /// uscendo. Per il biglietto aperto dalla sezione Ticket, dove la freccia
+  /// di chiusura punta in su e il movimento deve darle ragione (punto 5.4
+  /// del documento "Specifiche Modifiche App").
+  slideUp,
 }
 
 /// Costruisce la `PageRoute` per una rotta, applicando la transizione scelta.
@@ -94,6 +100,16 @@ Route<dynamic> buildAppRoute(
         reverseTransitionDuration: const Duration(milliseconds: 200),
         pageBuilder: (context, _, __) => builder(context),
         transitionsBuilder: _popup,
+      );
+    case AppTransition.slideUp:
+      return AppPageRoute<dynamic>(
+        settings: settings,
+        enableBackGesture: enableBackGesture,
+        transition: AppTransition.slideUp,
+        transitionDuration: const Duration(milliseconds: 300),
+        reverseTransitionDuration: const Duration(milliseconds: 260),
+        pageBuilder: (context, _, __) => builder(context),
+        transitionsBuilder: _slideVerticale,
       );
     case AppTransition.sharedAxis:
       return AppPageRoute<dynamic>(
@@ -163,6 +179,39 @@ Widget _sharedAxisHorizontal(
   final slideOut = Tween<Offset>(
     begin: Offset.zero,
     end: const Offset(-0.04, 0),
+  ).animate(CurvedAnimation(parent: secondaryAnimation, curve: curve));
+
+  return SlideTransition(
+    position: slideOut,
+    child: FadeTransition(
+      opacity: fadeIn,
+      child: SlideTransition(position: slideIn, child: child),
+    ),
+  );
+}
+
+// ── Slide verticale ─────────────────────────────────────────────
+// Lo stesso linguaggio dello shared-axis, ruotato di 90°: l'entrante scende
+// dall'alto e, siccome chiudendo l'animazione ripercorre la strada al
+// contrario, la schermata se ne va verso l'ALTO: la direzione della freccia
+// di chiusura del biglietto.
+Widget _slideVerticale(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  const curve = Curves.easeOutCubic;
+
+  final fadeIn = CurvedAnimation(parent: animation, curve: curve);
+  final slideIn = Tween<Offset>(
+    begin: const Offset(0, -0.06),
+    end: Offset.zero,
+  ).animate(CurvedAnimation(parent: animation, curve: curve));
+
+  final slideOut = Tween<Offset>(
+    begin: Offset.zero,
+    end: const Offset(0, 0.04),
   ).animate(CurvedAnimation(parent: secondaryAnimation, curve: curve));
 
   return SlideTransition(
@@ -357,12 +406,16 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
 
         double opacity;
         double dx;
+        // Verticale: la usa solo la transizione slideUp, le altre la
+        // lasciano a zero.
+        double dy = 0;
         double scale;
 
         if (dragging && v < 1.0) {
           // È questa la pagina trascinata: segue il dito, senza fade né scala.
           opacity = 1.0;
           dx = 1.0 - v; // frazione di larghezza
+          dy = 0;
           scale = 1.0;
         } else {
           switch (transition) {
@@ -373,6 +426,13 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
             case AppTransition.sharedAxis:
               opacity = cv;
               dx = 0.06 * (1.0 - cv);
+              scale = 1.0;
+            case AppTransition.slideUp:
+              // Scende dall'alto: chiudendo, l'animazione torna indietro e
+              // la pagina risale, come dice la freccia di chiusura.
+              opacity = cv;
+              dx = 0.0;
+              dy = -0.06 * (1.0 - cv);
               scale = 1.0;
             case AppTransition.popup:
               // Il pannello arriva da dietro: opacità piena già a metà corsa,
@@ -403,7 +463,7 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
             Opacity(
               opacity: opacity,
               child: FractionalTranslation(
-                translation: Offset(dx, 0),
+                translation: Offset(dx, dy),
                 child: Transform.scale(
                   scale: scale,
                   // L'ombra sta DENTRO la traslazione: viaggia col bordo della
