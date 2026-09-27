@@ -33,14 +33,30 @@ import { corsHeaders } from "../_shared/cors.ts";
 
 const BREVO_API_URL = "https://api.brevo.com/v3/smtp/email";
 
-// ── Design tokens email (allineati a docs/email_templates/ e request-account-deletion) ─
-// LOGO: un solo file, il marchio ufficiale Onlist (bianco, bagliore viola). La
-// piastra dietro è grigio tenue solo in modalità chiara; in scuro è trasparente.
-const LOGO_URL = "https://www.onlistclub.com/email-logo.png";
-const LOGO_PLATE_BG_LIGHT = "#8f95aa";
-const LOGO_PLATE_BORDER_LIGHT = "#747a90";
-const FONT_DISPLAY = "'Space Grotesk', Helvetica, Arial, sans-serif";
-const FONT_SANS = "'Inter', Helvetica, Arial, sans-serif";
+// ── Design tokens email (shell ZUCC ufficiale) ───────────────────────────────
+// Stesso layout dei template statici in `docs/email_templates/*.html` e del
+// builder `messaging_service.dart`. Card trasparente su color:inherit del
+// client, border 2px con accento (verde per VALID, arancio per ALREADY_USED),
+// wordmark `mail.png` dentro plate `#0a0a0a` (non `#000000` puro per non
+// farsi invertire da iOS Mail dark mode). Nessuna emoji, nessun em-dash.
+const LOGO_URL = "https://www.onlistclub.com/mail.png";
+
+// Accento verde (VALID) e arancio (ALREADY_USED). border+glow+shadow del card,
+// border+text del badge.
+const ACCENT_GREEN = {
+  border: "#86EFAC",
+  glow: "rgba(22,163,74,.26)",
+  shadow: "rgba(6,78,59,.12)",
+  badgeBorder: "rgba(22,163,74,0.40)",
+  badgeText: "#15803D",
+};
+const ACCENT_ORANGE = {
+  border: "#FDBA74",
+  glow: "rgba(234,88,12,.26)",
+  shadow: "rgba(124,45,18,.12)",
+  badgeBorder: "rgba(234,88,12,0.40)",
+  badgeText: "#C2410C",
+};
 
 function escHtml(s: string): string {
   return s
@@ -50,145 +66,181 @@ function escHtml(s: string): string {
     .replace(/"/g, "&quot;");
 }
 
-function htmlShell(preheader: string, title: string, cardContent: string): string {
+interface Accent {
+  border: string;
+  glow: string;
+  shadow: string;
+  badgeBorder: string;
+  badgeText: string;
+}
+
+function htmlShell(preheader: string, title: string, cardContent: string, accent: Accent): string {
   return `<!DOCTYPE html>
-<html lang="it">
-  <head>
-    <meta charset="utf-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1" />
-    <meta name="color-scheme" content="light dark" />
-    <meta name="supported-color-schemes" content="light dark" />
-    <title>${title}</title>
-    <style>
-      body, .bg-outer { background-color: #eef1f8; }
-      .card { background-color: #ffffff; border-color: #e1e5f0 !important; }
-      .text-heading { color: #12131c !important; }
-      .text-body { color: #525b70 !important; }
-      .footer-link { color: #1b3fd6 !important; }
-      .logo-plate { background-color: ${LOGO_PLATE_BG_LIGHT} !important; border-color: ${LOGO_PLATE_BORDER_LIGHT} !important; }
-      @media (prefers-color-scheme: dark) {
-        body, .bg-outer { background-color: #05050f !important; }
-        .card { background-color: #0d0f24 !important; border-color: #24304d !important; }
-        .text-heading { color: #f4f6fb !important; }
-        .text-body { color: #a9b3c6 !important; }
-        .footer-link { color: #8fb4ff !important; }
-        .logo-plate { background-color: transparent !important; border-color: transparent !important; }
-      }
-    </style>
-  </head>
-  <body class="bg-outer" style="margin:0;padding:0;background-color:#eef1f8;">
-    <span style="display:none;max-height:0;overflow:hidden;opacity:0;">${preheader}</span>
-    <table role="presentation" width="100%" cellpadding="0" cellspacing="0" class="bg-outer" bgcolor="#eef1f8" style="background-color:#eef1f8;padding:36px 16px;">
-      <tr><td align="center">
-        <table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;">
+<html lang="it" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="color-scheme" content="light dark">
+  <meta name="supported-color-schemes" content="light dark">
+  <meta name="x-apple-disable-message-reformatting">
+  <title>${title}</title>
+  <!--[if mso]>
+  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
+  <![endif]-->
+  <style>
+    html,body{margin:0!important;padding:0!important;width:100%!important;min-width:100%!important;height:100%!important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+    body{background-color:transparent!important;color:inherit;}
+    table,td{mso-table-lspace:0pt!important;mso-table-rspace:0pt!important;}
+    img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}
+    a{text-decoration:none;}
+    .email-container{box-sizing:border-box!important;width:100%!important;max-width:560px!important;background-color:transparent!important;border:2px solid ${accent.border}!important;border-radius:22px!important;padding:36px 32px!important;box-shadow:0 0 0 1px ${accent.glow},0 0 22px ${accent.glow},0 18px 42px ${accent.shadow}!important;}
+    .logo-plate{background-color:#0a0a0a!important;border-radius:20px!important;}
+    .logo-mark{display:block!important;width:200px!important;max-width:78%!important;height:auto!important;margin:0 auto!important;}
+    .text-title,.text-body,.text-bold-name,.details-value,.details-label,.footer-text{color:inherit!important;}
+    .details-box{background-color:transparent!important;border:1.5px solid ${accent.border}!important;border-radius:16px!important;}
+    .detail-cell:first-child{padding-right:16px!important;}
+    .detail-cell:nth-child(2){padding-left:16px!important;}
+    .footer-divider{border-top-color:rgba(127,111,150,.35)!important;}
+    .footer-link{color:#7C3AED!important;}
+    .cta-cell{background:#7C3AED!important;background-image:linear-gradient(135deg,#7C3AED 0%,#6366F1 52%,#4F46E5 100%)!important;border-radius:999px!important;box-shadow:0 8px 22px rgba(124,58,237,.22)!important;}
+    .cta-link{display:block!important;min-height:48px!important;box-sizing:border-box!important;padding:14px 20px!important;color:#FFFFFF!important;}
+    @media only screen and (max-width:600px){
+      .outer-wrapper-cell{padding:20px 10px 36px 10px!important;}
+      .email-container{max-width:100%!important;padding:26px 20px!important;border-radius:18px!important;}
+      .logo-mark{width:170px!important;max-width:72%!important;}
+      .text-title{font-size:24px!important;}
+      .detail-cell{display:block!important;width:100%!important;padding-left:0!important;padding-right:0!important;padding-bottom:14px!important;}
+    }
+    @media (prefers-color-scheme: dark){
+      .email-container{border-color:${accent.border}!important;box-shadow:0 0 0 1px ${accent.glow},0 0 24px ${accent.glow},0 18px 44px rgba(0,0,0,.16)!important;}
+      .details-box{border-color:${accent.border}!important;}
+    }
+  </style>
+</head>
+<body style="background:transparent;margin:0;padding:0;width:100%;min-width:100%;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+  <span style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">${preheader}</span>
+  <table class="outer-wrapper" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;min-width:100%;height:100%;table-layout:fixed;">
+    <tr>
+      <td align="center" valign="top" class="outer-wrapper-cell" style="padding:28px 16px 48px 16px;">
+        <!--[if mso]><table align="center" width="560" style="width:560px;"><tr><td><![endif]-->
+        <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box;width:100%;max-width:560px;background-color:transparent;border:2px solid ${accent.border};border-radius:22px;padding:36px 32px;box-shadow:0 0 0 1px ${accent.glow},0 0 22px ${accent.glow},0 18px 42px ${accent.shadow};">
           <tr>
             <td align="center" style="padding-bottom:28px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" style="margin:0 auto;">
-                <tr>
-                  <td align="center" class="logo-plate" bgcolor="${LOGO_PLATE_BG_LIGHT}" style="background-color:${LOGO_PLATE_BG_LIGHT};border:1px solid ${LOGO_PLATE_BORDER_LIGHT};border-radius:20px;padding:20px 32px;">
-                    <img src="${LOGO_URL}" alt="OnListClub" width="140" style="display:block;width:140px;height:auto;border:0;margin:0 auto;" />
-                  </td>
-                </tr>
-              </table>
+              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>
+                <td class="logo-plate" align="center" bgcolor="#0a0a0a" style="background-color:#0a0a0a;border-radius:20px;padding:22px 44px;">
+                  <img class="logo-mark" src="${LOGO_URL}" alt="OnListClub" width="200" style="display:block;width:200px;max-width:78%;height:auto;border:0;margin:0 auto;">
+                </td>
+              </tr></table>
             </td>
           </tr>
+          ${cardContent}
           <tr>
-            <td class="card" bgcolor="#ffffff" style="background-color:#ffffff;border:1px solid #e1e5f0;border-radius:24px;padding:36px 32px;">
-              ${cardContent}
-            </td>
-          </tr>
-          <tr>
-            <td align="center" style="padding-top:28px;">
-              <p class="text-body" style="margin:0 0 6px;font-family:${FONT_SANS};font-size:12px;color:#525b70;">
-                OnListClub — Prenota tavoli, prevendite e drink nei migliori locali.
+            <td class="footer-divider" style="border-top:1.5px solid #E8E3EF;padding-top:22px;" align="center">
+              <p class="footer-text" style="margin:0 0 6px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;text-align:center;">
+                OnListClub. Prenota tavoli, prevendite e drink nei migliori locali.
               </p>
-              <p class="text-body" style="margin:0;font-family:${FONT_SANS};font-size:12px;color:#525b70;">
-                Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="color:#1b3fd6;text-decoration:none;">info@onlistclub.com</a>
+              <p class="footer-text" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;text-align:center;">
+                Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="text-decoration:none;color:#7C3AED;" target="_blank">info@onlistclub.com</a>
               </p>
             </td>
           </tr>
         </table>
-      </td></tr>
-    </table>
-  </body>
+        <!--[if mso]></td></tr></table><![endif]-->
+      </td>
+    </tr>
+  </table>
+</body>
 </html>`;
 }
 
-function badge(label: string, bgLight: string, borderLight: string, textLight: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-bottom:20px;"><tr>
-    <td style="border-radius:999px;background-color:${bgLight};border:1px solid ${borderLight};padding:6px 14px;font-family:${FONT_SANS};font-size:11px;letter-spacing:.08em;text-transform:uppercase;color:${textLight};">
-      ${label}
-    </td>
-  </tr></table>`;
-}
-
-function infoRow(label: string, value: string): string {
-  return `<tr><td style="padding-bottom:10px;">
-    <p style="margin:0;font-family:${FONT_SANS};font-size:12px;letter-spacing:.06em;text-transform:uppercase;color:#8b93a7;">${label}</p>
-    <p class="text-heading" style="margin:4px 0 0;font-family:${FONT_DISPLAY};font-size:16px;font-weight:600;color:#12131c;">${value}</p>
+function badge(label: string, borderColor: string, textColor: string): string {
+  return `<tr><td align="left" style="padding-bottom:18px;">
+    <table cellpadding="0" cellspacing="0" border="0"><tr>
+      <td style="border:1.5px solid ${borderColor};border-radius:9999px;padding:6px 14px;">
+        <span style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${textColor};">${label}</span>
+      </td>
+    </tr></table>
   </td></tr>`;
 }
 
-function infoBox(rows: string[], bg: string, border: string): string {
-  return `<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="margin-bottom:24px;"><tr>
-    <td style="background-color:${bg};border:1px solid ${border};border-radius:14px;padding:18px 20px;">
-      <table role="presentation" width="100%" cellpadding="0" cellspacing="0">${rows.join("")}</table>
-    </td>
-  </tr></table>`;
+function heading(text: string): string {
+  return `<tr><td align="left" style="padding-bottom:14px;">
+    <h1 class="text-title" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:26px;line-height:1.25;font-weight:700;">${text}</h1>
+  </td></tr>`;
+}
+
+function body(htmlInside: string, paddingBottom = 24, fontSize = 15): string {
+  return `<tr><td align="left" style="padding-bottom:${paddingBottom}px;">
+    <p class="text-body" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:${fontSize}px;line-height:1.6;">${htmlInside}</p>
+  </td></tr>`;
+}
+
+function detailCell(label: string, value: string, bottomPadded = true): string {
+  const pb = bottomPadded ? "padding-bottom:18px;" : "";
+  return `<td class="detail-cell" width="50%" style="${pb}vertical-align:top;">
+    <p class="details-label" style="margin:0 0 4px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.08em;">${label}</p>
+    <p class="details-value" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;">${value}</p>
+  </td>`;
+}
+
+function emptyCell(): string {
+  return `<td class="detail-cell" width="50%" style="vertical-align:top;"></td>`;
+}
+
+function detailsBox(border: string, rows: string[][]): string {
+  const rowsHtml = rows
+    .map((cells) => `<tr>${cells[0] ?? emptyCell()}${cells[1] ?? emptyCell()}</tr>`)
+    .join("");
+  return `<tr><td style="padding-bottom:24px;">
+    <table class="details-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:transparent;border:1.5px solid ${border};border-radius:16px;padding:20px 20px;">${rowsHtml}</table>
+  </td></tr>`;
 }
 
 function ctaButton(label: string, href: string): string {
-  return `<table role="presentation" cellpadding="0" cellspacing="0" style="margin-top:20px;"><tr>
-    <td bgcolor="#0098ff" style="border-radius:999px;background-color:#0098ff;background-image:linear-gradient(135deg,#133eff,#0098ff);">
-      <a href="${href}" style="display:inline-block;padding:13px 32px;font-family:${FONT_SANS};font-size:14px;font-weight:600;color:#ffffff;text-decoration:none;">${label}</a>
-    </td>
-  </tr></table>`;
+  return `<tr><td style="padding-bottom:28px;">
+    <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+      <td align="center" class="cta-cell" style="background:#7C3AED;background-color:#7C3AED;background-image:linear-gradient(135deg,#7C3AED 0%,#6366F1 52%,#4F46E5 100%);border-radius:999px;box-shadow:0 8px 22px rgba(124,58,237,.28);">
+        <a href="${href}" class="cta-link" style="display:block;min-height:48px;box-sizing:border-box;padding:14px 20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;color:#FFFFFF;text-align:center;" target="_blank">${label}</a>
+      </td>
+    </tr></table>
+  </td></tr>`;
 }
 
-// ─── Builder email VALID ──────────────────────────────────────────────────────
+// ─── Builder email VALID (accento verde) ─────────────────────────────────────
 function buildValidHtml(nome: string, localeNome: string, eventoNome: string, checkinTime: string): string {
   const card =
-    badge("Ingresso confermato", "rgba(22,163,74,0.08)", "rgba(22,163,74,0.28)", "#15803d") +
-    `<h1 class="text-heading" style="margin:0 0 14px;font-family:${FONT_DISPLAY};font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">
-      Sei entrato! Divertiti 🎟️
-    </h1>
-    <p class="text-body" style="margin:0 0 24px;font-family:${FONT_SANS};font-size:15px;line-height:1.6;color:#525b70;">
-      Ciao <strong style="color:#12131c;">${escHtml(nome)}</strong>, il tuo biglietto è stato scannerizzato con successo all'ingresso.
-    </p>` +
-    infoBox(
-      [infoRow("Locale", escHtml(localeNome)), infoRow("Serata", escHtml(eventoNome)), infoRow("Check-in", escHtml(checkinTime))],
-      "#f0fdf4", "rgba(22,163,74,0.25)"
-    );
+    badge("Ingresso confermato", ACCENT_GREEN.badgeBorder, ACCENT_GREEN.badgeText) +
+    heading("Sei entrato.") +
+    body(`<strong class="text-bold-name" style="font-weight:700;">${escHtml(nome)}</strong>, il tuo biglietto e' stato scannerizzato all'ingresso.`) +
+    detailsBox(ACCENT_GREEN.border, [
+      [detailCell("Locale", escHtml(localeNome)), detailCell("Serata", escHtml(eventoNome))],
+      [detailCell("Check-in", escHtml(checkinTime), false), emptyCell()],
+    ]);
   return htmlShell(
-    `Il tuo biglietto per ${escHtml(eventoNome)} è stato scannerizzato: ingresso confermato! Divertiti.`,
-    "Ingresso confermato — OnListClub",
-    card
+    `Il tuo biglietto per ${escHtml(eventoNome)} e' stato scannerizzato. Ingresso confermato.`,
+    "Ingresso confermato",
+    card,
+    ACCENT_GREEN,
   );
 }
 
-// ─── Builder email ALREADY_USED ───────────────────────────────────────────────
+// ─── Builder email ALREADY_USED (accento arancio) ────────────────────────────
 function buildAlreadyUsedHtml(nome: string, localeNome: string, eventoNome: string, firstScanTime: string): string {
   const card =
-    badge("Biglietto già usato", "rgba(234,88,12,0.08)", "rgba(234,88,12,0.28)", "#c2410c") +
-    `<h1 class="text-heading" style="margin:0 0 14px;font-family:${FONT_DISPLAY};font-size:24px;line-height:1.25;color:#12131c;letter-spacing:-0.02em;">
-      Scansione non accettata ⚠️
-    </h1>
-    <p class="text-body" style="margin:0 0 24px;font-family:${FONT_SANS};font-size:15px;line-height:1.6;color:#525b70;">
-      Ciao <strong style="color:#12131c;">${escHtml(nome)}</strong>, il tuo biglietto è stato rifiutato perché è già stato utilizzato in precedenza.
-    </p>` +
-    infoBox(
-      [infoRow("Locale", escHtml(localeNome)), infoRow("Serata", escHtml(eventoNome)), infoRow("Prima scansione", escHtml(firstScanTime))],
-      "#fff7ed", "rgba(234,88,12,0.22)"
-    ) +
-    `<p class="text-body" style="margin:0 0 8px;font-family:${FONT_SANS};font-size:14px;line-height:1.6;color:#525b70;">
-      <strong style="color:#12131c;">Non sei stato tu?</strong><br />
-      Se non riconosci questo accesso, il tuo QR potrebbe essere stato condiviso. Contattaci subito.
-    </p>` +
-    ctaButton("Vedi i tuoi ordini nell'app →", "onlistclub://orders");
+    badge("Biglietto gia' usato", ACCENT_ORANGE.badgeBorder, ACCENT_ORANGE.badgeText) +
+    heading("Scansione non accettata.") +
+    body(`<strong class="text-bold-name" style="font-weight:700;">${escHtml(nome)}</strong>, il tuo biglietto e' stato rifiutato all'ingresso perche' e' gia' stato utilizzato.`) +
+    detailsBox(ACCENT_ORANGE.border, [
+      [detailCell("Locale", escHtml(localeNome)), detailCell("Serata", escHtml(eventoNome))],
+      [detailCell("Prima scansione", escHtml(firstScanTime), false), emptyCell()],
+    ]) +
+    body(`<strong class="text-bold-name" style="font-weight:700;">Non sei stato tu?</strong><br>Se non riconosci questo accesso, il tuo QR potrebbe essere stato condiviso. Contattaci subito.`, 24, 14) +
+    ctaButton("Vedi i tuoi ordini nell'app", "onlistclub://orders");
   return htmlShell(
-    `Attenzione: il tuo biglietto per ${escHtml(eventoNome)} è già stato utilizzato in precedenza.`,
-    "Biglietto già utilizzato — OnListClub",
-    card
+    `Il tuo biglietto per ${escHtml(eventoNome)} e' gia' stato utilizzato.`,
+    "Biglietto gia' utilizzato",
+    card,
+    ACCENT_ORANGE,
   );
 }
 
@@ -312,13 +364,13 @@ serve(async (req) => {
     let htmlContent: string;
 
     if (status === "VALID") {
-      subject = `✅ Ingresso confermato — ${localeNome}`;
+      subject = `Ingresso confermato: ${localeNome}`;
       htmlContent = buildValidHtml(
         nomeUtente, localeNome, eventoNome,
         formatDateTime(scannedAt)
       );
     } else {
-      subject = `⚠️ Biglietto già utilizzato — ${localeNome}`;
+      subject = `Biglietto gia' utilizzato: ${localeNome}`;
       htmlContent = buildAlreadyUsedHtml(
         nomeUtente, localeNome, eventoNome,
         formatDateTime(firstScanAt)
