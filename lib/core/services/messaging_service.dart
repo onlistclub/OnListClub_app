@@ -16,12 +16,13 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///
 /// LAYOUT EMAIL: shell "ZUCC" ufficiale usato anche dai template statici in
 /// `docs/email_templates/`. Card trasparente con border a colore d'accento
-/// (viola per informativi, verde per conferme d'ingresso, arancio per warning),
-/// logo wordmark che si swappa via CSS tra light e dark mode. Gli asset PNG
-/// vivono sul sito (`https://www.onlistclub.com/email-logo-onlist-{light,dark}.png`)
-/// e nelle icone (`email-icon-check.png`, `email-icon-moon.png`,
-/// `email-icon-phone.png`), tutti caricati esternamente e non inline base64 per
-/// stare sotto il limite Gmail di 102KB per messaggio.
+/// (viola per informativi, verde per conferme d'ingresso, arancio per warning).
+/// Il logo è un'unica immagine `mail.png` che l'utente ha scelto per rimpiazzare
+/// il vecchio swap dark/light: `https://www.onlistclub.com/mail.png`. Le icone
+/// decorative (`email-icon-check.png`, `email-icon-moon.png`,
+/// `email-icon-phone.png`) restano caricate esternamente. Tutti gli asset sono
+/// referenziati via URL assoluto (mai base64 inline) per stare sotto il limite
+/// Gmail di 102KB per messaggio.
 ///
 /// DEEP LINK: I link nelle email usano lo schema `onlistclub://` (custom scheme
 /// registrato in AndroidManifest.xml + iOS Info.plist) per aprire direttamente
@@ -229,8 +230,7 @@ class MessagingService {
   //   orange → warning (qr_already_used)
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const _logoLightUrl = 'https://www.onlistclub.com/email-logo-onlist-light.png';
-  static const _logoDarkUrl = 'https://www.onlistclub.com/email-logo-onlist-dark.png';
+  static const _logoUrl = 'https://www.onlistclub.com/mail.png';
   static const _iconCheckUrl = 'https://www.onlistclub.com/email-icon-check.png';
   static const _iconMoonUrl = 'https://www.onlistclub.com/email-icon-moon.png';
   static const _iconPhoneUrl = 'https://www.onlistclub.com/email-icon-phone.png';
@@ -284,8 +284,7 @@ class MessagingService {
     img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}
     a{text-decoration:none;}
     .email-container{box-sizing:border-box!important;width:100%!important;max-width:560px!important;background-color:transparent!important;border:2px solid $cardBorder!important;border-radius:22px!important;padding:36px 32px!important;box-shadow:0 0 0 1px $cardGlow,0 0 22px $cardGlow,0 18px 42px $cardShadow!important;}
-    .logo-light,.logo-dark{display:block!important;width:200px!important;max-width:78%!important;height:auto!important;margin:0 auto!important;}
-    .logo-dark{display:none!important;}
+    .logo-mark{display:block!important;width:200px!important;max-width:78%!important;height:auto!important;margin:0 auto!important;}
     .text-title,.text-body,.text-bold-name,.details-value,.details-label,.note-bold,.note-text,.footer-text{color:inherit!important;}
     .details-box{background-color:transparent!important;border:1.5px solid $detailsBorder!important;border-radius:16px!important;}
     .detail-cell:first-child{padding-right:16px!important;}
@@ -298,16 +297,12 @@ class MessagingService {
     @media only screen and (max-width:600px){
       .outer-wrapper-cell{padding:20px 10px 36px 10px!important;}
       .email-container{max-width:100%!important;padding:26px 20px!important;border-radius:18px!important;}
-      .logo-light,.logo-dark{width:170px!important;max-width:72%!important;}
+      .logo-mark{width:170px!important;max-width:72%!important;}
       .header-logo-cell{padding-bottom:24px!important;}
       .text-title{font-size:24px!important;}
       .detail-cell{display:block!important;width:100%!important;padding-left:0!important;padding-right:0!important;padding-bottom:14px!important;}
     }
-    [data-ogsc] .logo-light{display:none!important;}
-    [data-ogsc] .logo-dark{display:block!important;}
     @media (prefers-color-scheme: dark){
-      .logo-light{display:none!important;}
-      .logo-dark{display:block!important;}
       .email-container{border-color:$cardBorder!important;box-shadow:0 0 0 1px $cardGlow,0 0 24px $cardGlow,0 18px 44px rgba(0,0,0,.16)!important;}
     }
   </style>
@@ -321,8 +316,7 @@ class MessagingService {
         <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box;width:100%;max-width:560px;background-color:transparent;border:2px solid $cardBorder;border-radius:22px;padding:36px 32px;box-shadow:0 0 0 1px $cardGlow,0 0 22px $cardGlow,0 18px 42px $cardShadow;">
           <tr>
             <td class="header-logo-cell" align="center" style="padding-bottom:28px;">
-              <img class="logo-light" src="$_logoLightUrl" alt="OnListClub" width="200" style="display:block;width:200px;max-width:78%;height:auto;border:0;margin:0 auto;">
-              <img class="logo-dark"  src="$_logoDarkUrl"  alt="OnListClub" width="200" style="display:none; width:200px;max-width:78%;height:auto;border:0;margin:0 auto;">
+              <img class="logo-mark" src="$_logoUrl" alt="OnListClub" width="200" style="display:block;width:200px;max-width:78%;height:auto;border:0;margin:0 auto;">
             </td>
           </tr>
           $cardContent
