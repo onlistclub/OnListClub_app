@@ -53,7 +53,9 @@ class LocationManualBloc
     SelectCittaEvent event,
     Emitter<LocationManualState> emit,
   ) {
-    // Analytics: traccia quale città viene selezionata
+    // Analytics: quale città viene toccata nella lista. NON è ancora la
+    // scelta definitiva — quella è `location_confirmed`, che parte solo da
+    // "Entra" (_onSubmit). Chi cerca, tocca e poi abbandona resta qui.
     AnalyticsService.logCitySelected(
       cityName: event.citta.nomeCitta,
       cityId:   event.citta.idCitta,
@@ -86,8 +88,21 @@ class LocationManualBloc
     emit(state.copyWith(isLoading: true, errorMessage: null));
 
     try {
-      await LocationService.saveManualLocation(state.selectedCitta!);
+      final citta = state.selectedCitta!;
+      await LocationService.saveManualLocation(citta);
       await UserProfileManager().saveRaggioKm(state.raggioKm);
+      // Qui la posizione è decisa davvero: l'utente ha premuto "Entra".
+      AnalyticsService.logLocationConfirmed(
+        modalita:  'citta',
+        cityId:    citta.idCitta,
+        cityName:  citta.nomeCitta,
+        raggioKm:  state.raggioKm,
+      );
+      await UserProfileManager().salvaModalitaPosizione(
+        modalita:      'citta',
+        posizioneId:   citta.idCitta,
+        posizioneNome: citta.nomeCitta,
+      );
       emit(state.copyWith(isLoading: false, isSuccess: true));
     } catch (e) {
       emit(state.copyWith(

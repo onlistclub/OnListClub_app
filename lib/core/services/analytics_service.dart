@@ -340,7 +340,11 @@ class AnalyticsService {
       event != 'page_exit' &&
       event != 'app_open' &&
       event != 'error' &&
-      event != 'http_error';
+      event != 'http_error' &&
+      // Lo scrive l'avvio confrontando il permesso di oggi con quello di ieri:
+      // nessuno l'ha toccato adesso, e conteggiarlo come azione falserebbe
+      // l'`attesa_ms` della prima schermata.
+      event != 'gps_permission_lapsed';
 
   /// Registrati da `RootShell` mentre è montato: dicono quale tab è attiva e
   /// quale rotta sta in cima al suo Navigator annidato. Servono a
@@ -697,10 +701,84 @@ class AnalyticsService {
       );
 
   /// Registra che l'utente ha concesso / negato il GPS.
-  static Future<void> logGpsPermission({required bool granted}) =>
+  ///
+  /// [granted] resta un booleano per continuità con i dati già raccolti, ma
+  /// da solo non basta: "Consenti sempre", "Durante l'uso dell'app" e (su iOS)
+  /// "Consenti una volta sola" finivano tutti e tre in `granted: true`.
+  /// [permesso] porta la risposta vera del sistema e [precisione] dice se è
+  /// stata concessa la posizione esatta o solo quella approssimativa.
+  ///
+  /// Attenzione: "Consenti una volta sola" NON è distinguibile qui — il
+  /// sistema risponde `while_in_use` come per il consenso normale. Si
+  /// riconosce al lancio successivo, quando il permesso è decaduto da solo:
+  /// vedi [logGpsPermissionLapsed].
+  static Future<void> logGpsPermission({
+    required bool granted,
+    String? permesso,   // 'always' | 'while_in_use' | 'denied' | 'denied_forever' | 'unknown'
+    String? precisione, // 'precise' | 'reduced' | 'unknown'
+  }) =>
       log(
         event: 'gps_permission',
-        metadata: {'granted': granted},
+        metadata: {
+          'granted': granted,
+          if (permesso != null) 'permission': permesso,
+          if (precisione != null) 'accuracy': precisione,
+        },
+      );
+
+  /// L'utente ha rimandato la richiesta di posizione ("Ricordamelo più tardi")
+  /// e prosegue scegliendo una città a mano.
+  ///
+  /// Prima non si registrava nulla: chi rifiutava il GPS era invisibile, e
+  /// nei numeri risultava identico a chi non era mai arrivato alla schermata.
+  static Future<void> logLocationPromptSkipped() =>
+      log(event: 'location_prompt_skipped');
+
+  /// La posizione è stata DECISA: GPS concesso, oppure città confermata con
+  /// "Entra".
+  ///
+  /// Da tenere distinto da `city_selected`, che scatta al tocco su un
+  /// risultato della lista: chi cerca, tocca e poi abbandona lascia un
+  /// `city_selected` ma nessun `location_confirmed`.
+  static Future<void> logLocationConfirmed({
+    required String modalita, // 'gps' | 'citta'
+    String? cityId,
+    String? cityName,
+    int? raggioKm,
+    String? permesso,
+    String? precisione,
+  }) =>
+      log(
+        event: 'location_confirmed',
+        metadata: {
+          'mode': modalita,
+          if (cityId != null) 'city_id': cityId,
+          if (cityName != null) 'city_name': cityName,
+          if (raggioKm != null) 'raggio_km': raggioKm,
+          if (permesso != null) 'permission': permesso,
+          if (precisione != null) 'accuracy': precisione,
+        },
+      );
+
+  /// All'avvio il permesso GPS risulta decaduto da solo rispetto alla volta
+  /// scorsa: è la firma del "Consenti una volta sola" di iOS.
+  ///
+  /// Copre anche la revoca manuale dalle Impostazioni, che dà lo stesso
+  /// risultato. [oreDalConsenso] serve a separarle: poche ore (spesso il
+  /// lancio subito successivo) è quasi sempre il consenso una tantum, giorni
+  /// sono una revoca decisa a mente fredda.
+  static Future<void> logGpsPermissionLapsed({
+    required String precedente,
+    required String attuale,
+    int? oreDalConsenso,
+  }) =>
+      log(
+        event: 'gps_permission_lapsed',
+        metadata: {
+          'previous': precedente,
+          'current':  attuale,
+          if (oreDalConsenso != null) 'hours_since_grant': oreDalConsenso,
+        },
       );
 
   /// Registra che l'utente ha selezionato una città manualmente.

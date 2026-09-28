@@ -17,6 +17,16 @@ import 'phone_country.dart';
 ///   - [onChanged] notifica `(iso, dialCode, nationalNumber, e164)` ad ogni
 ///     cambio (sia di bandiera che di numero), così il BLoC può ricostruire
 ///     l'E.164 esattamente come prima.
+/// Aspetto del campo telefono.
+enum OnlistPhoneFieldStyle {
+  /// Sottolineatura bianca, come i vecchi campi del profilo.
+  underline,
+
+  /// Pillola con bordo bianco 2px e raggio 32, come i campi del Figma nuovo
+  /// di login e registrazione.
+  pill,
+}
+
 class OnlistPhoneField extends StatefulWidget {
   const OnlistPhoneField({
     super.key,
@@ -24,7 +34,12 @@ class OnlistPhoneField extends StatefulWidget {
     required this.onChanged,
     this.initialIso = 'IT',
     this.hintText = 'Numero di telefono',
+    this.stile = OnlistPhoneFieldStyle.underline,
   });
+
+  /// Come disegnare il campo. Il default resta la sottolineatura: il profilo
+  /// e gli altri usi esistenti non devono cambiare aspetto.
+  final OnlistPhoneFieldStyle stile;
 
   // Nullable perché nella schermata di registrazione il controller arriva da
   // un BLoC che lo crea in modo asincrono: nel primissimo build (prima che il
@@ -90,82 +105,136 @@ class _OnlistPhoneFieldState extends State<OnlistPhoneField> {
 
   @override
   Widget build(BuildContext context) {
+    return widget.stile == OnlistPhoneFieldStyle.pill
+        ? _pill()
+        : _sottolineato();
+  }
+
+  /// Bandiera + prefisso: il pezzo che apre il selettore paese. Uguale nei
+  /// due stili, cambia solo la spaziatura attorno.
+  Widget _selettorePaese({
+    required double corpoBandiera,
+    required double corpoPrefisso,
+    required EdgeInsets padding,
+  }) {
+    return InkWell(
+      onTap: _openPicker,
+      borderRadius: BorderRadius.circular(4),
+      child: Padding(
+        padding: padding,
+        child: Row(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(_country.flagEmoji, style: TextStyle(fontSize: corpoBandiera)),
+            const SizedBox(width: 6),
+            Text(
+              _country.dial,
+              style: TextStyle(
+                fontFamily: 'OnlistHN',
+                fontSize: corpoPrefisso,
+                fontWeight: FontWeight.w400,
+                color: OnlistColors.white,
+              ),
+            ),
+            const SizedBox(width: 4),
+            const Icon(Icons.arrow_drop_down, color: Colors.white70, size: 20),
+          ],
+        ),
+      ),
+    );
+  }
+
+  Widget _numero({
+    required double corpo,
+    required InputBorder bordo,
+    required EdgeInsets contentPadding,
+    InputBorder? bordoErrore,
+    Color hintColor = Colors.white54,
+  }) {
+    return TextField(
+      controller: _controller,
+      keyboardType: TextInputType.phone,
+      inputFormatters: [FilteringTextInputFormatter.digitsOnly],
+      style: TextStyle(
+        fontFamily: 'OnlistHN',
+        fontSize: corpo,
+        fontWeight: FontWeight.w400,
+        color: OnlistColors.white,
+      ),
+      cursorColor: OnlistColors.white,
+      decoration: InputDecoration(
+        isDense: true,
+        filled: false,
+        hintText: widget.hintText,
+        hintStyle: TextStyle(
+          fontFamily: 'OnlistHN',
+          fontSize: corpo,
+          fontWeight: FontWeight.w400,
+          color: hintColor,
+        ),
+        contentPadding: contentPadding,
+        border: bordo,
+        enabledBorder: bordo,
+        focusedBorder: bordo,
+        errorBorder: bordoErrore ?? bordo,
+        focusedErrorBorder: bordoErrore ?? bordo,
+      ),
+      onChanged: (_) => _emit(),
+    );
+  }
+
+  Widget _sottolineato() {
+    const bordo = UnderlineInputBorder(
+        borderSide: BorderSide(color: OnlistColors.white, width: 2));
     return Row(
       crossAxisAlignment: CrossAxisAlignment.end,
       children: [
-        // Bottone bandiera + prefisso
-        InkWell(
-          onTap: _openPicker,
-          borderRadius: BorderRadius.circular(4),
-          child: Padding(
-            padding: const EdgeInsets.fromLTRB(0, 8, 8, 8),
-            child: Row(
-              mainAxisSize: MainAxisSize.min,
-              children: [
-                Text(
-                  _country.flagEmoji,
-                  style: const TextStyle(fontSize: 22),
-                ),
-                const SizedBox(width: 6),
-                Text(
-                  _country.dial,
-                  style: const TextStyle(
-                    fontFamily: 'OnlistHN',
-                    fontSize: 16,
-                    fontWeight: FontWeight.w400,
-                    color: OnlistColors.white,
-                  ),
-                ),
-                const SizedBox(width: 4),
-                const Icon(Icons.arrow_drop_down,
-                    color: Colors.white70, size: 20),
-              ],
-            ),
-          ),
-        ),
+        _selettorePaese(
+            corpoBandiera: 22,
+            corpoPrefisso: 16,
+            padding: const EdgeInsets.fromLTRB(0, 8, 8, 8)),
         const SizedBox(width: 6),
-        // Campo numero nazionale (sotto-linea bianca, come gli altri input)
         Expanded(
-          child: TextField(
-            controller: _controller,
-            keyboardType: TextInputType.phone,
-            inputFormatters: [
-              FilteringTextInputFormatter.digitsOnly,
-            ],
-            style: const TextStyle(
-              fontFamily: 'OnlistHN',
-              fontSize: 16,
-              fontWeight: FontWeight.w400,
-              color: OnlistColors.white,
-            ),
-            decoration: InputDecoration(
-              isDense: true,
-              filled: false,
-              hintText: widget.hintText,
-              hintStyle: const TextStyle(
-                fontFamily: 'OnlistHN',
-                fontSize: 16,
-                fontWeight: FontWeight.w400,
-                color: Colors.white54,
-              ),
-              contentPadding: const EdgeInsets.only(top: 8, bottom: 6),
-              enabledBorder: const UnderlineInputBorder(
-                  borderSide:
-                      BorderSide(color: OnlistColors.white, width: 2)),
-              focusedBorder: const UnderlineInputBorder(
-                  borderSide:
-                      BorderSide(color: OnlistColors.white, width: 2)),
-              errorBorder: const UnderlineInputBorder(
-                  borderSide:
-                      BorderSide(color: Colors.redAccent, width: 2)),
-              focusedErrorBorder: const UnderlineInputBorder(
-                  borderSide:
-                      BorderSide(color: Colors.redAccent, width: 2)),
-            ),
-            onChanged: (_) => _emit(),
+          child: _numero(
+            corpo: 16,
+            bordo: bordo,
+            bordoErrore: const UnderlineInputBorder(
+                borderSide: BorderSide(color: Colors.redAccent, width: 2)),
+            contentPadding: const EdgeInsets.only(top: 8, bottom: 6),
           ),
         ),
       ],
+    );
+  }
+
+  /// Stile del Figma nuovo: bordo e raggio stanno sul contenitore, il campo
+  /// dentro non ha nessun bordo proprio — altrimenti si vedrebbero due
+  /// cornici, una dentro l'altra.
+  Widget _pill() {
+    return Container(
+      height: 48,
+      padding: const EdgeInsets.symmetric(horizontal: 11),
+      decoration: BoxDecoration(
+        border: Border.all(color: OnlistColors.white, width: 2),
+        borderRadius: BorderRadius.circular(32),
+      ),
+      child: Row(
+        children: [
+          _selettorePaese(
+              corpoBandiera: 20,
+              corpoPrefisso: 18,
+              padding: const EdgeInsets.symmetric(vertical: 4)),
+          const SizedBox(width: 4),
+          Expanded(
+            child: _numero(
+              corpo: 18,
+              bordo: InputBorder.none,
+              contentPadding: EdgeInsets.zero,
+              hintColor: OnlistColors.authFieldHint,
+            ),
+          ),
+        ],
+      ),
     );
   }
 }

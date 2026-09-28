@@ -1,5 +1,8 @@
+import 'dart:math' as math;
+
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
+import 'package:supabase_flutter/supabase_flutter.dart';
 
 import '../../core/app_export.dart';
 import '../../core/services/location_service.dart';
@@ -7,9 +10,26 @@ import '../../core/services/analytics_service.dart';
 import '../../core/utils/analytics_mixin.dart';
 import '../../theme/onlist_colors.dart';
 import '../../theme/onlist_text_styles.dart';
+import '../../widgets/auth_widgets.dart';
+import '../../widgets/onlist_wordmark.dart';
 import './bloc/authentication_bloc.dart';
 import './models/authentication_model.dart';
 
+/// Schermata di accesso — design NUOVO del 27/09
+/// (`docs/figma_screen/off/NUOVO/login.css`, `off/02 - Autenticazione.png`).
+///
+/// Il frame è 393×852 e le coordinate di `login.css` sono ASSOLUTE su quel
+/// frame (a differenza di `registrazione.css`, che le dà relative al suo
+/// contenitore). Riferimenti usati qui, in px di design:
+///
+///   logo 206×87 a y 117 · pannello blu da y 325 a fondo schermo
+///   trattino 339 · "Accedi" 365 · Email 427 · Password 512
+///   "Password dimenticata?" 568 · bottone Accedi 598 · Registrati 659
+///   divisore "oppure" 712 · Apple/Google 750 · fondo 852
+///
+/// Niente `SafeArea`: il frame di design comprende già la barra di stato (la
+/// prima cosa disegnata, il logo, è a 117 px dall'alto) e il pannello deve
+/// arrivare a filo del bordo inferiore, sotto la home indicator.
 class AuthenticationScreen extends StatefulWidget {
   const AuthenticationScreen({Key? key}) : super(key: key);
 
@@ -27,7 +47,8 @@ class AuthenticationScreen extends StatefulWidget {
   State<AuthenticationScreen> createState() => _AuthenticationScreenState();
 }
 
-class _AuthenticationScreenState extends State<AuthenticationScreen> with ScreenAnalytics {
+class _AuthenticationScreenState extends State<AuthenticationScreen>
+    with ScreenAnalytics {
   @override
   String get screenName => 'authentication';
 
@@ -37,7 +58,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
       // Sfondo nero: evita la striscia bianca (scaffold di default) nella zona
       // safe-area in basso, dove il gradiente termina comunque in nero.
       backgroundColor: OnlistColors.black,
-      // La tastiera si sovrappone ai bottoni social senza spostare/spingere il
+      // La tastiera si sovrappone al pannello senza spostare/spingere il
       // layout: i campi Email/Password restano fissi mentre si scrive.
       resizeToAvoidBottomInset: false,
       body: GestureDetector(
@@ -45,139 +66,224 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
         behavior: HitTestBehavior.opaque,
         onTap: () => FocusScope.of(context).unfocus(),
         child: DecoratedBox(
-        decoration: const BoxDecoration(gradient: OnlistColors.onboardingBackground),
-        child: BlocConsumer<AuthenticationBloc, AuthenticationState>(
-          listener: (context, state) {
-            if (state.isLoginSuccess) {
-              AnalyticsService.log(event: 'login_success');
-              LocationService.shouldShowLocationPrompt().then((show) {
-                NavigatorService.pushNamedAndRemoveUntil(
-                  show
-                      ? AppRoutes.locationPermissionScreen
-                      : AppRoutes.eventDetailScreen,
+          decoration:
+              const BoxDecoration(gradient: OnlistColors.onboardingBackground),
+          child: BlocConsumer<AuthenticationBloc, AuthenticationState>(
+            listener: (context, state) {
+              if (state.isLoginSuccess) {
+                AnalyticsService.log(event: 'login_success');
+                LocationService.shouldShowLocationPrompt().then((show) {
+                  NavigatorService.pushNamedAndRemoveUntil(
+                    show
+                        ? AppRoutes.locationPermissionScreen
+                        : AppRoutes.eventDetailScreen,
+                  );
+                });
+              }
+              if (state.needsProfileCompletion) {
+                AnalyticsService.log(event: 'registration_oauth_started');
+                // Niente più schermata "completa profilo": apriamo la
+                // registrazione standard con i campi noti pre-riempiti.
+                // L'email è già verificata dal provider OAuth, quindi al
+                // submit salteremo la verifica.
+                NavigatorService.pushNamed(
+                  AppRoutes.signUpScreen,
+                  arguments: {
+                    'oauthVerified': true,
+                    'nome': state.oauthNome,
+                    'cognome': state.oauthCognome,
+                    'email': state.oauthEmail,
+                    'telefono': state.oauthTelefono,
+                    'dataNascita': state.oauthDataNascita,
+                  },
                 );
-              });
-            }
-            if (state.needsProfileCompletion) {
-              AnalyticsService.log(event: 'registration_oauth_started');
-              // Niente più schermata "completa profilo": apriamo la registrazione
-              // standard con i campi noti pre-riempiti. L'email è già verificata
-              // dal provider OAuth, quindi al submit salteremo la verifica.
-              NavigatorService.pushNamed(
-                AppRoutes.signUpScreen,
-                arguments: {
-                  'oauthVerified': true,
-                  'nome': state.oauthNome,
-                  'cognome': state.oauthCognome,
-                  'email': state.oauthEmail,
-                  'telefono': state.oauthTelefono,
-                  'dataNascita': state.oauthDataNascita,
-                },
-              );
-            }
-            if (state.errorMessage != null && state.errorMessage!.isNotEmpty) {
-              AnalyticsService.log(event: 'login_error', metadata: {'error': state.errorMessage});
-              showAppErrorDialog(context, state.errorMessage!);
-            }
-          },
-          builder: (context, state) {
-            return SafeArea(
-              // Niente scroll: la pagina deve stare tutta in viewport. Uso
-              // spazi proporzionali (R.h) e Spacer per distribuire i blocchi.
-              child: Padding(
-                // Margine laterale proporzionale (Figma: left 39 su 393 ≈ 9.9%)
-                padding: EdgeInsets.symmetric(horizontal: R.w(9.9)),
-                child: Form(
-                  key: state.formKey,
-                  // Spaziatura verticale a `Spacer` proporzionali: i valori di
-                  // `flex` riproducono i gap del frame Figma (852px, accedi.css /
-                  // 02 - Autenticazione.png) come rapporti, così i blocchi
-                  // mantengono le stesse proporzioni su qualsiasi altezza schermo
-                  // e collassano senza mai andare in overflow (niente più strisce
-                  // gialle/nere). Riferimenti (top in px del frame 852):
-                  //   Accedi 117 · Email 217 · Password 304 · btn Accedi 363
-                  //   btn Registrati 425 · Apple 587 · Google 656 · fondo 852
-                  child: Column(
-                    crossAxisAlignment: CrossAxisAlignment.start,
-                    children: [
-                      const Spacer(flex: 106), // fondo alto → titolo (alzato di poco)
-                      Text('Accedi', style: OnlistTextStyles.display40Regular),
-                      const Spacer(flex: 52), // titolo → Email
-                      _UnderlineField(
-                        controller: state.emailController,
-                        label: 'Email',
-                        keyboardType: TextInputType.emailAddress,
-                        validator: (v) {
-                          if (v == null || v.isEmpty) return 'Inserisci la tua email';
-                          if (!RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
-                              .hasMatch(v)) {
-                            return 'Email non valida';
-                          }
-                          return null;
-                        },
-                        onChanged: (v) => context
-                            .read<AuthenticationBloc>()
-                            .add(EmailChangedEvent(email: v)),
-                      ),
-                      const Spacer(flex: 65), // Email → Password
-                      _UnderlinePasswordField(
-                        controller: state.passwordController,
-                        onChanged: (v) => context
-                            .read<AuthenticationBloc>()
-                            .add(PasswordChangedEvent(password: v)),
-                      ),
-                      const Spacer(flex: 37), // Password → bottoni
-                      // Bottoni Accedi / Registrati — impilati e centrati (Figma)
-                      Center(
+              }
+              if (state.errorMessage != null &&
+                  state.errorMessage!.isNotEmpty) {
+                AnalyticsService.log(
+                    event: 'login_error',
+                    metadata: {'error': state.errorMessage});
+                showAppErrorDialog(context, state.errorMessage!);
+              }
+            },
+            builder: (context, state) {
+              return Column(
+                children: [
+                  // ── 0 → 325: sfondo scuro con il logo ──────────────────
+                  Expanded(
+                    flex: 325,
+                    child: Column(
+                      children: [
+                        // Il riquadro del widget è quello delle sole lettere:
+                        // l'immagine 206×87 a y 117 ha le lettere alte 62,2 a
+                        // y 141,7 (l'alone della pallina sfora sopra).
+                        const Spacer(flex: 142),
+                        OnlistWordmark(height: R.sp(62.2)),
+                        const Spacer(flex: 121),
+                      ],
+                    ),
+                  ),
+                  // ── 325 → 852: pannello blu ────────────────────────────
+                  Expanded(
+                    flex: 527,
+                    child: AuthPanel(
+                      child: Form(
+                        key: state.formKey,
+                        // I `flex` degli Spacer sono i gap del Figma in px:
+                        // si stringono tutti insieme quando compare il testo
+                        // di un errore di validazione, senza overflow.
                         child: Column(
                           children: [
-                            _WhiteButton(
+                            const Spacer(flex: 14),
+                            const AuthDash(),
+                            const Spacer(flex: 23),
+                            Text(
+                              'Accedi',
+                              style: OnlistTextStyles.hn(
+                                fontSize: R.sp(36),
+                                fontWeight: FontWeight.w400,
+                                height: 1.0,
+                                color: OnlistColors.white,
+                              ),
+                            ),
+                            const Spacer(flex: 26),
+                            SizedBox(
+                              width: R.sp(AuthMetrics.fieldW),
+                              child: AuthPillField(
+                                hint: 'Email',
+                                controller: state.emailController,
+                                keyboardType: TextInputType.emailAddress,
+                                textInputAction: TextInputAction.next,
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Inserisci la tua email';
+                                  }
+                                  if (!RegExp(
+                                          r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$')
+                                      .hasMatch(v)) {
+                                    return 'Email non valida';
+                                  }
+                                  return null;
+                                },
+                                onChanged: (v) => context
+                                    .read<AuthenticationBloc>()
+                                    .add(EmailChangedEvent(email: v)),
+                              ),
+                            ),
+                            const Spacer(flex: 37),
+                            SizedBox(
+                              width: R.sp(AuthMetrics.fieldW),
+                              child: AuthPasswordField(
+                                controller: state.passwordController,
+                                textInputAction: TextInputAction.done,
+                                validator: (v) {
+                                  if (v == null || v.isEmpty) {
+                                    return 'Inserisci la password';
+                                  }
+                                  if (v.length < 6) return 'Minimo 6 caratteri';
+                                  return null;
+                                },
+                                onChanged: (v) => context
+                                    .read<AuthenticationBloc>()
+                                    .add(PasswordChangedEvent(password: v)),
+                              ),
+                            ),
+                            const Spacer(flex: 8),
+                            SizedBox(
+                              width: R.sp(AuthMetrics.fieldW),
+                              child: Align(
+                                alignment: Alignment.centerRight,
+                                child: GestureDetector(
+                                  onTap: () =>
+                                      _passwordDimenticata(context, state),
+                                  behavior: HitTestBehavior.opaque,
+                                  child: Text(
+                                    'Password dimenticata?',
+                                    style: OnlistTextStyles.hn(
+                                      fontSize: R.sp(10),
+                                      fontWeight: FontWeight.w500,
+                                      color: OnlistColors.white,
+                                    ).copyWith(
+                                      decoration: TextDecoration.underline,
+                                      decorationColor: OnlistColors.white,
+                                    ),
+                                  ),
+                                ),
+                              ),
+                            ),
+                            const Spacer(flex: 18),
+                            AuthPrimaryButton(
                               label: 'Accedi',
                               onTap: () => _onTapAccedi(context, state),
                             ),
-                            const SizedBox(height: 18),
-                            _WhiteButton(
+                            const Spacer(flex: 21),
+                            AuthSmallButton(
                               label: 'Registrati',
                               onTap: () {
-                                AnalyticsService.log(event: 'registration_email_started');
-                                NavigatorService.pushNamed(AppRoutes.signUpScreen);
+                                AnalyticsService.log(
+                                    event: 'registration_email_started');
+                                NavigatorService.pushNamed(
+                                    AppRoutes.signUpScreen);
                               },
+                            ),
+                            const Spacer(flex: 17),
+                            const _DivisoreOppure(),
+                            const Spacer(flex: 29),
+                            SizedBox(
+                              height: R.sp(54),
+                              child: state.isLoading
+                                  ? const Center(
+                                      child: CircularProgressIndicator(
+                                          color: OnlistColors.white),
+                                    )
+                                  : Row(
+                                      mainAxisAlignment:
+                                          MainAxisAlignment.center,
+                                      children: [
+                                        _AppleButton(
+                                          onTap: () {
+                                            AnalyticsService.log(
+                                                event: 'login_attempt',
+                                                metadata: {'method': 'apple'});
+                                            context
+                                                .read<AuthenticationBloc>()
+                                                .add(AppleSignInEvent());
+                                          },
+                                        ),
+                                        SizedBox(width: R.sp(9)),
+                                        _GoogleButton(
+                                          onTap: () {
+                                            AnalyticsService.log(
+                                                event: 'login_attempt',
+                                                metadata: {'method': 'google'});
+                                            context
+                                                .read<AuthenticationBloc>()
+                                                .add(GoogleSignInEvent());
+                                          },
+                                        ),
+                                      ],
+                                    ),
+                            ),
+                            // Ultimo margine fisso, non uno Spacer: sotto ci
+                            // può essere la barra di navigazione di Android,
+                            // più alta della home indicator per cui il Figma
+                            // lascia 48 px. Si prende il maggiore dei due,
+                            // così i bottoni social non finiscono mai sotto.
+                            SizedBox(
+                              height: math.max(
+                                R.sp(48),
+                                MediaQuery.paddingOf(context).bottom + R.sp(8),
+                              ),
                             ),
                           ],
                         ),
                       ),
-                      const Spacer(flex: 122), // Registrati → Apple (vuoto centrale)
-                      if (state.isLoading)
-                        const Center(
-                          child: CircularProgressIndicator(color: OnlistColors.white),
-                        )
-                      else ...[
-                        _AppleButton(
-                          onTap: () {
-                            AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'apple'});
-                            context
-                                .read<AuthenticationBloc>()
-                                .add(AppleSignInEvent());
-                          },
-                        ),
-                        const SizedBox(height: 16),
-                        _GoogleButton(
-                          onTap: () {
-                            AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'google'});
-                            context
-                                .read<AuthenticationBloc>()
-                                .add(GoogleSignInEvent());
-                          },
-                        ),
-                      ],
-                      const Spacer(flex: 149), // Google → fondo schermo
-                    ],
+                    ),
                   ),
-                ),
-              ),
-            );
-          },
-        ),
+                ],
+              );
+            },
+          ),
         ),
       ),
     );
@@ -185,161 +291,184 @@ class _AuthenticationScreenState extends State<AuthenticationScreen> with Screen
 
   void _onTapAccedi(BuildContext context, AuthenticationState state) {
     if (state.formKey?.currentState?.validate() ?? false) {
-      AnalyticsService.log(event: 'login_attempt', metadata: {'method': 'email'});
+      AnalyticsService.log(
+          event: 'login_attempt', metadata: {'method': 'email'});
       context.read<AuthenticationBloc>().add(LoginButtonPressedEvent());
     }
   }
-}
 
-// ── Underline text field ───────────────────────────────────────────────────────
+  /// "Password dimenticata?" — manda il link di reimpostazione.
+  ///
+  /// Il link è nuovo in questo design. Finora il reset si poteva chiedere solo
+  /// dal profilo, cioè da dentro l'app: ma chi ha dimenticato la password è
+  /// esattamente chi NON riesce a entrare. Stessa chiamata e stesso
+  /// `redirectTo` del profilo, così il flusso via browser resta uno solo.
+  Future<void> _passwordDimenticata(
+      BuildContext context, AuthenticationState state) async {
+    final controller = TextEditingController(
+      text: state.emailController?.text.trim() ?? '',
+    );
 
-const TextStyle _kInputStyle = TextStyle(
-  fontFamily: 'OnlistHN',
-  fontSize: 16,
-  fontWeight: FontWeight.w400,
-  color: OnlistColors.white,
-);
-
-InputDecoration _underlineDecoration({Widget? suffixIcon}) {
-  return InputDecoration(
-    isDense: true,
-    filled: false,
-    // Label sopra, poi spazio per scrivere: il testo digitato si appoggia sulla
-    // riga (textAlignVertical: bottom) restando staccato dalla label (top: 6),
-    // così non si sovrappone mentre si scrive.
-    contentPadding: const EdgeInsets.only(top: 6, bottom: 4),
-    enabledBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: OnlistColors.white, width: 3)),
-    focusedBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: OnlistColors.white, width: 3)),
-    errorBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.redAccent, width: 2)),
-    focusedErrorBorder: const UnderlineInputBorder(
-        borderSide: BorderSide(color: Colors.redAccent, width: 2)),
-    errorStyle: const TextStyle(color: Colors.white70),
-    suffixIcon: suffixIcon,
-  );
-}
-
-class _UnderlineField extends StatelessWidget {
-  const _UnderlineField({
-    required this.label,
-    this.controller,
-    this.keyboardType,
-    this.validator,
-    this.onChanged,
-  });
-
-  final String label;
-  final TextEditingController? controller;
-  final TextInputType? keyboardType;
-  final FormFieldValidator<String>? validator;
-  final ValueChanged<String>? onChanged;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text(label, style: OnlistTextStyles.formLabel22),
-        TextFormField(
-          controller: controller,
-          keyboardType: keyboardType,
-          textAlignVertical: TextAlignVertical.bottom,
-          style: _kInputStyle,
-          // suffixIcon invisibile: il campo Password ha il pulsante occhio come
-          // suffix, che impone al suo campo un'altezza minima di 48px. Qui
-          // aggiungiamo un suffix vuoto (stesso vincolo 48px) così il campo
-          // Email ha ESATTAMENTE la stessa altezza e l'underline si allinea.
-          decoration: _underlineDecoration(suffixIcon: const SizedBox.shrink()),
-          validator: validator,
-          onChanged: onChanged,
+    final conferma = await showAdaptiveDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog.adaptive(
+        title: const Text('Password dimenticata'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            const Text('Ti mandiamo un link per reimpostarla. A che email?'),
+            const SizedBox(height: 12),
+            TextField(
+              controller: controller,
+              keyboardType: TextInputType.emailAddress,
+              autofocus: true,
+              decoration: const InputDecoration(hintText: 'la-tua@email.it'),
+            ),
+          ],
         ),
-      ],
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Annulla'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Invia'),
+          ),
+        ],
+      ),
+    );
+
+    final email = controller.text.trim();
+    controller.dispose();
+    if (conferma != true || !context.mounted) return;
+
+    if (email.isEmpty ||
+        !RegExp(r'^[\w-\.]+@([\w-]+\.)+[\w-]{2,4}$').hasMatch(email)) {
+      showAppErrorDialog(context, 'Inserisci un indirizzo email valido.');
+      return;
+    }
+
+    AnalyticsService.log(event: 'password_reset_requested');
+    try {
+      await Supabase.instance.client.auth.resetPasswordForEmail(
+        email,
+        redirectTo: 'https://www.onlistclub.com/reset-password',
+      );
+    } catch (e) {
+      // Non diciamo se l'email esiste o no: sarebbe un modo per scoprire chi è
+      // iscritto. Il messaggio resta lo stesso in ogni caso.
+      debugPrint('[Auth] resetPasswordForEmail: $e');
+    }
+    if (!context.mounted) return;
+    showAppErrorDialog(
+      context,
+      'Se esiste un account con questa email, riceverai il link per reimpostare la password.',
+      title: 'Email inviata',
     );
   }
 }
 
-class _UnderlinePasswordField extends StatefulWidget {
-  const _UnderlinePasswordField(
-      {required this.onChanged, this.controller});
+// ── Divisore "oppure" ─────────────────────────────────────────────────────────
 
-  final ValueChanged<String> onChanged;
-  final TextEditingController? controller;
-
-  @override
-  State<_UnderlinePasswordField> createState() =>
-      _UnderlinePasswordFieldState();
-}
-
-class _UnderlinePasswordFieldState extends State<_UnderlinePasswordField> {
-  bool _obscure = true;
+/// Due righe da 145 px con "oppure" in mezzo (CSS "Group 464": 351 px a x 21).
+class _DivisoreOppure extends StatelessWidget {
+  const _DivisoreOppure();
 
   @override
   Widget build(BuildContext context) {
-    return Column(
-      crossAxisAlignment: CrossAxisAlignment.start,
-      children: [
-        Text('Password', style: OnlistTextStyles.formLabel22),
-        TextFormField(
-          controller: widget.controller,
-          obscureText: _obscure,
-          textAlignVertical: TextAlignVertical.bottom,
-          style: _kInputStyle,
-          decoration: _underlineDecoration(
-            suffixIcon: IconButton(
-              icon: Icon(
-                  _obscure ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white70,
-                  size: 20),
-              onPressed: () => setState(() => _obscure = !_obscure),
+    final Widget riga = Container(
+      width: R.sp(145),
+      height: 1,
+      color: OnlistColors.white,
+    );
+    return SizedBox(
+      width: R.sp(351),
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+        crossAxisAlignment: CrossAxisAlignment.center,
+        children: [
+          riga,
+          Text(
+            'oppure',
+            style: OnlistTextStyles.hn(
+              fontSize: R.sp(10),
+              fontWeight: FontWeight.w400,
+              color: OnlistColors.white,
             ),
           ),
-          validator: (v) {
-            if (v == null || v.isEmpty) return 'Inserisci la password';
-            if (v.length < 6) return 'Minimo 6 caratteri';
-            return null;
-          },
-          onChanged: widget.onChanged,
-        ),
-      ],
-    );
-  }
-}
-
-// ── Buttons ───────────────────────────────────────────────────────────────────
-
-class _WhiteButton extends StatelessWidget {
-  const _WhiteButton({required this.label, required this.onTap});
-
-  final String label;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: 150,
-      height: 40,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: OnlistColors.white,
-          foregroundColor: OnlistColors.black,
-          elevation: 0,
-          padding: EdgeInsets.zero,
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(10)),
-        ),
-        child: Text(label, style: OnlistTextStyles.button16Bold),
+          riga,
+        ],
       ),
     );
   }
 }
 
-// Slot fisso per il logo: garantisce che la "C" di "Continua" parta allo
-// stesso X sia su Apple che su Google, anche se i due loghi hanno larghezze
-// visivamente diverse.
-const double _kSocialIconSlot = 28;
+// ── Bottoni social ────────────────────────────────────────────────────────────
+
+/// Pillola social: icona + etichetta, entrambe centrate (CSS: padding 0 15,
+/// gap 5, raggio 62, altezza 54).
+class _SocialPill extends StatelessWidget {
+  const _SocialPill({
+    required this.onTap,
+    required this.icon,
+    required this.label,
+    required this.width,
+    required this.background,
+    required this.labelColor,
+  });
+
+  final VoidCallback onTap;
+  final Widget icon;
+  final String label;
+  final double width;
+  final Color background;
+  final Color labelColor;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: R.sp(width),
+      height: R.sp(54),
+      child: ElevatedButton(
+        onPressed: onTap,
+        style: ElevatedButton.styleFrom(
+          backgroundColor: background,
+          foregroundColor: labelColor,
+          elevation: 0,
+          padding: EdgeInsets.symmetric(horizontal: R.sp(15)),
+          shape: RoundedRectangleBorder(
+            borderRadius: BorderRadius.circular(R.sp(62)),
+          ),
+        ),
+        child: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            icon,
+            SizedBox(width: R.sp(5)),
+            Flexible(
+              child: Text(
+                label,
+                maxLines: 1,
+                overflow: TextOverflow.visible,
+                softWrap: false,
+                style: OnlistTextStyles.hn(
+                  fontSize: R.sp(19),
+                  // Il Figma dice 590 (SF Pro Semibold). Nel bundle non c'è la
+                  // faccia 600: chiederla cade comunque sul 700, quindi lo
+                  // scriviamo esplicito (vedi OnlistTextStyles).
+                  fontWeight: FontWeight.w700,
+                  color: labelColor,
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+}
 
 class _AppleButton extends StatelessWidget {
   const _AppleButton({required this.onTap});
@@ -347,10 +476,13 @@ class _AppleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SocialButton(
+    return _SocialPill(
       onTap: onTap,
-      icon: const Icon(Icons.apple, color: OnlistColors.black, size: 24),
-      label: 'Continua con Apple',
+      width: 128,
+      background: OnlistColors.authButtonLight,
+      labelColor: OnlistColors.black,
+      icon: Icon(Icons.apple, color: OnlistColors.black, size: R.sp(24)),
+      label: 'Apple',
     );
   }
 }
@@ -359,8 +491,8 @@ class _GoogleButton extends StatelessWidget {
   const _GoogleButton({required this.onTap});
   final VoidCallback onTap;
 
-  // Logo "G" ufficiale di Google (brand colors: #4285F4 / #34A853 / #FBBC05 / #EA4335).
-  // SVG inline per evitare di aggiungere un asset.
+  // Logo "G" ufficiale di Google (brand colors: #4285F4 / #34A853 / #FBBC05 /
+  // #EA4335). SVG inline per evitare di aggiungere un asset.
   static const String _googleGSvg = '''
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48">
   <path fill="#4285F4" d="M45.12 24.5c0-1.56-.14-3.06-.4-4.5H24v8.51h11.84c-.51 2.75-2.06 5.08-4.39 6.64v5.52h7.11c4.16-3.83 6.56-9.47 6.56-16.17z"/>
@@ -372,63 +504,14 @@ class _GoogleButton extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return _SocialButton(
+    return _SocialPill(
       onTap: onTap,
-      icon: SvgPicture.string(_googleGSvg, width: 22, height: 22),
-      label: 'Continua con Google',
+      width: 136,
+      background: OnlistColors.authButtonGoogle,
+      labelColor: OnlistColors.white,
+      icon:
+          SvgPicture.string(_googleGSvg, width: R.sp(23.2), height: R.sp(23.2)),
+      label: 'Google',
     );
   }
 }
-
-/// Bottone social: logo in uno slot a larghezza fissa, etichetta subito dopo.
-/// Così le scritte di Apple e Google sono perfettamente allineate sull'asse X.
-class _SocialButton extends StatelessWidget {
-  const _SocialButton({
-    required this.onTap,
-    required this.icon,
-    required this.label,
-  });
-
-  final VoidCallback onTap;
-  final Widget icon;
-  final String label;
-
-  @override
-  Widget build(BuildContext context) {
-    return SizedBox(
-      width: double.infinity,
-      height: 47,
-      child: ElevatedButton(
-        onPressed: onTap,
-        style: ElevatedButton.styleFrom(
-          backgroundColor: OnlistColors.white,
-          foregroundColor: OnlistColors.black,
-          elevation: 0,
-          padding: const EdgeInsets.symmetric(horizontal: 14),
-          shape: RoundedRectangleBorder(
-              borderRadius: BorderRadius.circular(11)),
-        ),
-        child: Row(
-          mainAxisAlignment: MainAxisAlignment.start,
-          crossAxisAlignment: CrossAxisAlignment.center,
-          children: [
-            SizedBox(
-              width: _kSocialIconSlot,
-              child: Center(child: icon),
-            ),
-            const SizedBox(width: 10),
-            Text(label, style: _kSocialLabel),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-const TextStyle _kSocialLabel = TextStyle(
-  fontFamily: 'OnlistHN',
-  fontSize: 19.48, // Figma: SF Pro/Roboto 19.48px
-  fontWeight: FontWeight.w500,
-  color: Color(0xBD000000), // rgba(0,0,0,0.74)
-);
-

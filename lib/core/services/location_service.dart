@@ -5,6 +5,7 @@ import 'package:geolocator/geolocator.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
 import '../models/citta_model.dart';
+import 'analytics_service.dart';
 
 /// Servizio di risoluzione della posizione utente.
 ///
@@ -19,6 +20,13 @@ class LocationService {
   static const String _latKey            = 'user_city_lat';
   static const String _lngKey            = 'user_city_lng';
   static const String _gpsForcedKey      = 'gps_forced';
+
+  /// Permesso GPS visto all'avvio precedente, e da quando il consenso è
+  /// attivo. Servono a [verificaPermessoDecaduto] per riconoscere il
+  /// "Consenti una volta sola", che al momento della richiesta è
+  /// indistinguibile da un consenso normale.
+  static const String _ultimoPermessoKey = 'gps_ultimo_permesso';
+  static const String _consensoDaKey     = 'gps_consenso_da';
 
   /// Cache in memoria del flag GPS forzato. Letto sincronicamente dai chiamanti
   /// (UI, BLoC). Le scritture vengono persistite in SharedPreferences in modo
@@ -58,6 +66,96 @@ class LocationService {
       Geolocator.requestPermission();
 
   static Future<bool> openSettings() => Geolocator.openAppSettings();
+
+  /// Nome stabile del permesso, per gli analytics. Il valore dell'enum non va
+  /// mandato così com'è: `LocationPermission.whileInUse` cambierebbe scrittura
+  /// a ogni refactor del pacchetto e spaccherebbe le query storiche.
+  static String etichettaPermesso(LocationPermission permesso) {
+    switch (permesso) {
+      case LocationPermission.always:
+        return 'always';
+      case LocationPermission.whileInUse:
+        return 'while_in_use';
+      case LocationPermission.denied:
+        return 'denied';
+      case LocationPermission.deniedForever:
+        return 'denied_forever';
+      case LocationPermission.unableToDetermine:
+        return 'unknown';
+    }
+  }
+
+  static bool permessoConcesso(String etichetta) =>
+      etichetta == 'always' || etichetta == 'while_in_use';
+
+  /// Precisione concessa: `precise` (posizione esatta) o `reduced`
+  /// (approssimativa). È il dato che manca per sapere se la schermata
+  /// "Abilita la posizione precisa" sta ottenendo quello che chiede.
+  ///
+  /// Funziona su entrambe le piattaforme: iOS legge l'accuracy authorization,
+  /// Android guarda se è stato concesso ACCESS_FINE_LOCATION o solo
+  /// ACCESS_COARSE_LOCATION.
+  static Future<String> precisionePermesso() async {
+    try {
+      final stato = await Geolocator.getLocationAccuracy();
+      switch (stato) {
+        case LocationAccuracyStatus.precise:
+          return 'precise';
+        case LocationAccuracyStatus.reduced:
+          return 'reduced';
+        case LocationAccuracyStatus.unknown:
+          return 'unknown';
+      }
+    } catch (e) {
+      debugPrint('[LocationService] precisionePermesso fallita: $e');
+      return 'unknown';
+    }
+  }
+
+  /// Confronta il permesso di adesso con quello dell'avvio precedente e, se è
+  /// decaduto da solo, lo registra. Chiamare da `main()` DOPO l'avvio della
+  /// sessione analytics, così l'evento porta `session_id` e `seq`.
+  ///
+  /// È l'unico modo per misurare il "Consenti una volta sola" di iOS: al
+  /// momento della richiesta il sistema risponde `whileInUse` esattamente come
+  /// per un consenso permanente, la differenza si vede solo dopo, quando il
+  /// permesso torna indietro da sé.
+  static Future<void> verificaPermessoDecaduto() async {
+    try {
+      final prefs = await SharedPreferences.getInstance();
+      final attuale = etichettaPermesso(await Geolocator.checkPermission());
+      final precedente = prefs.getString(_ultimoPermessoKey);
+      final concesso = permessoConcesso(attuale);
+
+      if (precedente != null && permessoConcesso(precedente) && !concesso) {
+        final da = prefs.getInt(_consensoDaKey);
+        AnalyticsService.logGpsPermissionLapsed(
+          precedente: precedente,
+          attuale: attuale,
+          oreDalConsenso: da == null
+              ? null
+              : DateTime.now()
+                  .difference(DateTime.fromMillisecondsSinceEpoch(da))
+                  .inHours,
+        );
+      }
+
+      await prefs.setString(_ultimoPermessoKey, attuale);
+      if (concesso) {
+        // Il momento del consenso si segna una volta sola: se lo riscrivessimo
+        // a ogni avvio, `oreDalConsenso` direbbe sempre "poche ore" e non
+        // distinguerebbe più il consenso una tantum dalla revoca manuale.
+        if (prefs.getInt(_consensoDaKey) == null) {
+          await prefs.setInt(
+              _consensoDaKey, DateTime.now().millisecondsSinceEpoch);
+        }
+      } else {
+        await prefs.remove(_consensoDaKey);
+      }
+    } catch (e) {
+      debugPrint('[LocationService] verificaPermessoDecaduto fallita: $e');
+    }
+  }
 
   /// Torna true se bisogna mostrare la schermata di richiesta posizione.
   static Future<bool> shouldShowLocationPrompt() async {

@@ -76,6 +76,53 @@ class UserProfileManager {
     await client.from('utenti').update({'raggio_km': km}).eq('id', user.id);
   }
 
+  /// Salva COME l'utente si fa localizzare: `gps` oppure `citta`.
+  ///
+  /// Gli eventi in `analytics_events` raccontano le singole scelte nel tempo;
+  /// questo è lo stato di adesso, che risponde con una query sola a "quanti
+  /// usano il GPS e quanti la città". Ricostruirlo ogni volta dagli eventi
+  /// sarebbe fragile: basta un evento perso e l'utente sparisce dal conteggio.
+  ///
+  /// [posizioneId] è l'id della città scelta, ma può arrivare anche da
+  /// `posti_famosi` (vedi `LocationService.searchCitta`): per questo la
+  /// colonna sul DB non ha foreign key.
+  ///
+  /// Serve la migration `2026-09-27_modalita_posizione_utenti.sql`. Finché non
+  /// è applicata la update fallisce e viene ingoiata: il profilo non è un
+  /// flusso critico, non deve mai bloccare l'ingresso in app.
+  Future<void> salvaModalitaPosizione({
+    required String modalita,
+    String? posizioneId,
+    String? posizioneNome,
+  }) async {
+    final client = Supabase.instance.client;
+    final user = client.auth.currentUser;
+    if (user == null) return;
+    // La Home ripassa di qui a ogni caricamento: senza questa guardia sarebbe
+    // una update per ogni apertura dell'app, per scrivere sempre lo stesso
+    // valore. Vive in memoria, quindi al riavvio si scrive una volta sola.
+    final firma = '${user.id}|$modalita|$posizioneId';
+    if (firma == _ultimaModalitaScritta) return;
+    _ultimaModalitaScritta = firma;
+    try {
+      await client.from('utenti').update({
+        'modalita_posizione': modalita,
+        'posizione_id': posizioneId,
+        'posizione_nome': posizioneNome,
+        'posizione_aggiornata_at': DateTime.now().toUtc().toIso8601String(),
+      }).eq('id', user.id);
+    } catch (e) {
+      // Se la scrittura fallisce si riprova al prossimo giro: la guardia non
+      // deve trasformare un errore di rete in un valore perso per sempre.
+      _ultimaModalitaScritta = null;
+      debugPrint('[UserProfileManager] salvaModalitaPosizione fallita: $e');
+    }
+  }
+
+  /// Ultima modalità posizione effettivamente scritta, per non ripetere la
+  /// stessa update a ogni caricamento della Home.
+  String? _ultimaModalitaScritta;
+
   /// Ensures that the user profile exists in the `public.utenti` table.
   /// Should be called after a successful login / email confirmation.
   ///
@@ -146,22 +193,33 @@ class UserProfileManager {
 
       debugPrint('[UserProfileManager] Profile created successfully (via RPC).');
 
-      // Email di benvenuto — fire-and-forget: non blocca mai il login.
-      try {
+      // Email di benvenuto: fire-and-forget, non blocca il login. Log
+      // strutturato dell'esito così un audit dei log (filtro `[UPM][welcome]`)
+      // permette di verificare che l'invio è partito e che Brevo l'ha
+      // accettato. Questo codepath copre gli utenti email+password (metadata
+      // completi al signUp); per Google/Apple la welcome parte invece da
+      // CompleteProfileBloc._onSubmit.
+      final email = user.email ?? '';
+      if (email.isNotEmpty) {
         final displayNome = [
           nome,
           cognome,
         ].where((s) => s.isNotEmpty).join(' ');
-        final email = user.email ?? '';
-        if (email.isNotEmpty) {
-          MessagingService.sendWelcomeEmail(
-            to: email,
-            nome: displayNome,
+        MessagingService.sendWelcomeEmail(
+          to: email,
+          nome: displayNome,
+        ).then((ok) {
+          debugPrint(
+            '[UPM][welcome] destinatario=$email nome="$displayNome" '
+            'esito=${ok ? 'OK' : 'FAIL'}',
           );
-          debugPrint('[UserProfileManager] welcome email fire-and-forget inviata a $email');
-        }
-      } catch (e) {
-        debugPrint('[UserProfileManager] welcome email fallita (non critico): $e');
+        }).catchError((Object e, StackTrace st) {
+          debugPrint(
+            '[UPM][welcome] destinatario=$email nome="$displayNome" errore=$e',
+          );
+        });
+      } else {
+        debugPrint('[UPM][welcome] SKIP: user.email vuoto (user.id=${user.id})');
       }
     } catch (e) {
       debugPrint('[UserProfileManager] Error ensuring profile: $e');

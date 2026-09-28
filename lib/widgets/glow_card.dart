@@ -18,6 +18,12 @@ class GlowCard extends StatelessWidget {
   final double radius;
   final Color glowColor;
 
+  /// Raggi per angolo, quando non sono tutti uguali. Se valorizzato vince su
+  /// [radius]. Serve ai pannelli che arrivano a filo del bordo dello schermo
+  /// (login, registrazione): là sotto l'angolo arrotondato lascerebbe vedere
+  /// lo sfondo, mentre nel mockup lo nasconde la cornice tonda del telefono.
+  final BorderRadius? borderRadius;
+
   /// Sigma della sfocatura (CSS: blur/2).
   final double glowSigma;
   final Offset glowOffset;
@@ -29,6 +35,7 @@ class GlowCard extends StatelessWidget {
     required this.glowColor,
     required this.glowSigma,
     this.glowOffset = Offset.zero,
+    this.borderRadius,
     this.child,
   }) : super(key: key);
 
@@ -38,6 +45,7 @@ class GlowCard extends StatelessWidget {
       painter: _GlowCardPainter(
         gradient: gradient,
         radius: radius,
+        borderRadius: borderRadius,
         glowColor: glowColor,
         glowSigma: glowSigma,
         glowOffset: glowOffset,
@@ -50,6 +58,7 @@ class GlowCard extends StatelessWidget {
 class _GlowCardPainter extends CustomPainter {
   final Gradient gradient;
   final double radius;
+  final BorderRadius? borderRadius;
   final Color glowColor;
   final double glowSigma;
   final Offset glowOffset;
@@ -57,6 +66,7 @@ class _GlowCardPainter extends CustomPainter {
   const _GlowCardPainter({
     required this.gradient,
     required this.radius,
+    required this.borderRadius,
     required this.glowColor,
     required this.glowSigma,
     required this.glowOffset,
@@ -65,7 +75,9 @@ class _GlowCardPainter extends CustomPainter {
   @override
   void paint(Canvas canvas, Size size) {
     final rect = Offset.zero & size;
-    final rrect = RRect.fromRectAndRadius(rect, Radius.circular(radius));
+    final rrect = borderRadius != null
+        ? borderRadius!.toRRect(rect)
+        : RRect.fromRectAndRadius(rect, Radius.circular(radius));
     final shape = Path()..addRRect(rrect);
 
     // 1. Fill col gradiente.
@@ -92,6 +104,7 @@ class _GlowCardPainter extends CustomPainter {
   bool shouldRepaint(_GlowCardPainter oldDelegate) =>
       gradient != oldDelegate.gradient ||
       radius != oldDelegate.radius ||
+      borderRadius != oldDelegate.borderRadius ||
       glowColor != oldDelegate.glowColor ||
       glowSigma != oldDelegate.glowSigma ||
       glowOffset != oldDelegate.glowOffset;

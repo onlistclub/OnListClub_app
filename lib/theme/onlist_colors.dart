@@ -208,6 +208,30 @@ class OnlistColors {
   /// Pill "PREZZO" del ticket aperto: `rgba(0, 21, 255, 0.49)`
   static const Color ticketPricePill = Color(0x7D0015FF);
 
+  // ── Pannello login / registrazione (CSS NUOVO del 27/09) ────────────────
+  //
+  // `login.css` e `registrazione.css`, Rectangle 388. Il gradiente e il glow
+  // sono gli STESSI della card biglietto, non due valori nuovi quasi uguali:
+  // restano alias così se il brand ritocca quel blu si ritocca in un punto
+  // solo. L'ombra esterna del CSS (`0 4px 150px 10px #000000`) cade su fondo
+  // già nero e non si vede: non la riportiamo.
+
+  /// Pannello di accesso e registrazione:
+  /// `linear-gradient(180deg, #0000F7 0%, #0000A9 94.71%)`
+  static const LinearGradient authPanel = ticketCard;
+
+  /// Glow interno del pannello: `inset 0px 2px 100px #00E6FF`
+  static const Color authPanelGlow = ticketCardGlow;
+
+  /// Bottoni chiari "Accedi" / "Registrati" / Apple: `rgba(255,255,255,0.5)`
+  static const Color authButtonLight = Color(0x80FFFFFF);
+
+  /// Bottone Google del login: `rgba(0,119,255,0.65)`
+  static const Color authButtonGoogle = Color(0xA60077FF);
+
+  /// Testo segnaposto dentro i campi: `rgba(255,255,255,0.5)`
+  static const Color authFieldHint = Color(0x80FFFFFF);
+
   /// Card "Ticket disponibili" (lista prevendite, booking).
   /// Valore UFFICIALE: `linear-gradient(180deg, rgba(0,0,0,.5), rgba(0,21,255,.5))`
   /// (blu semitrasparente, NON il solido viola #1900D8 usato prima).

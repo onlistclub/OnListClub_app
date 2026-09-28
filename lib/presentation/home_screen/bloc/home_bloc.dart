@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:geolocator/geolocator.dart';
 import '../models/home_model.dart';
@@ -151,6 +153,23 @@ class HomeBloc extends Bloc<HomeEvent, HomeState> {
         analyticsSource = 'citta_manuale';
       } else {
         analyticsSource = 'nessuna';
+      }
+
+      // Stato corrente della modalità posizione sul profilo. Senza questo, la
+      // colonna resterebbe vuota per tutti quelli che avevano già concesso il
+      // GPS prima di questa versione: non ripassano dalla schermata del
+      // permesso, quindi l'unico posto dove si scopre come si localizzano è
+      // qui. `salvaModalitaPosizione` scrive solo quando il valore cambia.
+      // 'storico' e 'nessuna' non dicono cosa ha scelto l'utente: si saltano.
+      if (analyticsSource == 'gps' || analyticsSource == 'gps_forced') {
+        unawaited(UserProfileManager().salvaModalitaPosizione(modalita: 'gps'));
+      } else if (analyticsSource == 'citta_manuale') {
+        final citta = await LocationService.getSavedLocation();
+        unawaited(UserProfileManager().salvaModalitaPosizione(
+          modalita:      'citta',
+          posizioneId:   citta?.idCitta,
+          posizioneNome: citta?.nomeCitta,
+        ));
       }
 
       final locale = await ClubService.getLocaleVicino(lat, lng);

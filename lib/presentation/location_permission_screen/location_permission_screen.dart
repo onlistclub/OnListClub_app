@@ -19,9 +19,32 @@ class LocationPermissionScreen extends StatefulWidget {
   State<LocationPermissionScreen> createState() => _LocationPermissionScreenState();
 }
 
-class _LocationPermissionScreenState extends State<LocationPermissionScreen> with ScreenAnalytics {
+class _LocationPermissionScreenState extends State<LocationPermissionScreen>
+    with ScreenAnalytics, WidgetsBindingObserver {
   @override
   String get screenName => 'location_permission';
+
+  @override
+  void initState() {
+    super.initState();
+    WidgetsBinding.instance.addObserver(this);
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    super.dispose();
+  }
+
+  /// "Apri Impostazioni" porta fuori dall'app: il permesso viene concesso là,
+  /// e all'app non arriva nessuna risposta. Senza questo controllo al rientro
+  /// la schermata resterebbe a chiedere un permesso ormai concesso, e quella
+  /// scelta dell'utente non finirebbe da nessuna parte.
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState stato) {
+    if (stato != AppLifecycleState.resumed || !mounted) return;
+    context.read<LocationPermissionBloc>().add(const RicontrollaPermessoEvent());
+  }
 
   @override
   Widget build(BuildContext context) {
