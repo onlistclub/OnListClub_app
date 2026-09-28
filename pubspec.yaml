@@ -88,17 +88,23 @@ flutter:
 flutter_launcher_icons:
   android: true
   ios: true
-  # Sorgenti generate dal monogramma ufficiale
-  # (design_source/Asset_ONLISTCLUB/Senza Margini/COLOR Monogram.png), centrate sul
-  # SEGNO e GIA' appiattite su nero (opache, senza alpha): flutter_launcher_icons
+  # Sorgenti generate dal LOGO INTERO ufficiale
+  # (design_source/Asset_ONLISTCLUB/Senza Margini/WHITE INTERO.png), centrate sul
+  # DISEGNO e GIA' appiattite su nero (opache, senza alpha): flutter_launcher_icons
   # sbaglia il compositing dell'alone viola semi-trasparente su nero e produce
   # un artefatto verde. Pre-appiattendole il tool non deve comporre l'alpha.
   # I file stanno fuori da assets/ cosi' non finiscono nel bundle a runtime:
   # servono solo al build delle icone.
-  image_path: "launcher/icon_monogram.png"
+  #
+  # NB: il README del brand indica il Monogram per l'icona dell'app. Qui si usa
+  # il logo intero per scelta esplicita di Luca (28/09/2026).
+  image_path: "launcher/icon_logo.png"
   remove_alpha_ios: true
   background_color_ios: "#000000"
-  # Adaptive Android: la maschera di sistema mostra solo il 66% centrale della
-  # tela, quindi il foreground ha il segno piu' piccolo (46% contro 62%).
+  # Adaptive Android: di garantito si vede solo il CERCHIO centrale da 66/108
+  # del lato, cioe' il 61%. Una scritta larga ci sta solo se la sua DIAGONALE
+  # resta dentro quel cerchio: da qui il 54,5% di larghezza del foreground
+  # (diagonale 58,8%) contro il 78% dell'icona piena, dove la maschera iOS e'
+  # un quadrato stondato e il centro resta tutto visibile.
   adaptive_icon_background: "#000000"
-  adaptive_icon_foreground: "launcher/icon_monogram_adaptive.png"
+  adaptive_icon_foreground: "launcher/icon_logo_adaptive.png"

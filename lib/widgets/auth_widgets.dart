@@ -70,7 +70,12 @@ class AuthPanel extends StatelessWidget {
       // CSS `inset 0px 2px 100px`: in Flutter il sigma è metà del blur.
       glowSigma: R.sp(50),
       glowOffset: Offset(0, R.sp(2)),
-      child: child,
+      // `double.infinity` è indispensabile, non una ridondanza: [GlowCard] è
+      // un `CustomPaint`, e un CustomPaint prende la misura del suo figlio.
+      // Senza questo il pannello si stringeva sul figlio più largo della
+      // colonna — il divisore "oppure", 351 px di design — e lasciava vedere
+      // lo sfondo ai due lati invece di arrivare ai bordi dello schermo.
+      child: SizedBox(width: double.infinity, child: child),
     );
   }
 }

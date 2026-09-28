@@ -407,6 +407,69 @@ class _DivisoreOppure extends StatelessWidget {
 
 // ── Bottoni social ────────────────────────────────────────────────────────────
 
+// Misure dell'INCHIOSTRO dei due loghi rispetto alla dimensione richiesta.
+//
+// Servono perché i due loghi riempiono il proprio riquadro in modo molto
+// diverso, e montandoli fianco a fianco con lo stesso distacco il risultato è
+// quello segnalato nel documento "LAST - Dettagli design da correggere": mela
+// staccata dalla scritta, G appiccicata. Misurato sul tuo screenshot: 31 px di
+// spazio dopo la mela contro quasi zero dopo la G, a parità di `SizedBox`.
+//
+// I valori della mela vengono da una sonda che disegnava `Icons.apple` e
+// contava i pixel accesi: a `size: 100` l'inchiostro è 76×75 e il suo centro
+// sta 13 px SOPRA il centro del riquadro. Quelli della G sono calcolati sul
+// viewBox 48 dell'SVG qui sotto: il disegno occupa x 2…45,1 e y 2…46.
+const double _kInkApplePerLato = 0.76;
+const double _kInkAppleAltezza = 0.75;
+const double _kInkAppleSalita = 0.13;
+const double _kInkGooglePerLato = 0.898;
+const double _kInkGoogleAltezza = 0.917;
+
+/// Dimensione del logo Google come da Figma (login.css: 23,2×23,2).
+const double _kGoogleSize = 23.2;
+
+/// Altezza del disegno vero, uguale per i due loghi: è quella della G alla
+/// misura del Figma, e la mela ci viene portata sopra.
+const double _kAltezzaLogo = _kGoogleSize * _kInkGoogleAltezza;
+
+/// Dimensione da chiedere a `Icons.apple` perché il suo disegno risulti alto
+/// quanto quello della G.
+const double _kAppleSize = _kAltezzaLogo / _kInkAppleAltezza;
+
+/// Riquadro stretto sull'INCHIOSTRO del logo invece che sulla sua cornice.
+///
+/// Così i 5 px di distacco del Figma sono 5 px veri per entrambi i bottoni, e
+/// i due loghi risultano della stessa altezza e allineati alla scritta.
+class _LogoInchiostro extends StatelessWidget {
+  const _LogoInchiostro({
+    required this.child,
+    required this.larghezza,
+    required this.altezza,
+    this.spostamento = Offset.zero,
+  });
+
+  final Widget child;
+  final double larghezza;
+  final double altezza;
+
+  /// Quanto spostare il disegno perché il suo centro cada al centro del
+  /// riquadro (la mela, da sola, sta più in alto).
+  final Offset spostamento;
+
+  @override
+  Widget build(BuildContext context) {
+    return SizedBox(
+      width: larghezza,
+      height: altezza,
+      child: OverflowBox(
+        maxWidth: double.infinity,
+        maxHeight: double.infinity,
+        child: Transform.translate(offset: spostamento, child: child),
+      ),
+    );
+  }
+}
+
 /// Pillola social: icona + etichetta, entrambe centrate (CSS: padding 0 15,
 /// gap 5, raggio 62, altezza 54).
 class _SocialPill extends StatelessWidget {
@@ -481,7 +544,14 @@ class _AppleButton extends StatelessWidget {
       width: 128,
       background: OnlistColors.authButtonLight,
       labelColor: OnlistColors.black,
-      icon: Icon(Icons.apple, color: OnlistColors.black, size: R.sp(24)),
+      icon: _LogoInchiostro(
+        larghezza: R.sp(_kAppleSize * _kInkApplePerLato),
+        altezza: R.sp(_kAltezzaLogo),
+        // La mela sta in alto nel suo riquadro: la si riporta al centro.
+        spostamento: Offset(0, R.sp(_kAppleSize * _kInkAppleSalita)),
+        child: Icon(Icons.apple,
+            color: OnlistColors.black, size: R.sp(_kAppleSize)),
+      ),
       label: 'Apple',
     );
   }
@@ -509,8 +579,13 @@ class _GoogleButton extends StatelessWidget {
       width: 136,
       background: OnlistColors.authButtonGoogle,
       labelColor: OnlistColors.white,
-      icon:
-          SvgPicture.string(_googleGSvg, width: R.sp(23.2), height: R.sp(23.2)),
+      icon: _LogoInchiostro(
+        larghezza: R.sp(_kGoogleSize * _kInkGooglePerLato),
+        altezza: R.sp(_kAltezzaLogo),
+        // La G è già centrata nel suo riquadro: niente da spostare.
+        child: SvgPicture.string(_googleGSvg,
+            width: R.sp(_kGoogleSize), height: R.sp(_kGoogleSize)),
+      ),
       label: 'Google',
     );
   }

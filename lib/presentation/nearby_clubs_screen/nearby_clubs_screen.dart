@@ -507,14 +507,22 @@ class _NearbyClubsScreenState extends State<NearbyClubsScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      // Il gradiente continua dietro la footer flottante.
-      extendBody: true,
-      // Footer: unica e globale, montata da RootShell (non qui).
-      body: DecoratedBox(
-        decoration: const BoxDecoration(gradient: _sfondo),
-        child: SafeArea(
+    // Il gradiente sta FUORI dallo Scaffold, e lo Scaffold è trasparente.
+    //
+    // Dentro, con `resizeToAvoidBottomInset` attivo, all'apertura della
+    // tastiera il body si accorciava e il gradiente con lui: negli angoli
+    // arrotondati in cima alla tastiera riaffiorava il nero dello Scaffold,
+    // due spicchi scuri fuori posto (documento "LAST - Dettagli design da
+    // correggere"). Qui il gradiente resta a schermo pieno e quegli angoli
+    // mostrano il colore che gli compete.
+    return DecoratedBox(
+      decoration: const BoxDecoration(gradient: _sfondo),
+      child: Scaffold(
+        backgroundColor: Colors.transparent,
+        // Il gradiente continua dietro la footer flottante.
+        extendBody: true,
+        // Footer: unica e globale, montata da RootShell (non qui).
+        body: SafeArea(
           bottom: false,
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
@@ -1311,10 +1319,9 @@ class _RadiusDialogState extends State<_RadiusDialog> {
     final double lat = widget.lat ?? 0;
     // 90% del lato: un margine perché il bordo del cerchio non tocchi i lati.
     final double metriPerPixel = (km * 2000) / (_latoMappa * 0.9);
-    final double z = math.log(156543.03392 *
-            math.cos(lat * math.pi / 180) /
-            metriPerPixel) /
-        math.ln2;
+    final double z =
+        math.log(156543.03392 * math.cos(lat * math.pi / 180) / metriPerPixel) /
+            math.ln2;
     return z.clamp(1.0, 18.0);
   }
 
@@ -1611,9 +1618,8 @@ class _FiltersSheetState extends State<_FiltersSheet> {
     final pos = _caroselloCtrl.position;
     final int n = _nomiCategorie.length;
     if (n < 2 || pos.maxScrollExtent <= 0) return;
-    final int p = (pos.pixels / pos.maxScrollExtent * (n - 1))
-        .round()
-        .clamp(0, n - 1);
+    final int p =
+        (pos.pixels / pos.maxScrollExtent * (n - 1)).round().clamp(0, n - 1);
     if (p != _paginaCarosello) setState(() => _paginaCarosello = p);
   }
 
@@ -1760,8 +1766,7 @@ class _FiltersSheetState extends State<_FiltersSheet> {
           child: Row(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              Text('swipe',
-                  style: _stile(10, peso: FontWeight.w300, ls: 0)),
+              Text('swipe', style: _stile(10, peso: FontWeight.w300, ls: 0)),
               const SizedBox(width: 3),
               Padding(
                 padding: const EdgeInsets.only(top: 3),
@@ -1873,7 +1878,9 @@ class _FiltersSheetState extends State<_FiltersSheet> {
               child: FittedBox(
                 fit: BoxFit.scaleDown,
                 child: Text(
-                  _count == 1 ? 'Mostra 1 risultato' : 'Mostra $_count risultati',
+                  _count == 1
+                      ? 'Mostra 1 risultato'
+                      : 'Mostra $_count risultati',
                   style: _stile(20),
                 ),
               ),
@@ -1923,8 +1930,8 @@ class _FiltersSheetState extends State<_FiltersSheet> {
               widthFactor: 1,
               child: Opacity(
                 opacity: scelta ? 1 : 0.5,
-                child: Text(nome,
-                    style: _stile(17, peso: FontWeight.w300, ls: 0)),
+                child:
+                    Text(nome, style: _stile(17, peso: FontWeight.w300, ls: 0)),
               ),
             ),
           ),

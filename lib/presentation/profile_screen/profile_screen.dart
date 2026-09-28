@@ -875,7 +875,21 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
   // testo e icona dentro una Row centrata veniva centrato il GRUPPO, quindi
   // la scritta risultava spostata a sinistra (punto 7.3 del documento
   // "Specifiche Modifiche App").
+  //
+  // Ma centrarla nell'INTERA pill, col segnalibro sovrapposto in posizione
+  // assoluta, la mandava a finire sotto l'icona: a corpo 28 "Club salvati"
+  // misura circa 156 px su 182, e l'ultima lettera spariva dietro il
+  // segnalibro (documento "LAST - Dettagli design da correggere").
+  //
+  // Qui lo spazio del segnalibro è riservato su ENTRAMBI i lati: la scritta
+  // resta centrata nella pill esattamente come prima, ma nello spazio che
+  // rimane, e non può più scontrarsi con l'icona. Il `FittedBox` è la rete di
+  // sicurezza per i telefoni stretti, dove anche lo spazio ridotto non basta.
   Widget _buildClubSalvatiPill() {
+    // Larghezza riservata all'icona: il segnalibro (16,1 di larghezza a 25 di
+    // altezza) più il margine di 12 del CSS.
+    final double slotIcona = R.sp(16.1 + 12);
+
     return Center(
       child: Container(
         width: R.sp(182),
@@ -884,17 +898,25 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
           color: const Color(0x33D9D9D9),
           borderRadius: BorderRadius.circular(R.sp(13)),
         ),
-        child: Stack(
+        child: Row(
           children: [
-            Center(
-              child: Text(
-                'Club salvati',
-                style: OnlistTextStyles.hn(
-                  fontSize: R.sp(28),
-                  fontWeight: FontWeight.w400,
-                  color: OnlistColors.white,
-                  height: 28 / 28,
-                  letterSpacing: -0.06 * 28,
+            // Contrappeso invisibile: tiene la scritta al centro della pill.
+            SizedBox(width: slotIcona),
+            Expanded(
+              child: Center(
+                child: FittedBox(
+                  fit: BoxFit.scaleDown,
+                  child: Text(
+                    'Club salvati',
+                    maxLines: 1,
+                    style: OnlistTextStyles.hn(
+                      fontSize: R.sp(28),
+                      fontWeight: FontWeight.w400,
+                      color: OnlistColors.white,
+                      height: 28 / 28,
+                      letterSpacing: -0.06 * 28,
+                    ),
+                  ),
                 ),
               ),
             ),
@@ -902,13 +924,16 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
             // Disegnato a 25 di altezza, non ai 23 del Figma: e' l'ingrandimento
             // gia' approvato al punto 24 ("mettere piu' grande il tasto dei
             // preferiti"), stessa resa dell'icona Material che sostituisce.
-            Positioned(
-              right: R.sp(12),
-              top: 0,
-              bottom: 0,
-              child: Center(
-                child: SvgPicture.asset(ImageConstant.imgBookmark,
-                    height: R.sp(25)),
+            SizedBox(
+              width: slotIcona,
+              child: Align(
+                alignment: Alignment.centerRight,
+                child: Padding(
+                  // I 12 del CSS restano il margine dal bordo della pill.
+                  padding: EdgeInsets.only(right: R.sp(12)),
+                  child: SvgPicture.asset(ImageConstant.imgBookmark,
+                      height: R.sp(25)),
+                ),
               ),
             ),
           ],
