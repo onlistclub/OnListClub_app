@@ -415,13 +415,19 @@ class _DivisoreOppure extends StatelessWidget {
 // staccata dalla scritta, G appiccicata. Misurato sul tuo screenshot: 31 px di
 // spazio dopo la mela contro quasi zero dopo la G, a parità di `SizedBox`.
 //
-// I valori della mela vengono da una sonda che disegnava `Icons.apple` e
-// contava i pixel accesi: a `size: 100` l'inchiostro è 76×75 e il suo centro
-// sta 13 px SOPRA il centro del riquadro. Quelli della G sono calcolati sul
-// viewBox 48 dell'SVG qui sotto: il disegno occupa x 2…45,1 e y 2…46.
-const double _kInkApplePerLato = 0.76;
+// I valori della mela sono misurati su uno SCREENSHOT DEL TELEFONO: a
+// `size: 28,36` l'inchiostro è 18,0 × 21,3 px, centrato nel suo riquadro.
+//
+// Non fidarsi di una sonda in `flutter test` per queste misure: il primo
+// tentativo dava 76×75 (quasi quadrata) con il centro 13 px più in alto, e
+// quei numeri hanno mandato la mela 4 px sotto la scritta. Nei widget test il
+// font delle icone Material non si carica e si finisce per misurare il
+// rettangolo di sostituzione, non il glifo. La mela vera è più ALTA che larga.
+//
+// Quelli della G sono calcolati sul viewBox 48 dell'SVG qui sotto: il disegno
+// occupa x 2…45,1 e y 2…46.
+const double _kInkApplePerLato = 0.635;
 const double _kInkAppleAltezza = 0.75;
-const double _kInkAppleSalita = 0.13;
 const double _kInkGooglePerLato = 0.898;
 const double _kInkGoogleAltezza = 0.917;
 
@@ -445,26 +451,24 @@ class _LogoInchiostro extends StatelessWidget {
     required this.child,
     required this.larghezza,
     required this.altezza,
-    this.spostamento = Offset.zero,
   });
 
   final Widget child;
   final double larghezza;
   final double altezza;
 
-  /// Quanto spostare il disegno perché il suo centro cada al centro del
-  /// riquadro (la mela, da sola, sta più in alto).
-  final Offset spostamento;
-
   @override
   Widget build(BuildContext context) {
     return SizedBox(
       width: larghezza,
       height: altezza,
+      // L'OverflowBox centra il disegno nel riquadro e lo lascia sforare: il
+      // riquadro serve a misurare lo spazio che il logo occupa nella riga,
+      // non a ritagliarlo.
       child: OverflowBox(
         maxWidth: double.infinity,
         maxHeight: double.infinity,
-        child: Transform.translate(offset: spostamento, child: child),
+        child: child,
       ),
     );
   }
@@ -547,8 +551,9 @@ class _AppleButton extends StatelessWidget {
       icon: _LogoInchiostro(
         larghezza: R.sp(_kAppleSize * _kInkApplePerLato),
         altezza: R.sp(_kAltezzaLogo),
-        // La mela sta in alto nel suo riquadro: la si riporta al centro.
-        spostamento: Offset(0, R.sp(_kAppleSize * _kInkAppleSalita)),
+        // Niente spostamento: la mela è già centrata nel suo riquadro. Un
+        // tentativo di "correggerla" verso il basso l'aveva mandata fuori
+        // asse rispetto alla scritta (vedi il commento sulle misure sopra).
         child: Icon(Icons.apple,
             color: OnlistColors.black, size: R.sp(_kAppleSize)),
       ),
