@@ -74,7 +74,7 @@ function emailHtml(nome: string, link: string): string {
     img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}
     a{text-decoration:none;}
     .email-container{box-sizing:border-box!important;width:100%!important;max-width:560px!important;background-color:transparent!important;border:2px solid #A78BFA!important;border-radius:22px!important;padding:36px 32px!important;box-shadow:0 0 0 1px rgba(139,92,246,.10),0 0 22px rgba(139,92,246,.18),0 18px 42px rgba(47,34,77,.08)!important;}
-    .logo-plate{background-color:#0a0a0a!important;border-radius:20px!important;}
+    .logo-plate{background-color:#0a0a0a!important;background-image:linear-gradient(#0a0a0a,#0a0a0a)!important;border-radius:20px!important;}
     .logo-mark{display:block!important;width:200px!important;max-width:78%!important;height:auto!important;margin:0 auto!important;}
     .text-title,.text-body,.text-bold-name,.text-muted,.footer-text{color:inherit!important;}
     .footer-divider{border-top-color:rgba(127,111,150,.35)!important;}
@@ -104,7 +104,7 @@ function emailHtml(nome: string, link: string): string {
           <tr>
             <td align="center" style="padding-bottom:28px;">
               <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr>
-                <td class="logo-plate" align="center" bgcolor="#0a0a0a" style="background-color:#0a0a0a;border-radius:20px;padding:22px 44px;">
+                <td class="logo-plate" align="center" bgcolor="#0a0a0a" style="background-color:#0a0a0a;background-image:linear-gradient(#0a0a0a,#0a0a0a);border-radius:20px;padding:22px 44px;">
                   <img class="logo-mark" src="${LOGO_URL}" alt="OnListClub" width="200" style="display:block;width:200px;max-width:78%;height:auto;border:0;margin:0 auto;">
                 </td>
               </tr></table>
