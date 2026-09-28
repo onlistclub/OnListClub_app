@@ -5,12 +5,12 @@
         <!-- Show a splash screen on the activity. Automatically removed when
              the Flutter engine draws its first frame -->
         <item name="android:windowBackground">@drawable/launch_background</item>
-        <item name="android:forceDarkAllowed">false</item>
-        <item name="android:windowFullscreen">false</item>
         <!-- DEVE restare true: il flag icone-bianche (statusBarIconBrightness /
              SYSTEM_UI_FLAG_LIGHT_STATUS_BAR) ha effetto SOLO se la finestra
              disegna gli sfondi delle barre di sistema. Con false, Android ignora
              la brightness richiesta da Flutter -> icone scure invisibili sul dark. -->
+        <item name="android:forceDarkAllowed">false</item>
+        <item name="android:windowFullscreen">false</item>
         <item name="android:windowDrawsSystemBarBackgrounds">true</item>
         <item name="android:windowLayoutInDisplayCutoutMode">shortEdges</item>
     </style>

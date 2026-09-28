@@ -31,20 +31,31 @@ flutter_native_splash:
   # come sfondo (un pixel 1×1 stirato) e IGNORA background_image → si perde il
   # gradiente. Con solo background_image, iOS e Android<12 usano il PNG del
   # gradiente. Il colore serve solo ad android_12 (l'OS lì vieta le immagini).
+  # Il logo è la SCRITTA "OnList" intera, come il Figma nuovo del 27/09
+  # (off/01 - Prima pagina.png, intro.css: 229×97 centrata). Il tool tratta il
+  # PNG sorgente come 4x, quindi 229×97 logici = 916×388 px: è esattamente la
+  # misura di `logo_onlist_wordmark.png`, generato dall'asset brand ufficiale.
+  # Se cambia la dimensione qui, va cambiata anche in `splash_screen.dart`,
+  # altrimenti il logo salta nel passaggio nativa → Flutter.
   background_image: "assets/native_splash/splash_bg.png"
-  image: "assets/images/logo_onlist.png"
+  image: "assets/native_splash/logo_onlist_wordmark.png"
 
   background_image_dark: "assets/native_splash/splash_bg.png"
-  image_dark: "assets/images/logo_onlist.png"
+  image_dark: "assets/native_splash/logo_onlist_wordmark.png"
 
   # Android 12+: l'OS impone il suo formato (colore pieno + icona centrata
   # mascherata a cerchio). Niente gradiente possibile qui: restiamo sul nero
   # base del design system.
+  #
+  # E niente scritta: dentro una maschera circolare una scritta larga 2,4 volte
+  # la sua altezza verrebbe tagliata ai lati. Qui resta il solo marchio, che è
+  # quadrato e regge il ritaglio. È un limite dell'API di Android 12, non una
+  # scelta: su quei telefoni il passaggio marchio → scritta si vede.
   android_12:
     color: "#000000"
-    image: "assets/images/logo_onlist.png"
+    image: "assets/native_splash/logo_onlist_mark.png"
     color_dark: "#000000"
-    image_dark: "assets/images/logo_onlist.png"
+    image_dark: "assets/native_splash/logo_onlist_mark.png"
 
   android: true
   ios: true

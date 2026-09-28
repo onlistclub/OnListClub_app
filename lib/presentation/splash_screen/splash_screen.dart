@@ -21,24 +21,11 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
   @override
   String get screenName => 'splash';
 
-  /// La freccia "su" entra in dissolvenza subito DOPO l'handoff dalla native
-  /// splash: la native mostra solo gradiente + logo (l'OS non può disegnare la
-  /// freccia), quindi farla comparire dolcemente fa leggere l'insieme come un
-  /// unico splash animato invece che come una seconda schermata che appare.
-  bool _showArrow = false;
-
   @override
   void initState() {
     super.initState();
     AnalyticsService.log(event: 'app_open');
-    _revealArrowSoon();
     _checkSession();
-  }
-
-  void _revealArrowSoon() {
-    Future.delayed(const Duration(milliseconds: 220), () {
-      if (mounted) setState(() => _showArrow = true);
-    });
   }
 
   Future<void> _checkSession() async {
@@ -92,13 +79,21 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
     NavigatorService.pushNamedAndRemoveUntil(AppRoutes.homeScreen);
   }
 
-  /// Lato del logo in logical px. DEVE combaciare con la dimensione a cui
-  /// flutter_native_splash rende il logo nella native splash, altrimenti al
-  /// passaggio nativa→Flutter il logo "salta". Il tool tratta il sorgente
-  /// (`logo_onlist.png`, 1024px) come 4x → 1024/4 = 256 logical px, centrato.
-  /// (Su iOS il tool può scalarlo un filo diversamente: verificare su device;
-  /// se il logo cambia dimensione all'avvio, aggiustare qui.)
-  static const double _kLogoSize = 256.0;
+  /// Misura del logo in logical px, dal Figma nuovo del 27/09 (`intro.css`:
+  /// "WHITE INTERO 2" 229×97, centrata — 378 + 97/2 = 426,5, cioè metà dei 852
+  /// del frame).
+  ///
+  /// DEVONO combaciare con la dimensione a cui flutter_native_splash rende il
+  /// logo, altrimenti al passaggio nativa→Flutter il logo "salta". Il tool
+  /// tratta il sorgente come 4x: `assets/native_splash/logo_onlist_wordmark.png`
+  /// è 916×388 → 229×97 logici, ed è generato dallo stesso asset brand di
+  /// [ImageConstant.imgLogoOnlistIntero]. Se cambia una delle due, cambiare
+  /// anche l'altra e rilanciare `dart run flutter_native_splash:create`.
+  ///
+  /// Niente `R.sp` qui: la native splash disegna a misura fissa su qualsiasi
+  /// telefono, quindi scalare solo il lato Flutter rimetterebbe il salto.
+  static const double _kLogoW = 229.0;
+  static const double _kLogoH = 97.0;
 
   @override
   Widget build(BuildContext context) {
@@ -109,45 +104,20 @@ class _SplashScreenState extends State<SplashScreen> with ScreenAnalytics {
       body: DecoratedBox(
         decoration:
             const BoxDecoration(gradient: OnlistColors.onboardingBackground),
-        child: Stack(
-          children: [
-            // Logo centrato, stessa posizione e dimensione della native splash:
-            // l'handoff OS→Flutter è invisibile (un solo passaggio).
-            Center(
-              child: SizedBox(
-                width: _kLogoSize,
-                height: _kLogoSize,
-                child: Image.asset(
-                  ImageConstant.imgLogoOnlist,
-                  fit: BoxFit.contain,
-                ),
-              ),
+        // Solo la scritta, centrata: il Figma nuovo non ha più la freccia
+        // sotto al marchio. L'alone della pallina fa parte dell'immagine.
+        child: Center(
+          child: SizedBox(
+            width: _kLogoW,
+            height: _kLogoH,
+            // `fill` e non `contain`: la misura è già quella esatta del
+            // rapporto dell'asset, e così il riquadro coincide al pixel con
+            // quello della native splash invece di lasciare un filo di bordo.
+            child: Image.asset(
+              ImageConstant.imgLogoOnlistIntero,
+              fit: BoxFit.fill,
             ),
-            // Freccia "su" poco sotto il centro, in dissolvenza (vedi _showArrow).
-            Align(
-              alignment: const Alignment(0, 0.34),
-              child: AnimatedOpacity(
-                opacity: _showArrow ? 1.0 : 0.0,
-                duration: const Duration(milliseconds: 320),
-                curve: Curves.easeOut,
-                child: Container(
-                  width: 44,
-                  height: 44,
-                  alignment: Alignment.center,
-                  decoration: BoxDecoration(
-                    shape: BoxShape.circle,
-                    // Tratto sottile come in Figma off/01.
-                    border: Border.all(color: OnlistColors.white, width: 1.6),
-                  ),
-                  child: const Icon(
-                    Icons.arrow_upward,
-                    color: OnlistColors.white,
-                    size: 24,
-                  ),
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );

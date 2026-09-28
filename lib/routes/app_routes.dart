@@ -30,43 +30,45 @@ import '../presentation/event_info_popup_screen/event_info_popup_screen.dart';
 import '../presentation/legal_reaccept_screen/legal_reaccept_screen.dart';
 
 class AppRoutes {
-  static const String splashScreen             = '/splash_screen';
-  static const String authenticationScreen     = '/authentication_screen';
-  static const String signUpScreen             = '/sign_up_screen';
-  static const String verificationScreen       = '/verification_screen';
-  static const String verificationFailureScreen = '/verification_failure_screen';
+  static const String splashScreen = '/splash_screen';
+  static const String authenticationScreen = '/authentication_screen';
+  static const String signUpScreen = '/sign_up_screen';
+  static const String verificationScreen = '/verification_screen';
+  static const String verificationFailureScreen =
+      '/verification_failure_screen';
 
   /// Home principale dell'app (ex event_detail_screen).
-  static const String homeScreen               = '/home_screen';
+  static const String homeScreen = '/home_screen';
+
   /// Alias retrocompatibile: tutte le navigazioni verso eventDetailScreen
   /// finiscono sulla nuova Home.
-  static const String eventDetailScreen        = '/home_screen';
+  static const String eventDetailScreen = '/home_screen';
 
-  static const String completeProfileScreen    = '/complete_profile_screen';
+  static const String completeProfileScreen = '/complete_profile_screen';
   static const String locationPermissionScreen = '/location_permission_screen';
-  static const String locationManualScreen     = '/location_manual_screen';
-  static const String clubDetailScreen         = '/club_detail_screen';
-  static const String bookingScreen            = '/booking_screen';
+  static const String locationManualScreen = '/location_manual_screen';
+  static const String clubDetailScreen = '/club_detail_screen';
+  static const String bookingScreen = '/booking_screen';
 
   /// Lista locali vicini all'utente filtrati per raggio.
-  static const String nearbyClubsScreen        = '/nearby_clubs_screen';
+  static const String nearbyClubsScreen = '/nearby_clubs_screen';
 
-  static const String profileScreen            = '/profile_screen';
-  static const String notificationsScreen      = '/notifications_screen';
-  static const String cartScreen               = '/cart_screen';
-  static const String ordersScreen              = '/orders_screen';
-  static const String paymentSuccessScreen     = '/payment_success_screen';
-  static const String prevenditaDetailScreen   = '/prevendita_detail_screen';
-  static const String tavoloDetailScreen       = '/tavolo_detail_screen';
+  static const String profileScreen = '/profile_screen';
+  static const String notificationsScreen = '/notifications_screen';
+  static const String cartScreen = '/cart_screen';
+  static const String ordersScreen = '/orders_screen';
+  static const String paymentSuccessScreen = '/payment_success_screen';
+  static const String prevenditaDetailScreen = '/prevendita_detail_screen';
+  static const String tavoloDetailScreen = '/tavolo_detail_screen';
 
   /// Pop-up info serata (Figma `off/19`). Riceve {serata, club} come args.
-  static const String eventInfoPopupScreen     = '/event_info_popup_screen';
+  static const String eventInfoPopupScreen = '/event_info_popup_screen';
 
   /// Ri-accettazione bloccante di privacy/termini all'apertura dell'app
   /// quando è stata pubblicata una nuova versione dei documenti legali. Vive
   /// tra splash e home: l'utente non può bypassarla né tornare indietro.
   /// Riceve `{status: LegalReacceptanceStatus}` come argomento.
-  static const String legalReacceptScreen      = '/legal_reaccept_screen';
+  static const String legalReacceptScreen = '/legal_reaccept_screen';
 
   static const String initialRoute = splashScreen;
 
@@ -93,6 +95,24 @@ class AppRoutes {
   /// cosa e la pagina ne faceva un'altra.
   static const Set<String> _slideUpRoutes = {
     prevenditaDetailScreen,
+  };
+
+  /// Rotte del flusso di registrazione, che si passano il testimone in
+  /// DISSOLVENZA: nessun movimento, solo opacità.
+  ///
+  /// È il passaggio che il designer ha girato in video il 27/09: la
+  /// registrazione e il "Grazie per esserti registrato!" restano ferme e
+  /// sovrapposte mentre la seconda si accende. Con lo shared-axis la
+  /// registrazione scivolava di lato, cosa che nel design non succede.
+  ///
+  /// C'è dentro anche `signUpScreen`, e non solo perché nel prototipo pure
+  /// login → registrazione è una dissolvenza: è la sua transizione a decidere
+  /// come la registrazione se ne va quando le arriva sopra il "Grazie". Con
+  /// una transizione che si muove, quello scivolamento si vedrebbe proprio
+  /// durante la dissolvenza.
+  static const Set<String> _dissolvenzaRoutes = {
+    signUpScreen,
+    verificationScreen,
   };
 
   /// Rotte che entrano come un POP-UP: piccole e trasparenti, si aprono con un
@@ -159,6 +179,8 @@ class AppRoutes {
       transition = AppTransition.fade;
     } else if (_slideUpRoutes.contains(settings.name)) {
       transition = AppTransition.slideUp;
+    } else if (_dissolvenzaRoutes.contains(settings.name)) {
+      transition = AppTransition.dissolvenza;
     } else {
       transition = AppTransition.sharedAxis;
     }
@@ -171,29 +193,29 @@ class AppRoutes {
   }
 
   static Map<String, WidgetBuilder> get routes => {
-        splashScreen:              SplashScreen.builder,
-        authenticationScreen:      AuthenticationScreen.builder,
-        signUpScreen:              SignUpScreen.builder,
-        verificationScreen:        VerificationScreen.builder,
+        splashScreen: SplashScreen.builder,
+        authenticationScreen: AuthenticationScreen.builder,
+        signUpScreen: SignUpScreen.builder,
+        verificationScreen: VerificationScreen.builder,
         verificationFailureScreen: VerificationFailureScreen.builder,
         // La Home è ospitata dallo shell persistente (footer fissa + tab con
         // stato preservato). Le vecchie navigazioni verso `homeScreen` (splash,
         // footer legacy, ecc.) montano quindi lo shell sulla tab Home.
-        homeScreen:                RootShell.builder,
-        completeProfileScreen:     CompleteProfileScreen.builder,
-        locationPermissionScreen:  LocationPermissionScreen.builder,
-        locationManualScreen:      LocationManualScreen.builder,
-        clubDetailScreen:          ClubDetailScreen.builder,
-        bookingScreen:             BookingScreen.builder,
-        nearbyClubsScreen:         NearbyClubsScreen.builder,
-        profileScreen:             ProfileScreen.builder,
-        notificationsScreen:       NotificationsScreen.builder,
-        cartScreen:                CartScreen.builder,
-        ordersScreen:               OrdersScreen.builder,
-        paymentSuccessScreen:       PaymentSuccessScreen.builder,
-        prevenditaDetailScreen:     PrevenditaDetailScreen.builder,
-        tavoloDetailScreen:         TavoloDetailScreen.builder,
-        eventInfoPopupScreen:       EventInfoPopupScreen.builder,
-        legalReacceptScreen:        LegalReacceptScreen.builder,
+        homeScreen: RootShell.builder,
+        completeProfileScreen: CompleteProfileScreen.builder,
+        locationPermissionScreen: LocationPermissionScreen.builder,
+        locationManualScreen: LocationManualScreen.builder,
+        clubDetailScreen: ClubDetailScreen.builder,
+        bookingScreen: BookingScreen.builder,
+        nearbyClubsScreen: NearbyClubsScreen.builder,
+        profileScreen: ProfileScreen.builder,
+        notificationsScreen: NotificationsScreen.builder,
+        cartScreen: CartScreen.builder,
+        ordersScreen: OrdersScreen.builder,
+        paymentSuccessScreen: PaymentSuccessScreen.builder,
+        prevenditaDetailScreen: PrevenditaDetailScreen.builder,
+        tavoloDetailScreen: TavoloDetailScreen.builder,
+        eventInfoPopupScreen: EventInfoPopupScreen.builder,
+        legalReacceptScreen: LegalReacceptScreen.builder,
       };
 }

@@ -26,7 +26,12 @@ class ImageConstant {
   ];
 
   // Logo
-  static String imgLogoOnlist = '${_basePath}logo_onlist.png';
+  //
+  // Il solo marchio (pallina + gancio) non sta più qui: serviva alla vecchia
+  // splash, che ora mostra la scritta intera. È rimasto come sorgente della
+  // native splash di Android 12+ in `assets/native_splash/`, fuori dagli
+  // asset dichiarati, così non pesa più 83 KB dentro l'app per niente.
+  //
   // Logo intero bianco, asset ufficiale del brand ("WHITE INTERO", variante
   // "Senza Margini"): scritta + pallina con l'alone, ritagliato sui bordi
   // effettivi del disegno. Lo disegna [OnlistWordmark].

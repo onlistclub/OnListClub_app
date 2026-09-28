@@ -66,7 +66,27 @@ enum AppTransition {
   /// di chiusura punta in su e il movimento deve darle ragione (punto 5.4
   /// del documento "Specifiche Modifiche App").
   slideUp,
+
+  /// Dissolvenza pura: nessun movimento, nessuna scala, solo opacità. È la
+  /// transizione del flusso di registrazione del prototipo Figma (vedi
+  /// [kDurataDissolvenza]). Diversa da [fade], che ha la micro-scala e una
+  /// curva più veloce: qui la schermata non si muove di un pixel, perché la
+  /// nuova deve sovrapporsi alla vecchia come due fogli in dissolvenza.
+  dissolvenza,
 }
+
+/// Durata della dissolvenza del flusso di registrazione.
+///
+/// Misurata fotogramma per fotogramma sul video del prototipo (60 fps): 17
+/// fotogrammi, cioè 280 ms. Nel prototipo *ogni* passaggio dura lo stesso —
+/// misurati 0,300 · 0,267 · 0,283 · 0,283 · 0,267 s — quindi non è un valore
+/// scelto a mano su una schermata sola.
+const Duration kDurataDissolvenza = Duration(milliseconds: 280);
+
+/// Curva della dissolvenza in ingresso: parte piano e accelera verso la fine.
+/// Misurata sui pixel del video: a metà tempo il passaggio è solo al 28%, che
+/// è il valore di `easeInSine` (1 - cos(t·π/2) = 0,293 a t = 0,5).
+const Curve kCurvaDissolvenza = Curves.easeInSine;
 
 /// Costruisce la `PageRoute` per una rotta, applicando la transizione scelta.
 ///
@@ -100,6 +120,16 @@ Route<dynamic> buildAppRoute(
         reverseTransitionDuration: const Duration(milliseconds: 200),
         pageBuilder: (context, _, __) => builder(context),
         transitionsBuilder: _popup,
+      );
+    case AppTransition.dissolvenza:
+      return AppPageRoute<dynamic>(
+        settings: settings,
+        enableBackGesture: enableBackGesture,
+        transition: AppTransition.dissolvenza,
+        transitionDuration: kDurataDissolvenza,
+        reverseTransitionDuration: kDurataDissolvenza,
+        pageBuilder: (context, _, __) => builder(context),
+        transitionsBuilder: _dissolvenza,
       );
     case AppTransition.slideUp:
       return AppPageRoute<dynamic>(
@@ -220,6 +250,26 @@ Widget _slideVerticale(
       opacity: fadeIn,
       child: SlideTransition(position: slideIn, child: child),
     ),
+  );
+}
+
+// ── Dissolvenza pura ──────────────────────────────────────────────────────────
+// Solo opacità dell'entrante: la pagina che esce non viene toccata, così le due
+// restano ferme e sovrapposte mentre la nuova si accende — è esattamente quello
+// che si vede nel video del prototipo, dove nei fotogrammi di mezzo si leggono
+// insieme il form di registrazione e il "Grazie per esserti registrato!".
+//
+// Nessuna scala e nessuno spostamento: aggiungerli qui vorrebbe dire far
+// muovere un testo che nel design sta fermo.
+Widget _dissolvenza(
+  BuildContext context,
+  Animation<double> animation,
+  Animation<double> secondaryAnimation,
+  Widget child,
+) {
+  return FadeTransition(
+    opacity: CurvedAnimation(parent: animation, curve: kCurvaDissolvenza),
+    child: child,
   );
 }
 
@@ -371,7 +421,8 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
 
     // Rotte senza swipe-back: transizione standard invariata.
     if (!enableBackGesture) {
-      return super.buildTransitions(context, animation, secondaryAnimation, page);
+      return super
+          .buildTransitions(context, animation, secondaryAnimation, page);
     }
 
     // Rotte con swipe-back: la pagina passa SEMPRE per la stessa struttura
@@ -426,6 +477,15 @@ class AppPageRoute<T> extends PageRouteBuilder<T> {
             case AppTransition.sharedAxis:
               opacity = cv;
               dx = 0.06 * (1.0 - cv);
+              scale = 1.0;
+            case AppTransition.dissolvenza:
+              // Ramo di fatto irraggiungibile: le rotte in dissolvenza sono
+              // quelle del flusso di registrazione, tutte senza swipe-back.
+              // Resta perché lo switch dev'essere esaustivo, e perché se un
+              // domani una di quelle rotte guadagnasse il gesto, qui si
+              // comporterebbe come deve.
+              opacity = dragging ? v : kCurvaDissolvenza.transform(v);
+              dx = 0.0;
               scale = 1.0;
             case AppTransition.slideUp:
               // Scende dall'alto: chiudendo, l'animazione torna indietro e
@@ -523,7 +583,8 @@ class _BackGestureController<T> {
     if (animateForward) {
       // Si resta sulla schermata: la si riporta a posto.
       final int duration = min(
-        lerpDouble(_kMaxDroppedSwipePageForwardAnimationTime, 0, controller.value)!
+        lerpDouble(
+                _kMaxDroppedSwipePageForwardAnimationTime, 0, controller.value)!
             .floor(),
         _kMaxPageBackAnimationTime,
       );
@@ -579,7 +640,8 @@ class _BackGestureDetector<T> extends StatefulWidget {
   final Widget child;
 
   @override
-  State<_BackGestureDetector<T>> createState() => _BackGestureDetectorState<T>();
+  State<_BackGestureDetector<T>> createState() =>
+      _BackGestureDetectorState<T>();
 }
 
 class _BackGestureDetectorState<T> extends State<_BackGestureDetector<T>> {
