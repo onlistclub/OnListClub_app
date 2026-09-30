@@ -7,8 +7,11 @@
 # Prerequisiti su Codemagic (una volta sola):
 #   - Team settings → Integrations → Developer Portal: chiave API di App Store
 #     Connect (ruolo Admin o App Manager) salvata col nome "OnListClub ASC".
-#     Con quella Codemagic crea da solo certificato e profilo di distribuzione.
-#   - App settings → Environment variables, gruppo "onlist_env":
+#   - Settings → Code signing identities: certificato Apple Distribution
+#     (generato da Codemagic) e profilo "App Store Connect" per
+#     com.onlistclub.app creato su developer.apple.com con quel certificato.
+#     Codemagic NON li crea da solo: li cerca qui per bundle id e tipo.
+#   - App settings → Environment variables, gruppo "onlistclub-env":
 #     SUPABASE_URL, SUPABASE_ANON_KEY, GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID
 #     (gli stessi valori dei Secrets usati da .github/workflows/ios.yml).
 
@@ -21,7 +24,7 @@ workflows:
       app_store_connect: OnListClub ASC
     environment:
       groups:
-        - onlist_env
+        - onlistclub-env
       ios_signing:
         distribution_type: app_store
         bundle_identifier: com.onlistclub.app
