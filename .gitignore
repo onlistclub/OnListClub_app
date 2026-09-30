@@ -69,3 +69,4 @@ supabase/.env.local
 # estratti (public/email-logo-onlist-*.png ecc.) e i template compatti sono
 # ciò che va in produzione.
 docs/email_templates/template_email-ZUCC.html
+docs/email_templates/mobile.html

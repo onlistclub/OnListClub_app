@@ -11,24 +11,23 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 ///
 /// IMPORTANTE: le email di verifica account / reset password NON passano da qui:
 /// le gestisce Supabase Auth, che usa Brevo come server SMTP (configurato in
-/// dashboard). Questo servizio è solo per le email/SMS transazionali dell'app
+/// dashboard). Questo servizio e' solo per le email/SMS transazionali dell'app
 /// (conferma ordine, QR, annullamento, promemoria).
 ///
-/// LAYOUT EMAIL: shell "ZUCC" ufficiale usato anche dai template statici in
-/// `docs/email_templates/`. Card trasparente con border a colore d'accento
-/// (viola per informativi, verde per conferme d'ingresso, arancio per warning).
-/// Il logo è un'unica immagine `mail.png` che l'utente ha scelto per rimpiazzare
-/// il vecchio swap dark/light: `https://www.onlistclub.com/mail.png`. Le icone
-/// decorative (`email-icon-check.png`, `email-icon-moon.png`,
-/// `email-icon-phone.png`) restano caricate esternamente. Tutti gli asset sono
-/// referenziati via URL assoluto (mai base64 inline) per stare sotto il limite
-/// Gmail di 102KB per messaggio.
+/// LAYOUT EMAIL: shell "mobile" ufficiale (docs/email_templates/mobile.html),
+/// forzato dark via `meta color-scheme:dark` cosi' che sia iOS Mail, Gmail,
+/// Outlook e webmail lo presentino identico a prescindere dal tema del client.
+/// Card blu notte `#071421` con gradient e border blu chiaro `#42A5FF`,
+/// wordmark `mail-dark.png` esterno (272KB su onlistclub.com), CTA gradient
+/// blu scuro. Nessun adattamento light/dark, nessun swap CSS, nessuna
+/// inversione da parte di iOS Mail perche' il colore chiave e' nella
+/// background-image gradient che iOS non tocca.
 ///
 /// DEEP LINK: I link nelle email usano lo schema `onlistclub://` (custom scheme
-/// registrato in AndroidManifest.xml + iOS Info.plist) per aprire direttamente
-/// la schermata corretta dell'app. Mai link al sito web.
-///   onlistclub://home     → Home
-///   onlistclub://orders   → Sezione Ordini
+/// registrato in AndroidManifest.xml + iOS Info.plist).
+///   onlistclub://home              → Home
+///   onlistclub://orders            → Sezione Ordini
+///   onlistclub://orders?id=<uuid>  → Dettaglio prevendita (vedi DeepLinkService).
 class MessagingService {
   static SupabaseClient get _client => Supabase.instance.client;
 
@@ -36,10 +35,6 @@ class MessagingService {
   // PRIMITIVE GENERICHE
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Invia un'email. Ritorna `true` se Brevo ha accettato l'invio.
-  ///
-  /// In caso di errore NON lancia: logga e ritorna `false`, così l'invio email
-  /// non può mai far fallire un flusso critico (es. completamento ordine).
   static Future<bool> sendEmail({
     required String to,
     String? toName,
@@ -76,8 +71,6 @@ class MessagingService {
     }
   }
 
-  /// Invia un SMS. [toE164] è il numero in formato E.164 (con o senza `+`).
-  /// Ritorna `true` se Brevo ha accettato l'invio.
   static Future<bool> sendSms({
     required String toE164,
     required String content,
@@ -107,29 +100,22 @@ class MessagingService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // HELPER DI DOMINIO
+  // API PUBBLICHE
   // ─────────────────────────────────────────────────────────────────────────
 
-  /// Email di benvenuto dopo la verifica dell'email o il primo login OAuth.
-  /// Da chiamare da `UserProfileManager.ensureProfileExists()` (utenti email+pw)
-  /// o da `CompleteProfileBloc._onSubmit` (utenti Google/Apple) solo quando il
-  /// profilo viene creato per la PRIMA volta (non ad ogni login).
   static Future<bool> sendWelcomeEmail({
     required String to,
     required String nome,
   }) {
     final nomeDisplay = nome.isNotEmpty ? nome : 'amico';
-    final html = _buildWelcomeHtml(nomeDisplay);
     return sendEmail(
       to: to,
       toName: nome,
       subject: 'Benvenuto su OnListClub, $nomeDisplay',
-      htmlContent: html,
+      htmlContent: _buildWelcomeHtml(nomeDisplay),
     );
   }
 
-  /// Email di conferma prevendita/ordine con link diretto all'app (onlistclub://orders).
-  /// Da chiamare dopo il completamento ordine in `BookingService.createReservation`.
   static Future<bool> sendOrderConfirmationEmail({
     required String to,
     required String nome,
@@ -141,26 +127,22 @@ class MessagingService {
     String? reservationId,
   }) {
     final nomeDisplay = nome.isNotEmpty ? nome : 'amico';
-    final html = _buildOrderConfirmationHtml(
-      nome: nomeDisplay,
-      localeNome: localeNome,
-      eventoNome: eventoNome,
-      dataEvento: dataEvento,
-      dataEventoDt: dataEventoDt,
-      tipoTicket: tipoTicket,
-      reservationId: reservationId,
-    );
     return sendEmail(
       to: to,
       toName: nome,
       subject: 'Prevendita confermata: $localeNome',
-      htmlContent: html,
+      htmlContent: _buildOrderConfirmationHtml(
+        nome: nomeDisplay,
+        localeNome: localeNome,
+        eventoNome: eventoNome,
+        dataEvento: dataEvento,
+        dataEventoDt: dataEventoDt,
+        tipoTicket: tipoTicket,
+        reservationId: reservationId,
+      ),
     );
   }
 
-  /// Email di notifica ingresso valido (QR scannerizzato con successo).
-  /// Chiamata dalla Edge Function `on-scan-log` lato server (non dal client).
-  /// Esposta qui come documentazione: la chiamata vera avviene server-side.
   static Future<bool> sendQrValidEmail({
     required String to,
     required String nome,
@@ -169,22 +151,19 @@ class MessagingService {
     required DateTime checkinAt,
   }) {
     final timeStr = DateFormat('dd/MM/yyyy HH:mm', 'it_IT').format(checkinAt.toLocal());
-    final html = _buildQrValidHtml(
-      nome: nome.isNotEmpty ? nome : 'amico',
-      localeNome: localeNome,
-      eventoNome: eventoNome,
-      checkinTime: timeStr,
-    );
     return sendEmail(
       to: to,
       toName: nome,
       subject: 'Ingresso confermato: $localeNome',
-      htmlContent: html,
+      htmlContent: _buildQrValidHtml(
+        nome: nome.isNotEmpty ? nome : 'amico',
+        localeNome: localeNome,
+        eventoNome: eventoNome,
+        checkinTime: timeStr,
+      ),
     );
   }
 
-  /// Email di avviso biglietto già usato (QR rifiutato all'ingresso).
-  /// Chiamata dalla Edge Function `on-scan-log` lato server.
   static Future<bool> sendQrAlreadyUsedEmail({
     required String to,
     required String nome,
@@ -193,21 +172,19 @@ class MessagingService {
     required DateTime firstScanAt,
   }) {
     final timeStr = DateFormat('dd/MM/yyyy HH:mm', 'it_IT').format(firstScanAt.toLocal());
-    final html = _buildQrAlreadyUsedHtml(
-      nome: nome.isNotEmpty ? nome : 'amico',
-      localeNome: localeNome,
-      eventoNome: eventoNome,
-      firstScanTime: timeStr,
-    );
     return sendEmail(
       to: to,
       toName: nome,
-      subject: 'Biglietto già utilizzato: $localeNome',
-      htmlContent: html,
+      subject: 'Biglietto gia\' utilizzato: $localeNome',
+      htmlContent: _buildQrAlreadyUsedHtml(
+        nome: nome.isNotEmpty ? nome : 'amico',
+        localeNome: localeNome,
+        eventoNome: eventoNome,
+        firstScanTime: timeStr,
+      ),
     );
   }
 
-  /// SMS promemoria serata (informativo, non OTP).
   static Future<bool> sendEventReminderSms({
     required String toE164,
     required String localeNome,
@@ -221,222 +198,243 @@ class MessagingService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // BUILDERS HTML — shell ZUCC condiviso con docs/email_templates/
+  // BUILDERS HTML — shell mobile ufficiale
   //
-  // Convenzione colori: ogni email ha un "accento" che tinge border card,
-  // border details-box e badge. Tre varianti:
-  //   purple → informativi (welcome, ordine)
-  //   green  → conferme d'ingresso (qr_valid)
-  //   orange → warning (qr_already_used)
+  // Il CSS shell e' identico in tutti i template (colori blu notte, gradient,
+  // border, badge, cta). Cambia solo il contenuto card (heading+badge, body,
+  // details, cta, note). Per non ripetere ~70 righe di CSS ogni volta, il
+  // metodo `_htmlShell` assembla:
+  //   <head><style>SHELL_CSS + PROVIDED_CSS</style></head>
+  //   <body>OUTER_WRAPPER > EMAIL_CONTAINER > logo + [CARD_CONTENT] + footer
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const _logoUrl = 'https://www.onlistclub.com/mail.png';
-  static const _iconCheckUrl = 'https://www.onlistclub.com/email-icon-check.png';
-  static const _iconMoonUrl = 'https://www.onlistclub.com/email-icon-moon.png';
-  static const _iconPhoneUrl = 'https://www.onlistclub.com/email-icon-phone.png';
+  static const _logoUrl = 'https://www.onlistclub.com/mail-dark.png';
 
-  // Accento viola (default).
-  static const _accentPurpleBorder = '#A78BFA';
-  static const _accentPurpleGlow = 'rgba(139,92,246,.26)';
-  static const _accentPurpleShadow = 'rgba(47,34,77,.12)';
-  static const _accentPurpleBadgeBorder = 'rgba(124,58,237,0.35)';
-  static const _accentPurpleBadgeText = '#7C3AED';
-  static const _accentPurpleDetailsBorder = '#C4B5FD';
-
-  // Accento verde (ingresso confermato).
-  static const _accentGreenBorder = '#86EFAC';
-  static const _accentGreenGlow = 'rgba(22,163,74,.26)';
-  static const _accentGreenShadow = 'rgba(6,78,59,.12)';
-  static const _accentGreenBadgeBorder = 'rgba(22,163,74,0.40)';
-  static const _accentGreenBadgeText = '#15803D';
-
-  // Accento arancio (warning).
-  static const _accentOrangeBorder = '#FDBA74';
-  static const _accentOrangeGlow = 'rgba(234,88,12,.26)';
-  static const _accentOrangeShadow = 'rgba(124,45,18,.12)';
-  static const _accentOrangeBadgeBorder = 'rgba(234,88,12,0.40)';
-  static const _accentOrangeBadgeText = '#C2410C';
+  /// CSS condiviso da tutti i template. Include gia' details-box e note-box
+  /// perche' aggiungere quelle regole non usate ha costo praticamente nullo
+  /// nel byte-count del messaggio.
+  static const String _shellCss = '''
+    :root{color-scheme:dark;}
+    html,body{margin:0!important;padding:0!important;width:100%!important;min-width:100%!important;height:100%!important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
+    body{background-color:transparent!important;color:#F2F7FC!important;}
+    table,td{mso-table-lspace:0pt!important;mso-table-rspace:0pt!important;}
+    img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}
+    a{text-decoration:none;}
+    .outer-wrapper{background-color:transparent!important;background-image:none!important;}
+    .email-container,.details-box,.note-box{box-sizing:border-box!important;background-color:rgba(10,27,45,.94)!important;background-image:linear-gradient(155deg,rgba(0,119,255,.24) 0%,rgba(10,27,45,.90) 42%,rgba(10,27,45,.96) 100%)!important;border:1px solid #42A5FF!important;border-radius:22px!important;box-shadow:inset 0 1px 0 rgba(130,195,255,.48),0 18px 42px rgba(4,13,24,.42),0 0 22px rgba(0,119,255,.18)!important;}
+    .email-container{width:100%!important;max-width:600px!important;padding:36px 32px!important;background-color:#071421!important;background-image:linear-gradient(155deg,rgba(0,119,255,.10) 0%,rgba(7,20,33,.97) 42%,rgba(5,14,24,.99) 100%)!important;box-shadow:inset 0 1px 0 rgba(130,195,255,.28),0 18px 42px rgba(3,12,22,.62),0 0 30px rgba(0,119,255,.24)!important;}
+    .logo-light{display:block!important;width:240px!important;max-width:78%!important;height:auto!important;margin:0 auto!important;}
+    .text-title,.text-body,.text-bold-name,.details-value,.note-bold,.note-text,.footer-text{color:#F2F7FC!important;}
+    .details-label{color:#A9D6FF!important;}
+    .detail-cell:first-child{padding-right:16px!important;}
+    .detail-cell:nth-child(2){padding-left:16px!important;}
+    .footer-divider{border-top-color:rgba(130,195,255,.42)!important;}
+    .footer-link{color:#C7E6FF!important;text-decoration:underline!important;}
+    .heading-status-row{width:100%!important;table-layout:fixed!important;}
+    .heading-cell{width:48%!important;text-align:left!important;vertical-align:middle!important;}
+    .status-cell{width:52%!important;text-align:right!important;vertical-align:middle!important;}
+    .heading-cell .text-title{font-size:25px!important;}
+    .badge-bg{box-sizing:border-box!important;width:auto!important;padding:6px 9px!important;border:1px solid rgba(130,195,255,.42)!important;border-radius:26px!important;background-color:#0B1B2D!important;background-image:linear-gradient(150deg,rgba(0,119,255,.14),rgba(10,27,45,.96))!important;box-shadow:inset 0 1px 0 rgba(130,195,255,.3)!important;text-align:center!important;vertical-align:middle!important;}
+    .badge-text{color:#F2F7FC!important;font-size:16px!important;line-height:1.25!important;font-weight:700!important;}
+    .badge-bg-ok{box-sizing:border-box!important;width:auto!important;padding:6px 9px!important;border:1px solid rgba(134,239,172,.55)!important;border-radius:26px!important;background-color:#0E2016!important;background-image:linear-gradient(150deg,rgba(22,163,74,.28),rgba(10,27,45,.96))!important;box-shadow:inset 0 1px 0 rgba(134,239,172,.35)!important;text-align:center!important;vertical-align:middle!important;}
+    .badge-text-ok{color:#B7F5C7!important;font-size:16px!important;line-height:1.25!important;font-weight:700!important;}
+    .badge-bg-warn{box-sizing:border-box!important;width:auto!important;padding:6px 9px!important;border:1px solid rgba(253,186,116,.55)!important;border-radius:26px!important;background-color:#241610!important;background-image:linear-gradient(150deg,rgba(234,88,12,.30),rgba(10,27,45,.96))!important;box-shadow:inset 0 1px 0 rgba(253,186,116,.35)!important;text-align:center!important;vertical-align:middle!important;}
+    .badge-text-warn{color:#FDE1B2!important;font-size:16px!important;line-height:1.25!important;font-weight:700!important;}
+    .note-box{width:84%!important;margin-left:auto!important;margin-right:auto!important;}
+    .cta-cell{background:#0077FF!important;background-image:linear-gradient(135deg,#005CC8 0%,#0049A3 52%,#00377C 100%)!important;border-radius:999px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 8px rgba(255,255,255,.28),0 0 18px rgba(255,255,255,.16),0 8px 20px rgba(255,255,255,.10)!important;}
+    .cta-link{display:block!important;min-height:48px!important;box-sizing:border-box!important;padding:14px 20px!important;font-size:15px!important;line-height:1.4!important;font-weight:600!important;letter-spacing:.3px!important;color:#FFFFFF!important;}
+    @media only screen and (max-width:600px){
+      .outer-wrapper-cell{vertical-align:middle!important;padding:12px 8px!important;}
+      .email-container{padding:14px 12px!important;}
+      .header-logo-cell{padding-bottom:12px!important;}
+      .logo-light{width:190px!important;}
+      .heading-cell,.status-cell{display:table-cell!important;vertical-align:middle!important;}
+      .heading-cell{width:57%!important;text-align:left!important;}
+      .status-cell{width:43%!important;text-align:center!important;}
+      .heading-cell .text-title{font-size:24px!important;line-height:1.2!important;}
+      .badge-bg,.badge-bg-ok,.badge-bg-warn{padding:4px 6px!important;}
+      .badge-text,.badge-text-ok,.badge-text-warn{font-size:12px!important;letter-spacing:0!important;line-height:1.1!important;white-space:nowrap!important;}
+      .text-body{font-size:14px!important;line-height:1.4!important;}
+      .details-box{padding:12px!important;}
+      .detail-cell:first-child{padding-right:6px!important;}
+      .detail-cell:nth-child(2){padding-left:6px!important;}
+      .details-value{font-size:14px!important;}
+      .cta-link{min-height:42px!important;padding:10px 14px!important;}
+      .note-box{width:100%!important;padding:12px 12px!important;}
+      .note-text{font-size:12px!important;line-height:1.35!important;}
+      .footer-divider{padding-top:14px!important;}
+      .footer-text{font-size:11px!important;line-height:1.3!important;}
+    }
+    @media only screen and (max-width:360px){
+      .heading-cell,.status-cell{display:block!important;width:100%!important;text-align:center!important;}
+      .heading-cell .text-title{text-align:center!important;}
+      .status-cell{padding-top:8px!important;}
+    }
+''';
 
   static String _htmlShell({
     required String preheader,
     required String title,
     required String cardContent,
-    String cardBorder = _accentPurpleBorder,
-    String cardGlow = _accentPurpleGlow,
-    String cardShadow = _accentPurpleShadow,
-    String detailsBorder = _accentPurpleDetailsBorder,
   }) => '''<!DOCTYPE html>
 <html lang="it" xmlns="http://www.w3.org/1999/xhtml" xmlns:v="urn:schemas-microsoft-com:vml" xmlns:o="urn:schemas-microsoft-com:office:office">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="light dark">
-  <meta name="supported-color-schemes" content="light dark">
+  <meta name="color-scheme" content="dark">
+  <meta name="supported-color-schemes" content="dark">
   <meta name="x-apple-disable-message-reformatting">
   <title>$title</title>
-  <!--[if mso]>
-  <noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript>
-  <![endif]-->
-  <style>
-    html,body{margin:0!important;padding:0!important;width:100%!important;min-width:100%!important;height:100%!important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
-    body{background-color:transparent!important;color:inherit;}
-    table,td{mso-table-lspace:0pt!important;mso-table-rspace:0pt!important;}
-    img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}
-    a{text-decoration:none;}
-    .email-container{box-sizing:border-box!important;width:100%!important;max-width:560px!important;background-color:transparent!important;border:2px solid $cardBorder!important;border-radius:22px!important;padding:36px 32px!important;box-shadow:0 0 0 1px $cardGlow,0 0 22px $cardGlow,0 18px 42px $cardShadow!important;}
-    .logo-plate{background-color:#0a0a0a!important;background-image:linear-gradient(#0a0a0a,#0a0a0a)!important;border-radius:20px!important;}
-    .logo-mark{display:block!important;width:200px!important;max-width:78%!important;height:auto!important;margin:0 auto!important;}
-    .text-title,.text-body,.text-bold-name,.details-value,.details-label,.note-bold,.note-text,.footer-text{color:inherit!important;}
-    .details-box{background-color:transparent!important;border:1.5px solid $detailsBorder!important;border-radius:16px!important;}
-    .detail-cell:first-child{padding-right:16px!important;}
-    .detail-cell:nth-child(2){padding-left:16px!important;}
-    .note-box{background-color:transparent!important;border:1.5px solid $detailsBorder!important;border-radius:14px!important;}
-    .footer-divider{border-top-color:rgba(127,111,150,.35)!important;}
-    .footer-link{color:$_accentPurpleBadgeText!important;}
-    .cta-cell{background:$_accentPurpleBadgeText!important;background-image:linear-gradient(135deg,$_accentPurpleBadgeText 0%,#6366F1 52%,#4F46E5 100%)!important;border-radius:999px!important;box-shadow:0 8px 22px rgba(124,58,237,.22)!important;}
-    .cta-link{display:block!important;min-height:48px!important;box-sizing:border-box!important;padding:14px 20px!important;color:#FFFFFF!important;}
-    @media only screen and (max-width:600px){
-      .outer-wrapper-cell{padding:20px 10px 36px 10px!important;}
-      .email-container{max-width:100%!important;padding:26px 20px!important;border-radius:18px!important;}
-      .logo-mark{width:170px!important;max-width:72%!important;}
-      .header-logo-cell{padding-bottom:24px!important;}
-      .text-title{font-size:24px!important;}
-      .detail-cell{display:block!important;width:100%!important;padding-left:0!important;padding-right:0!important;padding-bottom:14px!important;}
-    }
-    @media (prefers-color-scheme: dark){
-      .email-container{border-color:$cardBorder!important;box-shadow:0 0 0 1px $cardGlow,0 0 24px $cardGlow,0 18px 44px rgba(0,0,0,.16)!important;}
-    }
-  </style>
+  <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
+  <style>$_shellCss</style>
 </head>
-<body style="background:transparent;margin:0;padding:0;width:100%;min-width:100%;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<body style="background:transparent;background-color:transparent;margin:0;padding:0;width:100%;min-width:100%;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
   <span style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">$preheader</span>
-  <table class="outer-wrapper" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;min-width:100%;height:100%;table-layout:fixed;">
+  <table class="outer-wrapper" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;min-width:100%;height:100%;table-layout:fixed;background-color:transparent;background-image:none;">
     <tr>
-      <td align="center" valign="top" class="outer-wrapper-cell" style="padding:28px 16px 48px 16px;">
-        <!--[if mso]><table align="center" width="560" style="width:560px;"><tr><td><![endif]-->
-        <table class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box;width:100%;max-width:560px;background-color:transparent;border:2px solid $cardBorder;border-radius:22px;padding:36px 32px;box-shadow:0 0 0 1px $cardGlow,0 0 22px $cardGlow,0 18px 42px $cardShadow;">
+      <td align="center" valign="middle" class="outer-wrapper-cell" style="padding:28px 16px;vertical-align:middle;">
+        <table bgcolor="#071421" class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box;width:100%;max-width:560px;background-color:#071421;background-image:linear-gradient(155deg,rgba(0,119,255,.10) 0%,rgba(7,20,33,.97) 42%,rgba(5,14,24,.99) 100%);border:1px solid #42A5FF;border-radius:22px;padding:36px 32px;box-shadow:inset 0 1px 0 rgba(130,195,255,.28),0 18px 42px rgba(3,12,22,.62),0 0 30px rgba(0,119,255,.24);">
           <tr>
             <td class="header-logo-cell" align="center" style="padding-bottom:28px;">
-              <table role="presentation" cellpadding="0" cellspacing="0" border="0" style="margin:0 auto;"><tr><td class="logo-plate" align="center" bgcolor="#0a0a0a" style="background-color:#0a0a0a;background-image:linear-gradient(#0a0a0a,#0a0a0a);border-radius:20px;padding:22px 44px;"><img class="logo-mark" src="$_logoUrl" alt="OnListClub" width="200" style="display:block;width:200px;max-width:78%;height:auto;border:0;margin:0 auto;"></td></tr></table>
+              <img class="logo-light" src="$_logoUrl" alt="OnListClub" width="240" height="102" style="display:block;width:240px;max-width:78%;height:102px;border:0;margin:0 auto;">
             </td>
           </tr>
           $cardContent
           <tr>
-            <td class="footer-divider" style="border-top:1.5px solid #E8E3EF;padding-top:22px;" align="center">
+            <td class="footer-divider" style="border-top:1px solid rgba(130,195,255,.42);padding-top:22px;" align="center">
               <p class="footer-text" style="margin:0 0 6px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;text-align:center;">
                 OnListClub. Prenota tavoli, prevendite e drink nei migliori locali.
               </p>
               <p class="footer-text" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;text-align:center;">
-                Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="text-decoration:none;color:$_accentPurpleBadgeText;" target="_blank">info@onlistclub.com</a>
+                Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="text-decoration:underline;color:#C7E6FF;" target="_blank">info@onlistclub.com</a>
               </p>
             </td>
           </tr>
         </table>
-        <!--[if mso]></td></tr></table><![endif]-->
       </td>
     </tr>
   </table>
 </body>
 </html>''';
 
-  /// Badge pill in cima al contenuto (sotto il logo).
-  static String _badge(
-    String label, {
-    String borderColor = _accentPurpleBadgeBorder,
-    String textColor = _accentPurpleBadgeText,
-    String? iconUrl,
-  }) {
-    final iconTag = iconUrl != null
-        ? '<img src="$iconUrl" alt="" width="14" height="14" style="display:inline-block;vertical-align:-2px;width:14px;height:14px;border:0;margin-right:6px;">'
-        : '';
-    return '<tr><td align="left" style="padding-bottom:18px;">'
-        '<table cellpadding="0" cellspacing="0" border="0"><tr>'
-        '<td style="border:1.5px solid $borderColor;border-radius:9999px;padding:6px 14px;">'
-        '<span style="font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:$textColor;">$iconTag$label</span>'
-        '</td></tr></table>'
-        '</td></tr>';
-  }
+  /// Row del titolo con badge affiancato a destra.
+  /// [badgeClass] sceglie il colore: `badge-bg` (blu), `badge-bg-ok` (verde),
+  /// `badge-bg-warn` (arancio). [badgeTextClass] segue lo stesso pattern.
+  static String _headingWithBadge({
+    required String title,
+    required String badgeLabel,
+    String badgeClass = 'badge-bg',
+    String badgeTextClass = 'badge-text',
+    String badgeInlineBg = '#0B1B2D',
+    String badgeInlineBorder = 'rgba(130,195,255,.42)',
+    String badgeInlineGrad = 'linear-gradient(150deg,rgba(0,119,255,.14),rgba(10,27,45,.96))',
+    String badgeInlineShadow = 'inset 0 1px 0 rgba(130,195,255,.3)',
+    String badgeInlineTextColor = '#F2F7FC',
+  }) => '''
+          <tr>
+            <td style="padding-bottom:14px;">
+              <table class="heading-status-row" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;table-layout:fixed;">
+                <tr>
+                  <td class="heading-cell" width="48%" align="left" valign="middle">
+                    <h1 class="text-title" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:26px;line-height:1.25;font-weight:700;">$title</h1>
+                  </td>
+                  <td class="status-cell" width="52%" align="right" valign="middle">
+                    <table align="right" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:auto;margin:0 0 0 auto;">
+                      <tr>
+                        <td class="$badgeClass" valign="middle" style="border:1px solid $badgeInlineBorder;border-radius:26px;padding:6px 9px;background-color:$badgeInlineBg;background-image:$badgeInlineGrad;box-shadow:$badgeInlineShadow;text-align:center;vertical-align:middle;">
+                          <span class="$badgeTextClass" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;line-height:1.25;color:$badgeInlineTextColor;">$badgeLabel</span>
+                        </td>
+                      </tr>
+                    </table>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+''';
 
-  /// H1 principale della card.
-  static String _heading(String innerHtml) =>
-      '<tr><td align="left" style="padding-bottom:14px;">'
-      '<h1 class="text-title" style="margin:0;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:26px;line-height:1.25;font-weight:700;">$innerHtml</h1>'
-      '</td></tr>';
+  static String _body(String htmlInside, {int paddingBottom = 24, int fontSize = 15}) => '''
+          <tr>
+            <td align="left" style="padding-bottom:${paddingBottom}px;">
+              <p class="text-body" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:${fontSize}px;line-height:1.6;">$htmlInside</p>
+            </td>
+          </tr>
+''';
 
-  /// Paragrafo standard del corpo.
-  static String _body(String innerHtml, {int paddingBottom = 24, int fontSize = 15}) =>
-      '<tr><td align="left" style="padding-bottom:${paddingBottom}px;">'
-      '<p class="text-body" style="margin:0;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:${fontSize}px;line-height:1.6;">$innerHtml</p>'
-      '</td></tr>';
+  static String _ctaButton(String label, String href, {int paddingBottom = 28}) => '''
+          <tr>
+            <td style="padding-bottom:${paddingBottom}px;">
+              <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
+                <td align="center" class="cta-cell" style="background:#0077FF;background-color:#0077FF;background-image:linear-gradient(135deg,#005CC8 0%,#0049A3 52%,#00377C 100%);border-radius:999px;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 8px rgba(255,255,255,.28),0 0 18px rgba(255,255,255,.16),0 8px 20px rgba(255,255,255,.10);">
+                  <a href="$href" class="cta-link" style="display:block;min-height:48px;box-sizing:border-box;padding:14px 20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:600;letter-spacing:.3px;text-decoration:none;color:#FFFFFF;text-align:center;" target="_blank">${_escHtml(label)}</a>
+                </td>
+              </tr></table>
+            </td>
+          </tr>
+''';
 
-  /// Cella singola della details-box (label uppercase + valore bold).
   static String _detailCell(String label, String value, {bool bottomPadded = true}) {
-    final padBottom = bottomPadded ? 'padding-bottom:18px;' : '';
-    return '<td class="detail-cell" width="50%" style="${padBottom}vertical-align:top;">'
-        '<p class="details-label" style="margin:0 0 4px;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.08em;">${_escHtml(label)}</p>'
-        '<p class="details-value" style="margin:0;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;">$value</p>'
+    final pb = bottomPadded ? 'padding-bottom:18px;' : '';
+    return '<td class="detail-cell" width="50%" style="${pb}vertical-align:top;">'
+        '<p class="details-label" style="margin:0 0 4px;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.08em;color:#A9D6FF;">${_escHtml(label)}</p>'
+        '<p class="details-value" style="margin:0;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:#F2F7FC;">$value</p>'
         '</td>';
   }
 
-  static String _emptyCell({bool bottomPadded = false}) {
-    final padBottom = bottomPadded ? 'padding-bottom:18px;' : '';
-    return '<td class="detail-cell" width="50%" style="${padBottom}vertical-align:top;"></td>';
-  }
+  static String _emptyCell() =>
+      '<td class="detail-cell" width="50%" style="vertical-align:top;"></td>';
 
-  /// details-box con celle a griglia 2 colonne × N righe.
-  /// [rows] è una lista di righe, ogni riga è una lista di 2 celle HTML già
-  /// prodotte (via `_detailCell` o `_emptyCell`).
-  static String _detailsBox(List<List<String>> rows, {String border = _accentPurpleDetailsBorder}) {
+  static String _detailsBox(List<List<String>> rows) {
     final rowsHtml = rows.map((cells) {
-      // Se manca una cella, riempiamo con vuoto per non rompere il layout.
       final left = cells.isNotEmpty ? cells[0] : _emptyCell();
       final right = cells.length > 1 ? cells[1] : _emptyCell();
       return '<tr>$left$right</tr>';
     }).join();
-    return '<tr><td style="padding-bottom:24px;">'
-        '<table class="details-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:transparent;border:1.5px solid $border;border-radius:16px;padding:20px 20px;">$rowsHtml</table>'
-        '</td></tr>';
+    return '''
+          <tr>
+            <td style="padding-bottom:24px;">
+              <table bgcolor="#0B1B2D" class="details-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:rgba(10,27,45,.94);background-image:linear-gradient(155deg,rgba(0,119,255,.24) 0%,rgba(10,27,45,.90) 42%,rgba(10,27,45,.96) 100%);border:1px solid #42A5FF;border-radius:22px;padding:20px 20px;box-shadow:inset 0 1px 0 rgba(130,195,255,.48),0 18px 42px rgba(4,13,24,.42),0 0 22px rgba(0,119,255,.18);">
+                $rowsHtml
+              </table>
+            </td>
+          </tr>
+''';
   }
 
-  /// Note-box centrata (usata per "Mostra il QR all'ingresso").
-  static String _noteBox(String innerHtml, {String border = _accentPurpleDetailsBorder}) =>
-      '<tr><td style="padding-bottom:28px;">'
-      '<table class="note-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:transparent;border:1.5px solid $border;border-radius:14px;padding:13px 16px;">'
-      '<tr><td align="center" style="text-align:center;">'
-      '<p class="note-text" style="margin:0;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;text-align:center;">$innerHtml</p>'
-      '</td></tr></table>'
-      '</td></tr>';
-
-  /// CTA gradient viola centrata.
-  static String _ctaButton(String label, String href) =>
-      '<tr><td style="padding-bottom:28px;">'
-      '<table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>'
-      '<td align="center" class="cta-cell" style="background:$_accentPurpleBadgeText;background-color:$_accentPurpleBadgeText;background-image:linear-gradient(135deg,$_accentPurpleBadgeText 0%,#6366F1 52%,#4F46E5 100%);border-radius:999px;box-shadow:0 8px 22px rgba(124,58,237,.28);">'
-      '<a href="$href" class="cta-link" style="display:block;min-height:48px;box-sizing:border-box;padding:14px 20px;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:15px;font-weight:600;text-decoration:none;color:#FFFFFF;text-align:center;" target="_blank">${_escHtml(label)}</a>'
-      '</td></tr></table>'
-      '</td></tr>';
+  static String _noteBox(String htmlInside) => '''
+          <tr>
+            <td style="padding-bottom:28px;">
+              <table align="center" bgcolor="#0B1B2D" class="note-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:rgba(10,27,45,.94);background-image:linear-gradient(155deg,rgba(0,119,255,.24) 0%,rgba(10,27,45,.90) 42%,rgba(10,27,45,.96) 100%);border:1px solid #42A5FF;border-radius:22px;padding:13px 16px;box-shadow:inset 0 1px 0 rgba(130,195,255,.48),0 18px 42px rgba(4,13,24,.42),0 0 22px rgba(0,119,255,.18);">
+                <tr>
+                  <td align="center" style="text-align:center;">
+                    <p class="note-text" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;text-align:center;color:#F2F7FC;">$htmlInside</p>
+                  </td>
+                </tr>
+              </table>
+            </td>
+          </tr>
+''';
 
   // ── Welcome ────────────────────────────────────────────────────────────────
   static String _buildWelcomeHtml(String nome) {
     final card =
-        _badge('Benvenuto') +
-        _heading('Sei dentro, ${_escHtml(nome)}.') +
-        _body(
-          'Il tuo account OnListClub è attivo. Puoi prenotare tavoli, acquistare prevendite e ordinare drink nei migliori club della tua città, direttamente dall\'app.',
-          paddingBottom: 16,
+        _headingWithBadge(
+          title: 'Sei dentro, ${_escHtml(nome)}.',
+          badgeLabel: 'Benvenuto',
         ) +
-        _body("Apri l'app e scegli il tuo locale.", paddingBottom: 28) +
+        _body(
+          "Il tuo account OnListClub e' attivo. Puoi prenotare tavoli, acquistare prevendite e ordinare drink nei migliori club della tua citta', direttamente dall'app.",
+          paddingBottom: 20,
+        ) +
+        _body("Apri l'app e scegli il tuo locale.", paddingBottom: 24) +
         _ctaButton('Apri OnListClub', 'onlistclub://home');
     return _htmlShell(
-      preheader: "Il tuo account OnListClub è attivo. Apri l'app e inizia a prenotare.",
+      preheader: "Il tuo account OnListClub e' attivo. Apri l'app e inizia a prenotare.",
       title: 'Benvenuto su OnListClub',
       cardContent: card,
     );
   }
 
-  /// Saluto in testa all'email di conferma, in base a quanto manca alla
-  /// serata: stasera/stanotte, domani sera, oppure il giorno della settimana
-  /// (da 2 giorni di distanza in su, "2" incluso).
   static String _salutoPrevendita(DateTime? dataEventoDt) {
     if (dataEventoDt == null) return 'Ci vediamo stanotte.';
     final ora = DateTime.now();
@@ -461,7 +459,6 @@ class MessagingService {
     String? tipoTicket,
     String? reservationId,
   }) {
-    // Griglia 2×N: (Locale|Serata) → (Data|TipoBiglietto?).
     final hasTicket = tipoTicket != null && tipoTicket.isNotEmpty;
     final rows = <List<String>>[
       [_detailCell('Locale', _escHtml(localeNome)), _detailCell('Serata', _escHtml(eventoNome))],
@@ -476,26 +473,23 @@ class MessagingService {
         ? 'onlistclub://orders?id=$reservationId'
         : 'onlistclub://orders';
     final saluto = _salutoPrevendita(dataEventoDt);
-    final moonIcon =
-        '<img src="$_iconMoonUrl" alt="" width="28" height="28" style="display:inline-block;vertical-align:-5px;width:28px;height:28px;border:0;margin-left:4px;">';
-    final phoneIcon =
-        '<img src="$_iconPhoneUrl" alt="" width="18" height="18" style="display:inline-block;vertical-align:-4px;width:18px;height:18px;border:0;margin-right:6px;">';
 
     final card =
-        _badge('Prevendita confermata', iconUrl: _iconCheckUrl) +
-        _heading('${_escHtml(saluto)} $moonIcon') +
+        _headingWithBadge(
+          title: _escHtml(saluto),
+          badgeLabel: 'Prevendita confermata',
+        ) +
         _body(
-          '<strong class="text-bold-name" style="font-weight:700;">${_escHtml(nome)}</strong>, la tua prevendita è confermata.<br>Ecco il riepilogo:',
+          '<strong class="text-bold-name" style="color:#F2F7FC;font-weight:700;">${_escHtml(nome)}</strong>, la tua prevendita e\' confermata.<br>Ecco il riepilogo:',
         ) +
         _detailsBox(rows) +
-        _ctaButton("Vedi il tuo biglietto nell'app", orderLink) +
+        _ctaButton("Vedi il tuo biglietto nell'app", orderLink, paddingBottom: 24) +
         _noteBox(
-          '${phoneIcon}Mostra il QR code all\'ingresso.<br>Aprilo dalla sezione <strong class="note-bold" style="font-weight:700;">Ordini</strong> nell\'app OnListClub.',
+          'Mostra il QR code all\'ingresso.<br>Aprilo dalla sezione <strong class="note-bold" style="color:#F2F7FC;font-weight:700;">Ordini</strong> nell\'app OnListClub.',
         );
-
     return _htmlShell(
       preheader:
-          "La tua prevendita per ${_escHtml(eventoNome)} è confermata. Apri l'app per vedere il QR di ingresso.",
+          "La tua prevendita per ${_escHtml(eventoNome)} e' confermata. Apri l'app per vedere il QR di ingresso.",
       title: 'Prevendita confermata',
       cardContent: card,
     );
@@ -514,27 +508,27 @@ class MessagingService {
     ];
 
     final card =
-        _badge(
-          'Ingresso confermato',
-          borderColor: _accentGreenBadgeBorder,
-          textColor: _accentGreenBadgeText,
-          iconUrl: _iconCheckUrl,
+        _headingWithBadge(
+          title: 'Sei entrato.',
+          badgeLabel: 'Ingresso confermato',
+          badgeClass: 'badge-bg-ok',
+          badgeTextClass: 'badge-text-ok',
+          badgeInlineBg: '#0E2016',
+          badgeInlineBorder: 'rgba(134,239,172,.55)',
+          badgeInlineGrad: 'linear-gradient(150deg,rgba(22,163,74,.28),rgba(10,27,45,.96))',
+          badgeInlineShadow: 'inset 0 1px 0 rgba(134,239,172,.35)',
+          badgeInlineTextColor: '#B7F5C7',
         ) +
-        _heading('Sei entrato.') +
         _body(
-          '<strong class="text-bold-name" style="font-weight:700;">${_escHtml(nome)}</strong>, il tuo biglietto è stato scannerizzato all\'ingresso.',
+          '<strong class="text-bold-name" style="color:#F2F7FC;font-weight:700;">${_escHtml(nome)}</strong>, il tuo biglietto e\' stato scannerizzato all\'ingresso.',
         ) +
-        _detailsBox(rows, border: _accentGreenBorder);
+        _detailsBox(rows);
 
     return _htmlShell(
       preheader:
-          "Il tuo biglietto per ${_escHtml(eventoNome)} è stato scannerizzato. Ingresso confermato.",
+          "Il tuo biglietto per ${_escHtml(eventoNome)} e' stato scannerizzato. Ingresso confermato.",
       title: 'Ingresso confermato',
       cardContent: card,
-      cardBorder: _accentGreenBorder,
-      cardGlow: _accentGreenGlow,
-      cardShadow: _accentGreenShadow,
-      detailsBorder: _accentGreenBorder,
     );
   }
 
@@ -551,35 +545,36 @@ class MessagingService {
     ];
 
     final card =
-        _badge(
-          'Biglietto già usato',
-          borderColor: _accentOrangeBadgeBorder,
-          textColor: _accentOrangeBadgeText,
+        _headingWithBadge(
+          title: 'Scansione non accettata.',
+          badgeLabel: "Biglietto gia' usato",
+          badgeClass: 'badge-bg-warn',
+          badgeTextClass: 'badge-text-warn',
+          badgeInlineBg: '#241610',
+          badgeInlineBorder: 'rgba(253,186,116,.55)',
+          badgeInlineGrad: 'linear-gradient(150deg,rgba(234,88,12,.30),rgba(10,27,45,.96))',
+          badgeInlineShadow: 'inset 0 1px 0 rgba(253,186,116,.35)',
+          badgeInlineTextColor: '#FDE1B2',
         ) +
-        _heading('Scansione non accettata.') +
         _body(
-          '<strong class="text-bold-name" style="font-weight:700;">${_escHtml(nome)}</strong>, il tuo biglietto è stato rifiutato all\'ingresso perché è già stato utilizzato.',
+          '<strong class="text-bold-name" style="color:#F2F7FC;font-weight:700;">${_escHtml(nome)}</strong>, il tuo biglietto e\' stato rifiutato all\'ingresso perche\' e\' gia\' stato utilizzato.',
         ) +
-        _detailsBox(rows, border: _accentOrangeBorder) +
+        _detailsBox(rows) +
         _body(
-          '<strong class="text-bold-name" style="font-weight:700;">Non sei stato tu?</strong><br>Se non riconosci questo accesso, il tuo QR potrebbe essere stato condiviso. Contattaci subito.',
+          '<strong class="text-bold-name" style="color:#F2F7FC;font-weight:700;">Non sei stato tu?</strong><br>Se non riconosci questo accesso, il tuo QR potrebbe essere stato condiviso. Contattaci subito.',
+          paddingBottom: 24,
           fontSize: 14,
         ) +
         _ctaButton("Vedi i tuoi ordini nell'app", 'onlistclub://orders');
 
     return _htmlShell(
       preheader:
-          "Il tuo biglietto per ${_escHtml(eventoNome)} è già stato utilizzato.",
-      title: 'Biglietto già utilizzato',
+          "Il tuo biglietto per ${_escHtml(eventoNome)} e' gia' stato utilizzato.",
+      title: "Biglietto gia' utilizzato",
       cardContent: card,
-      cardBorder: _accentOrangeBorder,
-      cardGlow: _accentOrangeGlow,
-      cardShadow: _accentOrangeShadow,
-      detailsBorder: _accentOrangeBorder,
     );
   }
 
-  /// Escaping minimo per testo variabile inserito nell'HTML.
   static String _escHtml(String s) => s
       .replaceAll('&', '&amp;')
       .replaceAll('<', '&lt;')
