@@ -1,5 +1,7 @@
 import 'dart:math' as math;
 
+import 'package:flutter/foundation.dart'
+    show defaultTargetPlatform, TargetPlatform;
 import 'package:flutter/material.dart';
 import 'package:flutter_svg/flutter_svg.dart';
 import 'package:supabase_flutter/supabase_flutter.dart';
@@ -240,17 +242,26 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
                                       mainAxisAlignment:
                                           MainAxisAlignment.center,
                                       children: [
-                                        _AppleButton(
-                                          onTap: () {
-                                            AnalyticsService.log(
-                                                event: 'login_attempt',
-                                                metadata: {'method': 'apple'});
-                                            context
-                                                .read<AuthenticationBloc>()
-                                                .add(AppleSignInEvent());
-                                          },
-                                        ),
-                                        SizedBox(width: R.sp(9)),
+                                        // Solo su iOS: su Android il login
+                                        // Apple richiederebbe il flusso web
+                                        // (Services ID + redirect), non
+                                        // configurato.
+                                        if (defaultTargetPlatform ==
+                                            TargetPlatform.iOS) ...[
+                                          _AppleButton(
+                                            onTap: () {
+                                              AnalyticsService.log(
+                                                  event: 'login_attempt',
+                                                  metadata: {
+                                                    'method': 'apple'
+                                                  });
+                                              context
+                                                  .read<AuthenticationBloc>()
+                                                  .add(AppleSignInEvent());
+                                            },
+                                          ),
+                                          SizedBox(width: R.sp(9)),
+                                        ],
                                         _GoogleButton(
                                           onTap: () {
                                             AnalyticsService.log(
