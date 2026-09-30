@@ -14,17 +14,15 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 /// dashboard). Questo servizio e' solo per le email/SMS transazionali dell'app
 /// (conferma ordine, QR, annullamento, promemoria).
 ///
-/// LAYOUT EMAIL: shell "mobile" ufficiale (docs/email_templates/mobile.html),
-/// forzato dark via `meta color-scheme:dark` cosi' che sia iOS Mail, Gmail,
-/// Outlook e webmail lo presentino identico a prescindere dal tema del client.
-/// Card blu notte `#071421` con gradient e border blu chiaro `#42A5FF`,
-/// wordmark `mail-dark.png` esterno (272KB su onlistclub.com), CTA gradient
-/// blu scuro. Nessun adattamento light/dark, nessun swap CSS, nessuna
-/// inversione da parte di iOS Mail perche' il colore chiave e' nella
-/// background-image gradient che iOS non tocca.
+/// LAYOUT EMAIL: shell "light-first" ufficiale usato da tutti i template
+/// OnListClub (docs/email_templates/*.html). Sfondo email #F5F6F8, card bianca
+/// con border grigio chiaro, testi scuri, accent viola/indigo per badge e CTA.
+/// Meta color-scheme:light dice ai client email "questa e' progettata per
+/// light mode": iOS Mail in dark auto-inverte con contrasto, tutti gli altri
+/// la mostrano light pulita. Nessuna inversione problematica come col design
+/// dark-forzato, che iOS Mail sminchava a modo suo.
 ///
-/// DEEP LINK: I link nelle email usano lo schema `onlistclub://` (custom scheme
-/// registrato in AndroidManifest.xml + iOS Info.plist).
+/// DEEP LINK: I link nelle email usano lo schema `onlistclub://`.
 ///   onlistclub://home              → Home
 ///   onlistclub://orders            → Sezione Ordini
 ///   onlistclub://orders?id=<uuid>  → Dettaglio prevendita (vedi DeepLinkService).
@@ -198,77 +196,78 @@ class MessagingService {
   }
 
   // ─────────────────────────────────────────────────────────────────────────
-  // BUILDERS HTML — shell mobile ufficiale
+  // BUILDERS HTML — shell light-first ufficiale
   //
-  // Il CSS shell e' identico in tutti i template (colori blu notte, gradient,
-  // border, badge, cta). Cambia solo il contenuto card (heading+badge, body,
-  // details, cta, note). Per non ripetere ~70 righe di CSS ogni volta, il
-  // metodo `_htmlShell` assembla:
-  //   <head><style>SHELL_CSS + PROVIDED_CSS</style></head>
-  //   <body>OUTER_WRAPPER > EMAIL_CONTAINER > logo + [CARD_CONTENT] + footer
+  // Palette:
+  // - bg email  #F5F6F8   card bg #FFFFFF   border #E4E7EB
+  // - text      #0F172A (primary) / #334155 (body) / #64748B (muted)
+  // - accent    viola     badge bg #EDE9FE / text #5B21B6 / border #DDD6FE
+  //             CTA gradient linear-gradient(135deg,#4F46E5,#7C3AED)
+  // - verde OK  badge bg #DCFCE7 / text #166534 / border #BBF7D0
+  //             details bg #F0FDF4 / border #BBF7D0
+  // - arancio W badge bg #FFEDD5 / text #9A3412 / border #FED7AA
+  //             details bg #FFF7ED / border #FED7AA
+  //
+  // Il logo mail.png ha alone viola, wordmark scuro: perfetto su card bianca.
   // ─────────────────────────────────────────────────────────────────────────
 
-  static const _logoUrl = 'https://www.onlistclub.com/mail-dark.png';
+  static const _logoUrl = 'https://www.onlistclub.com/mail.png';
 
-  /// CSS condiviso da tutti i template. Include gia' details-box e note-box
-  /// perche' aggiungere quelle regole non usate ha costo praticamente nullo
-  /// nel byte-count del messaggio.
   static const String _shellCss = '''
-    :root{color-scheme:dark;}
     html,body{margin:0!important;padding:0!important;width:100%!important;min-width:100%!important;height:100%!important;-webkit-text-size-adjust:100%;-ms-text-size-adjust:100%;}
-    body{background-color:transparent!important;color:#F2F7FC!important;}
+    body{background-color:#F5F6F8;color:#0F172A;}
     table,td{mso-table-lspace:0pt!important;mso-table-rspace:0pt!important;}
     img{border:0;height:auto;line-height:100%;outline:none;text-decoration:none;-ms-interpolation-mode:bicubic;}
     a{text-decoration:none;}
-    .outer-wrapper{background-color:transparent!important;background-image:none!important;}
-    .email-container,.details-box,.note-box{box-sizing:border-box!important;background-color:rgba(10,27,45,.94)!important;background-image:linear-gradient(155deg,rgba(0,119,255,.24) 0%,rgba(10,27,45,.90) 42%,rgba(10,27,45,.96) 100%)!important;border:1px solid #42A5FF!important;border-radius:22px!important;box-shadow:inset 0 1px 0 rgba(130,195,255,.48),0 18px 42px rgba(4,13,24,.42),0 0 22px rgba(0,119,255,.18)!important;}
-    .email-container{width:100%!important;max-width:600px!important;padding:36px 32px!important;background-color:#071421!important;background-image:linear-gradient(155deg,rgba(0,119,255,.10) 0%,rgba(7,20,33,.97) 42%,rgba(5,14,24,.99) 100%)!important;box-shadow:inset 0 1px 0 rgba(130,195,255,.28),0 18px 42px rgba(3,12,22,.62),0 0 30px rgba(0,119,255,.24)!important;}
-    .logo-light{display:block!important;width:240px!important;max-width:78%!important;height:auto!important;margin:0 auto!important;}
-    .text-title,.text-body,.text-bold-name,.details-value,.note-bold,.note-text,.footer-text{color:#F2F7FC!important;}
-    .details-label{color:#A9D6FF!important;}
+    .email-container{box-sizing:border-box!important;width:100%!important;max-width:600px!important;padding:36px 32px!important;background-color:#FFFFFF!important;border:1px solid #E4E7EB!important;border-radius:22px!important;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.06)!important;}
+    .logo-mark{display:block!important;width:200px!important;max-width:70%!important;height:auto!important;margin:0 auto!important;}
+    .heading-status-row{width:100%!important;table-layout:fixed!important;}
+    .heading-cell{width:56%!important;text-align:left!important;vertical-align:middle!important;}
+    .status-cell{width:44%!important;text-align:right!important;vertical-align:middle!important;}
+    .text-title{font-size:25px!important;color:#0F172A!important;}
+    .text-body{color:#334155!important;}
+    .text-bold-name{color:#0F172A!important;}
+    .badge-bg{box-sizing:border-box!important;width:auto!important;padding:6px 12px!important;border:1px solid #DDD6FE!important;border-radius:26px!important;background-color:#EDE9FE!important;text-align:center!important;vertical-align:middle!important;}
+    .badge-text{color:#5B21B6!important;font-size:13px!important;line-height:1.25!important;font-weight:700!important;letter-spacing:.02em!important;}
+    .badge-bg-ok{box-sizing:border-box!important;width:auto!important;padding:6px 12px!important;border:1px solid #BBF7D0!important;border-radius:26px!important;background-color:#DCFCE7!important;text-align:center!important;vertical-align:middle!important;}
+    .badge-text-ok{color:#166534!important;font-size:13px!important;line-height:1.25!important;font-weight:700!important;letter-spacing:.02em!important;}
+    .badge-bg-warn{box-sizing:border-box!important;width:auto!important;padding:6px 12px!important;border:1px solid #FED7AA!important;border-radius:26px!important;background-color:#FFEDD5!important;text-align:center!important;vertical-align:middle!important;}
+    .badge-text-warn{color:#9A3412!important;font-size:13px!important;line-height:1.25!important;font-weight:700!important;letter-spacing:.02em!important;}
+    .details-box{background-color:#F8FAFC!important;border:1px solid #E4E7EB!important;border-radius:16px!important;}
+    .details-label{color:#64748B!important;}
+    .details-value{color:#0F172A!important;}
     .detail-cell:first-child{padding-right:16px!important;}
     .detail-cell:nth-child(2){padding-left:16px!important;}
-    .footer-divider{border-top-color:rgba(130,195,255,.42)!important;}
-    .footer-link{color:#C7E6FF!important;text-decoration:underline!important;}
-    .heading-status-row{width:100%!important;table-layout:fixed!important;}
-    .heading-cell{width:48%!important;text-align:left!important;vertical-align:middle!important;}
-    .status-cell{width:52%!important;text-align:right!important;vertical-align:middle!important;}
-    .heading-cell .text-title{font-size:25px!important;}
-    .badge-bg{box-sizing:border-box!important;width:auto!important;padding:6px 9px!important;border:1px solid rgba(130,195,255,.42)!important;border-radius:26px!important;background-color:#0B1B2D!important;background-image:linear-gradient(150deg,rgba(0,119,255,.14),rgba(10,27,45,.96))!important;box-shadow:inset 0 1px 0 rgba(130,195,255,.3)!important;text-align:center!important;vertical-align:middle!important;}
-    .badge-text{color:#F2F7FC!important;font-size:16px!important;line-height:1.25!important;font-weight:700!important;}
-    .badge-bg-ok{box-sizing:border-box!important;width:auto!important;padding:6px 9px!important;border:1px solid rgba(134,239,172,.55)!important;border-radius:26px!important;background-color:#0E2016!important;background-image:linear-gradient(150deg,rgba(22,163,74,.28),rgba(10,27,45,.96))!important;box-shadow:inset 0 1px 0 rgba(134,239,172,.35)!important;text-align:center!important;vertical-align:middle!important;}
-    .badge-text-ok{color:#B7F5C7!important;font-size:16px!important;line-height:1.25!important;font-weight:700!important;}
-    .badge-bg-warn{box-sizing:border-box!important;width:auto!important;padding:6px 9px!important;border:1px solid rgba(253,186,116,.55)!important;border-radius:26px!important;background-color:#241610!important;background-image:linear-gradient(150deg,rgba(234,88,12,.30),rgba(10,27,45,.96))!important;box-shadow:inset 0 1px 0 rgba(253,186,116,.35)!important;text-align:center!important;vertical-align:middle!important;}
-    .badge-text-warn{color:#FDE1B2!important;font-size:16px!important;line-height:1.25!important;font-weight:700!important;}
-    .note-box{width:84%!important;margin-left:auto!important;margin-right:auto!important;}
-    .cta-cell{background:#0077FF!important;background-image:linear-gradient(135deg,#005CC8 0%,#0049A3 52%,#00377C 100%)!important;border-radius:999px!important;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 8px rgba(255,255,255,.28),0 0 18px rgba(255,255,255,.16),0 8px 20px rgba(255,255,255,.10)!important;}
-    .cta-link{display:block!important;min-height:48px!important;box-sizing:border-box!important;padding:14px 20px!important;font-size:15px!important;line-height:1.4!important;font-weight:600!important;letter-spacing:.3px!important;color:#FFFFFF!important;}
+    .note-box{background-color:#F5F3FF!important;border:1px solid #DDD6FE!important;border-radius:14px!important;}
+    .note-text{color:#4B5563!important;}
+    .note-bold{color:#0F172A!important;}
+    .cta-cell{background:#4F46E5!important;background-image:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%)!important;border-radius:999px!important;box-shadow:0 6px 16px rgba(79,70,229,.28)!important;}
+    .cta-link{display:block!important;min-height:48px!important;box-sizing:border-box!important;padding:14px 20px!important;font-size:15px!important;line-height:1.4!important;font-weight:600!important;letter-spacing:.2px!important;color:#FFFFFF!important;}
+    .footer-divider{border-top:1px solid #E4E7EB!important;}
+    .footer-text{color:#64748B!important;}
+    .footer-link{color:#4F46E5!important;}
     @media only screen and (max-width:600px){
-      .outer-wrapper-cell{vertical-align:middle!important;padding:12px 8px!important;}
-      .email-container{padding:14px 12px!important;}
-      .header-logo-cell{padding-bottom:12px!important;}
-      .logo-light{width:190px!important;}
+      .outer-wrapper-cell{padding:16px 10px!important;}
+      .email-container{padding:22px 18px!important;border-radius:18px!important;}
+      .logo-mark{width:170px!important;}
       .heading-cell,.status-cell{display:table-cell!important;vertical-align:middle!important;}
-      .heading-cell{width:57%!important;text-align:left!important;}
-      .status-cell{width:43%!important;text-align:center!important;}
-      .heading-cell .text-title{font-size:24px!important;line-height:1.2!important;}
-      .badge-bg,.badge-bg-ok,.badge-bg-warn{padding:4px 6px!important;}
-      .badge-text,.badge-text-ok,.badge-text-warn{font-size:12px!important;letter-spacing:0!important;line-height:1.1!important;white-space:nowrap!important;}
-      .text-body{font-size:14px!important;line-height:1.4!important;}
+      .heading-cell{width:60%!important;}
+      .status-cell{width:40%!important;text-align:center!important;}
+      .text-title{font-size:22px!important;line-height:1.2!important;}
+      .badge-bg,.badge-bg-ok,.badge-bg-warn{padding:4px 8px!important;}
+      .badge-text,.badge-text-ok,.badge-text-warn{font-size:11px!important;letter-spacing:0!important;line-height:1.1!important;white-space:nowrap!important;}
+      .text-body{font-size:14px!important;line-height:1.5!important;}
       .details-box{padding:12px!important;}
       .detail-cell:first-child{padding-right:6px!important;}
       .detail-cell:nth-child(2){padding-left:6px!important;}
       .details-value{font-size:14px!important;}
-      .cta-link{min-height:42px!important;padding:10px 14px!important;}
-      .note-box{width:100%!important;padding:12px 12px!important;}
-      .note-text{font-size:12px!important;line-height:1.35!important;}
-      .footer-divider{padding-top:14px!important;}
+      .cta-link{min-height:42px!important;padding:12px 16px!important;}
+      .note-text{font-size:12px!important;line-height:1.4!important;}
       .footer-text{font-size:11px!important;line-height:1.3!important;}
     }
     @media only screen and (max-width:360px){
       .heading-cell,.status-cell{display:block!important;width:100%!important;text-align:center!important;}
-      .heading-cell .text-title{text-align:center!important;}
-      .status-cell{padding-top:8px!important;}
+      .status-cell{padding-top:10px!important;}
     }
 ''';
 
@@ -281,32 +280,32 @@ class MessagingService {
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <meta name="color-scheme" content="dark">
-  <meta name="supported-color-schemes" content="dark">
+  <meta name="color-scheme" content="light">
+  <meta name="supported-color-schemes" content="light">
   <meta name="x-apple-disable-message-reformatting">
   <title>$title</title>
   <!--[if mso]><noscript><xml><o:OfficeDocumentSettings><o:PixelsPerInch>96</o:PixelsPerInch></o:OfficeDocumentSettings></xml></noscript><![endif]-->
   <style>$_shellCss</style>
 </head>
-<body style="background:transparent;background-color:transparent;margin:0;padding:0;width:100%;min-width:100%;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<body style="margin:0;padding:0;width:100%;min-width:100%;background-color:#F5F6F8;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;color:#0F172A;">
   <span style="display:none;font-size:1px;color:transparent;line-height:1px;max-height:0px;max-width:0px;opacity:0;overflow:hidden;">$preheader</span>
-  <table class="outer-wrapper" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" style="width:100%;min-width:100%;height:100%;table-layout:fixed;background-color:transparent;background-image:none;">
+  <table role="presentation" width="100%" height="100%" cellpadding="0" cellspacing="0" border="0" bgcolor="#F5F6F8" style="width:100%;min-width:100%;height:100%;background-color:#F5F6F8;">
     <tr>
-      <td align="center" valign="middle" class="outer-wrapper-cell" style="padding:28px 16px;vertical-align:middle;">
-        <table bgcolor="#071421" class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box;width:100%;max-width:560px;background-color:#071421;background-image:linear-gradient(155deg,rgba(0,119,255,.10) 0%,rgba(7,20,33,.97) 42%,rgba(5,14,24,.99) 100%);border:1px solid #42A5FF;border-radius:22px;padding:36px 32px;box-shadow:inset 0 1px 0 rgba(130,195,255,.28),0 18px 42px rgba(3,12,22,.62),0 0 30px rgba(0,119,255,.24);">
+      <td align="center" valign="top" class="outer-wrapper-cell" style="padding:32px 16px;">
+        <table bgcolor="#FFFFFF" class="email-container" width="100%" cellpadding="0" cellspacing="0" border="0" style="box-sizing:border-box;width:100%;max-width:560px;background-color:#FFFFFF;border:1px solid #E4E7EB;border-radius:22px;padding:36px 32px;box-shadow:0 1px 2px rgba(15,23,42,.04),0 12px 32px rgba(15,23,42,.06);">
           <tr>
-            <td class="header-logo-cell" align="center" style="padding-bottom:28px;">
-              <img class="logo-light" src="$_logoUrl" alt="OnListClub" width="240" height="102" style="display:block;width:240px;max-width:78%;height:102px;border:0;margin:0 auto;">
+            <td align="center" style="padding-bottom:28px;">
+              <img class="logo-mark" src="$_logoUrl" alt="OnListClub" width="200" style="display:block;width:200px;max-width:70%;height:auto;border:0;margin:0 auto;">
             </td>
           </tr>
           $cardContent
           <tr>
-            <td class="footer-divider" style="border-top:1px solid rgba(130,195,255,.42);padding-top:22px;" align="center">
-              <p class="footer-text" style="margin:0 0 6px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;text-align:center;">
+            <td class="footer-divider" style="border-top:1px solid #E4E7EB;padding-top:22px;" align="center">
+              <p class="footer-text" style="margin:0 0 6px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;text-align:center;color:#64748B;">
                 OnListClub. Prenota tavoli, prevendite e drink nei migliori locali.
               </p>
-              <p class="footer-text" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;text-align:center;">
-                Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="text-decoration:underline;color:#C7E6FF;" target="_blank">info@onlistclub.com</a>
+              <p class="footer-text" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:12px;text-align:center;color:#64748B;">
+                Hai domande? Scrivici a <a href="mailto:info@onlistclub.com" class="footer-link" style="color:#4F46E5;text-decoration:none;" target="_blank">info@onlistclub.com</a>
               </p>
             </td>
           </tr>
@@ -317,32 +316,53 @@ class MessagingService {
 </body>
 </html>''';
 
-  /// Row del titolo con badge affiancato a destra.
-  /// [badgeClass] sceglie il colore: `badge-bg` (blu), `badge-bg-ok` (verde),
-  /// `badge-bg-warn` (arancio). [badgeTextClass] segue lo stesso pattern.
+  /// Row heading (sx) + badge (dx). [badgeVariant] "default"|"ok"|"warn"
+  /// controlla i colori del badge.
   static String _headingWithBadge({
     required String title,
     required String badgeLabel,
-    String badgeClass = 'badge-bg',
-    String badgeTextClass = 'badge-text',
-    String badgeInlineBg = '#0B1B2D',
-    String badgeInlineBorder = 'rgba(130,195,255,.42)',
-    String badgeInlineGrad = 'linear-gradient(150deg,rgba(0,119,255,.14),rgba(10,27,45,.96))',
-    String badgeInlineShadow = 'inset 0 1px 0 rgba(130,195,255,.3)',
-    String badgeInlineTextColor = '#F2F7FC',
-  }) => '''
+    String badgeVariant = 'default',
+  }) {
+    late String badgeClass;
+    late String badgeTextClass;
+    late String badgeBg;
+    late String badgeBorder;
+    late String badgeTextColor;
+    switch (badgeVariant) {
+      case 'ok':
+        badgeClass = 'badge-bg-ok';
+        badgeTextClass = 'badge-text-ok';
+        badgeBg = '#DCFCE7';
+        badgeBorder = '#BBF7D0';
+        badgeTextColor = '#166534';
+        break;
+      case 'warn':
+        badgeClass = 'badge-bg-warn';
+        badgeTextClass = 'badge-text-warn';
+        badgeBg = '#FFEDD5';
+        badgeBorder = '#FED7AA';
+        badgeTextColor = '#9A3412';
+        break;
+      default:
+        badgeClass = 'badge-bg';
+        badgeTextClass = 'badge-text';
+        badgeBg = '#EDE9FE';
+        badgeBorder = '#DDD6FE';
+        badgeTextColor = '#5B21B6';
+    }
+    return '''
           <tr>
-            <td style="padding-bottom:14px;">
+            <td style="padding-bottom:16px;">
               <table class="heading-status-row" width="100%" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:100%;table-layout:fixed;">
                 <tr>
-                  <td class="heading-cell" width="48%" align="left" valign="middle">
-                    <h1 class="text-title" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:26px;line-height:1.25;font-weight:700;">$title</h1>
+                  <td class="heading-cell" align="left" valign="middle" style="width:56%;text-align:left;vertical-align:middle;">
+                    <h1 class="text-title" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:26px;line-height:1.25;font-weight:700;color:#0F172A;">$title</h1>
                   </td>
-                  <td class="status-cell" width="52%" align="right" valign="middle">
+                  <td class="status-cell" align="right" valign="middle" style="width:44%;text-align:right;vertical-align:middle;">
                     <table align="right" cellpadding="0" cellspacing="0" border="0" role="presentation" style="width:auto;margin:0 0 0 auto;">
                       <tr>
-                        <td class="$badgeClass" valign="middle" style="border:1px solid $badgeInlineBorder;border-radius:26px;padding:6px 9px;background-color:$badgeInlineBg;background-image:$badgeInlineGrad;box-shadow:$badgeInlineShadow;text-align:center;vertical-align:middle;">
-                          <span class="$badgeTextClass" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;line-height:1.25;color:$badgeInlineTextColor;">$badgeLabel</span>
+                        <td class="$badgeClass" valign="middle" bgcolor="$badgeBg" style="border:1px solid $badgeBorder;border-radius:26px;padding:6px 12px;background-color:$badgeBg;text-align:center;vertical-align:middle;">
+                          <span class="$badgeTextClass" style="font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;font-weight:700;line-height:1.25;color:$badgeTextColor;letter-spacing:.02em;">$badgeLabel</span>
                         </td>
                       </tr>
                     </table>
@@ -352,11 +372,12 @@ class MessagingService {
             </td>
           </tr>
 ''';
+  }
 
-  static String _body(String htmlInside, {int paddingBottom = 24, int fontSize = 15}) => '''
+  static String _body(String innerHtml, {int paddingBottom = 24, int fontSize = 15}) => '''
           <tr>
             <td align="left" style="padding-bottom:${paddingBottom}px;">
-              <p class="text-body" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:${fontSize}px;line-height:1.6;">$htmlInside</p>
+              <p class="text-body" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:${fontSize}px;line-height:1.6;color:#334155;">$innerHtml</p>
             </td>
           </tr>
 ''';
@@ -365,26 +386,42 @@ class MessagingService {
           <tr>
             <td style="padding-bottom:${paddingBottom}px;">
               <table width="100%" cellpadding="0" cellspacing="0" border="0"><tr>
-                <td align="center" class="cta-cell" style="background:#0077FF;background-color:#0077FF;background-image:linear-gradient(135deg,#005CC8 0%,#0049A3 52%,#00377C 100%);border-radius:999px;box-shadow:inset 0 1px 0 rgba(255,255,255,.22),0 0 8px rgba(255,255,255,.28),0 0 18px rgba(255,255,255,.16),0 8px 20px rgba(255,255,255,.10);">
-                  <a href="$href" class="cta-link" style="display:block;min-height:48px;box-sizing:border-box;padding:14px 20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:600;letter-spacing:.3px;text-decoration:none;color:#FFFFFF;text-align:center;" target="_blank">${_escHtml(label)}</a>
+                <td align="center" class="cta-cell" bgcolor="#4F46E5" style="background:#4F46E5;background-color:#4F46E5;background-image:linear-gradient(135deg,#4F46E5 0%,#7C3AED 100%);border-radius:999px;box-shadow:0 6px 16px rgba(79,70,229,.28);">
+                  <a href="$href" class="cta-link" style="display:block;min-height:48px;box-sizing:border-box;padding:14px 20px;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:15px;line-height:1.4;font-weight:600;letter-spacing:.2px;text-decoration:none;color:#FFFFFF;text-align:center;" target="_blank">${_escHtml(label)}</a>
                 </td>
               </tr></table>
             </td>
           </tr>
 ''';
 
-  static String _detailCell(String label, String value, {bool bottomPadded = true}) {
+  static String _detailCell(String label, String value, {bool bottomPadded = true, String labelColor = '#64748B'}) {
     final pb = bottomPadded ? 'padding-bottom:18px;' : '';
     return '<td class="detail-cell" width="50%" style="${pb}vertical-align:top;">'
-        '<p class="details-label" style="margin:0 0 4px;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.08em;color:#A9D6FF;">${_escHtml(label)}</p>'
-        '<p class="details-value" style="margin:0;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:#F2F7FC;">$value</p>'
+        '<p class="details-label" style="margin:0 0 4px;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:11px;font-weight:400;text-transform:uppercase;letter-spacing:0.08em;color:$labelColor;">${_escHtml(label)}</p>'
+        '<p class="details-value" style="margin:0;font-family:\'Helvetica Neue\',Helvetica,Arial,sans-serif;font-size:16px;font-weight:700;color:#0F172A;">$value</p>'
         '</td>';
   }
 
   static String _emptyCell() =>
       '<td class="detail-cell" width="50%" style="vertical-align:top;"></td>';
 
-  static String _detailsBox(List<List<String>> rows) {
+  /// details-box con [variant] "default"|"ok"|"warn" per i colori
+  static String _detailsBox(List<List<String>> rows, {String variant = 'default'}) {
+    late String bg;
+    late String border;
+    switch (variant) {
+      case 'ok':
+        bg = '#F0FDF4';
+        border = '#BBF7D0';
+        break;
+      case 'warn':
+        bg = '#FFF7ED';
+        border = '#FED7AA';
+        break;
+      default:
+        bg = '#F8FAFC';
+        border = '#E4E7EB';
+    }
     final rowsHtml = rows.map((cells) {
       final left = cells.isNotEmpty ? cells[0] : _emptyCell();
       final right = cells.length > 1 ? cells[1] : _emptyCell();
@@ -393,7 +430,7 @@ class MessagingService {
     return '''
           <tr>
             <td style="padding-bottom:24px;">
-              <table bgcolor="#0B1B2D" class="details-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:rgba(10,27,45,.94);background-image:linear-gradient(155deg,rgba(0,119,255,.24) 0%,rgba(10,27,45,.90) 42%,rgba(10,27,45,.96) 100%);border:1px solid #42A5FF;border-radius:22px;padding:20px 20px;box-shadow:inset 0 1px 0 rgba(130,195,255,.48),0 18px 42px rgba(4,13,24,.42),0 0 22px rgba(0,119,255,.18);">
+              <table bgcolor="$bg" class="details-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:$bg;border:1px solid $border;border-radius:16px;padding:20px;">
                 $rowsHtml
               </table>
             </td>
@@ -401,13 +438,13 @@ class MessagingService {
 ''';
   }
 
-  static String _noteBox(String htmlInside) => '''
+  static String _noteBox(String innerHtml) => '''
           <tr>
             <td style="padding-bottom:28px;">
-              <table align="center" bgcolor="#0B1B2D" class="note-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:rgba(10,27,45,.94);background-image:linear-gradient(155deg,rgba(0,119,255,.24) 0%,rgba(10,27,45,.90) 42%,rgba(10,27,45,.96) 100%);border:1px solid #42A5FF;border-radius:22px;padding:13px 16px;box-shadow:inset 0 1px 0 rgba(130,195,255,.48),0 18px 42px rgba(4,13,24,.42),0 0 22px rgba(0,119,255,.18);">
+              <table bgcolor="#F5F3FF" class="note-box" width="100%" cellpadding="0" cellspacing="0" border="0" style="background-color:#F5F3FF;border:1px solid #DDD6FE;border-radius:14px;padding:14px 16px;">
                 <tr>
                   <td align="center" style="text-align:center;">
-                    <p class="note-text" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;text-align:center;color:#F2F7FC;">$htmlInside</p>
+                    <p class="note-text" style="margin:0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;font-size:13px;line-height:1.5;text-align:center;color:#4B5563;">$innerHtml</p>
                   </td>
                 </tr>
               </table>
@@ -418,13 +455,10 @@ class MessagingService {
   // ── Welcome ────────────────────────────────────────────────────────────────
   static String _buildWelcomeHtml(String nome) {
     final card =
-        _headingWithBadge(
-          title: 'Sei dentro, ${_escHtml(nome)}.',
-          badgeLabel: 'Benvenuto',
-        ) +
+        _headingWithBadge(title: 'Sei dentro, ${_escHtml(nome)}.', badgeLabel: 'Benvenuto') +
         _body(
           "Il tuo account OnListClub e' attivo. Puoi prenotare tavoli, acquistare prevendite e ordinare drink nei migliori club della tua citta', direttamente dall'app.",
-          paddingBottom: 20,
+          paddingBottom: 16,
         ) +
         _body("Apri l'app e scegli il tuo locale.", paddingBottom: 24) +
         _ctaButton('Apri OnListClub', 'onlistclub://home');
@@ -475,17 +509,14 @@ class MessagingService {
     final saluto = _salutoPrevendita(dataEventoDt);
 
     final card =
-        _headingWithBadge(
-          title: _escHtml(saluto),
-          badgeLabel: 'Prevendita confermata',
-        ) +
+        _headingWithBadge(title: _escHtml(saluto), badgeLabel: 'Prevendita confermata') +
         _body(
-          '<strong class="text-bold-name" style="color:#F2F7FC;font-weight:700;">${_escHtml(nome)}</strong>, la tua prevendita e\' confermata.<br>Ecco il riepilogo:',
+          '<strong class="text-bold-name" style="color:#0F172A;font-weight:700;">${_escHtml(nome)}</strong>, la tua prevendita e\' confermata.<br>Ecco il riepilogo:',
         ) +
         _detailsBox(rows) +
         _ctaButton("Vedi il tuo biglietto nell'app", orderLink, paddingBottom: 24) +
         _noteBox(
-          'Mostra il QR code all\'ingresso.<br>Aprilo dalla sezione <strong class="note-bold" style="color:#F2F7FC;font-weight:700;">Ordini</strong> nell\'app OnListClub.',
+          'Mostra il QR code all\'ingresso.<br>Aprilo dalla sezione <strong class="note-bold" style="color:#0F172A;font-weight:700;">Ordini</strong> nell\'app OnListClub.',
         );
     return _htmlShell(
       preheader:
@@ -503,26 +534,20 @@ class MessagingService {
     required String checkinTime,
   }) {
     final rows = <List<String>>[
-      [_detailCell('Locale', _escHtml(localeNome)), _detailCell('Serata', _escHtml(eventoNome))],
-      [_detailCell('Check-in', _escHtml(checkinTime), bottomPadded: false), _emptyCell()],
+      [_detailCell('Locale', _escHtml(localeNome), labelColor: '#166534'), _detailCell('Serata', _escHtml(eventoNome), labelColor: '#166534')],
+      [_detailCell('Check-in', _escHtml(checkinTime), bottomPadded: false, labelColor: '#166534'), _emptyCell()],
     ];
 
     final card =
         _headingWithBadge(
           title: 'Sei entrato.',
           badgeLabel: 'Ingresso confermato',
-          badgeClass: 'badge-bg-ok',
-          badgeTextClass: 'badge-text-ok',
-          badgeInlineBg: '#0E2016',
-          badgeInlineBorder: 'rgba(134,239,172,.55)',
-          badgeInlineGrad: 'linear-gradient(150deg,rgba(22,163,74,.28),rgba(10,27,45,.96))',
-          badgeInlineShadow: 'inset 0 1px 0 rgba(134,239,172,.35)',
-          badgeInlineTextColor: '#B7F5C7',
+          badgeVariant: 'ok',
         ) +
         _body(
-          '<strong class="text-bold-name" style="color:#F2F7FC;font-weight:700;">${_escHtml(nome)}</strong>, il tuo biglietto e\' stato scannerizzato all\'ingresso.',
+          '<strong class="text-bold-name" style="color:#0F172A;font-weight:700;">${_escHtml(nome)}</strong>, il tuo biglietto e\' stato scannerizzato all\'ingresso.',
         ) +
-        _detailsBox(rows);
+        _detailsBox(rows, variant: 'ok');
 
     return _htmlShell(
       preheader:
@@ -540,28 +565,22 @@ class MessagingService {
     required String firstScanTime,
   }) {
     final rows = <List<String>>[
-      [_detailCell('Locale', _escHtml(localeNome)), _detailCell('Serata', _escHtml(eventoNome))],
-      [_detailCell('Prima scansione', _escHtml(firstScanTime), bottomPadded: false), _emptyCell()],
+      [_detailCell('Locale', _escHtml(localeNome), labelColor: '#9A3412'), _detailCell('Serata', _escHtml(eventoNome), labelColor: '#9A3412')],
+      [_detailCell('Prima scansione', _escHtml(firstScanTime), bottomPadded: false, labelColor: '#9A3412'), _emptyCell()],
     ];
 
     final card =
         _headingWithBadge(
           title: 'Scansione non accettata.',
           badgeLabel: "Biglietto gia' usato",
-          badgeClass: 'badge-bg-warn',
-          badgeTextClass: 'badge-text-warn',
-          badgeInlineBg: '#241610',
-          badgeInlineBorder: 'rgba(253,186,116,.55)',
-          badgeInlineGrad: 'linear-gradient(150deg,rgba(234,88,12,.30),rgba(10,27,45,.96))',
-          badgeInlineShadow: 'inset 0 1px 0 rgba(253,186,116,.35)',
-          badgeInlineTextColor: '#FDE1B2',
+          badgeVariant: 'warn',
         ) +
         _body(
-          '<strong class="text-bold-name" style="color:#F2F7FC;font-weight:700;">${_escHtml(nome)}</strong>, il tuo biglietto e\' stato rifiutato all\'ingresso perche\' e\' gia\' stato utilizzato.',
+          '<strong class="text-bold-name" style="color:#0F172A;font-weight:700;">${_escHtml(nome)}</strong>, il tuo biglietto e\' stato rifiutato all\'ingresso perche\' e\' gia\' stato utilizzato.',
         ) +
-        _detailsBox(rows) +
+        _detailsBox(rows, variant: 'warn') +
         _body(
-          '<strong class="text-bold-name" style="color:#F2F7FC;font-weight:700;">Non sei stato tu?</strong><br>Se non riconosci questo accesso, il tuo QR potrebbe essere stato condiviso. Contattaci subito.',
+          '<strong class="text-bold-name" style="color:#0F172A;font-weight:700;">Non sei stato tu?</strong><br>Se non riconosci questo accesso, il tuo QR potrebbe essere stato condiviso. Contattaci subito.',
           paddingBottom: 24,
           fontSize: 14,
         ) +
