@@ -13,6 +13,7 @@ import '../../widgets/phone_field/onlist_phone_field.dart';
 import '../../widgets/phone_field/phone_country.dart';
 import '../../core/services/analytics_service.dart';
 import '../../core/services/account_deletion_service.dart';
+import '../../core/services/apple_identity_service.dart';
 import '../../core/services/auth_service.dart';
 // NOTIFICHE DISATTIVATE (MVP): usato solo dalla voce notifiche commentata.
 // import '../../core/services/badge_service.dart';
@@ -1256,6 +1257,73 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     }
   }
 
+  // ── Collega Apple ───────────────────────────────────────────────────────
+  // Vedi [AppleIdentityService]: aggiunge Apple come metodo d'accesso di
+  // QUESTO account, così un login Apple con email nascosta non ne crea un altro.
+  bool _linkingApple = false;
+
+  Widget _buildAppleLinkTile() {
+    if (AppleIdentityService.isAppleLinked()) {
+      return _buildActionTile(
+        icon: Icons.apple,
+        label: 'Apple collegato',
+        subtitle: 'Puoi accedere anche con Apple',
+        onTap: null,
+      );
+    }
+    return _buildActionTile(
+      icon: Icons.apple,
+      label: 'Collega Apple',
+      subtitle:
+          _linkingApple ? 'Collegamento in corso...' : 'Accedi anche con Apple',
+      onTap: _linkingApple ? null : _linkApple,
+    );
+  }
+
+  Future<void> _linkApple() async {
+    setState(() => _linkingApple = true);
+    final result = await AppleIdentityService.linkApple();
+    if (!mounted) return;
+    setState(() => _linkingApple = false);
+
+    switch (result) {
+      case AppleLinkResult.linked:
+        AnalyticsService.log(event: 'apple_linked');
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Row(
+              children: [
+                const Icon(Icons.apple, color: OnlistColors.white, size: 20),
+                const SizedBox(width: 10),
+                Expanded(
+                  child: Text(
+                    'Apple collegato. Ora puoi accedere anche con Apple.',
+                    style: OnlistTextStyles.hn(color: OnlistColors.white),
+                  ),
+                ),
+              ],
+            ),
+            backgroundColor: OnlistColors.blueElectric,
+            behavior: SnackBarBehavior.floating,
+            shape:
+                RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+          ),
+        );
+      case AppleLinkResult.canceled:
+        break;
+      case AppleLinkResult.alreadyUsed:
+        showAppErrorDialog(
+          context,
+          'Questo Apple ID è già usato da un altro account OnListClub. '
+          'Per unirli scrivi a info@onlistclub.com.',
+        );
+      case AppleLinkResult.linkingDisabled:
+      case AppleLinkResult.failed:
+        showAppErrorDialog(
+            context, 'Non è stato possibile collegare Apple. Riprova.');
+    }
+  }
+
   // ── Azioni account ──────────────────────────────────────────────────────
   // Il Figma dell'Account copre solo la parte alta ("Account aggiornato ma solo
   // parte sopra"): per queste righe non esistono valori CSS. Stile derivato dai
@@ -1282,6 +1350,9 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
         subtitle: 'Aggiorna la tua password',
         onTap: _changePassword,
       ),
+      // Solo iOS, come il pulsante Apple del login. Collegare Apple qui evita
+      // che un accesso con "Nascondi la mia email" crei un secondo account.
+      if (Platform.isIOS) _buildAppleLinkTile(),
       // Privacy e opt-out analytics: art. 21 GDPR — l'utente può disattivare
       // la raccolta di analytics interne in qualsiasi momento. Vedi
       // [AnalyticsService.setOptedOut] e la sezione "Se usi l'app mobile"
@@ -1409,7 +1480,8 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
     required String label,
     String? subtitle,
     Color color = OnlistColors.white,
-    required VoidCallback onTap,
+    // null = riga informativa: niente tap e niente chevron.
+    required VoidCallback? onTap,
   }) {
     final bool isDestructive = color != OnlistColors.white;
     return InkWell(
@@ -1459,13 +1531,14 @@ class _ProfileScreenState extends State<ProfileScreen> with ScreenAnalytics {
                   ],
                 ),
               ),
-              Icon(
-                Icons.chevron_right,
-                color: isDestructive
-                    ? color.withValues(alpha: 0.6)
-                    : OnlistColors.white.withValues(alpha: 0.35),
-                size: R.sp(20),
-              ),
+              if (onTap != null)
+                Icon(
+                  Icons.chevron_right,
+                  color: isDestructive
+                      ? color.withValues(alpha: 0.6)
+                      : OnlistColors.white.withValues(alpha: 0.35),
+                  size: R.sp(20),
+                ),
             ],
           ),
         ),

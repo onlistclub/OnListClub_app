@@ -1,6 +1,3 @@
-import 'dart:math';
-import 'dart:convert';
-import 'package:crypto/crypto.dart';
 import 'package:flutter/material.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import 'package:sign_in_with_apple/sign_in_with_apple.dart';
@@ -10,6 +7,7 @@ import 'package:supabase_flutter/supabase_flutter.dart';
 import '../../../core/services/user_profile_manager.dart';
 import '../../../core/services/register_service.dart';
 import '../../../core/services/analytics_service.dart';
+import '../../../core/services/apple_identity_service.dart';
 // La config Google (client/server ID) è applicata una volta in main.dart via
 // GoogleSignIn.instance.initialize(): qui basta chiamare authenticate().
 
@@ -33,18 +31,6 @@ class AuthenticationBloc
     on<RegisterButtonPressedEvent>(_onRegisterButtonPressed);
     on<GoogleSignInEvent>(_onGoogleSignIn);
     on<AppleSignInEvent>(_onAppleSignIn);
-  }
-
-  String _generateNonce([int length = 32]) {
-    const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789';
-    final random = Random.secure();
-    return List.generate(length, (_) => chars[random.nextInt(chars.length)]).join();
-  }
-
-  String _sha256ofString(String input) {
-    final bytes = utf8.encode(input);
-    final digest = sha256.convert(bytes);
-    return digest.toString();
   }
 
   Future<void> _handlePostOAuthLogin(Emitter<AuthenticationState> emit) async {
@@ -310,8 +296,8 @@ class AuthenticationBloc
       // rawNonce viene generato qui e l'hash sha256 viene inviato ad Apple.
       // Supabase verifica server-side che l'hash del rawNonce passato coincida
       // con il nonce dentro l'idToken: questo previene replay attack.
-      final rawNonce = _generateNonce();
-      final hashedNonce = _sha256ofString(rawNonce);
+      final rawNonce = AppleIdentityService.generateNonce();
+      final hashedNonce = AppleIdentityService.sha256Of(rawNonce);
       final credential = await SignInWithApple.getAppleIDCredential(
         scopes: [
           AppleIDAuthorizationScopes.email,
