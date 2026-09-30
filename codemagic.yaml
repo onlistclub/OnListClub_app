@@ -1,0 +1,59 @@
+# Build iOS firmata e caricata su App Store Connect / TestFlight.
+#
+# Si avvia a mano dalla dashboard di Codemagic ("Start new build", workflow
+# "iOS TestFlight"). La build finisce su TestFlight ed è la stessa che poi si
+# manda in revisione per l'App Store.
+#
+# Prerequisiti su Codemagic (una volta sola):
+#   - Team settings → Integrations → Developer Portal: chiave API di App Store
+#     Connect (ruolo Admin o App Manager) salvata col nome "OnListClub ASC".
+#     Con quella Codemagic crea da solo certificato e profilo di distribuzione.
+#   - App settings → Environment variables, gruppo "onlist_env":
+#     SUPABASE_URL, SUPABASE_ANON_KEY, GOOGLE_WEB_CLIENT_ID, GOOGLE_IOS_CLIENT_ID
+#     (gli stessi valori dei Secrets usati da .github/workflows/ios.yml).
+
+workflows:
+  ios-testflight:
+    name: iOS TestFlight
+    instance_type: mac_mini_m2
+    max_build_duration: 60
+    integrations:
+      app_store_connect: OnListClub ASC
+    environment:
+      groups:
+        - onlist_env
+      ios_signing:
+        distribution_type: app_store
+        bundle_identifier: com.onlistclub.app
+      flutter: stable
+      # device_info_plus 13.x richiede l'SDK iOS 26.1 (vedi ios.yml).
+      xcode: latest
+    scripts:
+      - name: Placeholder env.json
+        # env.json è un asset dichiarato in pubspec.yaml ma gitignored:
+        # la config vera arriva dai --dart-define.
+        script: echo '{}' > env.json
+      - name: Flutter pub get
+        script: flutter pub get
+      - name: Profili di firma nel progetto Xcode
+        script: xcode-project use-profiles
+      - name: Build IPA
+        # $BUILD_NUMBER è il contatore delle build di Codemagic: cresce a ogni
+        # build, quindi App Store Connect non rifiuta mai un numero già usato.
+        script: |
+          flutter build ipa --release \
+            --build-number=$BUILD_NUMBER \
+            --export-options-plist=/Users/builder/export_options.plist \
+            --dart-define=SUPABASE_URL=$SUPABASE_URL \
+            --dart-define=SUPABASE_ANON_KEY=$SUPABASE_ANON_KEY \
+            --dart-define=GOOGLE_WEB_CLIENT_ID=$GOOGLE_WEB_CLIENT_ID \
+            --dart-define=GOOGLE_IOS_CLIENT_ID=$GOOGLE_IOS_CLIENT_ID
+    artifacts:
+      - build/ios/ipa/*.ipa
+      - /tmp/xcodebuild_logs/*.log
+    publishing:
+      app_store_connect:
+        auth: integration
+        # I tester interni ricevono la build senza revisione Apple.
+        # true = la manda anche alla beta review per i tester esterni.
+        submit_to_testflight: false
